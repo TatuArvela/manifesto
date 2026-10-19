@@ -8,6 +8,13 @@ A persistent "Take a note..." input bar sits at the top of the note grid. On foc
 
 The draft is kept on the device as it is written, and comes back the next time the pad is opened, so a reload, a closed tab or a phone putting the app away loses nothing. Saving or discarding the note clears it. One draft is kept a device: two tabs writing at once keep whichever wrote last. A note shared to the installed app opens in the pad in its place, and a draft already kept is then saved as a note of its own.
 
+A note can also be started from the board without opening the pad first:
+
+- **Pasting** with nothing focused to type in and no note, dialog or menu open opens the pad with the clipboard in it: its text as the note's text (its links become preview cards as they would in the pad) and its pictures attached. A paste into a field or an open note is that field's.
+- **Dropping pictures** anywhere on the window, with no note open, opens the pad with them attached; the drop zone says so while they are dragged over. Dropping anything else imports it, as before ([Export / Import](export-import.md)).
+
+Either goes to the notes view if another is showing, and keeps a tag being looked at there. Pictures are shrunk and checked as an attached one is ([Attachments](attachments.md)).
+
 In connected mode a new note is queued on the device before it is sent, so one written while the server cannot be reached is not lost. It is sent as soon as there is reason to think the server is back (the browser going online, the app reconnecting, the account being unlocked), under the id it was given when queued, so a note whose answer was lost is found rather than made twice. A note sent at once never shows as waiting; one that is not is listed above the board as waiting to be sent, where it can be taken back into the pad to be changed, or discarded. One the server refuses as it is (too long, say) is not sent again, and says so. These notes are not on the board until they land, since they are stored nowhere else yet.
 
 Opening the pad peels its top sheet off first, and only once the sheet is free does the editor grow out of it. On a phone, where the pad is a floating + button, the editor grows out of the button.
@@ -38,11 +45,11 @@ Changes are saved on close (or debounced while editing).
 
 ## Board Background
 
-Settings > Appearance > Board Background folds open into a composition for the area behind the notes, applied as it is chosen:
+Settings > Board Background is a page of its own, composing the area behind the notes in two sections, Color and Pattern, applied as it is chosen:
 
-- **Background Color 1**: none (the page's own), white, gray or black (light to dark in either theme: black is a charcoal in the light theme and white a slate in the dark one, so the page's headings still read over them), a preset (red, orange, yellow, green, teal, blue, purple or pink, the hues of the note colours: a clear pastel a step stronger than a note of that colour in the light theme, and a step deeper in the dark), or a custom colour from the system picker. A custom colour is shown as picked in the light theme and mixed deep into the page colour in the dark one. **Random** puts a different preset on the board each visit; choosing it again rolls another.
-- **Background Color 2**: none for a flat board, or a second colour the board fades to from the first, chosen the same way (a random one is never the first colour's preset). A board kept in one of the earlier muted presets (Sand, Sage, Mist, Blush, Lavender, Caramel) is read as the preset nearest it, and one in the earlier Cork, Felt or Linen pattern as Paper. Once one is set, **Direction** offers eight sides and corners on a compass, each drawn as the gradient it would make, with **Random** in its middle. A corner runs corner to corner on a board of any shape.
-- **Pattern**: Plain, Paper, Dots, Grid, Lines, Confetti, Waves, Stars, Hearts, Bubbles, Stripes or Sawtooth (the logo in rows turned 45°, with a line between them barbed by its notches), drawn over the colour. They are CSS gradients and inline SVG, so no image files ship. **Random** puts a different pattern (never Plain) on the board each visit; choosing it again rolls another.
+- **Color**: none (the page's own), white, gray or black (light to dark in either theme: black is a charcoal in the light theme and white a slate in the dark one, so the page's headings still read over them), a preset (red, orange, yellow, green, teal, blue, purple or pink, the hues of the note colours: a clear pastel a step stronger than a note of that colour in the light theme, and a step deeper in the dark), or a custom colour from the system picker. A custom colour is shown as picked in the light theme and mixed deep into the page colour in the dark one. **Random** puts a different preset on the board each visit; choosing it again rolls another.
+- **Second Color**: none for a flat board, or a second colour the board fades to from the first, chosen the same way (a random one is never the first colour's preset). A board kept in one of the earlier muted presets (Sand, Sage, Mist, Blush, Lavender, Caramel) is read as the preset nearest it, and one in the earlier Cork, Felt or Linen pattern as Paper. Once one is set, **Direction** offers eight sides and corners on a compass, each drawn as the gradient it would make, with **Random** in its middle. A corner runs corner to corner on a board of any shape.
+- **Pattern**: Plain, Paper, Dots, Grid, Lines, Waves, Confetti, Stars, Hearts, Bubbles, Stripes or Sawtooth (the logo in rows turned 45°, with a line between them barbed by its notches), drawn over the colour. They are CSS gradients and inline SVG, so no image files ship. **Random** puts a different pattern (never Plain) on the board each visit; choosing it again rolls another.
 - **Pattern Color**: Gray (the default, offered between White and Black) draws every pattern in ink that follows the theme: black in light, white in dark. White, black, one of the eight presets in their vivid shade or a custom colour draws it in that colour in both themes. **Random** draws in a different preset each visit; choosing it again rolls another.
 - **Pattern Opacity**: a slider from 0% to 100% (10% by default) for how opaque the pattern is. Every pattern is a mask over one layer that takes the pattern colour and this opacity, so every mark of every pattern, in every colour, is drawn at it (the paper grain, being noise, at up to it), and moving the slider or changing the colour redraws nothing. It is disabled while there is no pattern.
 - **Picture**: one of the user's own, which covers the whole board in place of the colours and pattern. It is scaled to at most 2560px on its longest side and kept in IndexedDB on the device, under a thin scrim in the theme's colour so headings stay legible. Choosing a colour or pattern sets the picture aside without deleting it, and tapping its thumbnail brings it back.
@@ -79,6 +86,21 @@ In connected mode, manual ordering is per-user: each user has their own arrangem
 - **List view**: Single-column, full-width layout.
 
 Toggled via a ViewToggle button in the header.
+
+A view with no notes in it shows a drawing of what it holds when it holds something, with a line
+saying why it is empty and how a note gets there: a pad of blank notes on the Notes view, a tidy
+archive box on the Archive, an emptied bin on the Trash (which also says how long it keeps a note),
+a quiet alarm clock on Reminders, a blank tag for a tag with no notes, and a magnifying glass on
+Search. The drawings are line work in the text colour, so they follow the theme, and a screen reader
+skips them for the words. Notes kept out of the Notes view by a hidden tag are counted instead of
+called none.
+
+**Board Style** (Settings, Appearance, Notes, chosen from a small sample board of each) is **Tidy**
+by default, every card level. On a **Messy**
+board each card in the grid leans a degree or two, as real sticky notes do: between half a degree
+and two either way, worked out from the note's id, so a note always leans the same way on every
+device and reload. A card straightens while it is pointed at, focused or held. The list view stays
+level, since its cards are as wide as the board and a degree there is a visible step at the edge.
 
 ## Selecting Notes
 

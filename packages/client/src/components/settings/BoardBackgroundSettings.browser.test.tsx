@@ -8,8 +8,9 @@ import {
   boardTexture,
   boardTextureOpacity,
   boardUsePicture,
+  resolvedBoardTexture,
 } from "#/state/prefs.ts";
-import { BoardBackgroundSetting } from "./BoardBackgroundSetting.tsx";
+import { BoardBackgroundSettings } from "./BoardBackgroundSettings.tsx";
 
 let host: HTMLDivElement;
 let board: HTMLElement;
@@ -27,7 +28,7 @@ function button(label: string): HTMLButtonElement {
   return found;
 }
 
-beforeEach(async () => {
+beforeEach(() => {
   boardColor.value = "none";
   boardTexture.value = "none";
   boardUsePicture.value = false;
@@ -37,11 +38,7 @@ beforeEach(async () => {
   // The board fades between colours; read where it lands, not the fade.
   board.style.transition = "none";
   document.body.append(host, board);
-  render(<BoardBackgroundSetting />, host);
-  button(
-    `${t("settings.boardBackground")}: ${t("settings.boardBackground.none")}`,
-  ).click();
-  await nextFrame();
+  render(<BoardBackgroundSettings />, host);
 });
 
 afterEach(() => {
@@ -74,11 +71,6 @@ describe("board background composer", () => {
     document.body.appendChild(probe);
     expect(style.backgroundColor).toBe(getComputedStyle(probe).color);
     probe.remove();
-    expect(
-      button(
-        `${t("settings.boardBackground")}: ${t("settings.boardBackground.summary", { color: t("color.green"), texture: t("settings.boardBackground.texture.dots") })}`,
-      ),
-    ).toBeTruthy();
   });
 
   it("changes only the texture layer's opacity with the slider", async () => {
@@ -129,5 +121,17 @@ describe("board background composer", () => {
 
     expect(boardUsePicture.value).toBe(false);
     expect(boardTexture.value).toBe("grid");
+  });
+
+  it("picks again for every random choice from one button, shown only while there is one", async () => {
+    expect(() => button(t("settings.boardBackground.reroll"))).toThrow();
+
+    boardTexture.value = "random";
+    await nextFrame();
+    const before = resolvedBoardTexture.value;
+    button(t("settings.boardBackground.reroll")).click();
+
+    expect(boardTexture.value).toBe("random");
+    expect(resolvedBoardTexture.value).not.toBe(before);
   });
 });

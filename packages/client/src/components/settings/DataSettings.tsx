@@ -1,14 +1,15 @@
 import { Download, Trash2, Upload } from "lucide-preact";
+import type { ComponentChildren } from "preact";
 import { useRef, useState } from "preact/hooks";
-import { Bookmarklet } from "#/components/Bookmarklet.tsx";
 import { buttonClass } from "#/components/buttonClasses.ts";
 import { type MessageKey, plural, t } from "#/i18n/index.ts";
 import { downloadExport } from "#/state/exportNotes.ts";
 import { createNote, deleteAllNotes, importNotes } from "#/state/notesStore.ts";
 import { restoreVersions } from "#/state/versions.ts";
 import { importFiles } from "#/utils/importExport.ts";
+import { SettingsGroup } from "./SettingsControls.tsx";
 
-/** What Import reads, as a name and a line about it, for the Data page. */
+/** What Import reads: an app or format, and which file to bring from it. */
 const IMPORT_FORMATS: [MessageKey, MessageKey][] = [
   ["settings.data.importHint.backup", "settings.data.importHint.backupBody"],
   [
@@ -31,6 +32,73 @@ const IMPORT_FORMATS: [MessageKey, MessageKey][] = [
   ],
   ["settings.data.importHint.html", "settings.data.importHint.htmlBody"],
 ];
+
+/**
+ * One action of the Data page: what it does, in a sentence, and the button
+ * that does it. The button's text is the row's name to a settings search.
+ */
+function ActionRow({
+  body,
+  children,
+}: {
+  body: string;
+  children: ComponentChildren;
+}) {
+  return (
+    <div
+      class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-3 py-2"
+      data-setting-row
+    >
+      <p class="flex-1 text-sm text-neutral-600 dark:text-neutral-300">
+        {body}
+      </p>
+      <div class="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+/**
+ * The apps and formats Import reads, as chips to choose from, with what to
+ * bring from the chosen one under them. The first, a backup of this app's
+ * own, is chosen to start with.
+ */
+function ImportFormats() {
+  const [chosen, setChosen] = useState(0);
+  const [label, body] = IMPORT_FORMATS[chosen] ?? IMPORT_FORMATS[0] ?? [];
+  return (
+    <div class="px-3 pt-1 pb-2 space-y-3">
+      <div class="flex flex-wrap gap-1.5">
+        {IMPORT_FORMATS.map(([name], i) => (
+          <button
+            key={name}
+            type="button"
+            class={`px-2.5 py-1 text-xs rounded-full cursor-pointer transition-colors ring-1 ring-inset ${
+              i === chosen
+                ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-blue-300 dark:ring-blue-700 font-medium"
+                : "text-neutral-700 dark:text-neutral-200 ring-neutral-200 dark:ring-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+            }`}
+            aria-pressed={i === chosen}
+            onClick={() => setChosen(i)}
+          >
+            {t(name)}
+          </button>
+        ))}
+      </div>
+      {label && body && (
+        <p
+          aria-live="polite"
+          class="px-3 py-2 rounded-lg text-sm bg-neutral-100/70 dark:bg-white/[0.05] text-neutral-600 dark:text-neutral-300"
+        >
+          <span class="font-medium text-neutral-800 dark:text-neutral-100">
+            {t(label)}
+          </span>
+          {": "}
+          {t(body)}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function DataSettings() {
   const [dataStatus, setDataStatus] = useState("");
@@ -80,55 +148,68 @@ export function DataSettings() {
   };
 
   return (
-    <div class="space-y-4">
-      <div class="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          class="px-3 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 rounded-lg font-medium hover:bg-neutral-200 dark:hover:bg-neutral-600 inline-flex items-center justify-center gap-1.5"
-          onClick={handleImport}
-        >
-          <Download class="w-4 h-4" />
-          {t("settings.data.import")}
-        </button>
-        <button
-          type="button"
-          class="px-3 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-700 rounded-lg font-medium hover:bg-neutral-200 dark:hover:bg-neutral-600 inline-flex items-center justify-center gap-1.5"
-          onClick={handleExport}
-        >
-          <Upload class="w-4 h-4" />
-          {t("settings.data.export")}
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json,.md,.markdown,.zip,.enex,.jex,.html,.htm,image/*"
-          multiple
-          class="hidden"
-          onChange={handleFileChange}
-        />
-      </div>
+    <div class="space-y-6">
+      <SettingsGroup title={t("settings.data.group.import")}>
+        {/* One row to the group's dividers: the chips belong to the action. */}
+        <div>
+          <ActionRow body={t("settings.data.importBody")}>
+            <button
+              type="button"
+              class={buttonClass("secondary", "sm")}
+              onClick={handleImport}
+            >
+              <Download class="w-4 h-4" />
+              {t("settings.data.import")}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,.md,.markdown,.zip,.enex,.jex,.html,.htm,image/*"
+              multiple
+              class="hidden"
+              onChange={handleFileChange}
+            />
+          </ActionRow>
+          <ImportFormats />
+        </div>
+      </SettingsGroup>
+
+      <SettingsGroup title={t("settings.data.group.export")}>
+        <ActionRow body={t("settings.data.exportBody")}>
+          <button
+            type="button"
+            class={buttonClass("secondary", "sm")}
+            onClick={handleExport}
+          >
+            <Upload class="w-4 h-4" />
+            {t("settings.data.export")}
+          </button>
+        </ActionRow>
+      </SettingsGroup>
+
       {dataStatus && (
-        <p class="text-sm text-neutral-600 dark:text-neutral-300">
+        <p
+          role="status"
+          class="px-3 text-sm text-neutral-600 dark:text-neutral-300"
+        >
           {dataStatus}
         </p>
       )}
-      <div class="text-sm text-neutral-500 dark:text-neutral-400">
-        <p>{t("settings.data.importHint")}</p>
-        <ul class="mt-2 space-y-1.5 list-disc pl-5">
-          {IMPORT_FORMATS.map(([label, body]) => (
-            <li key={label}>
-              <span class="font-medium text-neutral-700 dark:text-neutral-200">
-                {t(label)}
-              </span>
-              {": "}
-              {t(body)}
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div class="pt-3 border-t border-neutral-200 dark:border-neutral-700">
-        {showDeleteConfirm ? (
-          <div class="p-3 rounded-lg bg-neutral-50 dark:bg-neutral-700/50 border border-neutral-200 dark:border-neutral-600">
+
+      <SettingsGroup title={t("settings.data.group.delete")}>
+        <ActionRow body={t("settings.data.deleteBody")}>
+          <button
+            type="button"
+            class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium cursor-pointer transition-colors bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50"
+            aria-expanded={showDeleteConfirm}
+            onClick={() => setShowDeleteConfirm(true)}
+          >
+            <Trash2 class="w-4 h-4" />
+            {t("settings.data.deleteAll")}
+          </button>
+        </ActionRow>
+        {showDeleteConfirm && (
+          <div class="mx-3 my-2 p-3 rounded-lg bg-neutral-50 dark:bg-neutral-700/50 border border-neutral-200 dark:border-neutral-600">
             <p class="text-sm text-neutral-600 dark:text-neutral-300 mb-3">
               {t("settings.data.deleteConfirm")}
             </p>
@@ -142,30 +223,23 @@ export function DataSettings() {
               </button>
               <button
                 type="button"
-                class="flex-1 px-3 py-1.5 text-sm bg-neutral-200 dark:bg-neutral-600 rounded-lg font-medium hover:bg-neutral-300 dark:hover:bg-neutral-500"
+                class={`${buttonClass("secondary", "sm")} flex-1`}
                 onClick={() => setShowDeleteConfirm(false)}
               >
                 {t("settings.data.cancel")}
               </button>
             </div>
           </div>
-        ) : (
-          <button
-            type="button"
-            class="w-full px-3 py-1.5 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg font-medium hover:bg-red-200 dark:hover:bg-red-900/50 inline-flex items-center justify-center gap-1.5"
-            onClick={() => setShowDeleteConfirm(true)}
-          >
-            <Trash2 class="w-4 h-4" />
-            {t("settings.data.deleteAll")}
-          </button>
         )}
         {deleteStatus && (
-          <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
+          <p
+            role="status"
+            class="px-3 py-2 text-sm text-neutral-600 dark:text-neutral-300"
+          >
             {deleteStatus}
           </p>
         )}
-      </div>
-      <Bookmarklet />
+      </SettingsGroup>
     </div>
   );
 }

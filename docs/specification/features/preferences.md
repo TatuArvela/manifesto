@@ -5,6 +5,31 @@ note defaults, hidden tags and the rest. Each client keeps them in `localStorage
 `manifesto:prefs`; in connected mode most of them also follow the account, so a tag hidden on the
 laptop is hidden on the phone.
 
+## Finding a setting
+
+The search field at the top of Settings' sidebar finds a setting by its label, and a page by its name,
+in the language the app is shown in, ignoring case and accents; every word typed has to match. The
+results take the place of the page list while there is text in the field, each setting named with
+the page it is on. Choosing one (or Enter, for the first) opens that page, scrolls the setting into
+view and lights it for a moment. What can be found is `SETTINGS_INDEX` in
+`components/settings/settingsIndex.ts`: a setting added to a page needs a line there.
+
+The sidebar lists the account's pages first and then the general ones, the two groups set apart by
+a gap rather than headings. Language and Region has a page of its own, before Appearance, with the
+language and the decimal separator for inline calculations, and so does Board Background, after
+Appearance. The bookmarklet is a section of Features, Save from Browser.
+
+## Opening links in the browser
+
+On a phone, the installed app opens a link in a view of its own over the app, without the reader's
+tabs, bookmarks or sign-ins. "Open Links in Browser" (Features, shown only in the app installed on
+iOS, iPadOS or Android, off by default) hands web links to the system's browser instead: every link
+that would open in a new tab (a note's links, preview cards, the editor's "Open link") goes through
+an address that asks the system to open it, `x-safari-https:` on iOS and iPadOS 17 and later, and an
+`intent:` with no package on Android, which falls back to the plain link where nothing takes it. A
+link with a modifier key held, and any that is not `http:` or `https:` (a mail address), opens as it
+always has. The code is `utils/systemBrowser.ts` and `state/externalLinks.ts`.
+
 ## What follows the account
 
 In connected mode every preference follows the account except the ones that belong to the device:
@@ -15,6 +40,7 @@ In connected mode every preference follows the account except the ones that belo
 | `noteScale` | How big the cards are suits the size of this screen. |
 | `animations` | Starts from this device's reduced-motion setting. |
 | `boardUsePicture`, `boardImageStamp` | The board picture is kept in this browser's IndexedDB and never uploaded. |
+| `openLinksInBrowser` | Does anything only in the app installed on a phone. |
 
 The list is `DEVICE_PREFS` in `state/prefParsers.ts`; a new preference follows the account unless it is
 added there. Open mode has no account and keeps everything on the device.
@@ -69,16 +95,17 @@ set:
 | `viewMode` | `grid` (default), `list` |
 | `noteSize` | `fit` (default), `square` |
 | `noteCorners` | `straight` (default), `rounded` |
+| `noteTilt` | `tidy` (default), `messy` |
 | `defaultNoteColor` | `default` (default), `red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple`, `pink`, `brown`, `gray`, `random` |
 | `defaultEditMode` | `normal` (default), `raw` |
-| `confirmBeforeDelete`, `inlineCalculations`, `noteQuips`, `formattingToolbar` | `true` or `false` |
+| `confirmBeforeDelete`, `inlineCalculations`, `noteQuips`, `formattingToolbar`, `checkedItemsLast`, `checklistProgress`, `linkPreviewCards` | `true` or `false` |
 | `boardColor`, `boardGradient` | `none` (default), `white`, `gray`, `black`, a board colour, `custom`, `random` |
 | `boardCustomColor`, `boardGradientCustomColor`, `boardInkColor` | a `#rrggbb` colour |
 | `boardGradientDirection` | `top`, `top-right`, `right`, `bottom-right` (default), `bottom`, `bottom-left`, `left`, `top-left`, `random` |
-| `boardTexture` | `none` (default), `paper`, `dots`, `grid`, `lines`, `confetti`, `waves`, `stars`, `hearts`, `bubbles`, `stripes`, `sawtooth`, `random` |
+| `boardTexture` | `none` (default), `paper`, `dots`, `grid`, `lines`, `waves`, `confetti`, `stars`, `hearts`, `bubbles`, `stripes`, `sawtooth`, `random` |
 | `boardInk` | `auto` (default), `white`, `black`, a board colour, `custom`, `random` |
 | `boardTextureOpacity` | a whole percentage from 0 to 100 (default 10) |
-| `noteScale`, `animations`, `stickyTopBar` | the device's own: `big` or `small`, and `true` or `false`; taken only on a first visit |
+| `noteScale`, `animations`, `stickyTopBar`, `openLinksInBrowser` | the device's own: `big` or `small`, and `true` or `false`; taken only on a first visit |
 
 ## On the server
 

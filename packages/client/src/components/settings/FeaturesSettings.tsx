@@ -1,30 +1,31 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { Shuffle } from "lucide-preact";
 import { noteFontFamilies } from "#/colors.ts";
-import { Switch, ThreeWayToggle } from "#/components/ToggleSwitch.tsx";
+import { Bookmarklet } from "#/components/Bookmarklet.tsx";
+import { Switch } from "#/components/ToggleSwitch.tsx";
 import { getColorPickerColors, getFontLabel, t } from "#/i18n/index.ts";
+import { canOpenInSystemBrowser } from "#/state/externalLinks.ts";
 import {
+  checkedItemsLast,
+  checklistProgress,
   confirmBeforeDelete,
-  type DecimalSeparator,
   type DefaultNoteColor,
   type DefaultNoteFont,
-  decimalSeparator,
   defaultEditMode,
   defaultNoteColor,
   defaultNoteFont,
   type EditMode,
   formattingToolbar,
   inlineCalculations,
+  linkPreviewCards,
+  openLinksInBrowser,
 } from "#/state/prefs.ts";
 import {
   SettingsGroup,
   type SettingsOption,
   SettingsRow,
   SettingsSelect,
-  toggleTrackClass,
 } from "./SettingsControls.tsx";
-
-const decimalSeparators: DecimalSeparator[] = ["auto", ".", ","];
 
 export function FeaturesSettings() {
   return (
@@ -39,6 +40,49 @@ export function FeaturesSettings() {
             label={t("settings.formattingToolbar")}
           />
         </SettingsRow>
+
+        <SettingsRow label={t("settings.checkedItemsLast")}>
+          <Switch
+            checked={checkedItemsLast.value}
+            onChange={(checked) => {
+              checkedItemsLast.value = checked;
+            }}
+            label={t("settings.checkedItemsLast")}
+          />
+        </SettingsRow>
+
+        <SettingsRow label={t("settings.checklistProgress")}>
+          <Switch
+            checked={checklistProgress.value}
+            onChange={(checked) => {
+              checklistProgress.value = checked;
+            }}
+            label={t("settings.checklistProgress")}
+          />
+        </SettingsRow>
+
+        <SettingsRow label={t("settings.linkPreviewCards")}>
+          <Switch
+            checked={linkPreviewCards.value}
+            onChange={(checked) => {
+              linkPreviewCards.value = checked;
+            }}
+            label={t("settings.linkPreviewCards")}
+          />
+        </SettingsRow>
+
+        {/* Only where a link could open anywhere but the browser. */}
+        {canOpenInSystemBrowser() && (
+          <SettingsRow label={t("settings.openLinksInBrowser")}>
+            <Switch
+              checked={openLinksInBrowser.value}
+              onChange={(checked) => {
+                openLinksInBrowser.value = checked;
+              }}
+              label={t("settings.openLinksInBrowser")}
+            />
+          </SettingsRow>
+        )}
 
         <SettingsRow label={t("settings.confirmBeforeDelete")}>
           <Switch
@@ -59,36 +103,13 @@ export function FeaturesSettings() {
             label={t("settings.inlineCalculations")}
           />
         </SettingsRow>
-
-        {/* Only relevant while inline calculations are on */}
-        {inlineCalculations.value && (
-          <SettingsRow label={t("settings.decimalSeparator")}>
-            <ThreeWayToggle
-              trackClass={toggleTrackClass}
-              value={decimalSeparators.indexOf(decimalSeparator.value)}
-              onChange={(i) => {
-                decimalSeparator.value =
-                  decimalSeparators[i] ?? decimalSeparator.value;
-              }}
-              options={[
-                {
-                  icon: <span class="text-xs font-semibold">A</span>,
-                  label: t("settings.decimalSeparator.auto"),
-                },
-                {
-                  icon: <span class="text-base leading-none">.</span>,
-                  label: t("settings.decimalSeparator.dot"),
-                },
-                {
-                  icon: <span class="text-base leading-none">,</span>,
-                  label: t("settings.decimalSeparator.comma"),
-                },
-              ]}
-            />
-          </SettingsRow>
-        )}
       </SettingsGroup>
       <DefaultsSection />
+      <SettingsGroup title={t("settings.clip.title")}>
+        <div class="px-3 py-2">
+          <Bookmarklet />
+        </div>
+      </SettingsGroup>
     </div>
   );
 }

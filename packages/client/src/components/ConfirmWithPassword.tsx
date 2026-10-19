@@ -7,20 +7,24 @@ import {
 } from "#/state/account/passwordConfirmation.ts";
 
 const inputClass =
-  "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
+  "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-sm max-sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
 
 /**
  * The password again, for the actions that would let whoever holds a stolen
  * session keep the account (an email address, a token, a webhook). Shown only
  * to an account that has one: one signed in through an identity provider is
- * asked to have signed in recently instead (`ConfirmationError`).
+ * asked to have signed in recently instead (`ConfirmationError`). Drawn at
+ * the size of the Settings fields around it; a full page whose fields are
+ * larger passes its own `inputClass`.
  */
 export function ConfirmPasswordField({
   value,
   onInput,
+  inputClass: fieldClass = inputClass,
 }: {
   value: string;
   onInput: (value: string) => void;
+  inputClass?: string | undefined;
 }) {
   if (currentUser.value?.hasPassword !== true) return null;
   return (
@@ -34,7 +38,7 @@ export function ConfirmPasswordField({
         maxLength={256}
         value={value}
         onInput={(e) => onInput((e.currentTarget as HTMLInputElement).value)}
-        class={inputClass}
+        class={fieldClass}
       />
     </label>
   );

@@ -8,11 +8,13 @@ import { docHasDatedItems, sortItemsByDateIn } from "#/extensions/itemDates.ts";
 import {
   deleteCheckedItemsIn,
   docHasCheckedItems,
+  uncheckAllIn,
 } from "#/extensions/taskListStructure.ts";
 import { hasDatedItems, sortChecklistByDate } from "#/utils/itemDate.ts";
 import {
   removeCheckedItems,
   hasCheckedItems as textHasCheckedItems,
+  uncheckAllItems,
 } from "#/utils/markdown.ts";
 import { applyTextEdit } from "#/utils/rawFormatting.ts";
 
@@ -28,7 +30,7 @@ export interface TextActions {
   canUndo: boolean;
   canRedo: boolean;
   runHistory(which: "undo" | "redo"): void;
-  checkedItems: { present: boolean; remove: () => void };
+  checkedItems: { present: boolean; remove: () => void; uncheck: () => void };
   datedItems: { present: boolean; sort: () => void };
   focusText(at: "start" | "end"): void;
 }
@@ -89,6 +91,7 @@ export function textActions(
         ? textHasCheckedItems(rawTextarea.value)
         : readDoc(docHasCheckedItems),
       remove: () => edit(removeCheckedItems, deleteCheckedItemsIn),
+      uncheck: () => edit(uncheckAllItems, uncheckAllIn),
     },
     datedItems: {
       present: rawTextarea

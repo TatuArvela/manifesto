@@ -26,7 +26,7 @@ import { offeredTokenKinds, serverFeature } from "#/state/serverFeatures.ts";
 import { showError, showSuccess } from "#/state/ui.ts";
 
 const inputClass =
-  "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
+  "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-sm max-sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
 
 const KIND_LABELS: Record<ApiTokenKind, MessageKey> = {
   api: "tokens.kindApi",
@@ -123,6 +123,8 @@ export function ApiTokensSettings() {
   const [password, setPassword] = useState("");
   const [refusal, setRefusal] = useState<ConfirmationRefusal | null>(null);
   const [busy, setBusy] = useState(false);
+  // The form opens on a press, so the page leads with the tokens there are.
+  const [adding, setAdding] = useState(false);
 
   const reload = useCallback(async () => {
     const listed = await listApiTokens();
@@ -171,7 +173,16 @@ export function ApiTokensSettings() {
     setSecretKind(kind);
     setName("");
     setPassword("");
+    setAdding(false);
     await reload();
+  };
+
+  const cancel = () => {
+    setAdding(false);
+    setName("");
+    setPassword("");
+    setError(null);
+    setRefusal(null);
   };
 
   const revoke = async (token: ApiToken) => {
@@ -200,149 +211,177 @@ export function ApiTokensSettings() {
 
       {secret && <NewToken secret={secret} kind={secretKind} />}
 
-      <form onSubmit={submit} class="space-y-3">
-        <label class="block">
-          <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
-            {t("tokens.kind")}
-          </span>
-          <select
-            class={inputClass}
-            value={kind}
-            onChange={(e) =>
-              setKind(
-                (e.currentTarget as HTMLSelectElement).value as ApiTokenKind,
-              )
-            }
-          >
-            {kinds.map((offered) => (
-              <option key={offered} value={offered}>
-                {t(KIND_LABELS[offered])}
-              </option>
-            ))}
-          </select>
-        </label>
-        {kind === "calendar" && (
-          <p class="text-sm text-neutral-600 dark:text-neutral-300">
-            {t("tokens.calendarHint")}
-          </p>
-        )}
-        {kind === "mcp" && (
-          <div class="space-y-2">
-            <p class="text-sm text-neutral-600 dark:text-neutral-300">
-              {t("tokens.mcpHint")}
-            </p>
-            {serverFeature("mcpSignIn") && (
-              <p class="text-sm text-neutral-600 dark:text-neutral-300">
-                {t("tokens.mcpSignInHint", { url: mcpUrl() })}
-              </p>
-            )}
-            <label class="flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                class="mt-0.5"
-                checked={readOnly}
-                onChange={(e) =>
-                  setReadOnly((e.currentTarget as HTMLInputElement).checked)
-                }
-              />
-              <span>{t("tokens.readOnly")}</span>
-            </label>
-          </div>
-        )}
-        {kind === "api" && (
-          <div class="space-y-2">
-            <label class="block">
-              <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
-                {t("tokens.access")}
-              </span>
-              <select
-                class={inputClass}
-                value={access}
-                onChange={(e) =>
-                  setAccess(
-                    (e.currentTarget as HTMLSelectElement).value as Access,
-                  )
-                }
-              >
-                <option value="full">{t("tokens.accessFull")}</option>
-                <option value="read">{t("tokens.accessRead")}</option>
-                <option value="custom">{t("tokens.accessCustom")}</option>
-              </select>
-            </label>
-            {access === "custom" && (
-              <fieldset class="space-y-1">
-                <legend class="sr-only">{t("tokens.access")}</legend>
-                {API_TOKEN_SCOPES.map((scope) => (
-                  <label key={scope} class="flex items-start gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      class="mt-0.5"
-                      checked={custom.includes(scope)}
-                      onChange={(e) => {
-                        const on = (e.currentTarget as HTMLInputElement)
-                          .checked;
-                        setCustom((current) =>
-                          API_TOKEN_SCOPES.filter((s) =>
-                            s === scope ? on : current.includes(s),
-                          ),
-                        );
-                      }}
-                    />
-                    <span>{t(SCOPE_LABELS[scope])}</span>
-                  </label>
-                ))}
-              </fieldset>
-            )}
-          </div>
-        )}
-        <label class="block">
-          <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
-            {t("tokens.name")}
-          </span>
-          <input
-            maxLength={100}
-            value={name}
-            placeholder={t("tokens.namePlaceholder")}
-            onInput={(e) =>
-              setName((e.currentTarget as HTMLInputElement).value)
-            }
-            class={inputClass}
-          />
-        </label>
-        <label class="block">
-          <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
-            {t("tokens.expires")}
-          </span>
-          <select
-            class={inputClass}
-            value={expiry === null ? "never" : String(expiry)}
-            onChange={(e) => {
-              const value = (e.currentTarget as HTMLSelectElement).value;
-              setExpiry(value === "never" ? null : Number(value));
+      {!adding ? (
+        <div class="flex justify-end">
+          <button
+            type="button"
+            class={buttonClass("primary")}
+            onClick={() => {
+              setSecret(null);
+              setAdding(true);
             }}
           >
-            {EXPIRY_DAYS.map((days) => (
-              <option key={String(days)} value={days ?? "never"}>
-                {days === null
-                  ? t("tokens.never")
-                  : t("tokens.days", { count: days })}
-              </option>
-            ))}
-          </select>
-        </label>
-        <ConfirmPasswordField value={password} onInput={setPassword} />
-        {refusal && <ConfirmationError refusal={refusal} />}
-        {error && (
-          <p class="text-sm text-red-600 dark:text-red-400" role="alert">
-            {error}
-          </p>
-        )}
-        <div class="flex justify-end">
-          <button type="submit" disabled={busy} class={buttonClass("primary")}>
             {t("tokens.create")}
           </button>
         </div>
-      </form>
+      ) : (
+        <form onSubmit={submit} class="space-y-3">
+          <label class="block">
+            <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+              {t("tokens.kind")}
+            </span>
+            <select
+              // biome-ignore lint/a11y/noAutofocus: opened by the button for this
+              autoFocus
+              class={inputClass}
+              value={kind}
+              onChange={(e) =>
+                setKind(
+                  (e.currentTarget as HTMLSelectElement).value as ApiTokenKind,
+                )
+              }
+            >
+              {kinds.map((offered) => (
+                <option key={offered} value={offered}>
+                  {t(KIND_LABELS[offered])}
+                </option>
+              ))}
+            </select>
+          </label>
+          {kind === "calendar" && (
+            <p class="text-sm text-neutral-600 dark:text-neutral-300">
+              {t("tokens.calendarHint")}
+            </p>
+          )}
+          {kind === "mcp" && (
+            <div class="space-y-2">
+              <p class="text-sm text-neutral-600 dark:text-neutral-300">
+                {t("tokens.mcpHint")}
+              </p>
+              {serverFeature("mcpSignIn") && (
+                <p class="text-sm text-neutral-600 dark:text-neutral-300">
+                  {t("tokens.mcpSignInHint", { url: mcpUrl() })}
+                </p>
+              )}
+              <label class="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  class="mt-0.5"
+                  checked={readOnly}
+                  onChange={(e) =>
+                    setReadOnly((e.currentTarget as HTMLInputElement).checked)
+                  }
+                />
+                <span>{t("tokens.readOnly")}</span>
+              </label>
+            </div>
+          )}
+          {kind === "api" && (
+            <div class="space-y-2">
+              <label class="block">
+                <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+                  {t("tokens.access")}
+                </span>
+                <select
+                  class={inputClass}
+                  value={access}
+                  onChange={(e) =>
+                    setAccess(
+                      (e.currentTarget as HTMLSelectElement).value as Access,
+                    )
+                  }
+                >
+                  <option value="full">{t("tokens.accessFull")}</option>
+                  <option value="read">{t("tokens.accessRead")}</option>
+                  <option value="custom">{t("tokens.accessCustom")}</option>
+                </select>
+              </label>
+              {access === "custom" && (
+                <fieldset class="space-y-1">
+                  <legend class="sr-only">{t("tokens.access")}</legend>
+                  {API_TOKEN_SCOPES.map((scope) => (
+                    <label key={scope} class="flex items-start gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        class="mt-0.5"
+                        checked={custom.includes(scope)}
+                        onChange={(e) => {
+                          const on = (e.currentTarget as HTMLInputElement)
+                            .checked;
+                          setCustom((current) =>
+                            API_TOKEN_SCOPES.filter((s) =>
+                              s === scope ? on : current.includes(s),
+                            ),
+                          );
+                        }}
+                      />
+                      <span>{t(SCOPE_LABELS[scope])}</span>
+                    </label>
+                  ))}
+                </fieldset>
+              )}
+            </div>
+          )}
+          <label class="block">
+            <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+              {t("tokens.name")}
+            </span>
+            <input
+              maxLength={100}
+              value={name}
+              placeholder={t("tokens.namePlaceholder")}
+              onInput={(e) =>
+                setName((e.currentTarget as HTMLInputElement).value)
+              }
+              class={inputClass}
+            />
+          </label>
+          <label class="block">
+            <span class="block text-sm font-medium text-neutral-700 dark:text-neutral-200 mb-1">
+              {t("tokens.expires")}
+            </span>
+            <select
+              class={inputClass}
+              value={expiry === null ? "never" : String(expiry)}
+              onChange={(e) => {
+                const value = (e.currentTarget as HTMLSelectElement).value;
+                setExpiry(value === "never" ? null : Number(value));
+              }}
+            >
+              {EXPIRY_DAYS.map((days) => (
+                <option key={String(days)} value={days ?? "never"}>
+                  {days === null
+                    ? t("tokens.never")
+                    : t("tokens.days", { count: days })}
+                </option>
+              ))}
+            </select>
+          </label>
+          <ConfirmPasswordField value={password} onInput={setPassword} />
+          {refusal && <ConfirmationError refusal={refusal} />}
+          {error && (
+            <p class="text-sm text-red-600 dark:text-red-400" role="alert">
+              {error}
+            </p>
+          )}
+          <div class="flex justify-end gap-2">
+            <button
+              type="button"
+              class={buttonClass("secondary")}
+              onClick={cancel}
+            >
+              {t("confirm.cancel")}
+            </button>
+            <button
+              type="submit"
+              disabled={busy}
+              class={buttonClass("primary")}
+            >
+              {t("tokens.create")}
+            </button>
+          </div>
+        </form>
+      )}
 
       <div class="border-t border-neutral-200 dark:border-neutral-700 pt-3">
         <TokenList tokens={tokens} failed={failed} onRevoke={revoke} />

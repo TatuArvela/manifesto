@@ -4,6 +4,7 @@ import { keymap } from "@milkdown/kit/prose/keymap";
 import { type EditorState, Plugin } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { t } from "#/i18n/index.ts";
+import { openExternalLink } from "#/state/externalLinks.ts";
 
 /**
  * Links in the editor. A click places the caret, as it does on any other text,
@@ -53,10 +54,6 @@ export function linkAtCaret(state: EditorState): LinkAtCaret | null {
   return { href, from: $from.start() + Math.max(0, runStart) };
 }
 
-function openLink(href: string) {
-  window.open(href, "_blank", "noopener,noreferrer");
-}
-
 class LinkTooltipView {
   private readonly el: HTMLDivElement;
   private readonly button: HTMLButtonElement;
@@ -75,7 +72,7 @@ class LinkTooltipView {
     // Keeps the caret, and so the tooltip, where it is.
     this.button.addEventListener("mousedown", (e) => e.preventDefault());
     this.button.addEventListener("click", () => {
-      if (this.href) openLink(this.href);
+      if (this.href) openExternalLink(this.href);
     });
     this.el.append(this.button);
     this.host()?.append(this.el);
@@ -164,7 +161,7 @@ const openLinkKeymap = keymap({
   "Mod-Enter": (state) => {
     const link = linkAtCaret(state);
     if (!link) return false;
-    openLink(link.href);
+    openExternalLink(link.href);
     return true;
   },
 });

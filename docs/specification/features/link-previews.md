@@ -8,6 +8,9 @@ description, image and icon.
 
 - A card is added when a URL is pasted into the note's body, or inserted with the toolbar's link
   button. A URL pasted into the title, the link box or a tag field adds none.
+- "Link Previews" (Settings, Features; the `linkPreviewCards` preference, on by default) turns that
+  off: a link then stays in the text and gets no card. Cards a note already has stay, since they
+  are the note's and its other readers' too, and each can still be removed.
 - One paste can carry many links. They are added together, in one write.
 - A note holds at most 20 cards. A paste that would go past that adds what fits and says so.
 - A URL already on the note is not added again. A card can be removed from the editor, and removing

@@ -22,7 +22,7 @@ import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.t
 import { signOut } from "#/state/account/signOut.ts";
 import { userKeyKindOf } from "#/utils/userKey.ts";
 import { KeepSheetStep } from "./KeySheet.tsx";
-import { quietClass, submitClass } from "./loginFormClasses.ts";
+import { inputClass, quietClass, submitClass } from "./loginFormClasses.ts";
 import { Field, RecoveryForm, UserKeyInput } from "./RecoveryForms.tsx";
 
 function ErrorLine({ message }: { message: string | null }) {
@@ -250,7 +250,11 @@ function StartAgain({ onBack }: { onBack: () => void }) {
         title={t("keys.startAgain.title")}
         hint={t("keys.startAgain.hint")}
       />
-      <ConfirmPasswordField value={password} onInput={setPassword} />
+      <ConfirmPasswordField
+        value={password}
+        onInput={setPassword}
+        inputClass={inputClass}
+      />
       {refusal && <ConfirmationError refusal={refusal} />}
       <ErrorLine message={error} />
       <button

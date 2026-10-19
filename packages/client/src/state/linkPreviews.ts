@@ -11,6 +11,7 @@ import {
   shrinkPreviewImage,
 } from "#/utils/previewImage.ts";
 import { notes, updateNote } from "./notesStore.ts";
+import { linkPreviewCards } from "./prefs.ts";
 import { showError } from "./ui.ts";
 
 /**
@@ -127,13 +128,15 @@ export function reportPreviewOverflow(overflow: boolean) {
 }
 
 /**
- * Adds cards for the URLs to a saved note in one write, then fills them in.
- * Resolves false if either write failed; `updateNote` has already said so.
+ * Adds cards for the URLs to a saved note in one write, then fills them in,
+ * unless the user has turned the cards off (`linkPreviewCards`). Resolves
+ * false if either write failed; `updateNote` has already said so.
  */
 export async function addLinkPreviews(
   noteId: string,
   urls: string[],
 ): Promise<boolean> {
+  if (!linkPreviewCards.value) return true;
   const current = notes.value.find((n) => n.id === noteId);
   if (!current) return false;
   const { previews, added, overflow } = appendStubPreviews(

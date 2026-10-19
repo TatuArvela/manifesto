@@ -1,7 +1,8 @@
-import { Upload } from "lucide-preact";
+import { ImagePlus, Upload } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useAccountCheck } from "#/hooks/useAccountCheck.ts";
 import { useAppServices } from "#/hooks/useAppServices.ts";
+import { useBoardPaste } from "#/hooks/useBoardPaste.ts";
 import { useBoardShortcuts } from "#/hooks/useBoardShortcuts.ts";
 import { useFileDropImport } from "#/hooks/useFileDropImport.ts";
 import { useLazyModule } from "#/hooks/useLazyModule.ts";
@@ -10,6 +11,7 @@ import { useMediaQuery } from "#/hooks/useMediaQuery.ts";
 import { useNoteFromReminder } from "#/hooks/useNoteFromReminder.ts";
 import { usePresence } from "#/hooks/usePresence.ts";
 import { useScrollAwayBar } from "#/hooks/useScrollAwayBar.ts";
+import { useSystemBrowserLinks } from "#/hooks/useSystemBrowserLinks.ts";
 import {
   PANE_SLIDE_MS,
   usePaneSlide,
@@ -134,7 +136,9 @@ function useOidcRedirectOnce(blockUntilDone: boolean): boolean {
 
 function MainApp() {
   const [sharedNote, setSharedNote] = useState<SharedNotePayload | null>(null);
-  const dragActive = useFileDropImport();
+  const drag = useFileDropImport();
+  useBoardPaste();
+  useSystemBrowserLinks();
   const mainRef = useRef<HTMLElement>(null);
   const viewRef = useRef<HTMLDivElement>(null);
   const paneRef = useRef<HTMLElement>(null);
@@ -366,13 +370,23 @@ function MainApp() {
       {/* After a shared note, not on top of it: the link is why they came. */}
       {showWelcome.value && !sharedNote && <WelcomeDialog />}
       {showShortcuts.value && <ShortcutsDialog />}
-      {dragActive && (
+      {drag !== "none" && (
         <div class="fixed inset-0 layer-drop-target pointer-events-none flex items-center justify-center bg-blue-500/10 backdrop-blur-[2px]">
           <div class="m-6 px-8 py-6 rounded-2xl border-2 border-dashed border-blue-500 bg-white/90 dark:bg-neutral-800/90 shadow-xl flex flex-col items-center gap-2 text-center">
-            <Upload class="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            <p class="text-lg font-semibold">{t("dropZone.title")}</p>
+            {drag === "images" ? (
+              <ImagePlus class="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            ) : (
+              <Upload class="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            )}
+            <p class="text-lg font-semibold">
+              {drag === "images"
+                ? t("dropZone.imagesTitle")
+                : t("dropZone.title")}
+            </p>
             <p class="text-sm text-neutral-600 dark:text-neutral-300">
-              {t("dropZone.hint")}
+              {drag === "images"
+                ? t("dropZone.imagesHint")
+                : t("dropZone.hint")}
             </p>
           </div>
         </div>

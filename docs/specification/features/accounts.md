@@ -63,11 +63,13 @@ Its menu names the account (avatar, name, and its email address or else its user
 things: **Account settings**, which opens the Settings modal on the account's page, and **Sign out**.
 Open mode has no accounts, so the button is not there at all.
 
-The Settings modal lists the account's pages above the general ones, headed by the user as a profile
-card: **Account** (email address, under local sign-in **Change password**, and
-[**Delete account**](#deleting-your-own-account)), **Two-factor
-sign-in** under local sign-in, **API tokens**, and **Webhooks** when the server enables them. Open
-mode shows only the general pages.
+The Settings modal lists the account's pages above the general ones, in groups set apart by a gap:
+the user as a profile card, opening **Account** (the email address, and
+[**Delete account**](#deleting-your-own-account) set apart at its foot); then **Sign-in** under local
+sign-in (**Change password** and **Two-factor sign-in**), **Encryption keys** and **Activity**; then
+**API tokens** and **Webhooks** when the server enables them. The email address and the password
+show as they are, with a button that opens the form to change them. Open mode shows only the
+general pages.
 
 ## Email addresses
 
@@ -131,7 +133,7 @@ A temporary password is good for one thing: choosing a real one.
 
 ## Changing your own password
 
-**Change password** on the Account settings page asks for the current password and the new
+**Change password** on the Sign-in settings page asks for the current password and the new
 one twice. It is offered only under local sign-in. A successful change keeps the current session and
 ends every other session of the account, including its open sockets. A wrong current password counts
 against the same per-account budget as a failed sign-in, and `429` answers while the account is locked.
@@ -211,7 +213,7 @@ reaches notes, never the account's own security or the admin API; see the API do
 
 ## Two-factor sign-in
 
-A local account can turn on two-factor sign-in from Settings (**Two-factor sign-in**): signing in then
+A local account can turn on two-factor sign-in from Settings (**Sign-in**, **Two-factor sign-in**): signing in then
 asks for a second factor after the password, from an **authenticator app**, a **passkey**, or either
 when the account has both. Accounts that sign in through single sign-on get this from their identity
 provider instead, and can add neither.

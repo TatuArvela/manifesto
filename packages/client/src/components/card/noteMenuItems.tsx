@@ -16,6 +16,7 @@ import {
   History,
   Link,
   ListChecks,
+  ListRestart,
   ListX,
   Share2,
   Trash2,
@@ -69,7 +70,7 @@ export interface NoteMenuOptions {
    * has to go through its own document, which in collab mode is the only copy
    * that counts.
    */
-  checkedItems?: { present: boolean; remove: () => void };
+  checkedItems?: { present: boolean; remove: () => void; uncheck: () => void };
   /** Adds "Sort items by date", through the same two routes. */
   datedItems?: { present: boolean; sort: () => void };
   /**
@@ -348,7 +349,9 @@ export function noteMenuItems(
  * row is left out when the note has nothing it would act on.
  */
 export function checklistSubmenu(actions: {
-  checkedItems?: { present: boolean; remove: () => void } | undefined;
+  checkedItems?:
+    | { present: boolean; remove: () => void; uncheck: () => void }
+    | undefined;
   datedItems?: { present: boolean; sort: () => void } | undefined;
 }): NoteMenuSubmenu {
   const { checkedItems, datedItems } = actions;
@@ -360,6 +363,15 @@ export function checklistSubmenu(actions: {
       label: t("noteMenu.sortByDateShort"),
       fullLabel: t("noteMenu.sortByDate"),
       onSelect: datedItems.sort,
+    });
+  }
+  if (checkedItems?.present) {
+    items.push({
+      id: "uncheck-all",
+      icon: <ListRestart class="w-4 h-4" />,
+      label: t("noteMenu.uncheckAllShort"),
+      fullLabel: t("noteMenu.uncheckAll"),
+      onSelect: checkedItems.uncheck,
     });
   }
   items.push({ kind: "divider", id: "checklist-destructive" });

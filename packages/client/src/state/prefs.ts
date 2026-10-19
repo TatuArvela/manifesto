@@ -111,11 +111,16 @@ export const locale = pref("locale");
 export const inlineCalculations = pref("inlineCalculations");
 export const decimalSeparator = pref("decimalSeparator");
 export const noteCorners = pref("noteCorners");
+export const noteTilt = pref("noteTilt");
 export const animations = pref("animations");
 export const lightHue = pref("lightHue");
 export const darkHue = pref("darkHue");
 export const noteQuips = pref("noteQuips");
 export const formattingToolbar = pref("formattingToolbar");
+export const checkedItemsLast = pref("checkedItemsLast");
+export const checklistProgress = pref("checklistProgress");
+export const linkPreviewCards = pref("linkPreviewCards");
+export const openLinksInBrowser = pref("openLinksInBrowser");
 export const stickyTopBar = pref("stickyTopBar");
 export const hiddenTags = pref("hiddenTags");
 export const tagColors = pref("tagColors");
@@ -255,6 +260,36 @@ export function rerollBoardGradientDirection() {
   randomBoardGradientDirection.value = pickOne(
     BOARD_GRADIENT_DIRECTIONS.filter((way) => way !== current),
   );
+}
+
+/**
+ * The board's choices set to "random" that show now, as the reroll of each:
+ * a direction counts only with a gradient to point, a pattern colour only
+ * with a pattern to draw in it. The colour comes before the gradient, which
+ * rolls away from it.
+ */
+export const boardRerolls = computed<readonly (() => void)[]>(() => {
+  const rerolls: (() => void)[] = [];
+  if (boardColor.value === "random") rerolls.push(rerollBoardColor);
+  if (boardGradient.value === "random") rerolls.push(rerollBoardGradient);
+  if (
+    boardGradient.value !== "none" &&
+    boardGradientDirection.value === "random"
+  ) {
+    rerolls.push(rerollBoardGradientDirection);
+  }
+  if (boardTexture.value === "random") rerolls.push(rerollBoardTexture);
+  if (resolvedBoardTexture.value !== "none" && boardInk.value === "random") {
+    rerolls.push(rerollBoardInk);
+  }
+  return rerolls;
+});
+
+/** Picks again for every choice of the board's set to "random". */
+export function rerollBoardBackground() {
+  batch(() => {
+    for (const reroll of boardRerolls.peek()) reroll();
+  });
 }
 
 /** Returns the concrete decimal separator, resolving "auto" via current locale. */
@@ -411,6 +446,17 @@ effect(() => {
   document.documentElement.classList.toggle(
     "notes-rounded",
     noteCorners.value === "rounded",
+  );
+});
+
+// --- Note tilt ---
+
+// A class on <html> too: each card carries its own angle as `--note-tilt`
+// whatever the setting, and the stylesheet applies it only on a messy board.
+effect(() => {
+  document.documentElement.classList.toggle(
+    "notes-messy",
+    noteTilt.value === "messy",
   );
 });
 

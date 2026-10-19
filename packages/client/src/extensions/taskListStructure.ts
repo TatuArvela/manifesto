@@ -1,5 +1,5 @@
 import type { Node as ProseNode } from "@milkdown/kit/prose/model";
-import type { EditorState } from "@milkdown/kit/prose/state";
+import type { EditorState, Transaction } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
 
 // How lists and checklist items sit in a ProseMirror document: what is a task
@@ -92,11 +92,66 @@ export function getDeletionRange(
   return { from, to };
 }
 
-/** Ticks or unticks the task item at `pos` and every task item inside it. */
+/** `node` with the items of every list in it in the order of `keyOf`. */
+function withSortedLists(
+  node: ProseNode,
+  keyOf: (item: ProseNode) => string,
+): ProseNode {
+  if (node.isLeaf || node.isText) return node;
+  const children: ProseNode[] = [];
+  node.forEach((child) => {
+    children.push(withSortedLists(child, keyOf));
+  });
+  if (isListNode(node)) {
+    const keys = new Map(children.map((child) => [child, keyOf(child)]));
+    const key = (child: ProseNode) => keys.get(child) ?? "";
+    // Stable, so items sharing a key keep the order they were in.
+    children.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
+  }
+  return node.type.create(node.attrs, children, node.marks);
+}
+
+/**
+ * Puts the items of every list in `tr`'s document in the order of `keyOf`,
+ * smallest first, each among its siblings, as `sortChecklist` does for
+ * Markdown. Only the lists whose order changes are replaced, so in a shared
+ * document the rest is not rewritten under someone else's caret. Whether
+ * anything moved.
+ */
+export function sortListItems(
+  tr: Transaction,
+  keyOf: (item: ProseNode) => string,
+): boolean {
+  const changed: { pos: number; from: ProseNode; to: ProseNode }[] = [];
+  tr.doc.descendants((node, pos) => {
+    if (!isListNode(node)) return true;
+    const sorted = withSortedLists(node, keyOf);
+    if (!sorted.eq(node)) changed.push({ pos, from: node, to: sorted });
+    // Nested lists were sorted with this one.
+    return false;
+  });
+  // Last first: a sorted list is the size it was, but this way no position
+  // has to be mapped at all.
+  for (const { pos, from, to } of changed.reverse()) {
+    tr.replaceWith(pos, pos + from.nodeSize, to);
+  }
+  return changed.length > 0;
+}
+
+/** The order "checked items last" keeps: ticked items after the rest. */
+export const checkedLastKey = (item: ProseNode): string =>
+  isTaskItem(item) && item.attrs.checked === true ? "1" : "0";
+
+/**
+ * Ticks or unticks the task item at `pos` and every task item inside it.
+ * With `checkedLast`, ticked items then move below the ones still to do, in
+ * the same step, so one undo puts both back.
+ */
 export function toggleSubtreeChecked(
   view: EditorView,
   pos: number,
   checked: boolean,
+  checkedLast = false,
 ): void {
   const { tr } = view.state;
   const node = tr.doc.nodeAt(pos);
@@ -113,7 +168,20 @@ export function toggleSubtreeChecked(
     }
   });
 
+  if (checkedLast) sortListItems(tr, checkedLastKey);
   view.dispatch(tr);
+}
+
+/** Unticks every checklist item in the editor's document. */
+export function uncheckAllIn(view: EditorView): void {
+  const { tr } = view.state;
+  tr.doc.descendants((node, pos) => {
+    if (isTaskItem(node) && node.attrs.checked === true) {
+      tr.setNodeMarkup(pos, undefined, { ...node.attrs, checked: false });
+    }
+    return true;
+  });
+  if (tr.docChanged) view.dispatch(tr);
 }
 
 /** Whether the document holds a ticked checklist item. */

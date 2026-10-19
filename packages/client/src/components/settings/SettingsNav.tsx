@@ -4,10 +4,12 @@ import {
   Info,
   KeyRound,
   KeySquare,
+  Languages,
   type LucideIcon,
   Palette,
   ShieldCheck,
   Sparkles,
+  Wallpaper,
   Webhook,
 } from "lucide-preact";
 import type { ComponentChildren } from "preact";
@@ -25,19 +27,23 @@ type TabInfo = {
 };
 
 export const TABS: Record<Exclude<SettingsTab, "account">, TabInfo> = {
-  twoFactor: { label: "twoFactor.title", icon: ShieldCheck },
+  signIn: { label: "signIn.title", icon: ShieldCheck },
   keys: { label: "keys.title", icon: KeyRound },
   tokens: { label: "tokens.title", icon: KeySquare },
   webhooks: { label: "webhooks.title", icon: Webhook },
   activity: { label: "activity.title", icon: History },
+  language: { label: "settings.group.languageRegion", icon: Languages },
   appearance: { label: "settings.group.appearance", icon: Palette },
+  board: { label: "settings.boardBackground", icon: Wallpaper },
   features: { label: "settings.group.features", icon: Sparkles },
   data: { label: "settings.group.data", icon: Database },
   about: { label: "settings.group.about", icon: Info },
 };
 
 export const GENERAL_TABS: SettingsTab[] = [
+  "language",
   "appearance",
+  "board",
   "features",
   "data",
   "about",
@@ -49,24 +55,31 @@ export function secondFactorOffered(): boolean {
 }
 
 /**
- * The account's pages this user has: none in open mode or signed out, and
- * none for a feature the server has off (`serverFeature`). The keys are every
- * account's, however it signs in. Two-factor stays
- * while either of its halves is on, and with both off for an account that
- * already has one: sign-in still asks for it, and this page is the only way
- * to remove it.
+ * The account's pages this user has, in the groups the sidebar sets apart:
+ * the account itself, how it is kept safe, and what reaches it from outside.
+ * None in open mode or signed out, and none for a feature the server has off
+ * (`serverFeature`); a group left empty is dropped. The keys and the activity
+ * are every account's, however it signs in. Sign-in is for an account with a
+ * password of its own: it changes the password, and holds two-factor while
+ * either of its halves is on, or with both off for an account that already
+ * has one, since sign-in still asks for it and this page is the only way to
+ * remove it.
  */
-export function accountTabs(): SettingsTab[] {
+export function accountGroups(): SettingsTab[][] {
   if (!isServerMode || !currentUser.value) return [];
-  const tabs: SettingsTab[] = ["account"];
-  if (hasOwnPassword() && (secondFactorOffered() || hasSecondFactor())) {
-    tabs.push("twoFactor");
-  }
-  tabs.push("keys");
-  if (offeredTokenKinds().length > 0) tabs.push("tokens");
-  if (serverFeature("webhooks")) tabs.push("webhooks");
-  tabs.push("activity");
-  return tabs;
+  const security: SettingsTab[] = [];
+  if (hasOwnPassword()) security.push("signIn");
+  security.push("keys", "activity");
+  const integrations: SettingsTab[] = [];
+  if (offeredTokenKinds().length > 0) integrations.push("tokens");
+  if (serverFeature("webhooks")) integrations.push("webhooks");
+  const groups: SettingsTab[][] = [["account"], security, integrations];
+  return groups.filter((g) => g.length > 0);
+}
+
+/** Whether the Sign-in page has a two-factor section; see `accountGroups`. */
+export function showsTwoFactor(): boolean {
+  return secondFactorOffered() || hasSecondFactor();
 }
 
 const navItemClass =
@@ -79,23 +92,9 @@ function navItemState(active: boolean) {
     : "text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60";
 }
 
-export function NavGroup({
-  title,
-  children,
-}: {
-  title?: string | undefined;
-  children: ComponentChildren;
-}) {
-  return (
-    <div class="contents sm:block sm:space-y-0.5 sm:pb-4">
-      {title && (
-        <p class="hidden sm:block px-3 pb-1 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-          {title}
-        </p>
-      )}
-      {children}
-    </div>
-  );
+/** Pages that belong together, set apart from the next group by a gap alone. */
+export function NavGroup({ children }: { children: ComponentChildren }) {
+  return <div class="contents sm:block sm:space-y-0.5 sm:pb-4">{children}</div>;
 }
 
 export function NavItem({

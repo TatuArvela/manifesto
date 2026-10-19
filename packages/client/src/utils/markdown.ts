@@ -179,3 +179,92 @@ export function segmentContent(content: string): ContentSegment[] {
 
   return segments;
 }
+
+/** `content` with every ticked checklist item unticked, for a list reused. */
+export function uncheckAllItems(content: string): string {
+  const lines = content.split("\n");
+  const fenced = markFencedLines(lines);
+  return lines
+    .map((line, i) =>
+      !fenced[i] && parseChecklistLine(line)?.checked
+        ? setChecklistChecked(line, false)
+        : line,
+    )
+    .join("\n");
+}
+
+/** How many of the checklist items in `content` are ticked, of how many. */
+export function checklistProgress(content: string): {
+  done: number;
+  total: number;
+} {
+  const lines = content.split("\n");
+  const fenced = markFencedLines(lines);
+  let done = 0;
+  let total = 0;
+  for (const [i, line] of lines.entries()) {
+    if (fenced[i]) continue;
+    const item = parseChecklistLine(line);
+    if (!item) continue;
+    total++;
+    if (item.checked) done++;
+  }
+  return { done, total };
+}
+
+interface ItemNode {
+  line: string;
+  indent: number;
+  key: string;
+  children: ItemNode[];
+}
+
+function sortedLines(items: ItemNode[]): string[] {
+  // `sort` is stable, so items sharing a key keep the order they were
+  // written in.
+  return [...items]
+    .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
+    .flatMap((item) => [item.line, ...sortedLines(item.children)]);
+}
+
+/**
+ * `content` with its checklist items in the order of `keyOf`, smallest first.
+ * Items are sorted among their siblings only, in each run of checklist lines,
+ * and an item's indented children move with it, sorted in turn.
+ */
+export function sortChecklist(
+  content: string,
+  keyOf: (item: ChecklistLine | null) => string,
+): string {
+  const out: string[] = [];
+  for (const segment of segmentContent(content)) {
+    if (segment.type !== "checklist") {
+      out.push(...segment.lines);
+      continue;
+    }
+    const roots: ItemNode[] = [];
+    const open: ItemNode[] = [];
+    for (const line of segment.lines) {
+      const parsed = parseChecklistLine(line);
+      const node: ItemNode = {
+        line,
+        indent: parsed?.indent.length ?? 0,
+        key: keyOf(parsed),
+        children: [],
+      };
+      while ((open.at(-1)?.indent ?? -1) >= node.indent) open.pop();
+      (open.at(-1)?.children ?? roots).push(node);
+      open.push(node);
+    }
+    out.push(...sortedLines(roots));
+  }
+  return out.join("\n");
+}
+
+/**
+ * `content` with each checklist's ticked items after the ones still to do,
+ * each among its siblings, both groups in the order they had.
+ */
+export function moveCheckedLast(content: string): string {
+  return sortChecklist(content, (item) => (item?.checked ? "1" : "0"));
+}

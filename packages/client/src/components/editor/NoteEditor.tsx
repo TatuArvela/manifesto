@@ -78,7 +78,7 @@ interface NoteEditorProps {
    * only copy that counts.
    */
   menuItems?: (editorActions: {
-    checkedItems: { present: boolean; remove: () => void };
+    checkedItems: { present: boolean; remove: () => void; uncheck: () => void };
     datedItems: { present: boolean; sort: () => void };
   }) => NoteMenuItem[];
   /** Discards an unsaved draft. Shown as a toolbar button, not a menu row. */

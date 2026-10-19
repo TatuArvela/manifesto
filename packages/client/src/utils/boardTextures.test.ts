@@ -4,6 +4,8 @@ import {
   CONFETTI_TILE,
   inkHex,
   pictureTextures,
+  SCATTER_TILE,
+  SCATTERS,
 } from "./boardTextures.ts";
 
 function svgOf(url: string): string {
@@ -21,8 +23,13 @@ describe("pictureTextures", () => {
 
   it("draws every shape opaque, leaving colour and opacity to the layer", () => {
     const textures = pictureTextures();
-    expect(svgOf(textures.hearts).match(/<path /g)).toHaveLength(5);
-    for (const name of ["stars", "hearts", "confetti", "sawtooth"] as const) {
+    for (const name of [
+      "stars",
+      "hearts",
+      "confetti",
+      "bubbles",
+      "sawtooth",
+    ] as const) {
       expect(svgOf(textures[name]), name).not.toMatch(/fill|opacity/);
     }
   });
@@ -59,5 +66,48 @@ describe("confetti", () => {
     }
     // A perfect lattice of this many pieces leaves 27.5px at most.
     expect(widest).toBeLessThan(34);
+  });
+});
+
+describe.each(Object.entries(SCATTERS))("the scattered %s", (name, shapes) => {
+  const apart = (a: number, b: number) => {
+    const d = Math.abs(a - b);
+    return Math.min(d, SCATTER_TILE - d);
+  };
+
+  it("keeps every shape clear of the others, across the tile's edges too", () => {
+    expect(shapes.length).toBeGreaterThan(60);
+    for (const [i, a] of shapes.entries()) {
+      for (const b of shapes.slice(i + 1)) {
+        const gap = Math.hypot(apart(a.x, b.x), apart(a.y, b.y)) - a.r - b.r;
+        expect(gap).toBeGreaterThanOrEqual(4);
+      }
+    }
+  });
+
+  it("leaves no bare patch much wider than the largest shape", () => {
+    let widest = 0;
+    for (let x = 0; x < SCATTER_TILE; x += 4) {
+      for (let y = 0; y < SCATTER_TILE; y += 4) {
+        const nearest = Math.min(
+          ...shapes.map((s) => Math.hypot(apart(x, s.x), apart(y, s.y)) - s.r),
+        );
+        widest = Math.max(widest, nearest);
+      }
+    }
+    // The scatters leave 21px to 31px; a seam left bare, as a scatter kept
+    // inside its tile did, would show here first.
+    expect(widest).toBeLessThan(34);
+  });
+
+  it("draws a shape that crosses an edge again on the far side", () => {
+    const svg = svgOf(pictureTextures()[name as keyof typeof SCATTERS]);
+    const drawn = svg.match(/<(circle|path) /g) ?? [];
+    const crossing = shapes.filter(
+      ({ x, y, r }) =>
+        x < r || x > SCATTER_TILE - r || y < r || y > SCATTER_TILE - r,
+    );
+    expect(crossing.length).toBeGreaterThan(0);
+    expect(drawn.length).toBeGreaterThan(shapes.length);
   });
 });

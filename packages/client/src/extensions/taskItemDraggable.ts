@@ -8,6 +8,7 @@ import {
   type NodeViewConstructor,
 } from "@milkdown/kit/prose/view";
 import { t } from "#/i18n/index.ts";
+import { checkedItemsLast } from "#/state/prefs.ts";
 import { emptyParagraphAroundListKeymap } from "./listParagraphKeymap.ts";
 import { endTaskItemDragOf, startTaskItemDrag } from "./taskItemDrag.ts";
 import {
@@ -64,7 +65,7 @@ const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {
     if (typeof getPos !== "function") return;
     const position = getPos();
     if (typeof position !== "number") return;
-    toggleSubtreeChecked(view, position, checked);
+    toggleSubtreeChecked(view, position, checked, checkedItemsLast.value);
   });
 
   handleWrapper.addEventListener("pointerdown", (e: PointerEvent) => {

@@ -109,3 +109,23 @@ body {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
+
+/* The row a settings search jumped to, lit for a moment so the eye finds it. */
+.settings-found {
+  border-radius: 0.5rem;
+  animation: settings-found 1.6s ease-out;
+}
+
+@keyframes settings-found {
+  0%,
+  40% {
+    background-color: color-mix(
+      in srgb,
+      var(--color-blue-500) 18%,
+      transparent
+    );
+  }
+  100% {
+    background-color: transparent;
+  }
+}

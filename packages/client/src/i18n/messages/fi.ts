@@ -179,8 +179,10 @@ export const fi: Messages = {
   "noteMenu.moveEarlier": "Siirrä taaksepäin",
   "noteMenu.moveLater": "Siirrä eteenpäin",
   "noteMenu.unarchive": "Palauta arkistosta",
+  "card.checklistProgress": "{done}/{total} tehty",
   "noteMenu.deleteChecked": "Poista valitut kohdat",
   "noteMenu.sortByDate": "Järjestä kohdat päivämäärän mukaan",
+  "noteMenu.uncheckAll": "Poista valinta kaikista kohdista",
   "noteMenu.delete": "Poista",
   "noteMenu.undelete": "Palauta roskakorista",
   "noteMenu.shareWithPeople": "Jaa muiden kanssa",
@@ -200,6 +202,7 @@ export const fi: Messages = {
   "noteMenu.checklist": "Tehtävälista",
   "noteMenu.sortByDateShort": "Järjestä päivämäärän mukaan",
   "noteMenu.deleteCheckedShort": "Poista valitut",
+  "noteMenu.uncheckAllShort": "Poista valinnat",
 
   "editor.rawMode": "Raakatila",
   "editor.normalMode": "Normaali tila",
@@ -295,6 +298,19 @@ export const fi: Messages = {
   "versions.emptyContent": "(tyhjä)",
 
   // Note grid
+  "empty.archive.title": "Arkisto on tyhjä",
+  "empty.archive.hint":
+    "Arkistoimasi muistiinpanot säilyvät täällä poissa tieltä.",
+  "empty.trash.title": "Roskakori on tyhjä",
+  "empty.trash.hint": {
+    one: "Poistetut muistiinpanot odottavat täällä {count} päivän ennen kuin ne poistuvat lopullisesti.",
+    other:
+      "Poistetut muistiinpanot odottavat täällä {count} päivää ennen kuin ne poistuvat lopullisesti.",
+  },
+  "empty.reminders.title": "Ei muistutuksia",
+  "empty.reminders.hint": "Muistiinpano, jossa on muistutus, näkyy täällä.",
+  "empty.tag.title": "Tunnisteella {tag} ei ole muistiinpanoja",
+  "empty.tag.hint": "Anna muistiinpanolle tämä tunniste, niin se näkyy täällä.",
   "noteGrid.empty": "Ei vielä muistiinpanoja",
   "noteGrid.emptyHint": "On aika kirjoittaa jotain!",
   "noteGrid.hiddenByTag": {
@@ -357,7 +373,12 @@ export const fi: Messages = {
   "settings.group.data": "Tiedot",
   "settings.group.about": "Tietoja",
   "settings.group.behavior": "Käyttäytyminen",
-  "settings.group.general": "Yleiset",
+  "settings.group.languageRegion": "Kieli ja alue",
+  "settings.group.colors": "Värit",
+  "settings.group.notes": "Muistiinpanot",
+  "settings.search": "Etsi",
+  "settings.searchResults": "Löytyneet asetukset",
+  "settings.searchNone": "Ei osuvia asetuksia",
   "settings.about.version": "Versio {version}",
   "settings.theme": "Teema",
   "settings.theme.system": "Järjestelmä",
@@ -382,20 +403,23 @@ export const fi: Messages = {
   "settings.defaultEditMode.normal": "Normaali",
   "settings.defaultEditMode.raw": "Raaka",
   "settings.defaultFont": "Oletusfontti",
+  "settings.noteTilt": "Taulun tyyli",
+  "settings.noteTilt.tidy": "Siisti",
+  "settings.noteTilt.messy": "Sotkuinen",
   "settings.noteCorners": "Pyöristetyt kulmat",
   "settings.animations": "Animaatiot",
   "settings.boardBackground": "Taulun tausta",
-  "settings.boardBackground.summary": "{color}, {texture}",
-  "settings.boardBackground.color": "Taustaväri 1",
+  "settings.boardBackground.colors": "Värit",
+  "settings.boardBackground.reroll": "Sekoita uudelleen",
+  "settings.boardBackground.color": "Väri",
   "settings.boardBackground.none": "Ei taustaa",
   "settings.boardBackground.white": "Valkoinen",
   "settings.boardBackground.gray": "Harmaa",
   "settings.boardBackground.black": "Musta",
   "settings.boardBackground.custom": "Oma väri",
   "settings.boardBackground.random": "Satunnainen",
-  "settings.boardBackground.gradient": "Taustaväri 2",
+  "settings.boardBackground.gradient": "Toinen väri",
   "settings.boardBackground.gradient.none": "Ei liukuvärjäystä",
-  "settings.boardBackground.gradient.summary": "{from}–{to}",
   "settings.boardBackground.gradient.direction": "Suunta",
   "settings.boardBackground.gradient.top": "Ylös",
   "settings.boardBackground.gradient.top-right": "Oikealle ylös",
@@ -439,6 +463,10 @@ export const fi: Messages = {
   "settings.inlineCalculations": "Laskutoimitukset",
   "settings.formattingToolbar": "Muotoilupalkki",
   "settings.stickyTopBar": "Pidä yläpalkki näkyvissä puhelimella",
+  "settings.checkedItemsLast": "Siirrä tehdyt kohdat tehtävälistan loppuun",
+  "settings.checklistProgress": "Näytä tehtävälistan edistymispalkki",
+  "settings.openLinksInBrowser": "Avaa linkit selaimessa",
+  "settings.linkPreviewCards": "Linkkien esikatselut",
   "settings.confirmBeforeDelete": "Vahvista poistot",
   "settings.decimalSeparator": "Desimaalierotin",
   "settings.decimalSeparator.auto": "Automaattinen",
@@ -446,16 +474,24 @@ export const fi: Messages = {
   "settings.decimalSeparator.comma": "Pilkku",
   "settings.language": "Kieli",
   "settings.language.system": "Järjestelmän oletus",
-  "settings.clip.title": "Tallenna sivuja selaimesta",
+  "settings.clip.title": "Tallenna selaimesta",
   "settings.clip.explain":
     "Vedä tämä linkki kirjanmerkkipalkkiin. Kun napsautat sitä millä tahansa sivulla, se avaa uuden muistiinpanon sivun otsikolla, osoitteella ja valitsemallasi tekstillä.",
   "settings.clip.link": "Tallenna: {appName}",
   "settings.clip.dragHint":
     "Vedä se kirjanmerkkipalkkiin ja napsauta sitä sivulla, jonka haluat tallentaa.",
+  "settings.data.group.import": "Tuonti",
+  "settings.data.importBody":
+    "Tuo muistiinpanoja varmuuskopiosta tai toisesta sovelluksesta. Voit valita useita tiedostoja kerralla tai pudottaa ne taululle.",
+  "settings.data.group.export": "Vienti",
+  "settings.data.exportBody":
+    "Lataa kaikki muistiinpanosi .zip-tiedostona versiohistorioineen, myös arkiston ja roskakorin. Voit tuoda tiedoston takaisin tänne tai toiselle palvelimelle. Muistiinpanot ovat siinä myös Markdown-muodossa, joten muutkin sovellukset osaavat avata ne.",
+  "settings.data.group.delete": "Poisto",
+  "settings.data.deleteBody":
+    "Poistaa kaikki omat muistiinpanosi pysyvästi. Vie ne ensin, jos saatat vielä tarvita niitä.",
   "settings.data.import": "Tuo muistiinpanot",
   "settings.data.exportFailed": "Muistiinpanoja ei saatu vietyä",
-  "settings.data.importHint": "Voit tuoda useita tiedostoja kerralla:",
-  "settings.data.importHint.backup": "{appName}-varmuuskopiot",
+  "settings.data.importHint.backup": "{appName}",
   "settings.data.importHint.backupBody":
     "Vie muistiinpanot -painikkeella tallennettu .zip tai vanhemman version .json.",
   "settings.data.importHint.markdown": "Markdown",
@@ -482,7 +518,7 @@ export const fi: Messages = {
   "settings.data.export": "Vie muistiinpanot",
   "settings.data.deleteAll": "Poista kaikki",
   "settings.data.deleteConfirm":
-    "Tämä poistaa kaikki muistiinpanot pysyvästi. Toimintoa ei voi perua.",
+    "Tämä poistaa kaikki omat muistiinpanosi pysyvästi. Toimintoa ei voi perua.",
   "settings.data.deleteYes": "Kyllä, poista kaikki",
   "settings.data.cancel": "Peruuta",
   "settings.data.exported": "Muistiinpanot viety",
@@ -649,6 +685,7 @@ export const fi: Messages = {
   "webhooks.tooMany": "Webhookeja on enimmäismäärä; poista ensin jokin",
   "webhooks.failed": "Webhookeihin ei saatu yhteyttä; yritä uudelleen",
   "twoFactor.title": "Kaksivaiheinen kirjautuminen",
+  "signIn.title": "Kirjautuminen",
   "twoFactor.hint":
     "Kirjautuessa kysytään salasanan lisäksi toinen tunnistautumistapa: todennussovelluksen koodi tai pääsyavain.",
   "twoFactor.loading": "Ladataan...",
@@ -1007,6 +1044,8 @@ export const fi: Messages = {
   "storage.quotaExceeded":
     "Selaimen tallennustila on täynnä. Osa muutoksista ei välttämättä tallennu, ennen kuin vapautat tilaa.",
   "dropZone.title": "Pudota tuodaksesi",
+  "dropZone.imagesTitle": "Pudota aloittaaksesi muistiinpanon",
+  "dropZone.imagesHint": "Kuvat liitetään uuteen muistiinpanoon",
   "dropZone.hint": "Markdown-, JSON-, Evernote-, Joplin- tai HTML-tiedostoja",
 
   // Käyttöönoton virheasetus, näytetään sovelluksen sijaan käynnistyksessä
@@ -1277,6 +1316,8 @@ export const fi: Messages = {
   "account.wrongPassword": "Nykyinen salasana on väärin",
   "account.samePassword": "Valitse eri salasana kuin nykyinen",
   "account.changeFailed": "Salasanan vaihtaminen epäonnistui. Yritä uudelleen.",
+  "account.password": "Salasana",
+  "account.password.hint": "Vaihtaminen kirjaa sinut ulos muilta laitteiltasi.",
   "account.email": "Sähköpostiosoite",
   "account.email.hint":
     "Muut löytävät sinut sen avulla, kun he jakavat sinulle muistiinpanon. Osoitteeseen ei lähetetä mitään.",
@@ -1288,6 +1329,9 @@ export const fi: Messages = {
   "account.email.managed": "Osoitetta hallitaan kirjautumispalvelussasi.",
   "account.email.failed":
     "Osoitteen tallentaminen epäonnistui. Yritä uudelleen.",
+  "account.email.none": "Ei sähköpostiosoitetta",
+  "account.email.add": "Lisää",
+  "account.email.change": "Vaihda",
   "privacy.notice": "Tietosuojaseloste",
   "account.delete.title": "Poista tili",
   "account.delete.hint":

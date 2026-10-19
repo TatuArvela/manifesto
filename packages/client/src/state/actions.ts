@@ -6,7 +6,12 @@ import {
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { sortChecklistByDate } from "#/utils/itemDate.ts";
-import { removeCheckedItems, toggleChecklistItem } from "#/utils/markdown.ts";
+import {
+  moveCheckedLast,
+  removeCheckedItems,
+  toggleChecklistItem,
+  uncheckAllItems,
+} from "#/utils/markdown.ts";
 import { asBatch, type Batch } from "./failures.ts";
 import {
   allNotes,
@@ -22,7 +27,12 @@ import {
   POSITION_STEP,
   positionBetween,
 } from "./ordering.ts";
-import { animations, hiddenTags, tagColors } from "./prefs.ts";
+import {
+  animations,
+  checkedItemsLast,
+  hiddenTags,
+  tagColors,
+} from "./prefs.ts";
 import { exitSelectMode } from "./selection.ts";
 import { activeTag, selectedNotes } from "./ui.ts";
 import {
@@ -44,12 +54,14 @@ import {
 /**
  * How a card leaves the grid, one look per kind of going:
  *
- * - `discard`: trashed or deleted. It drops a little and shrinks away.
+ * - `discard`: trashed or deleted. It is crumpled into a ball and tossed.
  * - `archive`: put away. It is lifted up and off the board.
- * - `restore`: back among the notes from the trash or the archive. It swells
- *   slightly as it fades, rising to meet them.
+ * - `undelete`: back among the notes from the trash. It ascends: it glows,
+ *   and floats up out of the Trash into the light.
+ * - `restore`: back among the notes from the archive. It swells slightly as
+ *   it fades, rising to meet them.
  */
-export type LeaveStyle = "discard" | "archive" | "restore";
+export type LeaveStyle = "discard" | "archive" | "undelete" | "restore";
 
 /**
  * Notes whose cards are playing their exit animation, in the moment before a
@@ -58,8 +70,13 @@ export type LeaveStyle = "discard" | "archive" | "restore";
  */
 export const leavingNotes = signal<ReadonlyMap<string, LeaveStyle>>(new Map());
 
-/** How long `.note-leaving` runs; see styles.css. */
-const LEAVE_MS = 200;
+/** How long `.note-leaving` runs for each, as `note-cards.css` has it. */
+const LEAVE_MS: Record<LeaveStyle, number> = {
+  discard: 480,
+  archive: 200,
+  undelete: 600,
+  restore: 200,
+};
 
 /**
  * Runs `change` once the cards for `ids` have animated out. Waits only for
@@ -86,7 +103,7 @@ async function afterLeaving<T>(
   for (const id of animated) flagged.set(id, style);
   leavingNotes.value = flagged;
   try {
-    await new Promise((resolve) => setTimeout(resolve, LEAVE_MS));
+    await new Promise((resolve) => setTimeout(resolve, LEAVE_MS[style]));
     return await change();
   } finally {
     const next = new Map(leavingNotes.peek());
@@ -129,7 +146,7 @@ export async function trashNote(id: string): Promise<boolean> {
 }
 
 export async function restoreNote(id: string): Promise<boolean> {
-  return await afterLeaving([id], "restore", RESTORED, () => restoreNow(id));
+  return await afterLeaving([id], "undelete", RESTORED, () => restoreNow(id));
 }
 
 export async function archiveNote(id: string): Promise<boolean> {
@@ -364,8 +381,11 @@ export async function bulkDelete(): Promise<boolean> {
 }
 
 export async function bulkRestore(): Promise<boolean> {
-  return await afterLeaving([...selectedNotes.value], "restore", RESTORED, () =>
-    bulkApply(restoreNow),
+  return await afterLeaving(
+    [...selectedNotes.value],
+    "undelete",
+    RESTORED,
+    () => bulkApply(restoreNow),
   );
 }
 
@@ -519,6 +539,15 @@ export async function deleteCheckedItems(id: string) {
   await updateNote(id, { content: next });
 }
 
+/** Unticks every item of a note's checklists, for a list used again. */
+export async function uncheckAll(id: string) {
+  const note = notes.value.find((n) => n.id === id);
+  if (!note) return;
+  const next = uncheckAllItems(note.content);
+  if (next === note.content) return;
+  await updateNote(id, { content: next });
+}
+
 export async function sortItemsByDate(id: string) {
   const note = notes.value.find((n) => n.id === id);
   if (!note) return;
@@ -530,7 +559,8 @@ export async function sortItemsByDate(id: string) {
 export async function toggleCheckbox(id: string, lineIndex: number) {
   const note = notes.value.find((n) => n.id === id);
   if (!note) return;
-  const next = toggleChecklistItem(note.content, lineIndex);
-  if (next === null) return;
+  const toggled = toggleChecklistItem(note.content, lineIndex);
+  if (toggled === null) return;
+  const next = checkedItemsLast.value ? moveCheckedLast(toggled) : toggled;
   await updateNote(id, { content: next });
 }

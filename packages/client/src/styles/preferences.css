@@ -40,6 +40,20 @@
   border-radius: var(--note-radius);
 }
 
+/* Note tilt: a user preference (Settings > Appearance > Notes). Each card in
+   the grid carries its own angle as `--note-tilt` (utils/noteTilt.ts), and a
+   messy board, `.notes-messy` on <html>, leans it by that much. `rotate` is
+   its own property, so it adds to the drag's and the reordering's
+   `transform` rather than replacing it. A card straightens as it is pointed
+   at, picked up or opened, as a note is when someone reaches for it. */
+:root.notes-messy .note-tilt {
+  rotate: var(--note-tilt, 0deg);
+}
+
+:root.notes-messy .note-tilt:is(:hover, :focus-within, .note-held) {
+  rotate: 0deg;
+}
+
 /* Board background: user preferences (Settings > Appearance > Board
    Background), keyed off attributes on <html> by state/prefs.ts. The board is
    composed of a colour and a texture over it, or covered whole by a picture.
@@ -246,7 +260,7 @@
    drawn in opaque black: changing the pattern's colour or opacity redraws
    none of them, and every mark of every texture comes out at the one
    opacity. Most are gradients. The paper grain, the stars, the hearts, the
-   confetti and the sawtooth are SVG, drawn once at load by state/prefs.ts
+   confetti, the bubbles and the sawtooth are SVG, drawn once at load by state/prefs.ts
    (utils/boardTextures.ts), since a few are worked out rather than written.
    A texture of several layers lists one size per layer: a shorter list
    cycles (styles.test.ts holds every texture to this). */
@@ -299,32 +313,8 @@
       transparent 12.5px
     );
   --board-texture-waves-size: 46px 36px, 46px 36px, 46px 36px;
-  /* Bubbles: a scatter of round dots of every size, each well inside its
-     tile so none is cut at an edge. */
-  --board-texture-bubbles:
-    radial-gradient(circle at 14px 18px, #000 9px, transparent 9.75px),
-    radial-gradient(circle at 46px 10px, #000 5px, transparent 5.75px),
-    radial-gradient(circle at 80px 26px, #000 12px, transparent 12.75px),
-    radial-gradient(circle at 108px 10px, #000 6px, transparent 6.75px),
-    radial-gradient(circle at 30px 52px, #000 6px, transparent 6.75px),
-    radial-gradient(circle at 62px 62px, #000 14px, transparent 14.75px),
-    radial-gradient(circle at 100px 64px, #000 8px, transparent 8.75px),
-    radial-gradient(circle at 14px 94px, #000 11px, transparent 11.75px),
-    radial-gradient(circle at 44px 104px, #000 7px, transparent 7.75px),
-    radial-gradient(circle at 82px 100px, #000 10px, transparent 10.75px),
-    radial-gradient(circle at 110px 110px, #000 5px, transparent 5.75px);
-  --board-texture-bubbles-size:
-    120px 120px,
-    120px 120px,
-    120px 120px,
-    120px 120px,
-    120px 120px,
-    120px 120px,
-    120px 120px,
-    120px 120px,
-    120px 120px,
-    120px 120px,
-    120px 120px;
+  --board-texture-bubbles: var(--board-texture-bubbles-mask);
+  --board-texture-bubbles-size: 360px 360px;
   --board-texture-stripes: repeating-linear-gradient(
     -45deg,
     #000 0 16px,
@@ -332,9 +322,9 @@
   );
   --board-texture-stripes-size: auto;
   --board-texture-stars: var(--board-texture-stars-mask);
-  --board-texture-stars-size: 90px 90px;
+  --board-texture-stars-size: 360px 360px;
   --board-texture-hearts: var(--board-texture-hearts-mask);
-  --board-texture-hearts-size: 90px 90px;
+  --board-texture-hearts-size: 360px 360px;
   --board-texture-sawtooth: var(--board-texture-sawtooth-mask);
   --board-texture-sawtooth-size: 286px 286px;
 }

@@ -4,9 +4,7 @@ import {
   MAX_TEXTURE_OPACITY,
   MIN_TEXTURE_OPACITY,
 } from "#/utils/boardTextures.ts";
-
-const legendClass =
-  "text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2";
+import { BoardCard } from "./BoardCard.tsx";
 
 /**
  * How opaque the pattern is drawn. One value for every texture and colour,
@@ -22,30 +20,26 @@ export function BoardOpacitySlider({
   const opacity = boardTextureOpacity.value;
   const disabled = resolvedBoardTexture.value === "none";
   return (
-    <fieldset disabled={disabled}>
-      <legend class={legendClass}>
-        {t("settings.boardBackground.opacity")}
-      </legend>
-      <div class={`flex items-center gap-3 ${disabled ? "opacity-50" : ""}`}>
-        <input
-          type="range"
-          class="flex-1 min-w-0 accent-blue-500 cursor-pointer disabled:cursor-default"
-          min={MIN_TEXTURE_OPACITY}
-          max={MAX_TEXTURE_OPACITY}
-          step={1}
-          value={opacity}
-          aria-label={t("settings.boardBackground.opacity")}
-          aria-valuetext={formatPercent(opacity)}
-          onInput={(e) =>
-            compose(() => {
-              boardTextureOpacity.value = e.currentTarget.valueAsNumber;
-            })
-          }
-        />
-        <span class="w-12 shrink-0 text-right text-sm tabular-nums text-neutral-600 dark:text-neutral-300">
-          {formatPercent(opacity)}
-        </span>
-      </div>
-    </fieldset>
+    <BoardCard
+      legend={t("settings.boardBackground.opacity")}
+      detail={formatPercent(opacity)}
+      disabled={disabled}
+    >
+      <input
+        type="range"
+        class={`block w-full accent-blue-500 cursor-pointer disabled:cursor-default ${disabled ? "opacity-50" : ""}`}
+        min={MIN_TEXTURE_OPACITY}
+        max={MAX_TEXTURE_OPACITY}
+        step={1}
+        value={opacity}
+        aria-label={t("settings.boardBackground.opacity")}
+        aria-valuetext={formatPercent(opacity)}
+        onInput={(e) =>
+          compose(() => {
+            boardTextureOpacity.value = e.currentTarget.valueAsNumber;
+          })
+        }
+      />
+    </BoardCard>
   );
 }

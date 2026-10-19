@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cdp, page } from "vitest/browser";
 import { MilkdownEditor } from "#/components/editor/MilkdownEditor.tsx";
 import { t } from "#/i18n/index.ts";
+import { checkedItemsLast } from "#/state/prefs.ts";
 import { defined } from "#/test/defined.ts";
 import "#/styles.css";
 
@@ -168,5 +169,26 @@ describe("a checklist row for a screen reader", () => {
         ?.querySelector(":scope > .task-item-drag-handle")
         ?.getAttribute("aria-hidden"),
     ).toBe("true");
+  });
+});
+
+describe("ticking an item with checked items last", () => {
+  afterEach(() => {
+    checkedItemsLast.value = false;
+  });
+
+  it("moves the ticked item below the ones still to do", async () => {
+    checkedItemsLast.value = true;
+    await mount("- [ ] Milk\n- [ ] Bread\n- [ ] Eggs");
+    defined(rows()[0]).querySelector<HTMLInputElement>("label input")?.click();
+    await vi.waitFor(() =>
+      expect(markdown).toBe("- [ ] Bread\n- [ ] Eggs\n- [x] Milk\n"),
+    );
+  });
+
+  it("leaves the item where it was with the preference off", async () => {
+    await mount("- [ ] Milk\n- [ ] Bread");
+    defined(rows()[0]).querySelector<HTMLInputElement>("label input")?.click();
+    await vi.waitFor(() => expect(markdown).toBe("- [x] Milk\n- [ ] Bread\n"));
   });
 });

@@ -27,6 +27,8 @@ export type DefaultNoteColor = NoteColor | "random";
 export type DefaultNoteFont = NoteFont | "random";
 export type DecimalSeparator = "auto" | "." | ",";
 export type NoteCorners = "straight" | "rounded";
+/** Whether the cards sit level on the board, or each leans a little. */
+export type NoteTilt = "tidy" | "messy";
 export type EditMode = "normal" | "raw";
 /** A colour a tag can be given: any note colour but the plain one. */
 export type TagColor = Exclude<NoteColor, NoteColor.Default>;
@@ -128,8 +130,8 @@ export const BOARD_TEXTURES: readonly BoardTexture[] = [
   "dots",
   "grid",
   "lines",
-  "confetti",
   "waves",
+  "confetti",
   "stars",
   "hearts",
   "bubbles",
@@ -373,6 +375,7 @@ export const PREF_PARSERS = {
   inlineCalculations: flag(true),
   decimalSeparator: oneOf(DECIMAL_SEPARATOR_VALUES, "auto"),
   noteCorners: oneOf<NoteCorners>(["straight", "rounded"], "straight"),
+  noteTilt: oneOf<NoteTilt>(["tidy", "messy"], "tidy"),
   // First-run default follows the OS setting; once the user flips the
   // toggle, their choice wins.
   animations: (value: unknown): boolean =>
@@ -383,6 +386,17 @@ export const PREF_PARSERS = {
     oneOf(DARK_HUES, "neutral")(value === "violet" ? "lavender" : value),
   noteQuips: flag(true),
   formattingToolbar: flag(true),
+  /** Whether ticking a checklist item moves it below the ones still to do. */
+  checkedItemsLast: flag(false),
+  /** Whether a card with a checklist shows how much of it is ticked. */
+  checklistProgress: flag(true),
+  /** Whether a link pasted or inserted into a note gets a preview card. */
+  linkPreviewCards: flag(true),
+  /**
+   * In the app installed on a phone, whether a link opens in the system's
+   * browser rather than the app's own view of it (`state/externalLinks.ts`).
+   */
+  openLinksInBrowser: flag(false),
   /**
    * On a phone, whether the top bar stays at the top of the screen while the
    * board scrolls, or scrolls away with it. Wider screens always keep it.
@@ -449,6 +463,7 @@ const DEVICE_PREFS: ReadonlySet<PrefKey> = new Set<PrefKey>([
   "animations",
   "boardUsePicture",
   "boardImageStamp",
+  "openLinksInBrowser",
 ]);
 
 export type LoadedPrefs = {

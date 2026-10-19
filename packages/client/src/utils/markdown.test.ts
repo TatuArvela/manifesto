@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { defined } from "#/test/defined.ts";
 import {
+  checklistProgress,
   isChecklistLine,
   markFencedLines,
+  moveCheckedLast,
   parseChecklistLine,
   segmentContent,
   setChecklistChecked,
+  uncheckAllItems,
 } from "./markdown.ts";
 
 describe("isChecklistLine", () => {
@@ -410,5 +413,70 @@ describe("fenced code", () => {
       true,
       false,
     ]);
+  });
+});
+
+describe("uncheckAllItems", () => {
+  it("unticks every item and leaves the rest of the note alone", () => {
+    const content = ["# Packing", "- [x] Socks", "  - [X] Wool", "- [ ] Hat"];
+    expect(uncheckAllItems(content.join("\n"))).toBe(
+      ["# Packing", "- [ ] Socks", "  - [ ] Wool", "- [ ] Hat"].join("\n"),
+    );
+  });
+
+  it("leaves a box quoted in a code block ticked", () => {
+    const content = ["```", "- [x] quoted", "```", "- [x] real"].join("\n");
+    expect(uncheckAllItems(content)).toBe(
+      ["```", "- [x] quoted", "```", "- [ ] real"].join("\n"),
+    );
+  });
+});
+
+describe("checklistProgress", () => {
+  it("counts ticked items of all, nested ones included, outside code", () => {
+    const content = [
+      "- [x] One",
+      "  - [ ] One a",
+      "- [x] Two",
+      "```",
+      "- [x] quoted",
+      "```",
+    ].join("\n");
+    expect(checklistProgress(content)).toEqual({ done: 2, total: 3 });
+  });
+});
+
+describe("moveCheckedLast", () => {
+  it("puts ticked items after the rest, each group keeping its order", () => {
+    const content = ["- [x] A", "- [ ] B", "- [x] C", "- [ ] D"].join("\n");
+    expect(moveCheckedLast(content)).toBe(
+      ["- [ ] B", "- [ ] D", "- [x] A", "- [x] C"].join("\n"),
+    );
+  });
+
+  it("moves an item with its children and sorts them among themselves", () => {
+    const content = [
+      "- [x] Done",
+      "  - [x] Done too",
+      "- [ ] Open",
+      "  - [x] Child done",
+      "  - [ ] Child open",
+    ].join("\n");
+    expect(moveCheckedLast(content)).toBe(
+      [
+        "- [ ] Open",
+        "  - [ ] Child open",
+        "  - [x] Child done",
+        "- [x] Done",
+        "  - [x] Done too",
+      ].join("\n"),
+    );
+  });
+
+  it("sorts each checklist on its own, leaving text between them", () => {
+    const content = ["- [x] A", "- [ ] B", "", "Text", "- [x] C"].join("\n");
+    expect(moveCheckedLast(content)).toBe(
+      ["- [ ] B", "- [x] A", "", "Text", "- [x] C"].join("\n"),
+    );
   });
 });

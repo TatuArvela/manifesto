@@ -18,7 +18,11 @@ import {
   localIsoDate,
   UNDATED,
 } from "#/utils/itemDate.ts";
-import { activeTaskItem, isListNode, isTaskItem } from "./taskListStructure.ts";
+import {
+  activeTaskItem,
+  isTaskItem,
+  sortListItems,
+} from "./taskListStructure.ts";
 
 // Dates on checklist items in the editor (see `utils/itemDate.ts`). The token
 // stays ordinary text in the item, so the schema is untouched; a decoration
@@ -98,51 +102,18 @@ export function docHasDatedItems(doc: ProseNode): boolean {
   return found;
 }
 
-/** `node` with the items of every list in it in date order, undated last. */
-function withSortedLists(node: ProseNode): ProseNode {
-  if (node.isLeaf || node.isText) return node;
-  const children: ProseNode[] = [];
-  node.forEach((child) => {
-    children.push(withSortedLists(child));
-  });
-  if (isListNode(node)) {
-    const keys = new Map(
-      children.map((child) => [
-        child,
-        (isTaskItem(child) ? itemDateOf(child)?.date : undefined) ?? UNDATED,
-      ]),
-    );
-    const key = (child: ProseNode) => keys.get(child) ?? UNDATED;
-    // Stable, so equal dates and the undated keep the order they were in.
-    children.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
-  }
-  return node.type.create(node.attrs, children, node.marks);
-}
-
 /**
  * Puts the checklist items of the editor's document in date order, each among
- * its siblings, as `sortChecklistByDate` does for Markdown. Only the lists
- * whose order changes are replaced, so in a shared document the rest is not
- * rewritten under someone else's caret.
+ * its siblings, as `sortChecklistByDate` does for Markdown.
  */
 export function sortItemsByDateIn(view: EditorView): void {
-  const { doc } = view.state;
-  const changed: { pos: number; from: ProseNode; to: ProseNode }[] = [];
-  doc.descendants((node, pos) => {
-    if (!isListNode(node)) return true;
-    const sorted = withSortedLists(node);
-    if (!sorted.eq(node)) changed.push({ pos, from: node, to: sorted });
-    // Nested lists were sorted with this one.
-    return false;
-  });
-  if (changed.length === 0) return;
   const { tr } = view.state;
-  // Last first: a sorted list is the size it was, but this way no position
-  // has to be mapped at all.
-  for (const { pos, from, to } of changed.reverse()) {
-    tr.replaceWith(pos, pos + from.nodeSize, to);
-  }
-  view.dispatch(tr);
+  const sorted = sortListItems(
+    tr,
+    (child) =>
+      (isTaskItem(child) ? itemDateOf(child)?.date : undefined) ?? UNDATED,
+  );
+  if (sorted) view.dispatch(tr);
 }
 
 /**

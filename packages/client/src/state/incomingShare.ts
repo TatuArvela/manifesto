@@ -40,6 +40,32 @@ function blobToDataUrl(blob: Blob): Promise<string | null> {
 }
 
 /**
+ * Pictures as a new note holds them: shrunk, as `data:` URLs, each checked
+ * against the accepted types and the size cap. One too large is reported by
+ * name and left out; one that is not an accepted image is left out quietly.
+ */
+export async function imagesForNote(
+  files: readonly { blob: Blob; name: string }[],
+): Promise<string[]> {
+  const images: string[] = [];
+  for (const { blob, name } of files) {
+    const dataUrl = await blobToDataUrl(await shrinkImage(blob));
+    if (!dataUrl || !IMAGE_DATA_URL_PATTERN.test(dataUrl)) continue;
+    if (dataUrl.length > MAX_IMAGE_DATA_URL_BYTES) {
+      showError(
+        t("editor.imageTooLarge", {
+          name,
+          size: formatFileSize(MAX_IMAGE_SOURCE_BYTES),
+        }),
+      );
+      continue;
+    }
+    images.push(dataUrl);
+  }
+  return images;
+}
+
+/**
  * Picks up a share the service worker parked (see `shareTarget.ts`) when the
  * app was opened on `?share-target`. The parameter is removed at once, so a
  * reload does not open the same share again, and so is the cache, whatever it
@@ -82,27 +108,16 @@ export async function takeIncomingShare(): Promise<void> {
           Number(a.slice(imagePrefix.length)) -
           Number(b.slice(imagePrefix.length)),
       );
+    const parked: { blob: Blob; name: string }[] = [];
     for (const key of keys) {
       const response = await cache.match(key);
       if (!response) continue;
       const name = decodeURIComponent(
         response.headers.get("X-File-Name") ?? "",
       );
-      const dataUrl = await blobToDataUrl(
-        await shrinkImage(await response.blob()),
-      );
-      if (!dataUrl || !IMAGE_DATA_URL_PATTERN.test(dataUrl)) continue;
-      if (dataUrl.length > MAX_IMAGE_DATA_URL_BYTES) {
-        showError(
-          t("editor.imageTooLarge", {
-            name,
-            size: formatFileSize(MAX_IMAGE_SOURCE_BYTES),
-          }),
-        );
-        continue;
-      }
-      images.push(dataUrl);
+      parked.push({ blob: await response.blob(), name });
     }
+    images.push(...(await imagesForNote(parked)));
   } catch {
     // Nothing usable was parked; the app simply opens.
   } finally {
@@ -128,4 +143,22 @@ function openShare(
   activeView.value = "active";
   activeTag.value = null;
   incomingShare.value = { ...draft, images };
+}
+
+/**
+ * Opens a new note holding what was pasted or dropped on the board. As a share
+ * does, it goes to the notes view, where the new-note editor lives; a tag
+ * being looked at there stays filtered, so the reader is not moved.
+ */
+export function startNoteWith(content: string, images: string[]): void {
+  if (!content && images.length === 0) return;
+  if (activeView.value !== "active") {
+    activeView.value = "active";
+    activeTag.value = null;
+  }
+  incomingShare.value = {
+    title: "",
+    content: content.slice(0, MAX_SHARED_TEXT),
+    images,
+  };
 }

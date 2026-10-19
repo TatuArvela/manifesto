@@ -8,12 +8,12 @@ import {
   resolvedBoardInk,
 } from "#/state/prefs.ts";
 import { INK_COLORS, type InkColor } from "#/utils/boardTextures.ts";
+import { BoardCard } from "./BoardCard.tsx";
 
 const ringClass = "ring-1 ring-inset ring-black/10 dark:ring-white/15";
 const selectedClass =
   "outline-2 outline-offset-2 outline-blue-500 dark:outline-blue-400";
-const legendClass =
-  "text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2";
+const swatchClass = "w-6 h-6 sm:w-7 sm:h-7 rounded-full cursor-pointer";
 
 /** "auto", the theme's faint ink, sits between white and black as the gray. */
 const PRESETS = [
@@ -23,66 +23,42 @@ const PRESETS = [
 ] as const satisfies readonly BoardInk[];
 
 /**
- * What colour the texture is drawn in. The texture tiles above take it at
- * once, so they are the preview; "auto" is the faint ink of the theme, gray
- * on either, so it is offered as the gray between white and black. The colourful ones are named as the
- * note colours they share a hue with.
+ * What colour the texture is drawn in, as a card laid out like the board's
+ * colours: "random" on the first row where it sits in theirs, where "none"
+ * would be beside it there is none (the pattern has its own), then white,
+ * gray and black with the native picker, then the presets. The texture tiles
+ * take it at once, so they are the preview; "auto" is the faint ink of the
+ * theme, gray on either, so it is offered as the gray between white and
+ * black. The colourful ones are named as the note colours they share a hue
+ * with.
  */
 export function BoardInkPicker({
   composing,
   compose,
+  disabled,
 }: {
   composing: boolean;
   compose: (change: () => void) => void;
+  disabled: boolean;
 }) {
   const ink = boardInk.value;
   const label = (choice: Exclude<BoardInk, InkColor>) =>
     t(`settings.boardBackground.ink.${choice}`);
   const colors = Object.entries(INK_COLORS) as [InkColor, string][];
+  const marked = (choice: BoardInk) => composing && ink === choice;
+  const pick = (choice: BoardInk) =>
+    compose(() => {
+      boardInk.value = choice;
+    });
 
   return (
-    <fieldset>
-      <legend class={legendClass}>{t("settings.boardBackground.ink")}</legend>
-      <div class="flex flex-wrap gap-2 sm:gap-2.5">
-        {PRESETS.map((choice) => (
-          <button
-            key={choice}
-            type="button"
-            data-board-swatch={`ink-${choice}`}
-            class={`board-swatch w-6 h-6 sm:w-7 sm:h-7 rounded-full cursor-pointer ${ringClass} ${composing && ink === choice ? selectedClass : ""}`}
-            onClick={() =>
-              compose(() => {
-                boardInk.value = choice;
-              })
-            }
-            aria-label={label(choice)}
-            aria-pressed={composing && ink === choice}
-            title={label(choice)}
-          />
-        ))}
-        <span
-          aria-hidden="true"
-          class="self-center w-px h-5 mx-0.5 bg-neutral-300 dark:bg-white/15"
-        />
-        {colors.map(([choice, hex]) => (
-          <button
-            key={choice}
-            type="button"
-            class={`w-6 h-6 sm:w-7 sm:h-7 rounded-full cursor-pointer ${ringClass} ${composing && ink === choice ? selectedClass : ""}`}
-            style={{ backgroundColor: hex }}
-            onClick={() =>
-              compose(() => {
-                boardInk.value = choice;
-              })
-            }
-            aria-label={t(`color.${choice}`)}
-            aria-pressed={composing && ink === choice}
-            title={t(`color.${choice}`)}
-          />
-        ))}
+    <BoardCard legend={t("settings.boardBackground.ink")} disabled={disabled}>
+      <div
+        class={`grid grid-cols-4 gap-2 sm:gap-2.5 w-fit mx-auto ${disabled ? "opacity-50" : ""}`}
+      >
         <button
           type="button"
-          class={`w-6 h-6 sm:w-7 sm:h-7 rounded-full cursor-pointer flex items-center justify-center bg-white dark:bg-neutral-800 ${ringClass} ${composing && ink === "random" ? selectedClass : ""}`}
+          class={`col-start-3 col-span-2 h-6 sm:h-7 rounded-full cursor-pointer disabled:cursor-default flex items-center justify-center bg-white dark:bg-neutral-800 ${ringClass} ${marked("random") ? selectedClass : ""}`}
           style={
             ink === "random"
               ? {
@@ -99,17 +75,25 @@ export function BoardInkPicker({
             })
           }
           aria-label={label("random")}
-          aria-pressed={composing && ink === "random"}
+          aria-pressed={marked("random")}
           title={label("random")}
         >
           <Shuffle class="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
         </button>
-        <span
-          aria-hidden="true"
-          class="self-center w-px h-5 mx-0.5 bg-neutral-300 dark:bg-white/15"
-        />
+        {PRESETS.map((choice) => (
+          <button
+            key={choice}
+            type="button"
+            data-board-swatch={`ink-${choice}`}
+            class={`board-swatch ${swatchClass} disabled:cursor-default ${ringClass} ${marked(choice) ? selectedClass : ""}`}
+            onClick={() => pick(choice)}
+            aria-label={label(choice)}
+            aria-pressed={marked(choice)}
+            title={label(choice)}
+          />
+        ))}
         <label
-          class={`relative w-6 h-6 sm:w-7 sm:h-7 rounded-full cursor-pointer p-[3px] bg-[conic-gradient(#f87171,#facc15,#4ade80,#38bdf8,#a78bfa,#f472b6,#f87171)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-500 ${composing && ink === "custom" ? selectedClass : ""}`}
+          class={`relative ${swatchClass} p-[3px] bg-[conic-gradient(#f87171,#facc15,#4ade80,#38bdf8,#a78bfa,#f472b6,#f87171)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-500 ${marked("custom") ? selectedClass : ""}`}
           title={label("custom")}
         >
           <span
@@ -118,14 +102,10 @@ export function BoardInkPicker({
           />
           <input
             type="color"
-            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-default"
             value={boardInkColor.value}
             aria-label={label("custom")}
-            onClick={() =>
-              compose(() => {
-                boardInk.value = "custom";
-              })
-            }
+            onClick={() => pick("custom")}
             onInput={(e) =>
               compose(() => {
                 boardInkColor.value = e.currentTarget.value;
@@ -134,7 +114,19 @@ export function BoardInkPicker({
             }
           />
         </label>
+        {colors.map(([choice, hex]) => (
+          <button
+            key={choice}
+            type="button"
+            class={`${swatchClass} disabled:cursor-default ${ringClass} ${marked(choice) ? selectedClass : ""}`}
+            style={{ backgroundColor: hex }}
+            onClick={() => pick(choice)}
+            aria-label={t(`color.${choice}`)}
+            aria-pressed={marked(choice)}
+            title={t(`color.${choice}`)}
+          />
+        ))}
       </div>
-    </fieldset>
+    </BoardCard>
   );
 }
