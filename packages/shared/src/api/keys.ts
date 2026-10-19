@@ -1,25 +1,27 @@
-// The keys an account's notes are encrypted with, as the server stores them:
-// wrapped, so that nothing here opens a note. See
+// The keys with which the notes of an account are encrypted, as the server
+// stores them: wrapped. Thus, nothing here opens a note. See
 // `docs/specification/features/encryption.md`.
 
 /**
- * What every encrypted value looks like on the wire and at rest: `e1.` and
- * the base64url of a 96-bit nonce, the AES-256-GCM ciphertext and its tag.
- * The server checks this shape and nothing else, since it holds no key.
+ * The shape of each encrypted value on the wire and at rest: `e1.` and the
+ * base64url of a 96-bit nonce, the AES-256-GCM ciphertext and its tag. The
+ * server checks this shape and nothing else, because it has no key.
  */
 export const CIPHERTEXT_PREFIX = "e1.";
 
 /** A nonce and a tag with nothing between them, as base64url. */
 const MIN_CIPHERTEXT_CHARS = 38;
 
-/** The longest wrapped key an account stores (a wrapped PKCS#8 private key
- * is about 230 characters). */
+/**
+ * The longest wrapped key that an account stores (a wrapped PKCS#8 private key
+ * is approximately 230 characters).
+ */
 export const MAX_WRAPPED_KEY_LENGTH = 1024;
 
 /**
- * Whether `value` is shaped as a ciphertext no longer than `maxLength`. A
- * linear scan rather than a pattern, so the length of what a caller sends
- * decides nothing but how long the scan takes.
+ * If `value` has the shape of a ciphertext no longer than `maxLength`. It is a
+ * linear scan, not a pattern. Thus, the length of the input controls only the
+ * duration of the scan.
  */
 export function isCiphertext(value: unknown, maxLength: number): boolean {
   if (typeof value !== "string") return false;
@@ -43,15 +45,17 @@ export function isCiphertext(value: unknown, maxLength: number): boolean {
 /** An uncompressed P-256 point (65 bytes) as base64url. */
 export const PUBLIC_KEY_LENGTH = 87;
 
-/** What the recovery key proves itself to the server with: 32 bytes derived
- * from it in the browser, as base64url. The server keeps only its hash. */
+/**
+ * With this, the recovery key proves itself to the server: 32 bytes derived
+ * from it in the browser, as base64url. The server keeps only its hash.
+ */
 export const RECOVERY_VERIFIER_LENGTH = 43;
 
-/** An account's two public keys, which other accounts share with. */
+/** The two public keys of an account, which other accounts use to share. */
 export interface AccountPublicKeys {
   /** ECDH: note keys are wrapped to it. */
   exchange: string;
-  /** ECDSA: what the account wraps for others, it signs with this one. */
+  /** ECDSA: the account signs what it wraps for others with this key. */
   signing: string;
 }
 
@@ -61,9 +65,9 @@ export interface WrappedPrivateKeys {
   signing: string;
 }
 
-/** What a signed-in device is given to unlock with. */
+/** What a signed-in device gets to unlock with. */
 export interface AccountKeys {
-  /** Which account key this is; it goes up when every key is replaced. */
+  /** The account key that this is. It increases when all keys are replaced. */
   version: number;
   /** The account key, wrapped under a key derived from the secret key. */
   wrappedBySecret: string;
@@ -73,24 +77,26 @@ export interface AccountKeys {
 
 /** `GET /api/v1/auth/keys`. */
 export interface AccountKeysResponse {
-  /** Null for an account that has not been set up yet. */
+  /** Null for an account that is not set up yet. */
   keys: AccountKeys | null;
   /**
-   * When this session ends at the latest, however much it is used. A device
-   * removes its keys by itself once this has passed, since one that was off
-   * never heard the session end.
+   * The latest possible end of this session, whatever its use. After this time,
+   * a device removes its keys itself, because a device that was off never heard
+   * that the session ended.
    */
   sessionEndsAt: string;
 }
 
-/** The recovery key's half of an account's keys. */
+/** The part of the keys of an account for the recovery key. */
 export interface RecoveryKeyWrap {
   /** The account key, wrapped under a key derived from the recovery key. */
   wrappedByRecovery: string;
   recoveryVerifier: string;
 }
 
-/** `PUT /api/v1/auth/keys`: an account's first keys, made in the browser. */
+/**
+ * `PUT /api/v1/auth/keys`: the first keys of an account, made in the browser.
+ */
 export interface AccountKeysSetupRequest extends RecoveryKeyWrap {
   wrappedBySecret: string;
   publicKeys: AccountPublicKeys;
@@ -108,27 +114,31 @@ export interface RecoveryKeyReplaceRequest extends RecoveryKeyWrap {
   password?: string;
 }
 
-/** `POST /api/v1/auth/keys/recover`, and `POST /api/v1/auth/recovery` with the
- * username beside it: the first step of using the recovery key. */
+/**
+ * `POST /api/v1/auth/keys/recover`, and `POST /api/v1/auth/recovery` with the
+ * username: the first step to use the recovery key.
+ */
 export interface RecoveryOpenRequest {
   verifier: string;
 }
 
-/** The wrapped account key, handed to whoever holds the recovery key. */
+/** The wrapped account key, for the person who has the recovery key. */
 export interface RecoveryOpenResponse {
-  /** Whose keys they are: it is part of what each wrap is bound to. */
+  /** The owner of the keys. This is part of what each wrap is bound to. */
   userId: string;
   version: number;
   wrappedByRecovery: string;
-  /** Whether the account signs in with a password, which the recovery then
-   * has to replace. */
+  /**
+   * If the account signs in with a password. The recovery must then replace it.
+   */
   hasPassword: boolean;
 }
 
 /**
- * `POST /api/v1/auth/keys/recover/complete`, and `POST /api/v1/auth/recovery/complete`
- * with the username and a new password beside it: the second step, which puts
- * a new secret key and a new recovery key in place of the ones used.
+ * `POST /api/v1/auth/keys/recover/complete`, and `POST
+ * /api/v1/auth/recovery/complete` with the username and a new password: the
+ * second step. It puts a new secret key and a new recovery key in place of the
+ * used keys.
  */
 export interface RecoveryCompleteRequest extends RecoveryKeyWrap {
   verifier: string;

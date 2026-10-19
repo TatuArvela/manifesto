@@ -5,26 +5,30 @@ import type { ShareInvitation } from "./sharing.ts";
 // --- WebSocket events (server → client) ---
 
 /**
- * How often the server sends `heartbeat` on `/api/v1/ws`. A socket that dies
- * without a close stays open to both ends, so silence longer than a couple of
- * these is how each side learns it is talking to nobody.
+ * How frequently the server sends `heartbeat` on `/api/v1/ws`. A socket that
+ * dies without a close stays open at both ends. Thus, when the silence is
+ * longer than some of these, each side learns that nobody is there.
  */
 export const APP_SOCKET_HEARTBEAT_MS = 30_000;
 
 /**
- * The version of the document shape the editor writes into a note's shared
- * Y.Doc on `/api/v1/yjs`. Raise it whenever a node or mark is added, removed or
- * changes its attributes: an editor that meets a node it has no schema for
- * drops it, and `ySyncPlugin` then writes the loss back to everyone.
+ * The version of the document shape that the editor writes into the shared
+ * Y.Doc of a note on `/api/v1/yjs`. Make it higher each time a node or mark is
+ * added or removed, or changes its attributes. An editor that finds a node for
+ * which it has no schema removes it, and `ySyncPlugin` then writes the loss
+ * back to all persons.
  *
  * The client sends its version as the `editor` query parameter of the socket
- * URL, and the server refuses a lower one than its own with
- * `EDITOR_OUTDATED_REASON`. A client that sends none is version 1, the shape
- * from before the check existed.
+ * URL. The server refuses a version that is lower than its own with
+ * `EDITOR_OUTDATED_REASON`. A client that sends no version is version 1, the
+ * shape from before the check.
  */
 export const EDITOR_SCHEMA_VERSION = 1;
 
-/** The refusal reason `/api/v1/yjs` gives an editor older than the server's. */
+/**
+ * The refusal reason of `/api/v1/yjs` for an editor older than that of the
+ * server.
+ */
 export const EDITOR_OUTDATED_REASON = "editor-outdated";
 
 export interface PresenceUser {

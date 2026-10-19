@@ -1,11 +1,13 @@
 import type { ShareUser } from "#/note.ts";
 import type { AuthProviderName } from "./auth.ts";
 
-/** `GET /api/v1/admin/overview`: what the server holds, and how its
- * background jobs are doing. */
+/**
+ * `GET /api/v1/admin/overview`: what the server contains, and the status of its
+ * background jobs.
+ */
 export interface AdminOverviewResponse {
   version: string;
-  /** Since this process started, in seconds. */
+  /** Since the start of this process, in seconds. */
   uptimeSeconds: number;
   totals: {
     users: number;
@@ -16,14 +18,16 @@ export interface AdminOverviewResponse {
     attachmentBytes: number;
     versions: number;
   };
-  /** Accounts by what they hold, the most first. */
+  /** Accounts by what they contain, the largest first. */
   perUser: {
     user: ShareUser;
     notes: number;
     attachments: number;
     attachmentBytes: number;
   }[];
-  /** What the update check last found; null with it off or not yet run. */
+  /**
+   * What the update check found last. Null when it is off or did not run yet.
+   */
   update: {
     latest: string;
     url: string;
@@ -56,11 +60,11 @@ export interface AdminUser {
   isAdmin: boolean;
   /** How the account signs in: a password here, or an identity provider. */
   provider: AuthProviderName;
-  /** Holds a temporary password that has not been replaced yet. */
+  /** Has a temporary password that was not replaced yet. */
   mustChangePassword: boolean;
   noteCount: number;
   createdAt: string;
-  /** The most recent request of any live session; null when there is none. */
+  /** The most recent request of a live session. Null when there is none. */
   lastSeenAt: string | null;
 }
 
@@ -77,16 +81,16 @@ export interface AdminCreateUserRequest {
   email?: string;
 }
 
-/** At least one of the two. `email: null` clears it. */
+/** One or both of the two. `email: null` clears it. */
 export interface AdminUpdateUserRequest {
   isAdmin?: boolean;
   email?: string | null;
 }
 
 /**
- * A new account, or a reset one, with the password its owner signs in with
- * once. The server keeps only its hash, so this response is the one place it
- * can be read.
+ * A new account, or a reset account, with the password that its owner uses one
+ * time to sign in. The server keeps only its hash. Thus, this response is the
+ * only place where you can read it.
  */
 export interface AdminTemporaryPasswordResponse {
   user: AdminUser;
@@ -101,32 +105,35 @@ export interface AdminTemporaryPasswordResponse {
 export const PROXY_PROBE_ADDRESS = "203.0.113.77";
 
 /**
- * What became of the probe on its way to the server: it came as it was sent
- * (no proxy set the header), a proxy replaced it or added to it, or the
- * header arrived empty.
+ * What occurred to the probe on its way to the server: it came as it was sent
+ * (no proxy set the header), a proxy replaced it or added to it, or the header
+ * arrived empty.
  */
 export type ProxyFinding = "untouched" | "overwritten" | "appended" | "removed";
 
-/** `GET /api/v1/admin/checks`: the facts the overview's setup checks read. */
+/**
+ * `GET /api/v1/admin/checks`: the facts that the setup checks of the overview
+ * read.
+ */
 export interface AdminChecksResponse {
-  /** `APP_URL`, for the client to compare with the address it is on. */
+  /** `APP_URL`, which the client compares with its own address. */
   appUrl: string | null;
   trustProxy: boolean;
   proxy: ProxyFinding;
-  /** Scheduled backups; null on Postgres, whose backups are its own. */
+  /** Scheduled backups. Null on Postgres, which has its own backups. */
   backup: {
     scheduled: boolean;
     lastFinishedAt: string | null;
     lastError: string | null;
   } | null;
-  /** How mail has gone since the server started; null without `SMTP_URL`. */
+  /** The status of mail since the server started. Null without `SMTP_URL`. */
   mail: {
     lastSentAt: string | null;
     lastFailedAt: string | null;
   } | null;
 }
 
-/** `POST /api/v1/admin/checks/mail`: whether the test message went. */
+/** `POST /api/v1/admin/checks/mail`: if the test message went out. */
 export interface AdminTestMailResponse {
   sent: boolean;
 }

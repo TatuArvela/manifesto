@@ -2,33 +2,35 @@ import type { Note, NoteVersion } from "./note.ts";
 import { currentNoteFormat } from "./noteFormat.ts";
 
 /**
- * The layout of an export archive, which both modes write: a server for an
- * account (`GET /api/v1/export`) and a browser in open mode. Written in one place
- * so the two stay the same zip, and an archive from either imports anywhere.
+ * The layout of an export archive. Both modes write it: a server for an account
+ * (`GET /api/v1/export`), and a browser in open mode. It is in one place, so
+ * that the two make the same zip, and you can import an archive from either one
+ * in all places.
  *
- * - `notes.json`: every note, the trash and archive included, in the client's
- *   import format with images inlined as `data:` URLs;
- * - `notes/<title>.md`: each note not in the trash as Markdown, with
- *   frontmatter the client's Markdown-folder import reads back, for any other
- *   tool to open;
- * - `versions.json`: the version history of those notes;
- * - `manifest.json`: the format the notes and versions are in
- *   (`noteFormat.ts`), so an import brings an older archive up to date and
- *   refuses one from a newer version rather than misreading it. An archive
- *   without one is from before formats were recorded, and is format 1;
- * - `preferences.json`: the settings, when the caller gives them: the
- *   account's in connected mode, this browser's in open mode. For a person to
- *   read and keep; importing an archive does not apply them.
+ * - `notes.json`: all notes, with the trash and the archive, in the import
+ *   format of the client, with images inlined as `data:` URLs.
+ * - `notes/<title>.md`: each note that is not in the trash, as Markdown, with
+ *   frontmatter that the Markdown-folder import of the client reads back. Other
+ *   tools can open it.
+ * - `versions.json`: the version history of those notes.
+ * - `manifest.json`: the format of the notes and the versions
+ *   (`noteFormat.ts`). Thus, an import upgrades an older archive, and refuses
+ *   an archive from a newer version. It does not read it incorrectly. An
+ *   archive without one is from before the app recorded formats, and is format
+ *   1.
+ * - `preferences.json`: the settings, when the caller gives them: those of the
+ *   account in connected mode, and those of this browser in open mode. They are
+ *   for a person to read and keep. An import of an archive does not apply them.
  *
- * The caller adds anything of its own (the server's `account.json`), and
- * encodes and zips the text.
+ * The caller adds its own files (the `account.json` of the server), and encodes
+ * and zips the text.
  */
 export const EXPORT_NOTES_FILE = "notes.json";
 export const EXPORT_VERSIONS_FILE = "versions.json";
 export const EXPORT_PREFERENCES_FILE = "preferences.json";
 export const EXPORT_MANIFEST_FILE = "manifest.json";
 
-/** What `manifest.json` holds. */
+/** The contents of `manifest.json`. */
 export interface ExportManifest {
   format: number;
 }
@@ -80,7 +82,7 @@ function uniqueName(base: string, taken: Set<string>): string {
   return name;
 }
 
-/** YAML only needs quoting where a plain scalar would be misread. */
+/** YAML needs quotes only where a plain scalar would be read incorrectly. */
 function yamlString(value: string): string {
   return /^[\w .,'()&+-]*$/.test(value) &&
     value.trim() === value &&

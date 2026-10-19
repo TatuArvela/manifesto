@@ -2,18 +2,22 @@ import type { ErrorResponse } from "./errors.ts";
 
 /** `GET /api/v1/auth/two-factor`. */
 export interface TwoFactorStatusResponse {
-  /** Whether sign-in asks for a second factor: an authenticator app, a
-   * passkey, or both. */
+  /**
+   * If the sign-in asks for a second factor: an authenticator app, a passkey,
+   * or both.
+   */
   enabled: boolean;
-  /** Whether an authenticator app is set up. Absent from servers from before
-   * passkeys, where it is `enabled`. */
+  /**
+   * If an authenticator app is set up. Absent from servers from before
+   * passkeys, where it is `enabled`.
+   */
   authenticator?: boolean;
 }
 
 /**
- * WebAuthn's options and answers in their JSON form (WebAuthn Level 3), with
- * every binary value as base64url. The server builds and checks them; the
- * client only turns them into the browser's binary shapes and back.
+ * The options and answers of WebAuthn in their JSON form (WebAuthn Level 3),
+ * with each binary value as base64url. The server builds and checks them. The
+ * client only changes them into the binary shapes of the browser and back.
  */
 export interface PasskeyCredentialDescriptor {
   id: string;
@@ -76,12 +80,14 @@ export interface PasskeyAuthenticationResponse {
   clientExtensionResults: Record<string, unknown>;
 }
 
-/** A passkey as listed in Settings: never its key. */
+/** A passkey as Settings lists it. Never its key. */
 export interface Passkey {
   id: string;
   name: string;
-  /** Whether the passkey is synced between devices (a password manager's or
-   * a platform's), rather than held by one device or security key. */
+  /**
+   * If the passkey syncs between devices (in a password manager or a platform),
+   * and is not kept by one device or security key.
+   */
   synced: boolean;
   createdAt: string;
   lastUsedAt: string | null;
@@ -97,25 +103,25 @@ export interface PasskeyOptionsResponse {
   options: PasskeyCreationOptions;
 }
 
-/** `POST /api/v1/auth/passkeys`: the browser's answer, and what to call it. */
+/** `POST /api/v1/auth/passkeys`: the answer of the browser, and its name. */
 export interface PasskeyAddRequest {
   name?: string;
   response: PasskeyRegistrationResponse;
 }
 
-/** The passkey added. */
+/** The added passkey. */
 export interface PasskeyAddedResponse {
   passkey: Passkey;
 }
 
-/** `POST /api/v1/auth/passkey/options`: a challenge to sign in with a passkey. */
+/** `POST /api/v1/auth/passkey/options`: a challenge for a passkey sign-in. */
 export interface PasskeySignInOptionsResponse {
   options: PasskeyRequestOptions;
 }
 
 /**
- * The 403 `two_factor_required` answer to a sign-in: which second factors
- * the account has, and a challenge for its passkeys on this address.
+ * The 403 `two_factor_required` answer to a sign-in: the second factors of the
+ * account, and a challenge for its passkeys on this address.
  */
 export interface TwoFactorRequiredResponse extends ErrorResponse {
   code: "two_factor_required";
@@ -127,8 +133,8 @@ export interface TwoFactorRequiredResponse extends ErrorResponse {
 
 /**
  * `POST /api/v1/auth/two-factor/setup`: the secret to put in an authenticator,
- * as base32. The client builds the `otpauth://` link from it, since the
- * product name that labels it there is the client's to know.
+ * as base32. The client builds the `otpauth://` link from it, because only the
+ * client knows the product name that labels it there.
  */
 export interface TwoFactorSetupResponse {
   secret: string;

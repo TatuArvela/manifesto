@@ -2,16 +2,17 @@ import type { AuthProviderName } from "./auth.ts";
 import type { AccountPrefs } from "./prefs.ts";
 
 /**
- * How a note's owner finds the person to share it with. `search` offers
- * matches as they type; `exact` finds an account only by its full username or
- * email address, so nobody can list who else is on the server.
+ * How the owner of a note finds the person for a share. `search` shows matches
+ * while the owner types. `exact` finds an account only by its full username or
+ * email address. Thus, nobody can list the other persons on the server.
  */
 export type UserLookupMode = "search" | "exact";
 
 /**
- * The features a host can turn off, each with an environment variable. The
- * server's registry (`features.ts`) says which variable and what each covers;
- * `GET /api/v1/capabilities` reports them, so a client hides what is off.
+ * The features that a host can turn off, each with an environment variable. The
+ * registry of the server (`features.ts`) tells which variable, and what each
+ * one includes. `GET /api/v1/capabilities` reports them. Thus, a client hides
+ * the features that are off.
  */
 export const SERVER_FEATURES = [
   "sharing",
@@ -31,44 +32,50 @@ export const SERVER_FEATURES = [
 export type ServerFeature = (typeof SERVER_FEATURES)[number];
 
 /**
- * `GET /api/v1/capabilities`: what this server is and offers, for a client to
- * decide what to show before anyone signs in, and for a script to learn its
- * limits rather than find them. Public, and covered by the compatibility
- * policy, so fields are only ever added.
+ * `GET /api/v1/capabilities`: what this server is and offers. A client uses it
+ * to decide what to show before a person signs in. A script uses it to learn
+ * its limits, and does not have to find them by failure. It is public, and the
+ * compatibility policy applies to it. Thus, we only add fields.
  */
 export interface CapabilitiesResponse {
   /** The running version, as `/api/v1/health` gives it. */
   version: string;
   auth: {
-    /** Every way in: `local` (a password), `oidc` (single sign-on). */
+    /** All ways to sign in: `local` (a password), `oidc` (single sign-on). */
     providers: AuthProviderName[];
-    /** With both on, whether the password form is shown or folded behind a
-     * link under the single sign-on button. */
+    /**
+     * With both on, if the password form shows, or is folded behind a link
+     * under the single sign-on button.
+     */
     passwordForm: "shown" | "collapsed";
-    /** Whether anyone can create an account with a password. */
+    /** If all persons can create an account with a password. */
     registration: boolean;
-    /** Whether a forgotten password can be reset by a link sent by mail. */
+    /** If a link sent by mail can reset a forgotten password. */
     passwordReset: boolean;
-    /** Whether a local account can sign in from a link sent to its address.
-     * Absent from a server older than the feature. */
+    /**
+     * If a local account can sign in from a link sent to its address. Absent
+     * from a server older than the feature.
+     */
     magicLink?: boolean;
-    /** Whether a local account can sign in with a passkey alone. */
+    /** If a local account can sign in with only a passkey. */
     passkeys: boolean;
   };
   /**
-   * Which of the features a host can turn off are on (`SERVER_FEATURES`), and
-   * two answers derived from them. An operation of a feature that is off
-   * answers 404, as a route that does not exist would.
+   * Which of the features that a host can turn off are on (`SERVER_FEATURES`),
+   * and two answers derived from them. An operation of a feature that is off
+   * answers 404, as a route that does not exist.
    */
   features: Record<ServerFeature, boolean> & {
-    /** Whether an assistant can connect to `/api/v1/mcp` by signing in (OAuth). */
+    /**
+     * If an assistant can connect to `/api/v1/mcp` through a sign-in (OAuth).
+     */
     mcpSignIn: boolean;
-    /** How someone sharing a note finds the person to share it with. */
+    /** How a person who shares a note finds the other person. */
     userLookup: UserLookupMode;
   };
-  /** The limits a caller would otherwise meet as a 413, 409 or 422. */
+  /** The limits that a caller would otherwise meet as a 413, 409 or 422. */
   limits: {
-    /** Bytes in a request body, attachments aside. */
+    /** Bytes in a request body, other than attachments. */
     requestBytes: number;
     /** Bytes in one uploaded image. */
     imageBytes: number;
@@ -77,7 +84,7 @@ export interface CapabilitiesResponse {
     /** Notes in one page of `/api/v1/notes` or `/api/v1/search`. */
     notesPerPage: number;
     notesPerImport: number;
-    /** Versions kept per note, and for how many days. */
+    /** The number of versions kept for each note, and for how many days. */
     noteVersions: number;
     noteVersionDays: number;
     apiTokensPerUser: number;
@@ -86,14 +93,16 @@ export interface CapabilitiesResponse {
     publicLinkViews: number;
     accountPrefsBytes: number;
   };
-  /** The editor's schema version; `/api/v1/yjs` refuses an editor older than
-   * it (`EDITOR_SCHEMA_VERSION`). */
+  /**
+   * The schema version of the editor. `/api/v1/yjs` refuses an editor that is
+   * older (`EDITOR_SCHEMA_VERSION`).
+   */
   editorSchemaVersion: number;
   /**
-   * The preferences the host has set as this server's defaults
-   * (`DEFAULT_PREFS`), keyed as `AccountPrefs` is, or empty. A client takes
-   * each for a key the account has never stored. Absent from a server older
-   * than the feature.
+   * The preferences that the host set as the defaults of this server
+   * (`DEFAULT_PREFS`), with the same keys as `AccountPrefs`, or empty. A client
+   * uses each one for a key that the account never stored. Absent from a server
+   * older than the feature.
    */
   defaultPrefs?: AccountPrefs;
 }

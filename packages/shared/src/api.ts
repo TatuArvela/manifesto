@@ -1,6 +1,7 @@
 /**
- * The wire types of the REST API and the sockets, one module per area in
- * `api/`, re-exported here so every importer keeps one path.
+ * The wire types of the REST API and the sockets. Each area has one module in
+ * `api/`. This file exports them all again, so that each importer uses one
+ * path.
  */
 export * from "./api/admin.ts";
 export * from "./api/audit.ts";

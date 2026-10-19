@@ -1,15 +1,15 @@
 import type { OfferedKey } from "#/crypto/shareSeal.ts";
 import { type Note, PERSONAL_NOTE_FIELDS } from "#/note.ts";
 
-// Notes as the server stores them and as a signed-in app sends and receives
-// them: every value in someone's words is a ciphertext the server cannot
-// open. A token that carries a key is answered with a readable `Note`
-// instead. See `docs/specification/features/encryption.md`.
+// Notes as the server stores them, and as a signed-in app sends and gets them.
+// Each value in the words of a person is a ciphertext that the server cannot
+// open. A token that carries a key gets a readable `Note`. See
+// `docs/specification/features/encryption.md`.
 
 /**
- * A note with its words sealed. What the server acts on stays readable: who
- * holds the note, the pin, archive and trash state, the position, the
- * reminder and the times.
+ * A note with its words sealed. The values on which the server acts stay
+ * readable: who has the note, the pin, archive and trash state, the position,
+ * the reminder and the times.
  */
 export interface SealedNote
   extends Omit<
@@ -25,71 +25,73 @@ export interface SealedNote
     | "tags"
   > {
   /**
-   * The note key, wrapped under the reader's own notes key. Empty for
-   * someone the key has not reached yet, who can then open nothing here.
+   * The note key, wrapped under the own notes key of the reader. Empty for a
+   * person whom the key did not reach yet. That person can open nothing here.
    */
   key: string;
-  /** Which note key the values are under; it goes up when the key is
-   * replaced. */
+  /**
+   * The note key under which the values are. It increases when the key is
+   * replaced.
+   */
   keyVersion: number;
   /**
-   * The format the words under the note key are in (`noteFormat.ts`):
-   * readable, since a client has to know before it opens them whether it
-   * can read them, and the server holds every write to it.
+   * The format of the words under the note key (`noteFormat.ts`). It is
+   * readable, because a client must know before it opens them if it can read
+   * them. The server checks each write against it.
    */
   format: number;
   /**
-   * For someone the note is shared with whose own copy of the key is behind:
-   * the current key, wrapped to their public key and signed. Their client
-   * opens it, keeps it under their own notes key, and reads the note again.
+   * For a person who shares the note and whose own copy of the key is behind:
+   * the current key, wrapped to their public key and signed. Their client opens
+   * it, keeps it under their own notes key, and reads the note again.
    */
   offered?: OfferedKey;
   /**
-   * While the note has a reminder: its key wrapped under the reader's own
-   * reminder key, which is what a calendar feed opens the note with. Written
-   * by the client that sets the reminder, and gone when the reminder is, or
-   * when the note's key is replaced. Absent when there is none.
+   * While the note has a reminder: its key wrapped under the own reminder key
+   * of the reader. A calendar feed opens the note with it. The client that sets
+   * the reminder writes it. It goes when the reminder goes, or when the key of
+   * the note is replaced. Absent when there is none.
    */
   reminderKey?: string;
   /**
-   * The keys the note was under before, sealed under the one it is under
-   * now: what still opens its older versions, comments and edits. Absent
-   * for a note whose key was never replaced.
+   * The previous keys of the note, sealed under its current key. These still
+   * open its older versions, comments and edits. Absent for a note whose key
+   * was never replaced.
    */
   previousKeys?: string;
   /**
-   * For the owner: someone who held the key no longer holds the note, so
-   * the owner's app is to give it a new one (`PUT /api/v1/notes/:id/key`).
+   * For the owner: a person who had the key does not have the note now. Thus,
+   * the app of the owner must give it a new key (`PUT /api/v1/notes/:id/key`).
    */
   rekeyDue?: true;
-  // Under the note key, the same for everyone on the note.
+  // Under the note key, the same for all persons on the note.
   title: string;
   content: string;
-  /** The first characters of the text, for a notification to show. */
+  /** The first characters of the text, for a notification. */
   excerpt: string;
   font: string;
-  /** The note's images, in order, each with its description. */
+  /** The images of the note, in order, each with its description. */
   images: string;
   linkPreviews: string;
-  // Under the reader's personal key; empty for one never set.
+  // Under the personal key of the reader. Empty if never set.
   color: string;
   tags: string;
 }
 
 /**
- * The attachments a sealed note uses, which the server has to know to keep
- * them and to let everyone on the note read them. Each list is written with
- * the sealed field it describes and never sent back: a reader takes the
+ * The attachments that a sealed note uses. The server must know them, to keep
+ * them and to let all persons on the note read them. Each list is written with
+ * the sealed field that it describes, and never sent back. A reader gets the
  * images from what it opens.
  */
 export interface SealedNoteRefs {
   /** The `attachment:` references inside `images`. */
   imageRefs: string[];
-  /** Those of the thumbnails and icons inside `linkPreviews`. */
+  /** The references of the thumbnails and icons inside `linkPreviews`. */
   previewRefs: string[];
 }
 
-/** A new note: the client chooses the id, since every value is bound to it. */
+/** A new note. The client selects the id, because each value is bound to it. */
 export type SealedNoteCreate = Omit<
   SealedNote,
   | "createdAt"
@@ -101,8 +103,10 @@ export type SealedNoteCreate = Omit<
 > &
   SealedNoteRefs;
 
-/** Only the fields being changed. `images` comes with `imageRefs` and
- * `linkPreviews` with `previewRefs`. */
+/**
+ * Only the fields that change. `images` comes with `imageRefs`, and
+ * `linkPreviews` with `previewRefs`.
+ */
 export type SealedNoteUpdate = Partial<
   Omit<
     SealedNote,
@@ -112,11 +116,12 @@ export type SealedNoteUpdate = Partial<
 >;
 
 /**
- * `PUT /api/v1/notes/:id/key` from the owner's app: the note under a new key.
- * Everything everyone on the note shares is sealed again, the key comes
- * wrapped for the owner, and the keys before it sealed under it. `keyVersion`
- * is one more than the note's. Each live public link named gets the new key
- * wrapped by its link key; one left out stops opening.
+ * `PUT /api/v1/notes/:id/key` from the app of the owner: the note under a new
+ * key. All values that the persons on the note share are sealed again. The key
+ * comes wrapped for the owner, with the previous keys sealed under it.
+ * `keyVersion` is one more than that of the note. Each named live public link
+ * gets the new key wrapped by its link key. A link that is not named stops to
+ * open.
  */
 export interface NoteRekeyRequest {
   keyVersion: number;
@@ -131,12 +136,13 @@ export interface NoteRekeyRequest {
   links?: { token: string; wrappedKey: string }[];
 }
 
-/** One note of an import, with the creation time it had where it came from. */
+/** One note of an import, with the creation time from its source. */
 export type SealedNoteImport = SealedNoteCreate & { createdAt?: string };
 
 /**
- * The fields of a sealed note everyone on it shares: `SHARED_NOTE_FIELDS`,
- * the excerpt that is written with the text, and the format they are in.
+ * The fields of a sealed note that all persons on it share:
+ * `SHARED_NOTE_FIELDS`, the excerpt that is written with the text, and their
+ * format.
  */
 export const SEALED_SHARED_NOTE_FIELDS = [
   "format",
@@ -151,24 +157,26 @@ export const SEALED_SHARED_NOTE_FIELDS = [
 ] as const;
 
 /**
- * The fields of a sealed note that are each reader's own:
- * `PERSONAL_NOTE_FIELDS`, and the copy of the note key their calendar feed
- * opens, which goes where their reminder does.
+ * The fields of a sealed note that belong to each reader:
+ * `PERSONAL_NOTE_FIELDS`, and the copy of the note key that their calendar feed
+ * opens, which goes with their reminder.
  */
 export const SEALED_PERSONAL_NOTE_FIELDS = [
   ...PERSONAL_NOTE_FIELDS,
   "reminderKey",
 ] as const;
 
-/** A version of a note's title and text, sealed under the note key it was
- * written with. */
+/**
+ * A version of the title and text of a note, sealed under the note key with
+ * which it was written.
+ */
 export interface SealedNoteVersion {
-  /** Chosen by the client: the values are bound to it. */
+  /** The client selects it. The values are bound to it. */
   id: string;
   noteId: string;
   timestamp: string;
   keyVersion: number;
-  /** The format its title and text are in, as a note's. */
+  /** The format of its title and text, as for a note. */
   format: number;
   title: string;
   content: string;
@@ -184,11 +192,13 @@ export interface SealedNoteVersionCreateRequest {
   timestamp?: string;
 }
 
-/** An account's preferences as the server holds them: each value sealed
- * under the account's personal key. */
+/**
+ * The preferences of an account as the server keeps them: each value sealed
+ * under the personal key of the account.
+ */
 export type SealedAccountPrefs = Record<string, string>;
 
-/** `PATCH /api/v1/auth/me/prefs`: the keys to set, `null` removing one. */
+/** `PATCH /api/v1/auth/me/prefs`: the keys to set. `null` removes one. */
 export interface SealedAccountPrefsUpdate {
   prefs: Record<string, string | null>;
 }
