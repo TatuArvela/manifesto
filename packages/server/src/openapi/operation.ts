@@ -6,56 +6,59 @@ type Auth = "none" | "any" | "session" | "mcp" | "admin";
 
 export interface Operation {
   method: "get" | "post" | "put" | "patch" | "delete";
-  /** Hono's form, `:id`; written as `{id}` in the document. */
+  /** The form of Hono, `:id`. The document writes it as `{id}`. */
   path: string;
   tag: string;
   summary: string;
   /**
-   * Who may call it, enforced from here by `middleware/protect.ts`: `none`,
-   * anyone; `any`, any credential (a session, or a token within `scope`);
-   * `session`, a sign-in session only, refused to an API token; `admin`, an
-   * admin's session; `mcp`, an MCP token only.
+   * Who can call it. `middleware/protect.ts` enforces this from here. `none`:
+   * all persons. `any`: any credential (a session, or a token within `scope`).
+   * `session`: only a sign-in session, refused to an API token. `admin`: the
+   * session of an admin. `mcp`: only an MCP token.
    */
   auth: Auth;
   /**
-   * The rate-limit buckets it draws from (`BUCKETS` in `middleware/protect.ts`),
-   * also enforced from here. Required, so a route cannot be added without
-   * saying; an empty list says it has none.
+   * The rate-limit buckets that it uses (`BUCKETS` in `middleware/protect.ts`),
+   * also enforced from here. It is required. Thus, you cannot add a route
+   * without it. An empty list says that it has none.
    */
   limits: readonly Bucket[];
   /**
    * What a token needs to call it. Required where `auth` is `any` or `mcp`
-   * (`openapi.test.ts` holds to that); a token is refused an operation that
-   * names none, so a route added without one is closed to tokens, not open.
+   * (`openapi.test.ts` checks that). The server refuses a token an operation
+   * that names none. Thus, a route added without one is closed to tokens, not
+   * open.
    */
   scope?: ApiTokenScope;
   /**
-   * The feature it belongs to (`FEATURES` in `features.ts`). While that is
-   * off, `middleware/protect.ts` answers it with the 404 of a route that does
-   * not exist, before anything else. Left off the ways out of a feature
-   * (taking someone off a note, removing a passkey, turning two-factor off),
-   * which stay open whatever the switch says.
+   * The feature to which it belongs (`FEATURES` in `features.ts`). While that
+   * feature is off, `middleware/protect.ts` answers it with the 404 of a route
+   * that does not exist, before all other checks. Not set on the ways out of a
+   * feature (to remove a person from a note, to remove a passkey, to turn off
+   * two-factor), which stay open whatever the switch says.
    */
   feature?: ServerFeature;
   body?: z.ZodType;
   query?: Record<string, string>;
-  /** Status to description; `schema` names a component. */
+  /** Status to description. `schema` names a component. */
   responses: Record<string, { description: string; schema?: string }>;
-  /** Registered only under this auth provider. */
+  /** Registered only with this auth provider. */
   provider?: "local" | "oidc";
   /**
-   * The release that deprecated it, and what to use instead. From 1.0.0 a
-   * deprecated operation keeps working for at least two minor releases after
-   * that one (the compatibility policy in `api.md`); before, it is a notice.
+   * The release that deprecated it, and what to use in its place. From 1.0.0, a
+   * deprecated operation continues to work for a minimum of two minor releases
+   * after that one (the compatibility policy in `api.md`). Before, it is only a
+   * notice.
    */
   deprecated?: { since: string; use?: string };
 }
 
 /**
- * The operations anything other than this server's own web client relies on,
- * which the compatibility policy in `api.md` covers: whatever a token can
- * call (a scope names it, `/api/v1/mcp` included), and these, which programs
- * call with no credential. Everything else is the client's own surface.
+ * The operations on which all clients other than the own web client of this
+ * server rely, which the compatibility policy in `api.md` covers: all that a
+ * token can call (a scope names it, also `/api/v1/mcp`), and these, which
+ * programs call without a credential. All other operations are the own surface
+ * of the client.
  */
 const PUBLIC_WITHOUT_CREDENTIAL = new Set([
   "/api/v1/health",

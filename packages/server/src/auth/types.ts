@@ -5,12 +5,12 @@ import type { LoginAttempts } from "./local/loginAttempts.ts";
 import type { SessionRevocations } from "./revocations.ts";
 
 /**
- * What a bearer token turned out to be: a session from signing in, a
- * personal API token, or an MCP token. Anything that changes how an account
- * is secured (passwords, tokens, admin actions) asks for a session, so a
- * token handed to a script cannot be used to take over the account it belongs
- * to. An MCP token is narrower still: only `/api/v1/mcp` takes it, and the REST
- * calls its tools make in-process (see `createAuthMiddleware`).
+ * What a bearer token was: a session from a sign-in, a personal API token, or
+ * an MCP token. All actions that change the security of an account (passwords,
+ * tokens, admin actions) ask for a session. Thus, a token that a script has
+ * cannot take control of its account. An MCP token has fewer rights again: only
+ * `/api/v1/mcp` accepts it, and the REST calls that its tools make in the
+ * process (see `createAuthMiddleware`).
  */
 export type CredentialKind = "session" | "api-token" | "mcp-token";
 
@@ -18,14 +18,14 @@ export interface AuthIdentity {
   userId: string;
   token: string;
   via: CredentialKind;
-  /** What a token may reach; absent for a session, which may reach it all. */
+  /** What a token can reach. Absent for a session, which can reach all. */
   scopes?: readonly ApiTokenScope[];
-  /** When a session was signed in; absent for a token. */
+  /** When a session signed in. Absent for a token. */
   signedInAt?: string;
   /**
-   * For a token that carries keys: those keys, wrapped under a key derived
-   * from the token itself. Whoever holds the token being presented opens
-   * them for the one request.
+   * For a token that carries keys: those keys, wrapped under a key derived from
+   * the token itself. The holder of the presented token opens them for the one
+   * request.
    */
   wrappedKeys?: string;
   username: string;
@@ -33,25 +33,30 @@ export interface AuthIdentity {
   avatarColor: string;
 }
 
-// Provider routers may install their own context Variables (e.g. the local
-// router uses an `auth` variable for its logout handler). Those variables are
-// scoped to the mounted sub-app and do not leak to the host Hono instance, so
-// the provider-facing type intentionally widens the env via `any`.
+// Provider routers can install their own context Variables (for example, the
+// local router uses an `auth` variable for its logout handler). Those variables
+// apply only to the mounted sub-app, and do not go to the host Hono instance.
+// Thus, the type for the provider widens the env through `any`, on purpose.
 // biome-ignore lint/suspicious/noExplicitAny: see comment above
 export type AuthProviderRouter = Hono<any, any, any>;
 
-/** Services the app owns that a provider's routes may need, handed over when
- * the router is mounted rather than when the provider is built. */
+/**
+ * Services of the app that the routes of a provider can need. The app gives
+ * them when it mounts the router, not when it builds the provider.
+ */
 export interface AuthRouterContext {
   revocations: SessionRevocations;
   /** Null when the server sends no mail. */
   mailer: Mailer | null;
-  /** Wrong passwords per account name, shared by signing in and by
-   * confirming an action (`requireConfirmation`). */
+  /**
+   * Wrong passwords for each account name, shared by sign-in and by the
+   * confirmation of an action (`requireConfirmation`).
+   */
   loginAttempts: LoginAttempts;
   /**
-   * Brings a user's teams from the identity provider in step with the groups
-   * it just named for them (`OIDC_TEAM_GROUPS`). Absent where nothing listens.
+   * Makes the teams of a user from the identity provider agree with the groups
+   * that it just gave for them (`OIDC_TEAM_GROUPS`). Absent where nothing
+   * listens.
    */
   teamSync?: (userId: string, groups: string[]) => Promise<void>;
 }

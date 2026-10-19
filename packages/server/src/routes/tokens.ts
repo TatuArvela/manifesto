@@ -33,19 +33,22 @@ import { validatorHook } from "#/validation/zValidator.ts";
 interface TokenDeps {
   storage: StorageDriver;
   loginAttempts: LoginAttempts;
-  /** Which kinds of token the server's features allow (`TOKEN_FEATURES`). */
+  /**
+   * The token types that the features of the server permit (`TOKEN_FEATURES`).
+   */
   cfg: ServerConfig;
   revocations: SessionRevocations;
 }
 
 /**
- * `/api/v1/tokens`: a user's personal API tokens, for scripts, shortcuts and
- * bots that should not hold a password. Managed with a session only, so a
- * token cannot mint more of itself or outlive its own revocation.
+ * `/api/v1/tokens`: the personal API tokens of a user, for scripts, shortcuts
+ * and bots that must not have a password. Only a session can manage them. Thus,
+ * a token cannot make more tokens, or stay after its own revocation.
  *
- * The page belongs to no one feature: it holds three kinds of token, each
- * minted only while its own feature is on, and listing and revoking stay
- * open whatever is off, so a token can always be taken back.
+ * The page belongs to no single feature. It contains three types of token. The
+ * server makes each type only while its own feature is on. The list and the
+ * revocation stay open, whatever is off. Thus, a person can always take a token
+ * back.
  */
 export function createTokenRoutes(deps: TokenDeps) {
   const routes = new Hono<{ Variables: { auth: AuthContext } }>();
@@ -76,7 +79,7 @@ export function createTokenRoutes(deps: TokenDeps) {
       if (!isFeatureOn(deps.cfg, TOKEN_FEATURES[kind])) {
         throw new HttpError(403, "This server has that kind of token off");
       }
-      // A token outlives the session that minted it.
+      // A token stays after the session that made it.
       await requireConfirmation(deps, c.get("auth"), password);
       const existing = await deps.storage.apiTokens.listByUser(userId);
       if (existing.length >= MAX_API_TOKENS_PER_USER) {
@@ -88,10 +91,10 @@ export function createTokenRoutes(deps: TokenDeps) {
           : kind === "calendar"
             ? CALENDAR_TOKEN_PREFIX
             : API_TOKEN_PREFIX;
-      // A token that reaches notes carries their keys, so the app makes it
-      // and the server is told its hash, never the secret. The secret has to
-      // be one of this kind's, or the token would be looked for among the
-      // wrong ones when it is presented.
+      // A token that reaches notes contains their keys. Thus, the app makes it,
+      // and the server gets its hash, never the secret. The secret must be of
+      // this type. If not, the server would look for the token among the wrong
+      // tokens when it comes.
       if (tokenHash !== undefined && !prefix?.startsWith(kindPrefix)) {
         throw new HttpError(422, "prefix: Not a token of this kind");
       }
@@ -103,7 +106,7 @@ export function createTokenRoutes(deps: TokenDeps) {
       }
       const secret = tokenHash === undefined ? newApiToken(kindPrefix) : null;
       const now = nowIso();
-      // In the one order the list uses, each once. A calendar token reaches
+      // In the one order of the list, each one time. A calendar token reaches
       // one feed, which no scope names.
       const granted =
         kind === "calendar"

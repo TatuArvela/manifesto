@@ -29,7 +29,7 @@ interface UserRow {
 }
 
 interface UserSummaryRow extends UserRow {
-  // `COUNT(*)` is a bigint, which `pg` hands back as a string.
+  // `COUNT(*)` is a bigint, which `pg` gives back as a string.
   note_count: string | number;
   last_seen_at: string | null;
 }
@@ -68,8 +68,10 @@ function rowToSummary(row: UserSummaryRow): UserSummary {
   };
 }
 
-/** Derived tables, not per-row subqueries: pg-mem cannot resolve an outer
- * column from inside a subquery in the select list. */
+/**
+ * Derived tables, not subqueries for each row: pg-mem cannot resolve an outer
+ * column from inside a subquery in the select list.
+ */
 const SUMMARY_SELECT = `
   SELECT u.*, COALESCE(n.note_count, 0) AS note_count, s.last_seen_at
   FROM users u
@@ -82,13 +84,14 @@ const SUMMARY_SELECT = `
   ) s ON s.user_id = u.id`;
 
 /**
- * Run a change that must not take away the last admin.
+ * Run a change that must not remove the last admin.
  *
- * Every admin row is locked before anything is counted, in id order so two of
- * these cannot deadlock. A second transaction trying the same thing waits for
- * the first to commit, and when it resumes its locking read sees the committed
- * rows. Without the lock, two admins demoting each other at the same moment
- * would each count two admins and both succeed, leaving none.
+ * The code locks each admin row before it counts, in id order. Thus, two of
+ * these cannot deadlock. A second transaction that tries the same thing waits
+ * for the first to commit. When it continues, its locking read sees the
+ * committed rows. Without the lock, two admins who demote each other at the
+ * same moment would each count two admins, and both would succeed. Then there
+ * would be none.
  */
 async function guardedAdminChange(
   pool: PgPool,
@@ -130,10 +133,10 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
   const repo: UsersRepo = {
     async create(input: CreateUserInput): Promise<User> {
       try {
-        // Under READ COMMITTED two first sign-ins racing each other can both
-        // see an empty table, so both become admin. That is the harmless way
-        // for this to go wrong; the reverse, nobody, is what the guards on
-        // demotion and deletion exist to prevent.
+        // With READ COMMITTED, two first sign-ins at the same time can both see
+        // an empty table. Then both become admin. That is the harmless failure.
+        // The opposite failure, no admin, is what the guards on demotion and
+        // deletion prevent.
         await pool.query(
           `INSERT INTO users (
             id, username, password_hash, display_name, avatar_color, email,
@@ -158,11 +161,11 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
         );
       } catch (err) {
         if (!isPgUniqueViolation(err)) throw err;
-        // Which value collided is read back rather than out of the error. Real
-        // `pg` names the index in `constraint`, but pg-mem leaves that empty,
-        // names the wrong index, and quotes the whole statement (column list
-        // included) in the message, so a message that mentions "username"
-        // says nothing about which one was taken.
+        // The code reads back which value collided, and does not read it from
+        // the error. Real `pg` names the index in `constraint`. But pg-mem
+        // leaves that empty, names the wrong index, and quotes the full
+        // statement (with the column list) in the message. Thus, a message that
+        // contains "username" tells nothing about which value was taken.
         if (await repo.findByUsername(input.username)) {
           throw new UsernameTakenError(input.username);
         }
@@ -245,7 +248,7 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
         );
         return (result.rowCount ?? 0) > 0 ? "ok" : "not-found";
       } catch (err) {
-        // The only unique value this writes.
+        // The only unique value that this writes.
         if (isPgUniqueViolation(err)) return "email-taken";
         throw err;
       }

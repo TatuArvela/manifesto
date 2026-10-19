@@ -8,15 +8,16 @@ const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
 /**
- * How long an image no note refers to is kept. A client's version history
- * refers to attachments by id and keeps versions for 90 days, so a version
- * restored within that window still finds its images.
+ * How long the server keeps an image to which no note refers. The version
+ * history of a client refers to attachments by id, and keeps versions for 90
+ * days. Thus, a version that you restore within that time still finds its
+ * images.
  */
 export const ATTACHMENT_GRACE_DAYS = NOTE_VERSION_MAX_AGE_DAYS;
 
 /**
- * Deletes attachments no note has referred to for `ATTACHMENT_GRACE_DAYS`.
- * Runs once on startup, then hourly.
+ * Deletes attachments to which no note referred for `ATTACHMENT_GRACE_DAYS`.
+ * Runs one time at startup, and then each hour.
  */
 export function startAttachmentCleanup(
   storage: StorageDriver,

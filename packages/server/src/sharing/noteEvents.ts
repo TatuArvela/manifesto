@@ -8,51 +8,51 @@ import type { Broadcaster } from "#/ws/broadcaster.ts";
 import type { AccessChanges } from "./accessChanges.ts";
 
 /**
- * Who hears about a note or an invitation to one, and what each of them
- * hears. Every `note:*` and `invitation:*` event goes out from here, so the
- * sockets and the webhooks listening to the broadcaster hear one account of
- * it (`biome-plugins/noteEvents.grit` refuses one built anywhere else).
+ * Who learns about a note or an invitation to one, and what each of them gets.
+ * Each `note:*` and `invitation:*` event goes out from here. Thus, the sockets
+ * and the webhooks that listen to the broadcaster get one version of it
+ * (`biome-plugins/noteEvents.grit` refuses one built in a different place).
  *
- * The broadcaster sends to one user at a time, and a shared note looks
- * different to each person holding it: their own color, pin and tags, their
- * own role. So a change is sent as each participant's own copy, read back for
- * them, rather than as the one note the writer got back.
+ * The broadcaster sends to one user at a time. A shared note looks different to
+ * each person who has it: their own color, pin and tags, their own role. Thus,
+ * a change goes out as the own copy of each participant, read back for them. It
+ * does not go out as the one note that the writer got back.
  */
 export interface NoteEvents {
-  /** A new note. Only its owner holds it yet. */
+  /** A new note. Only its owner has it now. */
   created(note: SealedNote, ownerId: string): void;
   /**
-   * A note changed. Everyone who can see it gets their copy, and everyone who
-   * has accepted it but can no longer see it (the owner trashed it) is told it
-   * is gone. `trashChanged` also brings pending invitations up to date, since
-   * a trashed note offers nothing to accept.
+   * A note changed. Each person who can see it gets their copy. Each person who
+   * accepted it, but cannot see it now (the owner put it in the trash), learns
+   * that it is gone. `trashChanged` also updates pending invitations, because a
+   * trashed note offers nothing to accept.
    */
   changed(noteId: string, options?: { trashChanged?: boolean }): Promise<void>;
   /**
-   * These shares are over: the note was deleted, the share removed, or the
-   * owner's account went. Accepted ones lose the note, pending ones the
-   * invitation, and their sockets are closed on it.
+   * These shares ended: the note was deleted, the share was removed, or the
+   * account of the owner went. Accepted shares lose the note, pending shares
+   * lose the invitation, and their sockets close on it.
    */
   ended(shares: NoteShare[]): void;
   /**
-   * The owner deleted the note, or its trash expired: the owner loses it,
-   * and `shares`, read before the delete took them with it, are over.
+   * The owner deleted the note, or its trash expired. The owner loses it, and
+   * `shares` (read before the delete removed them) end.
    */
   deleted(noteId: string, ownerId: string, shares: NoteShare[]): void;
-  /** A pending share: its recipient sees the invitation as it now reads. */
+  /** A pending share. Its recipient sees the invitation as it is now. */
   invited(noteId: string, userId: string): Promise<void>;
-  /** The user answered an invitation: their other tabs drop it. */
+  /** The user answered an invitation. Their other tabs drop it. */
   answered(noteId: string, userId: string): void;
   /**
-   * A comment beside the note was written, changed or removed. Everyone who
-   * can see the note hears the same event: a comment has no personal fields.
-   * Takes the audience the caller read to name the comment's author, rather
-   * than reading it a second time.
+   * A comment of the note was written, changed or removed. All persons who can
+   * see the note get the same event, because a comment has no personal fields.
+   * It takes the audience that the caller read to name the author of the
+   * comment, and does not read it a second time.
    */
   commented(audience: NoteAudience | null, event: CommentEvent): void;
 }
 
-/** The events a comment makes on the sockets. */
+/** The events that a comment makes on the sockets. */
 export type CommentEvent = Extract<
   WebSocketEvent,
   { type: `comment:${string}` }
@@ -152,8 +152,8 @@ export function createNoteEvents(deps: {
 
     commented(audience, event) {
       if (!audience) return;
-      // In the owner's trash the note is hidden from everyone else, and so
-      // is what is said beside it.
+      // In the trash of the owner, the note is hidden from all other persons.
+      // So is what is said next to it.
       const others = audience.trashed
         ? []
         : audience.shares.filter((s) => s.acceptedAt !== null);

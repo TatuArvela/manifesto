@@ -15,9 +15,9 @@ import {
 } from "#/test/setup.ts";
 
 /**
- * Every operation is protected as `OPERATIONS` declares it, and nothing else
- * decides: this walks the list, so a declaration that is wrong, or a route
- * that grew its own idea of who may call it, fails here.
+ * Each operation is protected as `OPERATIONS` declares it, and nothing else
+ * decides. This test walks the list. Thus, a wrong declaration, or a route that
+ * got its own rule about who can call it, fails here.
  */
 describe("route protection", () => {
   let rig: TestRig;
@@ -27,9 +27,9 @@ describe("route protection", () => {
   let address = 0;
 
   beforeEach(async () => {
-    // Every request below from an address of its own, so the sign-in
-    // bucket's ten per address never answers first.
-    // Every feature on, so each operation is there to be asked.
+    // Each request below comes from its own address. Thus, the limit of ten for
+    // each address of the sign-in bucket never answers first. All features are
+    // on. Thus, each operation is there for the test.
     rig = await bootTestAppWith({
       trustProxy: true,
       webhooks: "public",
@@ -110,8 +110,8 @@ describe("route protection", () => {
       expect(await refusal(await call(op, member))).toBe(
         "Admin access required",
       );
-      // Past the check: anything else, a 403 of the route's own included
-      // (the export while `ADMIN_EXPORT` is off).
+      // After the check: all other answers, also a 403 of the route itself (the
+      // export while `ADMIN_EXPORT` is off).
       expect(await refusal(await call(op, admin))).not.toBe(
         "Admin access required",
       );
@@ -119,9 +119,9 @@ describe("route protection", () => {
   });
 
   it("keeps what secures an account to a session", () => {
-    // A token handed to a script must not be able to take over its account:
-    // tokens, webhooks, the password, email, two-factor, passkeys, sign-in
-    // by OAuth, and the admin API.
+    // A token that a script has must not be able to take control of its
+    // account: tokens, webhooks, the password, email, two-factor, passkeys,
+    // sign-in by OAuth, and the admin API.
     const guarded = [
       /^\/api\/v1\/tokens/,
       /^\/api\/v1\/webhooks/,
@@ -147,7 +147,7 @@ describe("route protection", () => {
   });
 
   it("closes a route nobody declared", async () => {
-    // Its own app, since a route cannot be added once one has answered.
+    // Its own app, because you cannot add a route after one answered.
     const fresh = await bootTestAppWith({});
     fresh.app.get("/api/v1/undeclared", (c) => c.text("open"));
     const res = await fresh.request("/api/v1/undeclared");
@@ -157,7 +157,7 @@ describe("route protection", () => {
   });
 
   it("counts a bucket across the operations that share it", async () => {
-    // Two routes on `user`: moving between them gains nothing.
+    // Two routes on `user`: a move between them gives nothing.
     let last = 0;
     for (let i = 0; i < 301; i++) {
       const res = await rig.request(
@@ -173,14 +173,15 @@ describe("route protection", () => {
 });
 
 /**
- * A feature the host turned off (`features.ts`) is not there: each operation
- * that names it answers the app's own 404 for a route that does not exist,
- * before anyone is asked to sign in, and answers as usual once it is on. This
- * walks the registry, so a feature's operation left untagged, or a router
- * with its own idea of when it is off, fails here.
+ * A feature that the host turned off (`features.ts`) is not there. Each
+ * operation that names it answers the own 404 of the app for a route that does
+ * not exist, before the server asks for a sign-in. It answers as usual when the
+ * feature is on. This test walks the registry. Thus, an operation of a feature
+ * without the tag, or a router with its own rule about when the feature is off,
+ * fails here.
  */
 describe("features the host turned off", () => {
-  /** Every feature on, and the OAuth routes that come with `APP_URL`. */
+  /** All features on, and the OAuth routes that come with `APP_URL`. */
   const ALL_ON: Partial<ServerConfig> = {
     webhooks: "public",
     appUrl: "http://localhost:5173",
@@ -200,7 +201,7 @@ describe("features the host turned off", () => {
     });
   }
 
-  /** What this app says for a route it does not have. */
+  /** What this app says for a route that it does not have. */
   async function absent(rig: TestRig): Promise<string> {
     const res = await rig.request("/api/v1/no-such-route");
     expect(res.status).toBe(404);
@@ -244,8 +245,8 @@ describe("features the host turned off", () => {
   }
 
   it("names a feature on every operation it has, or says what enforces it", () => {
-    // Personal API tokens have no routes of their own: the tokens page holds
-    // three kinds, and a token is refused where it is presented.
+    // Personal API tokens have no routes of their own. The tokens page contains
+    // three types, and the server refuses a token where it comes.
     const elsewhere = new Set<ServerFeature>(["apiTokens"]);
     for (const feature of SERVER_FEATURES) {
       expect(
@@ -320,7 +321,8 @@ describe("features the host turned off", () => {
     expect((await notes()).status).toBe(401);
     expect((await mint("api")).status).toBe(403);
     expect((await mint("calendar")).status).toBe(403);
-    // Listing and revoking stay open, so a token can always be taken back.
+    // The list and the revocation stay open. Thus, a person can always take a
+    // token back.
     const list = await rig.request("/api/v1/tokens", {
       headers: authHeaders(session),
     });

@@ -27,19 +27,21 @@ type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
 type Ctx = Context<{ Variables: { auth: AuthContext } }>;
 
 /**
- * `/api/v1/notes/:id/comments`: what the people on a note say beside it. A
- * comment is never part of the note's text, its versions or its `updatedAt`.
+ * `/api/v1/notes/:id/comments`: what the people on a note say next to it. A
+ * comment is never part of the text, the versions or the `updatedAt` of the
+ * note.
  *
- * Registered on the notes router. Everyone who can see the note reads the
- * comments and may write one, a viewer included, since a comment is how
- * someone who cannot change the note says something about it. A comment is
- * edited by its author alone and deleted by its author or the note's owner.
+ * Registered on the notes router. All persons who can see the note read the
+ * comments, and can write one, also a viewer. A comment lets a person who
+ * cannot change the note say something about it. Only its author can edit a
+ * comment. Its author or the owner of the note can delete it.
  *
- * A comment outlives its author's place on the note. Once they lose it (the
- * share removed, the note left, the account deleted) the comment stays and is
- * given out with no author, so the thread still reads and nobody is named on
- * a note they are no longer on. That is decided here, on every read, from who
- * holds the note now, so sharing with them again brings the name back.
+ * A comment stays after its author leaves the note. When they lose their place
+ * (the share removed, the note left, the account deleted), the comment stays,
+ * and goes out with no author. Thus, the thread still reads correctly, and
+ * nobody is named on a note that they are not on now. This code decides that on
+ * each read, from the current holders of the note. Thus, a new share with them
+ * brings the name back.
  */
 export function registerCommentRoutes(
   notes: AuthedApp,
@@ -47,7 +49,7 @@ export function registerCommentRoutes(
 ) {
   const { storage, noteEvents } = deps;
 
-  /** The caller's role, or a 404 that does not say the note exists. */
+  /** The role of the caller, or a 404 that does not tell if the note exists. */
   async function requireAccess(noteId: string, userId: string) {
     const access = await storage.notes.access(noteId, userId);
     if (!access) throw new HttpError(404, "Note not found");
@@ -66,7 +68,7 @@ export function registerCommentRoutes(
     return comment;
   }
 
-  /** The people a note's comments may name: those on it now. */
+  /** The people that the comments of a note can name: the people on it now. */
   function peopleOn(audience: NoteAudience | null): Set<string> {
     return new Set(
       audience
@@ -80,7 +82,7 @@ export function registerCommentRoutes(
     );
   }
 
-  /** The authors who may be named on these comments: those on the note. */
+  /** The authors that these comments can name: the people on the note. */
   async function authorsOf(
     audience: NoteAudience | null,
     stored: StoredComment[],
@@ -106,8 +108,10 @@ export function registerCommentRoutes(
     return authors;
   }
 
-  /** A stored comment as it is given out, its author named only while they
-   * are on the note. */
+  /**
+   * A stored comment as it goes out. Its author is named only while they are on
+   * the note.
+   */
   function present(
     comment: StoredComment,
     authors: Map<string, ShareUser>,
@@ -134,17 +138,19 @@ export function registerCommentRoutes(
   }
 
   /**
-   * The note's keys for a request made with a token that carries them, which
-   * reads and writes a comment's words; null for the app's own session,
-   * which is sent and sends them sealed.
+   * The keys of the note for a request from a token that carries them, which
+   * reads and writes the words of a comment. Null for the own session of the
+   * app, which sends and gets them sealed.
    */
   async function ringFor(c: Ctx, noteId: string): Promise<NoteRing | null> {
     const keys = tokenKeys(c);
     return keys ? noteRing(keys, storage, noteId) : null;
   }
 
-  /** A comment as this request is answered: sealed for the app, readable
-   * for a token. */
+  /**
+   * A comment as this request gets it: sealed for the app, readable for a
+   * token.
+   */
   async function answered(
     ring: NoteRing | null,
     comment: NoteComment,
@@ -170,7 +176,7 @@ export function registerCommentRoutes(
         comments.push(comment);
         continue;
       }
-      // One that does not open is left out, as the app leaves it out.
+      // The code skips a comment that does not open, as the app does.
       const text = await commentOut(ring, comment);
       if (text !== null) comments.push({ ...comment, body: text });
     }
@@ -184,7 +190,8 @@ export function registerCommentRoutes(
     await requireAccess(noteId, userId);
     const ring = await ringFor(c, noteId);
     const sent = await commentBody(c, ring);
-    // Whoever sealed it chose the id, which the sealed text is bound to.
+    // The writer that sealed it selected the id, to which the sealed text is
+    // bound.
     if (await storage.comments.get(sent.id)) {
       throw new HttpError(409, "A comment already has this id");
     }
@@ -222,8 +229,8 @@ export function registerCommentRoutes(
     }
     const ring = await ringFor(c, noteId);
     const audience = await storage.shares.audience(noteId);
-    // A token's same words again are no edit, and here the server can
-    // tell: nothing is sealed, stamped or told.
+    // The same words again from a token are not an edit, and here the server
+    // can tell. Nothing is sealed, stamped or announced.
     if (ring) {
       const text = (await c.req.raw
         .clone()
@@ -244,9 +251,10 @@ export function registerCommentRoutes(
       }
     }
     const { body: next, keyVersion } = await commentBody(c, ring, existing.id);
-    // The same sealed text again is no edit: nothing is stamped and nobody
-    // told. A client that seals the same words again sends another
-    // ciphertext, and it is the client that leaves an unchanged one alone.
+    // The same sealed text again is not an edit. Nothing is stamped, and nobody
+    // gets a message. A client that seals the same words again sends a
+    // different ciphertext. Thus, the client must not send a comment that did
+    // not change.
     if (next === existing.body) {
       const body: NoteCommentResponse = {
         comment: await presentOne(audience, existing),

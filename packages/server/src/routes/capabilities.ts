@@ -27,11 +27,11 @@ import { VERSION } from "#/version.ts";
 import { MAX_WEBHOOKS_PER_USER } from "./webhooks.ts";
 
 /**
- * `GET /api/v1/capabilities`: the one place a client or a script reads what this
- * server offers, each value taken from what enforces it. Public, since the
- * sign-in screen needs it before there is anyone to ask as, and it says
- * nothing `/api/v1/health` and the sign-in screen do not already show, beyond
- * the default preferences, which every new account is given anyway.
+ * `GET /api/v1/capabilities`: the only place where a client or a script reads
+ * what this server offers. Each value comes from the code that enforces it. It
+ * is public, because the sign-in screen needs it before a person signs in. It
+ * tells nothing that `/api/v1/health` and the sign-in screen do not already
+ * show, other than the default preferences, which each new account gets anyway.
  */
 export function createCapabilitiesRoutes(cfg: ServerConfig) {
   const routes = new Hono();

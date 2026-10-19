@@ -92,7 +92,7 @@ describe("isDueForPush", () => {
     expect(
       isDueForPush({ ...daily, lastFiredAt: "2026-10-03T11:58:01.000Z" }, NOW),
     ).toBe(false);
-    // Yesterday's fire says nothing about today's occurrence.
+    // The fire of yesterday tells nothing about the occurrence of today.
     expect(
       isDueForPush({ ...daily, lastFiredAt: "2026-10-02T11:58:01.000Z" }, NOW),
     ).toBe(true);
@@ -149,7 +149,7 @@ describe("push reminders", () => {
       now: () => now,
     });
 
-  /** Writes sealed fields over a note, as a client's save would. */
+  /** Writes sealed fields over a note, as the save of a client would. */
   const rewrite = (id: string, changes: Record<string, unknown>) =>
     storage.notes.update(
       id,
@@ -173,7 +173,7 @@ describe("push reminders", () => {
       cfg: { ...TEST_CONFIG, appUrl: "https://notes.example" },
       storage,
       authProvider: createAuthProvider(TEST_CONFIG, storage),
-      // The push service is on loopback, which no real deployment may reach.
+      // The push service is on loopback, which no real deployment can reach.
       pushAddressPolicy: (address) => address === "127.0.0.1",
     });
     const res = await request("/api/v1/auth/register", {
@@ -210,7 +210,7 @@ describe("push reminders", () => {
       browser.decrypt(sent?.body as Buffer),
     ) as ReminderPush;
     const { sealed, ...readable } = message;
-    // What any holder of the subscription reads: that there is a reminder.
+    // What each holder of the subscription reads: that there is a reminder.
     expect(readable).toEqual({
       type: "reminder",
       noteId: note.id,
@@ -219,8 +219,8 @@ describe("push reminders", () => {
       next: null,
       firedAt: "2026-10-03T12:00:00.000Z",
     });
-    // What only a device with the account's keys opens: the title and the
-    // first of the text as the note holds them, and the note's key as its
+    // What only a device with the keys of the account opens: the title and the
+    // start of the text as the note has them, and the key of the note as its
     // reader keeps it.
     const stored = await storage.notes.getById(note.id, userId);
     expect(sealed).toEqual({
@@ -236,10 +236,10 @@ describe("push reminders", () => {
       ...reminder(),
       lastFiredAt: "2026-10-03T12:00:00.000Z",
     });
-    // Open clients hear the change, so none of them fires it too.
+    // Open clients get the change. Thus, none of them also fires it.
     expect(events.some((e) => e.type === "note:updated")).toBe(true);
 
-    // And the next pass has nothing to do.
+    // Also, the next pass has nothing to do.
     await pass(NOW + 30_000);
     expect(service.received).toHaveLength(1);
   });
@@ -251,8 +251,8 @@ describe("push reminders", () => {
       reminder: reminder(),
     });
     await subscribe();
-    // A title of its sealed size alone is under the limit; with an
-    // excerpt as long as this one, which no real client seals, it is not.
+    // A title of its sealed size alone is under the limit. With an excerpt as
+    // long as this one, which no real client seals, it is not.
     const stored = await storage.notes.getById(long.id, userId);
     await rewrite(long.id, { excerpt: ciphertext("ö".repeat(1200)) });
     await pass();
@@ -298,7 +298,7 @@ describe("push reminders", () => {
     ) as { aud: string; sub: string };
     expect(claims.aud).toBe(new URL(service.endpoint("x")).origin);
     expect(claims.sub).toBe("https://notes.example");
-    // The same key on every call: it is made once and kept.
+    // The same key on each call. The server makes it one time and keeps it.
     expect(
       (
         (await (
@@ -320,8 +320,8 @@ describe("push reminders", () => {
       browser.decrypt(service.received[0]?.body as Buffer),
     ) as ReminderPush;
     expect(message.next).toEqual({ time: "2026-10-04T11:58:00" });
-    // No title: named as the client names it, and the text is the device's
-    // to open.
+    // No title: named as the client names it. The text is for the device to
+    // open.
     expect(message.title).toBe("Untitled reminder");
     expect(message.body).toBe("");
     expect(plain(message.sealed?.title ?? "")).toBe("");
@@ -331,7 +331,7 @@ describe("push reminders", () => {
       lastFiredAt: "2026-10-03T12:00:00.000Z",
     });
 
-    // Tomorrow it comes due again.
+    // Tomorrow it is due again.
     await pass(NOW + 24 * 60 * 60_000);
     expect(service.received).toHaveLength(2);
   });
@@ -387,8 +387,8 @@ describe("push reminders", () => {
     const note = await addNote({ reminder: reminder() });
     await subscribe();
     const later = reminder({ time: "2026-10-05T09:00:00" });
-    // The user moves the reminder between the pass reading the note and
-    // writing to it, as happens while an earlier send is still waiting.
+    // The user moves the reminder between the read of the note by the pass and
+    // its write, as occurs while an earlier send still waits.
     const edited: StorageDriver = {
       ...storage,
       notes: {
@@ -417,7 +417,7 @@ describe("push reminders", () => {
     const note = await addNote({ reminder: reminder() });
     await pass();
     expect(service.received).toEqual([]);
-    // Left as it was, for the app to fire when it next opens.
+    // It stays as it was, for the app to fire when it opens next.
     expect(await reminderOf(note.id)).toEqual(reminder());
   });
 

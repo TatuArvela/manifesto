@@ -65,7 +65,8 @@ describe("account preferences", () => {
   it("refuses what is not an object of preferences, or too large", async () => {
     expect((await patch(alice.token, ["dark"])).status).toBe(422);
     expect((await patch(alice.token, { "": 1 })).status).toBe(422);
-    // Each value within what one may be, and the whole past what all may.
+    // Each value is within the limit for one value, and all of them together
+    // are past the limit for all.
     const big = await patch(
       alice.token,
       Object.fromEntries(

@@ -81,7 +81,7 @@ describe("the reminder feed", () => {
       return res.text();
     };
 
-    // A note sealed with the account's real keys, as a token writes one.
+    // A note sealed with the real keys of the account, as a token writes one.
     const api = await mint("api");
     const made = await rig.request("/api/v1/notes", {
       method: "POST",
@@ -99,14 +99,14 @@ describe("the reminder feed", () => {
         ).json()) as { note: SealedNote }
       ).note;
 
-    // Nothing has been left for the feed: it knows when, and not what.
+    // Nothing was left for the feed. It knows when, but not what.
     const before = await feed();
     expect(before).toContain("X-WR-CALNAME:Phone calendar");
     expect(before).toContain("DTSTART;TZID=Europe/Helsinki:20260501T093000");
     expect(before).toContain("SUMMARY:Reminder");
     expect(before).not.toContain("Checkup");
 
-    // The app leaves the note's key under the reminder key.
+    // The app leaves the key of the note under the reminder key.
     const put = (body: object) =>
       rig.rawRequest(`/api/v1/notes/${id}`, {
         method: "PUT",
@@ -116,10 +116,10 @@ describe("the reminder feed", () => {
     const reminderKey = await reminderKeyOf(await sealed(), userId);
     expect((await put({ reminderKey })).status).toBe(200);
     expect(await feed()).toContain("SUMMARY:Checkup");
-    // A copy made for another note opens nothing here.
+    // A copy made for a different note opens nothing here.
     expect((await put({ reminderKey: "readable" })).status).toBe(422);
 
-    // The copy goes when the reminder does, and does not come back with it.
+    // The copy goes when the reminder goes, and does not come back with it.
     expect((await put({ reminder: null })).status).toBe(200);
     expect((await sealed()).reminderKey).toBeUndefined();
     expect((await put({ reminder: baseNote.reminder })).status).toBe(200);
@@ -131,12 +131,12 @@ describe("the reminder feed", () => {
     const calendar = await mint("calendar");
     const api = await mint("api");
 
-    // Not a bearer token anywhere.
+    // It is never a bearer token.
     const asBearer = await rig.request("/api/v1/notes", {
       headers: authHeaders(calendar.secret),
     });
     expect(asBearer.status).toBe(401);
-    // An API token's secret is not a feed address.
+    // The secret of an API token is not a feed address.
     expect(
       (await rig.request(`/api/v1/calendar/${api.secret}.ics`)).status,
     ).toBe(404);

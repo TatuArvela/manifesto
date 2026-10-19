@@ -46,16 +46,16 @@ interface OAuthDeps {
 }
 
 /**
- * `/api/v1/oauth`: an OAuth 2.1 authorization server for `/api/v1/mcp` and nothing
- * else. A grant is an `mcp` API token with a refresh token beside it, so it
- * is listed in Settings, revoked there, and ended with the user's sessions
- * like any token; its access token (`mfm_`) lasts an hour and each refresh
- * replaces both. A refresh token used a second time has been copied, and ends
- * the grant (`tokenEndpoint.ts`).
+ * `/api/v1/oauth`: an OAuth 2.1 authorization server only for `/api/v1/mcp`. A
+ * grant is an `mcp` API token with a refresh token. Thus, Settings lists it and
+ * revokes it, and it ends with the sessions of the user, as all tokens do. Its
+ * access token (`mfm_`) lasts one hour, and each refresh replaces both. A
+ * refresh token used a second time was copied, and ends the grant
+ * (`tokenEndpoint.ts`).
  *
- * `register` and `token` are the assistant's, with no session. `client` and
- * `authorize` are the consent page's, with the user's session, and
- * `authorize` asks for the password as minting a token by hand does.
+ * `register` and `token` belong to the assistant, with no session. `client` and
+ * `authorize` belong to the consent page, with the session of the user.
+ * `authorize` asks for the password, as a manual token does.
  */
 export function createOAuthRoutes(deps: OAuthDeps) {
   const { storage } = deps;
@@ -109,9 +109,9 @@ export function createOAuthRoutes(deps: OAuthDeps) {
         "Only the code response type is supported",
       );
     }
-    // Every client here is a public one: an assistant on someone's computer
+    // All clients here are public. An assistant on the computer of a person
     // cannot keep a secret. RFC 7591 lets the server answer with the method
-    // it will use instead of the one asked for.
+    // that it will use, in place of the method that the client asked for.
     const client = {
       id: newId(),
       name:
@@ -138,7 +138,7 @@ export function createOAuthRoutes(deps: OAuthDeps) {
 
   routes.post("/token", createTokenEndpoint(deps));
 
-  /** The client and redirect address a consent is about, checked. */
+  /** The client and the redirect address of a consent, checked. */
   async function consentClient(
     clientId: string | undefined,
     redirectUri: string | undefined,
@@ -177,16 +177,17 @@ export function createOAuthRoutes(deps: OAuthDeps) {
     async (c) => {
       const auth = c.get("auth");
       const body = c.req.valid("json");
-      // A grant outlives the session that gave it, as a token does.
+      // A grant stays after the session that gave it, as a token does.
       await requireConfirmation(deps, auth, body.password);
       const client = await consentClient(body.clientId, body.redirectUri);
       const existing = await storage.apiTokens.listByUser(auth.userId);
       if (existing.length >= MAX_API_TOKENS_PER_USER) {
         throw new HttpError(409, "Revoke a token before creating another");
       }
-      // A grant that reaches notes carries their keys, so the consent page
-      // made the code and wrapped the keys under it: the server stores the
-      // code's hash and first sees the code when the assistant trades it in.
+      // A grant that reaches notes contains their keys. Thus, the consent page
+      // made the code and wrapped the keys under it. The server stores the hash
+      // of the code, and sees the code for the first time when the assistant
+      // trades it in.
       const code =
         body.codeHash === undefined
           ? randomBytes(32).toString("base64url")
@@ -207,7 +208,7 @@ export function createOAuthRoutes(deps: OAuthDeps) {
         expiresAt: plusMs(nowIso(), CODE_TTL_MS),
       });
       const target = new URL(body.redirectUri);
-      // A code the app made is the app's to add.
+      // The app adds a code that it made.
       if (code !== null) target.searchParams.set("code", code);
       if (body.state !== undefined)
         target.searchParams.set("state", body.state);

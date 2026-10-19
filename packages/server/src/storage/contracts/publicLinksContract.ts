@@ -4,9 +4,9 @@ import type { StorageDriver, StoredPublicLink } from "#/storage/types.ts";
 import { ciphertext, claimed } from "./claimed.ts";
 
 /**
- * Public links, the same in both drivers: a view is counted only while the
- * link can still be viewed, and a snapshot that can still be viewed keeps the
- * pictures it shows from the attachment sweep.
+ * Public links, the same in both drivers: a view counts only while the link can
+ * still be viewed. A snapshot that can still be viewed keeps its pictures safe
+ * from the attachment sweep.
  */
 
 const T0 = "2026-04-01T00:00:00.000Z";
@@ -141,7 +141,7 @@ export function describePublicLinksContract(
         linkPreviews: ciphertext("[]"),
       });
 
-      // A snapshot holds no key of the note's.
+      // A snapshot contains no key of the note.
       await storage.publicLinks.create(
         link({ token: "copy", mode: "snapshot", wrappedKey: null }),
       );
@@ -153,8 +153,8 @@ export function describePublicLinksContract(
       await storage.publicLinks.delete("gone", "n1");
       expect(await due()).toBe(true);
 
-      // Only from the version it is at, only by its owner, and only while
-      // the note is as it was read.
+      // Only from its current version, only by its owner, and only while the
+      // note is as it was read.
       const read =
         (await storage.notes.getById("n1", "owner"))?.updatedAt ?? "";
       const rewrapped = [
@@ -169,7 +169,7 @@ export function describePublicLinksContract(
         false,
       );
       expect((await storage.notes.getById("n1", "owner"))?.keyVersion).toBe(1);
-      // A refused move leaves the links on the key they had.
+      // A refused move leaves the links on their previous key.
       expect((await storage.publicLinks.get("stays"))?.wrappedKey).not.toBe(
         ciphertext("again"),
       );
@@ -182,15 +182,15 @@ export function describePublicLinksContract(
         updatedAt: T1,
       });
       expect(await due()).toBe(false);
-      // The live link moved with the note; the one named that is not there
-      // was passed over.
+      // The live link moved with the note. The named link that is not there was
+      // skipped.
       expect((await storage.publicLinks.get("stays"))?.wrappedKey).toBe(
         ciphertext("again"),
       );
       expect(await storage.publicLinks.get("nope")).toBeNull();
 
-      // Someone who accepted held the key; someone only invited, without
-      // one offered, did not.
+      // A person who accepted had the key. A person who was only invited,
+      // without an offer, did not.
       for (const id of ["alice", "bob"]) {
         await storage.users.create({
           id,
@@ -215,7 +215,7 @@ export function describePublicLinksContract(
         key: ciphertext("held"),
         keyVersion: 2,
       });
-      // Not the recipient's to be told.
+      // The recipient must not get this.
       await storage.shares.delete("n1", "alice");
       expect(await due()).toBe(true);
     });
@@ -234,8 +234,7 @@ export function describePublicLinksContract(
           mode: "snapshot",
           expiresAt: "2026-07-01T00:00:00.000Z",
           wrappedKey: null,
-          // What the copy shows is sealed; the references are what the
-          // sweep reads.
+          // What the copy shows is sealed. The sweep reads the references.
           snapshot: {
             title: ciphertext(""),
             content: ciphertext(""),
@@ -247,12 +246,12 @@ export function describePublicLinksContract(
           },
         }),
       );
-      // Twice past the grace, while the snapshot can still be viewed.
+      // Two times past the grace, while the snapshot can still be viewed.
       await storage.attachments.sweep("2026-05-01", "2000-01-01");
       await storage.attachments.sweep("2026-06-01", "2026-05-15");
       expect(await storage.attachments.meta(IMAGE_ID)).not.toBeNull();
 
-      // Once it has expired, the picture is no one's.
+      // After it expired, the picture belongs to nobody.
       await storage.attachments.sweep("2026-08-01", "2000-01-01");
       expect(await storage.attachments.sweep("2026-12-01", "2026-09-01")).toBe(
         1,

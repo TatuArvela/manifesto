@@ -2,7 +2,7 @@ import type { PublicLinkMode } from "@manifesto/shared";
 import { referencedIds } from "./attachmentMapping.ts";
 import type { StoredPublicLink, StoredSnapshot } from "./types.ts";
 
-/** A `public_links` row as both drivers read it. */
+/** A `public_links` row, as both drivers read it. */
 export interface PublicLinkRow {
   token: string;
   note_id: string;
@@ -45,8 +45,8 @@ export function rowToPublicLink(row: PublicLinkRow): StoredPublicLink {
 }
 
 /**
- * The links that still hold on to their snapshot's attachments: those that can
- * still be viewed. `now` is the placeholder for the sweep's time.
+ * The links that still keep the attachments of their snapshot: the links that
+ * can still be viewed. `now` is the placeholder for the time of the sweep.
  */
 export function usableSnapshotsWhere(now: string): string {
   return `mode = 'snapshot'
@@ -54,7 +54,7 @@ export function usableSnapshotsWhere(now: string): string {
     AND (max_views IS NULL OR view_count < max_views)`;
 }
 
-/** The attachment ids a snapshot shows, for the attachment sweep. */
+/** The attachment ids that a snapshot shows, for the attachment sweep. */
 export function snapshotReferences(snapshot: string | null): string[] {
   if (!snapshot) return [];
   const { refs } = JSON.parse(snapshot) as Partial<StoredSnapshot>;

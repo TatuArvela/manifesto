@@ -20,14 +20,14 @@ import { authHeaders, TEST_CONFIG } from "#/test/setup.ts";
 import { signDelivery, type WebhookDispatcher } from "./dispatcher.ts";
 
 /**
- * `docs/examples/webhooks/receiver.mjs` is documentation people copy, so it
- * is held to the server it documents: real deliveries from the real
- * dispatcher have to pass its signature check and drive its recipes, and the
- * note a delivery names has to be readable with a real API token, since a
- * delivery carries none of its words.
+ * `docs/examples/webhooks/receiver.mjs` is documentation that people copy.
+ * Thus, the test compares it with the server that it documents. Real deliveries
+ * from the real dispatcher must pass its signature check and run its recipes.
+ * The note that a delivery names must be readable with a real API token,
+ * because a delivery contains none of its words.
  */
 
-/** Where the recipes are told the server is. */
+/** The server address that the recipes get. */
 const MANIFESTO_URL = "https://notes.example";
 
 type Recipe = (
@@ -56,7 +56,7 @@ const examplePath = resolve(
 const loadExample = async () =>
   (await import(pathToFileURL(examplePath).href)) as Example;
 
-/** Starts `server` on a free loopback port, and says which. */
+/** Starts `server` on a free loopback port, and tells which. */
 const listen = (server: Server) =>
   new Promise<number>((done) => {
     server.listen(0, "127.0.0.1", () =>
@@ -101,7 +101,7 @@ describe("the example webhook receiver", () => {
     expect(isAuthentic("whsec_test", timestamp, body, undefined, now)).toBe(
       false,
     );
-    // The same delivery, replayed ten minutes later.
+    // The same delivery, sent again ten minutes later.
     expect(
       isAuthentic("whsec_test", timestamp, body, signature, now + 600_000),
     ).toBe(false);
@@ -128,8 +128,8 @@ describe("the example webhook receiver", () => {
       });
       dispatcher = handle.webhooks as WebhookDispatcher;
       request = async (path, init) => handle.app.request(path, init);
-      // The app under test listens nowhere: what a recipe asks of the
-      // server's address is handed to it, and the rest goes out as it would.
+      // The app under test listens nowhere. The code gives it what a recipe
+      // asks of the address of the server. All other requests go out as usual.
       vi.stubGlobal("fetch", (url: string | URL, init?: RequestInit) =>
         String(url).startsWith(MANIFESTO_URL)
           ? request(String(url).slice(MANIFESTO_URL.length), init)
@@ -166,9 +166,9 @@ describe("the example webhook receiver", () => {
             ...(body !== undefined && { body: JSON.stringify(body) }),
           });
       const call = as(session);
-      // The token the receiver reads notes with, made as the app makes one:
-      // it carries the keys. The notes are written with it too, so that
-      // they are sealed under keys it opens.
+      // The token with which the receiver reads notes, made as the app makes
+      // one: it contains the keys. The notes are also written with it. Thus,
+      // they are sealed under keys that it opens.
       const made = await keyedToken(user.id, "api");
       const minted = await call("POST", "/api/v1/tokens", {
         name: "Receiver",
@@ -183,9 +183,9 @@ describe("the example webhook receiver", () => {
         MANIFESTO_TOKEN: made.secret,
       };
 
-      // The webhook's address has to exist before its secret does, and the
-      // receiver wants the secret: so the listening server comes first, and
-      // hands its requests to a receiver made once the secret is known.
+      // The address of the webhook must exist before its secret does, and the
+      // receiver needs the secret. Thus, the listening server comes first. It
+      // gives its requests to a receiver made after the secret is known.
       let inner: Server | null = null;
       const front = createServer((req, res) => {
         inner?.emit("request", req, res);

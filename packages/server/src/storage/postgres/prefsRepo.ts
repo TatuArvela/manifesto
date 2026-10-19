@@ -3,9 +3,10 @@ import type { PrefsRepo } from "#/storage/types.ts";
 import type { PgPool } from "./database.ts";
 
 /**
- * See the SQLite copy. The row is created first if missing, so that the
- * `FOR UPDATE` that follows always has a row to lock: two devices sending at
- * once then merge one after the other instead of one overwriting the other.
+ * See the SQLite copy. The code creates the row first if it is missing. Thus,
+ * the `FOR UPDATE` that follows always has a row to lock. Two devices that send
+ * at the same time then merge one after the other. One does not overwrite the
+ * other.
  */
 export function createPostgresPrefsRepo(pool: PgPool): PrefsRepo {
   return {

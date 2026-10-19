@@ -290,7 +290,7 @@ describe("MCP endpoint", () => {
       });
       expect(changed.content).toContain("eggs");
 
-      // The same updatedAt again: someone changed it since.
+      // The same updatedAt again: a different writer changed it after that.
       const stale = await tool(token, "update_note", {
         id: created.id,
         updatedAt: read.updatedAt,
@@ -400,7 +400,8 @@ describe("MCP endpoint", () => {
     it("keep to the role a share gives", async () => {
       const olivia = await registerTestUser(rig, "olivia");
       const bob = await registerTestUser(rig, "bob");
-      // Written by the owner's own token, so it is sealed with her keys.
+      // Written by the own token of the owner. Thus, it is sealed with her
+      // keys.
       const note = await noteFrom(
         await mintMcp(false, olivia.token),
         "create_note",
@@ -411,8 +412,8 @@ describe("MCP endpoint", () => {
         headers: authHeaders(olivia.token),
         body: JSON.stringify({ userId: bob.userId, role: "view" }),
       });
-      // Accepting keeps the note's key under the recipient's own notes key,
-      // which is what his token then opens the note with.
+      // Acceptance keeps the key of the note under the own notes key of the
+      // recipient. His token then opens the note with it.
       const sealed = (
         (await (
           await rig.rawRequest(`/api/v1/notes/${note.id}`, {

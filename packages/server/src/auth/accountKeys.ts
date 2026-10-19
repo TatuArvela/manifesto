@@ -39,13 +39,16 @@ import type { SessionRevocations } from "./revocations.ts";
 import { endUserSessions, issueSession } from "./session.ts";
 import { toAuthUser } from "./users.ts";
 
-// The keys an account's notes are encrypted with
-// (`docs/specification/features/encryption.md`). Everything here is wrapped
-// in the browser before it arrives: the server stores it, hands it back to
-// the account's own sessions, and can open none of it. The one thing it
-// checks is the recovery key, by a value derived from it whose hash it holds.
+// The keys with which the notes of an account are encrypted
+// (`docs/specification/features/encryption.md`). The browser wraps all of this
+// before it arrives. The server stores it, gives it back to the own sessions of
+// the account, and can open none of it. It checks only the recovery key, with a
+// value derived from it whose hash it keeps.
 
-/** The first account key an account has; replacing every key raises it. */
+/**
+ * The first account key of an account. A replacement of all keys makes it
+ * higher.
+ */
 const FIRST_KEY_VERSION = 1;
 
 interface RecoveryDeps {
@@ -56,7 +59,7 @@ interface RecoveryDeps {
 }
 
 interface KeyRoutesDeps extends RecoveryDeps {
-  /** For starting an account again, which takes its notes from everyone. */
+  /** For a new start of an account, which takes its notes from all persons. */
   noteEvents: NoteEvents;
 }
 
@@ -68,11 +71,11 @@ function tooManyAttempts(c: Context, wait: number): HttpError {
 }
 
 /**
- * The keys of `user`, if `verifier` is what their recovery key derives.
- * Guessing is throttled like a sign-in, on the same budget per name, and a
- * wrong one is counted and audited here so that neither way of using the key
- * can forget to. `status` is 401 where nobody is signed in and 403 where
- * someone is, since a client takes a 401 to mean its session ended.
+ * The keys of `user`, if `verifier` is what their recovery key derives. Guesses
+ * have the same throttle as a sign-in, on the same budget for each name. This
+ * function counts and audits a wrong key. Thus, neither way to use the key can
+ * forget to do it. `status` is 401 where nobody is signed in, and 403 where a
+ * person is, because a client reads a 401 as the end of its session.
  */
 async function recoveryKeysOf(
   deps: RecoveryDeps,
@@ -85,8 +88,8 @@ async function recoveryKeysOf(
   const wait = deps.loginAttempts.retryAfter(username);
   if (wait > 0) throw tooManyAttempts(c, wait);
   const stored = user ? await deps.storage.accountKeys.get(user.id) : null;
-  // Compared even when there is nothing to compare with, so that a name
-  // nobody holds and an account without keys answer like a wrong key.
+  // The comparison occurs also when there is nothing to compare with. Thus, a
+  // name that no account has and an account without keys answer as a wrong key.
   const matches = safeEqual(
     stored?.recoveryVerifierHash ?? "",
     hashToken(verifier),
@@ -96,8 +99,8 @@ async function recoveryKeysOf(
     audit(deps.storage, c, {
       action: "auth.sign_in_failed",
       targetId: user?.id ?? null,
-      // Only an account's own name: one nobody holds is often a password
-      // typed into the wrong field (as at `/login`).
+      // Only the own name of an account. A name that no account has is
+      // frequently a password typed into the wrong field (as at `/login`).
       detail: {
         ...(user && { username: user.username }),
         reason: "recovery_key",
@@ -123,8 +126,8 @@ function recoveryOpened(user: User, stored: StoredAccountKeys) {
 }
 
 /**
- * `/api/v1/auth/keys`: an account's keys, for its own sessions. Session-only
- * throughout: a token is handed the keys it needs when it is made, never
+ * `/api/v1/auth/keys`: the keys of an account, for its own sessions. All routes
+ * are session-only. A token gets the keys that it needs when it is made, never
  * these.
  */
 export function registerAccountKeyRoutes(
@@ -155,11 +158,15 @@ export function registerAccountKeyRoutes(
     return c.json(body);
   });
 
-  /** An account's first keys. Refused once it has some: whichever device
-   * set up first is the one whose sheet is right. */
-  // What the account remembers of other people's public keys. Sealed under
-  // its own key, so the server keeps the list and can read none of it; what
-  // it could do is drop an entry, which a client meets as a first sight.
+  /**
+   * The first keys of an account. The server refuses them when the account
+   * already has keys. The sheet of the device that did the setup first is the
+   * correct sheet.
+   */
+  // What the account remembers of the public keys of other people. It is sealed
+  // under its own key. Thus, the server keeps the list, and can read none of
+  // it. The server could remove an entry, and a client then sees that person
+  // for the first time again.
   router.get("/keys/seen", async (c) => {
     const { userId } = c.get("auth");
     const body: SeenKeysResponse = {
@@ -216,9 +223,10 @@ export function registerAccountKeyRoutes(
   );
 
   /**
-   * Proof that the person at the session is the account's owner, before the
-   * client shows the secret key it holds. The key never comes from here; this
-   * only keeps a session left open from being enough to read it off a screen.
+   * Proof that the person at the session is the owner of the account, before
+   * the client shows the secret key that it has. The key never comes from here.
+   * This only prevents a person from reading it off the screen of a session
+   * that stays open.
    */
   router.post(
     "/keys/confirm",
@@ -233,8 +241,10 @@ export function registerAccountKeyRoutes(
     },
   );
 
-  /** A new secret key: the same account key under a new wrap. Every other
-   * device is signed out, and asks for the new key when it signs in. */
+  /**
+   * A new secret key: the same account key under a new wrap. All other devices
+   * are signed out, and ask for the new key when they sign in.
+   */
   router.post(
     "/keys/secret",
     zValidator("json", secretKeyReplaceSchema, validatorHook),
@@ -263,7 +273,7 @@ export function registerAccountKeyRoutes(
     },
   );
 
-  /** A new recovery key; the one before stops working. */
+  /** A new recovery key. The previous one stops. */
   router.post(
     "/keys/recovery",
     zValidator("json", recoveryKeyReplaceSchema, validatorHook),
@@ -288,18 +298,18 @@ export function registerAccountKeyRoutes(
   );
 
   /**
-   * Starts the account again, for someone who has lost the secret key on
-   * every device and the recovery key too: the keys go, and so does
-   * everything sealed under them (`emptyAccount`), which nobody can read
-   * again. The next thing the client does is set up new keys. The account's
-   * other sessions and its tokens end, since what they hold opens nothing
-   * now.
+   * Starts the account again, for a person who lost the secret key on all
+   * devices and also the recovery key. The keys go, and all data sealed under
+   * them goes too (`emptyAccount`), because nobody can read it again. The next
+   * action of the client is to set up new keys. The other sessions and the
+   * tokens of the account end, because what they have opens nothing now.
    *
-   * The keys go last. Emptying is many writes with no transaction around
-   * them, and one that fails leaves the account with its keys, so the same
-   * request can be sent again: with the keys gone first it would be refused,
-   * and what was left would stay sealed under keys nobody has. The other
-   * sessions end first, so that none of them writes a note meanwhile.
+   * The keys go last. The emptying is many writes, with no transaction. If one
+   * write fails, the account still has its keys, and the client can send the
+   * same request again. If the keys went first, the server would refuse that
+   * request, and the remaining data would stay sealed under keys that nobody
+   * has. The other sessions end first, so that none of them writes a note in
+   * the meantime.
    */
   router.delete(
     "/keys",
@@ -319,11 +329,11 @@ export function registerAccountKeyRoutes(
   );
 
   /**
-   * Using the recovery key while signed in, for someone who can still sign
-   * in (through single sign-on, or with a password) and has lost the secret
-   * key. Two steps: this one hands over the account key as the recovery key
-   * wraps it, and `complete` puts a new secret key and a new recovery key in
-   * place of the ones used.
+   * Use of the recovery key while signed in, for a person who can still sign in
+   * (through single sign-on, or with a password) and lost the secret key. There
+   * are two steps. This step gives the account key as the recovery key wraps
+   * it. `complete` puts a new secret key and a new recovery key in place of the
+   * used keys.
    */
   router.post(
     "/keys/recover",
@@ -371,8 +381,10 @@ export function registerAccountKeyRoutes(
   );
 }
 
-/** Puts the new secret key and recovery key in place of the ones a recovery
- * used, once: of two requests holding the same key, one goes on. */
+/**
+ * Puts the new secret key and recovery key in place of the keys that a recovery
+ * used, one time. If two requests have the same key, only one continues.
+ */
 async function spendRecoveryKey(
   deps: RecoveryDeps,
   user: User,
@@ -400,12 +412,12 @@ async function spendRecoveryKey(
 }
 
 /**
- * `/api/v1/auth/recovery`: signing in with the recovery key and the username,
- * for a local account that has lost everything else (the password, the
- * authenticator, the passkeys). The same two steps as above, with nobody
- * signed in: the second chooses a new password and answers with a session.
- * An account that signs in through an identity provider signs in there and
- * uses the key afterwards, so it is refused here like a wrong key.
+ * `/api/v1/auth/recovery`: a sign-in with the recovery key and the username,
+ * for a local account that lost all else (the password, the authenticator, the
+ * passkeys). These are the same two steps as above, with nobody signed in. The
+ * second step selects a new password, and answers with a session. An account
+ * that signs in through an identity provider signs in there and uses the key
+ * after that. Thus, the server refuses it here, as a wrong key.
  */
 export function registerRecoverySignInRoutes(
   router: AuthRouter,
@@ -432,7 +444,7 @@ export function registerRecoverySignInRoutes(
         verifier,
         401,
       );
-      // `stored` is only ever returned for a user that exists.
+      // `stored` is only returned for a user that exists.
       if (!user) throw new HttpError(401, "That recovery key is not right");
       return c.json(recoveryOpened(user, stored));
     },
@@ -459,8 +471,8 @@ export function registerRecoverySignInRoutes(
         await hashPassword(input.newPassword, deps.cfg),
         false,
       );
-      // Whoever else was signed in, or held a token, held it on what was
-      // lost.
+      // All other persons who were signed in, or had a token, had it on what
+      // was lost.
       await endUserSessions(storage, deps.revocations, user.id);
       const { token } = await issueSession(storage, deps.cfg, user.id);
       audit(storage, c, {

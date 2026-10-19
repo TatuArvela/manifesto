@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageDriver, StoredAccountKeys } from "#/storage/types.ts";
 
 /**
- * An account's wrapped keys, the same in both drivers: the first set-up is
- * the one kept, a recovery key is spent once, and the keys go with the
- * account.
+ * The wrapped keys of an account, the same in both drivers: the first set-up is
+ * the one that stays, a recovery key can be used one time, and the keys go with
+ * the account.
  */
 
 const T0 = "2026-04-01T00:00:00.000Z";
@@ -114,7 +114,7 @@ export function describeAccountKeysContract(
       expect(await storage.accountKeys.get("u1")).toEqual(
         keys({ ...next, updatedAt: T1 }),
       );
-      // The key it was is no longer the account's.
+      // The previous key does not belong to the account now.
       expect(
         await storage.accountKeys.replaceUserKeys(
           "u1",
@@ -145,7 +145,7 @@ export function describeAccountKeysContract(
         storage.accountKeys.rememberKey(me, peer, `e1.${sealed}`, T0, max);
       expect(await remember("alice", "a1")).toBe(true);
       expect(await remember("bob", "b1")).toBe(true);
-      // One more than it may hold is refused; one it already holds is
+      // One more than it can have is refused. One that it already has is
       // written over.
       expect(await remember("carol", "c1")).toBe(false);
       expect(await remember("alice", "a2")).toBe(true);
@@ -153,7 +153,7 @@ export function describeAccountKeysContract(
         alice: "e1.a2",
         bob: "e1.b1",
       });
-      // Sealed under the account's keys, they go when those do.
+      // Sealed under the keys of the account, they go when those keys go.
       await storage.accountKeys.delete(me);
       expect(await storage.accountKeys.seenKeys(me)).toEqual({});
     });

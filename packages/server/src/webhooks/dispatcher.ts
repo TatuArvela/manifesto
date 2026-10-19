@@ -23,39 +23,39 @@ import {
 import type { StorageDriver, StoredWebhook } from "#/storage/types.ts";
 import type { Broadcaster } from "#/ws/broadcaster.ts";
 
-/** Failures in a row that switch a webhook off. */
+/** The number of failures in sequence that switch a webhook off. */
 export const WEBHOOK_DISABLE_AFTER = 20;
-/** Attempts per delivery, and the waits between them. */
+/** The attempts for each delivery, and the waits between them. */
 const RETRY_DELAYS_MS = [0, 5_000, 30_000];
 const TIMEOUT_MS = 10_000;
 const USER_AGENT =
   "ManifestoWebhook/1.0 (+https://github.com/TatuArvela/manifesto)";
 
 /**
- * Posts a user's note events to their webhooks.
+ * Sends the note events of a user to their webhooks.
  *
- * It listens to the broadcaster, which is already where every change to a
- * note is announced to each person holding it, as their own copy. So a
- * webhook hears exactly what its owner's open tabs hear: their own notes, and
- * notes shared with them, with their personal fields.
+ * It listens to the broadcaster, which already announces each change to a note
+ * to each person who has it, as their own copy. Thus, a webhook gets exactly
+ * what the open tabs of its owner get: their own notes, and the notes shared
+ * with them, with their personal fields.
  *
- * Deliveries go through `safeFetch`, the link previews' SSRF boundary: every
- * resolved address is checked and the connection pinned to it, redirects are
- * not followed, and by default only public addresses are reached. An operator
- * running automation beside the server opts in to its network with
+ * Deliveries go through `safeFetch`, the SSRF boundary of the link previews. It
+ * checks each resolved address, and pins the connection to it. It does not
+ * follow redirects. By default, it reaches only public addresses. An operator
+ * who runs automation near the server permits its network with
  * `WEBHOOKS=private`.
  *
- * Each webhook's deliveries run one at a time, in order, so a receiver sees a
- * note's events in the order they happened. A failed delivery is retried
- * twice; `WEBHOOK_DISABLE_AFTER` failures in a row switch the webhook off
- * until its owner turns it on again.
+ * The deliveries of each webhook run one at a time, in order. Thus, a receiver
+ * gets the events of a note in the order that they occurred. The dispatcher
+ * tries a failed delivery two more times. `WEBHOOK_DISABLE_AFTER` failures in
+ * sequence switch the webhook off, until its owner turns it on again.
  */
 export interface WebhookDispatcher {
-  /** Sends one event now (the "send test" button), and says how it went. */
+  /** Sends one event now (the "send test" button), and tells the result. */
   ping(
     webhook: StoredWebhook,
   ): Promise<{ status: number | null; error: string | null }>;
-  /** Resolves once every queued delivery has finished. For tests. */
+  /** Resolves when all queued deliveries are complete. For tests. */
   idle(): Promise<void>;
   stop(): void;
 }
@@ -66,7 +66,7 @@ export interface WebhookDispatcherDeps {
   mode: Exclude<WebhookMode, "off">;
   /** Test seam: the address rule, which production takes from `mode`. */
   isAllowedAddress?: ((address: string) => boolean) | undefined;
-  /** Test seam: shortens the waits between attempts. */
+  /** Test seam: makes the waits between attempts shorter. */
   retryDelaysMs?: number[] | undefined;
 }
 
@@ -83,7 +83,7 @@ function eventName(event: WebSocketEvent): WebhookEventName | null {
   }
 }
 
-/** The readable part of a note, which is all a delivery carries. */
+/** The readable part of a note, which is all that a delivery contains. */
 export function webhookNoteOf(note: SealedNote): WebhookNote {
   return {
     id: note.id,
@@ -120,9 +120,9 @@ function payloadFor(
 }
 
 /**
- * `sha256=` and the HMAC of `<timestamp>.<body>` under the webhook's secret.
- * The timestamp is inside what is signed, so a captured delivery cannot be
- * replayed later with a fresh one.
+ * `sha256=` and the HMAC of `<timestamp>.<body>` under the secret of the
+ * webhook. The timestamp is inside the signed data. Thus, nobody can send a
+ * captured delivery again later with a new timestamp.
  */
 export function signDelivery(
   secret: string,
@@ -145,7 +145,7 @@ export function createWebhookDispatcher(
           isPublicAddress(address) || isLocalNetworkAddress(address)
       : isPublicAddress);
   const delays = deps.retryDelaysMs ?? RETRY_DELAYS_MS;
-  /** Per webhook, the tail of its queue. */
+  /** For each webhook, the end of its queue. */
   const queues = new Map<string, Promise<void>>();
   let stopped = false;
 
@@ -252,8 +252,8 @@ export function createWebhookDispatcher(
       });
     },
     async idle() {
-      // Reads of the webhook list are in flight briefly before a delivery
-      // is queued; one turn lets them land.
+      // The reads of the webhook list are in progress for a short time before a
+      // delivery is queued. One turn lets them complete.
       await new Promise((r) => setTimeout(r, 10));
       while (queues.size > 0) await Promise.all(queues.values());
     },

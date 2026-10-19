@@ -27,8 +27,8 @@ import { createSqliteWebhooksRepo } from "./webhooksRepo.ts";
 import { createSqliteYjsStore } from "./yjsStore.ts";
 
 export interface SqliteStorageDriver extends StorageDriver {
-  // Exposed for tests that need direct DB access (e.g. asserting persisted
-  // Yjs blobs). Production code paths must go through the typed repos.
+  // Exposed for tests that need direct database access (for example, to check
+  // stored Yjs blobs). Production code must go through the typed repos.
   readonly db: SqliteDB;
 }
 
@@ -62,8 +62,8 @@ export function createSqliteStorage(
     audit: createSqliteAuditRepo(db),
     maintenance: createSqliteMaintenanceRepo(db),
     async backup(path) {
-      // SQLite's online backup API: consistent, WAL included, and it lets
-      // writes go on while it copies.
+      // The online backup API of SQLite: consistent, with the WAL, and writes
+      // can continue while it copies.
       await db.backup(path);
     },
     async close() {

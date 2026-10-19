@@ -17,12 +17,11 @@ import {
 } from "./sqlite/migrations.ts";
 
 /**
- * The bug this closes is a silent one: both drivers used to run a single blob
- * of `CREATE TABLE IF NOT EXISTS`, which builds the right schema on an empty
- * database and does nothing whatsoever on a populated one. The next schema
- * change would have worked on every fresh checkout and reached no deployed
- * instance, so the tests that matter here are the ones that add a second
- * migration to a database that has already been through the first.
+ * This bug is silent. Both drivers ran one block of `CREATE TABLE IF NOT
+ * EXISTS`, which builds the correct schema on an empty database, and does
+ * nothing on a database that has data. The next schema change would have worked
+ * on each new checkout, and reached no deployed instance. Thus, the important
+ * tests here add a second migration to a database that already had the first.
  */
 
 const step = (id: string, sql: string): Migration => ({ id, sql });
@@ -51,9 +50,9 @@ describe("pendingMigrations", () => {
   });
 
   it("refuses to run on a database holding a migration nobody declares", () => {
-    // A shipped migration was renamed or deleted. This database's schema is
-    // not one the code can reason about, and stacking the rest on top of it
-    // would be guesswork.
+    // A shipped migration was renamed or deleted. The code cannot know the
+    // schema of this database, and to add the other steps on top of it would be
+    // a guess.
     expect(() => pendingMigrations(all, ["0001-a", "0000-gone"])).toThrow(
       /no longer declared/,
     );
@@ -67,12 +66,12 @@ describe("both drivers declare the same migrations", () => {
     );
   });
 
-  // The same ids say nothing of what each step does: a column added in one
-  // driver's step and forgotten in the other's passes every test that runs
-  // on the first, and fails in production on the second.
-  // Columns by name, not their types or nullability: the types differ on
-  // purpose (`INTEGER` booleans against `BOOLEAN`), and pg-mem reports every
-  // column as `NOT NULL`.
+  // The same ids tell nothing about what each step does. A column added in the
+  // step of one driver and forgotten in the step of the other passes all tests
+  // that run on the first, and fails in production on the second. Columns by
+  // name, not by their types or nullability: the types are different on purpose
+  // (`INTEGER` booleans against `BOOLEAN`), and pg-mem reports each column as
+  // `NOT NULL`.
   it("builds the same tables with the same columns", async () => {
     const sqlite = new Database(":memory:");
     runSqliteMigrations(sqlite);
@@ -169,7 +168,7 @@ describe("sqlite migration runner", () => {
   });
 });
 
-/** Every declared migration up to, but not including, `id`. */
+/** Each declared migration up to `id`, but not `id` itself. */
 function upTo(migrations: readonly Migration[], id: string): Migration[] {
   const index = migrations.findIndex((m) => m.id === id);
   expect(index).toBeGreaterThan(0);
@@ -183,9 +182,9 @@ const LEGACY_USERS = [
 ] as const;
 
 describe("0003-user-admin on a server that already has accounts", () => {
-  // A fresh server makes its first sign-up the admin as it is created. One
-  // upgraded with accounts in it has had no such moment, so the migration has
-  // to choose, or the upgrade leaves nobody able to administer it.
+  // A new server makes its first sign-up the admin when it creates it. A server
+  // upgraded with existing accounts had no such moment. Thus, the migration
+  // must select one. If not, after the upgrade nobody can administer it.
   it("promotes the oldest account on SQLite, and only that one", () => {
     const db = new Database(":memory:");
     runSqliteMigrations(db, upTo(SQLITE_MIGRATIONS, "0003-user-admin"));
@@ -198,7 +197,7 @@ describe("0003-user-admin on a server that already has accounts", () => {
     const admins = db
       .prepare(`SELECT id FROM users WHERE is_admin = 1`)
       .all() as { id: string }[];
-    // Ties on created_at fall to the id, so the choice is stable.
+    // The id decides ties on created_at. Thus, the selection is stable.
     expect(admins.map((row) => row.id)).toEqual(["u-early-a"]);
     db.close();
   });
@@ -222,11 +221,11 @@ describe("0003-user-admin on a server that already has accounts", () => {
 });
 
 describe("the first step of encryption on a database from before it", () => {
-  // Notes written before encryption are readable where they lie. The server
+  // Notes written before encryption are readable where they are. The server
   // does not seal them in place (the old text would stay in free pages and in
-  // every backup), so it refuses to run beside them and says why.
-  // The first step, not the one that seals the notes: a step before the
-  // refusal would have changed the database the operator is sent back to.
+  // all backups). Thus, it does not run next to them, and tells why. This is
+  // the first step, not the step that seals the notes. A step before the
+  // refusal would have changed the database to which the operator goes back.
   const BEFORE = "0027-account-keys";
   const ENCRYPTION = SQLITE_MIGRATIONS.slice(
     SQLITE_MIGRATIONS.findIndex((m) => m.id === BEFORE),
@@ -250,7 +249,7 @@ describe("the first step of encryption on a database from before it", () => {
     expect(db.prepare(`SELECT title FROM notes WHERE id = 'n'`).get()).toEqual({
       title: "Readable",
     });
-    // What the older version reads is all still there.
+    // All that the older version reads is still there.
     expect(db.prepare(`SELECT * FROM totp_recovery_codes`).all()).toEqual([]);
     db.close();
   });
@@ -282,16 +281,18 @@ describe("the first step of encryption on a database from before it", () => {
     ).run();
 
     runSqliteMigrations(db);
-    // Preferences from before were readable too, hidden tag names among them.
+    // Preferences from before were also readable, and contained names of hidden
+    // tags.
     expect(db.prepare(`SELECT * FROM user_prefs`).all()).toEqual([]);
     db.close();
   });
 });
 
 describe("0018-api-token-scopes on a server that already has tokens", () => {
-  // Scopes narrow what a token reaches, so this is the one upgrade that takes
-  // something away: a script's token keeps its notes and loses the account and
-  // sharing routes, and a read-only assistant's token keeps reading only.
+  // Scopes limit what a token reaches. Thus, this is the only upgrade that
+  // takes something away. The token of a script keeps its notes, and loses the
+  // account and sharing routes. The token of a read-only assistant can still
+  // only read.
   const columns = `(id, user_id, name, kind, read_only, token_hash, prefix, created_at)`;
   const expected = [
     { id: "t-assistant-ro", scopes: '["notes:read"]' },
@@ -385,9 +386,8 @@ describe("postgres migration runner", () => {
     const pool = open();
     await runPgMigrations(pool);
 
-    // A second instance that booted with the first: its read of the ledger
-    // came back empty, and everything has been applied by the time it gets
-    // the lock.
+    // A second instance that started with the first: its read of the ledger
+    // came back empty, and all steps are applied when it gets the lock.
     const asked: string[] = [];
     const late = {
       connect: async () => {

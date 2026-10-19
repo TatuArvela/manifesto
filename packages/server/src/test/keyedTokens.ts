@@ -15,17 +15,19 @@ import {
 } from "@manifesto/shared";
 
 /**
- * Tokens as the app makes them: the secret chosen on this side, and the
- * account's notes key and personal key wrapped under it for the server to
- * open while the token is presented. The keys are real, unlike the values
- * the sealing test client sends for a session, because the server opens and
- * seals with them. So a note such a token reads has to have been written
- * with these keys: by a token of the account, or by a test that seals with
- * `testAccountKeys`.
+ * Tokens as the app makes them: the secret is selected on this side, and the
+ * notes key and the personal key of the account are wrapped under it, for the
+ * server to open while the token is presented. The keys are real, unlike the
+ * values that the sealing test client sends for a session, because the server
+ * opens and seals with them. Thus, a note that such a token reads must have
+ * been written with these keys: by a token of the account, or by a test that
+ * seals with `testAccountKeys`.
  */
 
-/** An account's notes key and personal key, the same every time for one
- * account, as a device that unlocked it would derive them. */
+/**
+ * The notes key and the personal key of an account, the same each time for one
+ * account, as a device that unlocked it would derive them.
+ */
 async function material(userId: string) {
   const account = await derivable(utf8(`test account key of ${userId}`));
   return {
@@ -36,8 +38,10 @@ async function material(userId: string) {
   };
 }
 
-/** The same keys, ready to seal and open with, for a test that plays the
- * app beside a token. */
+/**
+ * The same keys, ready to seal and open, for a test that acts as the app next
+ * to a token.
+ */
 export async function testAccountKeys(
   userId: string,
 ): Promise<AccountSealKeys> {
@@ -51,8 +55,8 @@ export async function testAccountKeys(
 }
 
 /**
- * A new token's secret, and what the app sends the server of it: its hash,
- * the start of it that a list shows, and the keys it carries.
+ * The secret of a new token, and what the app sends the server of it: its hash,
+ * the start of it that a list shows, and its keys.
  */
 export async function keyedToken(
   userId: string,
@@ -70,7 +74,7 @@ export async function keyedToken(
     fields: {
       tokenHash: await tokenHashOf(secret),
       prefix: secret.slice(0, 10),
-      // A feed's address carries the reminder key and nothing else.
+      // The address of a feed contains only the reminder key.
       wrappedKeys:
         kind === "calendar"
           ? await wrapFeedKey(secret, keys)
@@ -80,9 +84,9 @@ export async function keyedToken(
 }
 
 /**
- * The copy of a note's key that a calendar feed opens, as the app leaves it
- * when a reminder is set: the reader's own copy opened, and wrapped under
- * their reminder key.
+ * The copy of the key of a note that a calendar feed opens, as the app leaves
+ * it when a reminder is set: the own copy of the reader opened, and wrapped
+ * under their reminder key.
  */
 export async function reminderKeyOf(
   sealed: Pick<SealedNote, "id" | "key" | "keyVersion">,
@@ -107,10 +111,10 @@ export async function reminderKeyOf(
 }
 
 /**
- * The key of `noteId` as `recipientId` keeps it once they have accepted: the
- * owner's own copy opened, and wrapped under the recipient's notes key. What
- * the two apps do between them with an offered key, done here in one step
- * for a test of what a token then reads.
+ * The key of `noteId` as `recipientId` keeps it after they accepted: the own
+ * copy of the owner opened, and wrapped under the notes key of the recipient.
+ * This does in one step what the two apps do with an offered key, for a test of
+ * what a token then reads.
  */
 export async function heldKeyOf(
   sealed: Pick<SealedNote, "id" | "key" | "keyVersion">,
@@ -136,8 +140,8 @@ export async function heldKeyOf(
 }
 
 /**
- * An account's notes key and personal key wrapped under `secret`, as the
- * consent page wraps them under the code it makes for an assistant.
+ * The notes key and the personal key of an account wrapped under `secret`, as
+ * the consent page wraps them under the code that it makes for an assistant.
  */
 export async function wrapTestKeys(
   secret: string,

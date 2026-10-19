@@ -45,9 +45,11 @@ interface LocalRouterDeps {
   storage: StorageDriver;
   cfg: ServerConfig;
   revocations: SessionRevocations;
-  /** Null when the server sends no mail: then there is no reset by mail. */
+  /** Null when the server sends no mail. Then there is no reset by mail. */
   mailer?: Mailer | null;
-  /** Shared with confirming actions; a router of its own when left out. */
+  /**
+   * Shared with the confirmation of actions. Its own instance when not given.
+   */
   loginAttempts?: LoginAttempts;
 }
 
@@ -56,8 +58,9 @@ export function createLocalAuthRouter(
 ): AuthProviderRouter {
   const auth = new Hono<{ Variables: { auth: AuthContext } }>();
 
-  // A budget per account on top of the budget per address, since an attacker
-  // who can move between addresses gets a fresh one of the latter with each.
+  // A budget for each account in addition to the budget for each address. An
+  // attacker who can move between addresses gets a new budget of the second
+  // type with each address.
   const loginAttempts = deps.loginAttempts ?? createLoginAttempts();
   const passkeyChallenges = createPasskeyChallenges();
   const passkeySecondFactor = createPasskeySecondFactor({
@@ -66,31 +69,32 @@ export function createLocalAuthRouter(
     challenges: passkeyChallenges,
   });
 
-  // A sign-in for a name nobody holds has to cost what a real one costs, or
-  // the time the answer takes reports whether the account exists. Built from
-  // the configured argon2 parameters, so it tracks an ARGON2_* override
-  // rather than freezing one cost, and from a random string, so no password
-  // ever verifies against it. Built on the first miss rather than at boot,
-  // and held afterwards, since it never needs to differ.
+  // A sign-in for a name that no account has must cost the same as a real
+  // sign-in. If not, the duration of the answer tells if the account exists.
+  // The code builds it from the configured argon2 parameters, so that it
+  // follows an ARGON2_* override and does not use one fixed cost. It builds it
+  // from a random string, so that no password ever passes against it. It builds
+  // it on the first miss, not at start, and keeps it after that, because it
+  // never needs to change.
   let decoyHash: Promise<string> | null = null;
   const spendDecoyVerify = async (password: string): Promise<void> => {
     try {
       decoyHash ??= hashPassword(randomBytes(32).toString("hex"), deps.cfg);
       await verifyPassword(await decoyHash, password);
     } catch {
-      // The decoy buys time; it decides nothing. A failure to build one must
-      // not turn an ordinary wrong name into a 500, now or on every later
-      // miss that would have reused the rejected promise.
+      // The decoy only uses time. It decides nothing. If the code cannot build
+      // one, an ordinary wrong name must not become a 500, now or on each later
+      // miss that would use the rejected promise again.
       decoyHash = null;
     }
   };
 
   /**
-   * The second factor of a sign-in whose first step (the password, or a
-   * mailed link) has already held. Answers with the challenge to send back
-   * when the account has one and the request brought none, and otherwise
-   * with which factor held. A wrong one is refused here, counted and audited,
-   * so that no way in can forget either.
+   * The second factor of a sign-in whose first step (the password, or a mailed
+   * link) passed. It answers with the challenge to send back when the account
+   * has one and the request brought none. If not, it answers with the factor
+   * that passed. It refuses a wrong factor here, and counts and audits it.
+   * Thus, no way to sign in can forget either step.
    */
   const secondFactor: SecondFactorCheck = async (c, user, otp, passkey) => {
     const userId = user.id;
@@ -101,8 +105,8 @@ export function createLocalAuthRouter(
       return { with: null };
     }
     if (otp === undefined && passkey === undefined) {
-      // Which factors there are, and a challenge for the passkeys, so the
-      // client can offer each without another round of the first step.
+      // The factors that exist, and a challenge for the passkeys. Thus, the
+      // client can offer each one without another round of the first step.
       return {
         challenge: {
           error: "Confirm with your second factor",
@@ -191,8 +195,8 @@ export function createLocalAuthRouter(
         c.req.valid("json");
       const wait = loginAttempts.retryAfter(username);
       if (wait > 0) {
-        // Ahead of the lookup and the verify, so a guessing run that has used
-        // its budget stops costing the server argon2 as well.
+        // Before the lookup and the verify. Thus, a series of guesses that used
+        // its budget also stops to cost the server argon2.
         c.header("Retry-After", String(wait));
         throw new HttpError(429, "Too many sign-in attempts");
       }
@@ -203,8 +207,9 @@ export function createLocalAuthRouter(
         audit(deps.storage, c, {
           action: "auth.sign_in_failed",
           targetId: user?.id ?? null,
-          // A name no account holds is not kept: it is often a password
-          // typed into the wrong field, or someone else's address.
+          // The server does not keep a name that no account has. It is
+          // frequently a password typed into the wrong field, or the address of
+          // a different person.
           detail: {
             ...(user && { username: user.username }),
             reason: "unknown_account",
@@ -222,16 +227,16 @@ export function createLocalAuthRouter(
         });
         throw new HttpError(401, "Invalid username or password");
       }
-      // The second factor, after the password so that asking for one tells a
-      // wrong guess nothing, and on the same per-account budget, so six
-      // digits cannot be walked through.
+      // The second factor, after the password, so that the question for it
+      // tells a wrong guess nothing. It uses the same budget for each account.
+      // Thus, nobody can try all six-digit codes.
       const second = await secondFactor(c, user, otp, passkey);
       if ("challenge" in second) return c.json(second.challenge, 403);
       loginAttempts.succeed(username);
-      // A temporary password buys the right to set a real one and nothing
-      // else: no session exists until it has been replaced, so there is no
-      // half-signed-in state for every other route to have to refuse. Checked
-      // after the password, so the flag is never disclosed to a wrong guess.
+      // A temporary password gives only the right to set a real password. No
+      // session exists until it is replaced. Thus, there is no half-signed-in
+      // state that all other routes must refuse. The check is after the
+      // password. Thus, a wrong guess never learns about the flag.
       if (user.mustChangePassword) {
         if (newPassword === undefined) {
           throw new HttpError(
@@ -278,8 +283,8 @@ export function createLocalAuthRouter(
 
   auth.post(
     "/password",
-    // Throttled like sign-in: a session is enough to guess at the current
-    // password here, and a stolen one should not make that cheap.
+    // The same throttle as for sign-in. A session is sufficient to guess the
+    // current password here, and a stolen session must not make that easy.
     zValidator("json", passwordChangeSchema, validatorHook),
     async (c) => {
       const { userId, token } = c.get("auth");
@@ -291,16 +296,16 @@ export function createLocalAuthRouter(
       if (user.passwordHash === null) {
         throw new HttpError(409, "This account signs in without a password");
       }
-      // The same per-account budget as signing in and confirming an action:
-      // the address bucket alone is one a stolen session can move between
-      // addresses to refill.
+      // The same budget for each account as for sign-in and for the
+      // confirmation of an action. A stolen session can move between addresses
+      // to fill the address bucket again.
       const wait = loginAttempts.retryAfter(user.username);
       if (wait > 0) {
         c.header("Retry-After", String(wait));
         throw new HttpError(429, "Too many wrong passwords; try again later");
       }
-      // 403 rather than 401: the session is fine, and a client treats 401 as
-      // being signed out.
+      // 403, not 401. The session is correct, and a client reads 401 as a
+      // sign-out.
       if (!(await verifyPassword(user.passwordHash, currentPassword))) {
         loginAttempts.fail(user.username);
         throw new HttpError(403, "Current password is incorrect");
@@ -317,8 +322,8 @@ export function createLocalAuthRouter(
         await hashPassword(newPassword, deps.cfg),
         false,
       );
-      // Changing a password is how someone locks out a person who learned it,
-      // so every other session ends, and this one carries on.
+      // A password change is how a person locks out a person who learned the
+      // password. Thus, all other sessions end, and this session continues.
       await endUserSessions(deps.storage, deps.revocations, userId, token);
       audit(deps.storage, c, {
         action: "auth.password_changed",

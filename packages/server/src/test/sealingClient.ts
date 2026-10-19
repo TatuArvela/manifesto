@@ -23,25 +23,26 @@ import {
 import { keyedToken } from "./keyedTokens.ts";
 
 /**
- * A test's requests, sent the way the app sends them. The app seals a note
- * before it leaves the browser and opens what comes back, so a test that
- * speaks of a note's title in plain words is speaking as the app's user does:
- * this stands where the app's own sealing would, with values that are only
- * shaped as ciphertext (`ciphertext`), since the server never opens one.
+ * The requests of a test, sent as the app sends them. The app seals a note
+ * before it goes out of the browser, and opens what comes back. Thus, a test
+ * that uses the title of a note in plain words acts as the user of the app
+ * does. This is in the place of the own seal of the app, with values that only
+ * have the shape of ciphertext (`ciphertext`), because the server never opens
+ * one.
  *
- * An image is uploaded sealed, under an address made from its bytes, and
- * made the owner's of the note about to name it, as the app does both.
+ * An image is uploaded sealed, under an address made from its bytes, and given
+ * to the owner of the note that will name it, as the app does both.
  *
- * A request made with a token is left as it is: a script sends readable
- * notes. So is a body that is already sealed, or that is not a note at all,
- * which is how a test of what the server refuses gets its body through.
+ * A request with a token is not changed, because a script sends readable notes.
+ * A body that is already sealed, or that is not a note, is also not changed.
+ * Thus, a test of what the server refuses can send its body.
  */
 
 type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
 
 const TOKEN = /^Bearer mf[a-z]_/;
 
-/** The fields that hold someone's words wherever they turn up. */
+/** The fields that contain the words of a person, wherever they are. */
 const WORDS = new Set(["title", "content", "excerpt", "body"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -89,8 +90,8 @@ function sealedBody(method: string, path: string, body: unknown): unknown {
   const comment = /^\/api\/v1\/notes\/[^/]+\/comments(\/[^/]+)?$/.exec(path);
   if (comment && (method === "POST" || method === "PUT")) {
     if ("keyVersion" in body) return null;
-    // Trimmed and held to its length here, as the app's sealing does, since
-    // the server cannot tell either of a sealed comment.
+    // Trimmed and limited in length here, as the seal of the app does, because
+    // the server cannot check either for a sealed comment.
     const text = typeof body.body === "string" ? body.body.trim() : body.body;
     if (typeof text !== "string" || text === "" || text.length > 2000) {
       return { ...body, keyVersion: 1 };
@@ -132,13 +133,13 @@ function isSealedVersion(value: Record<string, unknown>): boolean {
   );
 }
 
-/** Everything sealed in an answer, read back as the app would show it. */
+/** All sealed values in an answer, read back as the app would show them. */
 export function openedAnswer(value: unknown, path = ""): unknown {
   if (Array.isArray(value))
     return value.map((item) => openedAnswer(item, path));
   if (!isRecord(value)) return value;
   if (isSealedNote(value)) return opened(value as unknown as SealedNote);
-  // A note as a public link hands it over, read as its page shows it.
+  // A note as a public link gives it, read as its page shows it.
   if (
     typeof value.keyVersion === "number" &&
     typeof value.linkPreviews === "string" &&
@@ -179,8 +180,8 @@ export function openedAnswer(value: unknown, path = ""): unknown {
   return Object.fromEntries(
     Object.entries(value).map(([key, item]) => [
       key,
-      // A sealed value outside a note (an invitation's title, say) reads as
-      // the words it holds.
+      // A sealed value outside a note (for example, the title of an invitation)
+      // reads as its words.
       WORDS.has(key) &&
       typeof item === "string" &&
       item.startsWith(CIPHERTEXT_PREFIX)
@@ -190,10 +191,13 @@ export function openedAnswer(value: unknown, path = ""): unknown {
   );
 }
 
-/** The nonce and tag a sealed image carries, as so many zero bytes. */
+/** The nonce and tag of a sealed image, as zero bytes. */
 const IMAGE_FILLER = SEALED_IMAGE_OVERHEAD;
 
-/** An upload as the app sends one: sealed, under the address its bytes give. */
+/**
+ * An upload as the app sends one: sealed, under the address that its bytes
+ * give.
+ */
 function sealedUpload(init: RequestInit): RequestInit | null {
   const { body } = init;
   if (!(body instanceof Uint8Array)) return null;
@@ -209,7 +213,7 @@ function sealedUpload(init: RequestInit): RequestInit | null {
   return { ...init, headers, body: sealed as BodyInit };
 }
 
-/** A served image as the app shows it: opened, and of the kind it is. */
+/** A served image as the app shows it: opened, and of its real type. */
 async function openedImage(res: Response): Promise<Response> {
   const sealed = new Uint8Array(await res.arrayBuffer());
   const image = sealed.subarray(IMAGE_FILLER);
@@ -224,7 +228,7 @@ async function openedImage(res: Response): Promise<Response> {
 
 const ATTACHMENT = /\/attachments\/[^/]+$/;
 
-/** The attachment references a note's body names. */
+/** The attachment references that the body of a note names. */
 function refsOf(note: Record<string, unknown>): string[] {
   const refs: string[] = [];
   const take = (value: unknown) => {
@@ -241,7 +245,7 @@ function refsOf(note: Record<string, unknown>): string[] {
   return refs;
 }
 
-/** `note` naming `owned` in place of each reference it was claimed for. */
+/** `note`, with `owned` in place of each reference that was claimed for it. */
 function withOwned(
   note: Record<string, unknown>,
   owned: Map<string, string>,
@@ -265,11 +269,11 @@ function withOwned(
   };
 }
 
-/** `send`, sealing what a session sends and opening what it is answered. */
+/** `send`, which seals what a session sends and opens its answers. */
 export function sealingClient(send: Fetch): Fetch {
   /**
-   * Makes the images a note is about to name its owner's, as the app does
-   * before it seals the note. A refusal is the answer to the whole write.
+   * Gives the images that a note will name to its owner, as the app does before
+   * it seals the note. A refusal is the answer to the full write.
    */
   async function claimed(
     init: RequestInit,
@@ -302,9 +306,9 @@ export function sealingClient(send: Fetch): Fetch {
     if (method === "POST" && path === "/api/v1/attachments" && init) {
       next = sealedUpload(init) ?? init;
     }
-    // A token that reaches notes is made by the app, which keeps its secret
-    // and sends the keys it carries: so here, and the secret is put into
-    // the answer, where a test looks for it.
+    // The app makes a token that reaches notes, keeps its secret, and sends its
+    // keys. Thus, the same occurs here, and the secret goes into the answer,
+    // where a test looks for it.
     let madeSecret: string | null = null;
     let madeLink = false;
     if (
@@ -335,8 +339,8 @@ export function sealingClient(send: Fetch): Fetch {
         // Not JSON: sent as it is.
       }
     }
-    // Publishing: the app seals the link key for its owner and, for a
-    // snapshot, a copy of the note as it stands.
+    // Publish: the app seals the link key for its owner and, for a snapshot, a
+    // copy of the current note.
     const published = /^\/api\/v1\/notes\/([^/]+)\/links$/.exec(path);
     if (method === "POST" && published && typeof init?.body === "string") {
       try {
@@ -380,8 +384,8 @@ export function sealingClient(send: Fetch): Fetch {
       accepted &&
       (init?.body == null || init.body === "{}")
     ) {
-      // The app opens the key it was offered and sends it back wrapped
-      // under its own notes key; here, a value of that shape.
+      // The app opens the offered key, and sends it back wrapped under its own
+      // notes key. Here, a value of that shape.
       const list = await send("/api/v1/invitations", {
         headers: init?.headers ?? {},
       });
@@ -434,7 +438,7 @@ export function sealingClient(send: Fetch): Fetch {
           : opened,
       );
     } catch {
-      // Left as it came.
+      // Kept as it came.
     }
     return new Response(answer, {
       status: res.status,

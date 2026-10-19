@@ -48,7 +48,7 @@ describe("serving the client", () => {
   });
 
   it("serves the OAuth metadata, and never the page for another .well-known document", async () => {
-    // Served here, the client is where an assistant's user says yes.
+    // When the client is served here, the user of an assistant agrees there.
     const metadata = await rig.request(
       "/.well-known/oauth-authorization-server",
     );

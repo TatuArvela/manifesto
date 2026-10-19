@@ -84,8 +84,8 @@ describe("notes routes", () => {
 
   it("stores a link preview a token sends under the host its URL opens", async () => {
     const session = await registerTestUser(rig, "alice");
-    // A token is the one writer whose previews the server reads. A session
-    // sends them sealed, and what opens them puts the host right
+    // A token is the only writer whose previews the server reads. A session
+    // sends them sealed, and the code that opens them corrects the host
     // (`checkedLinkPreviews`).
     const minted = await rig.request("/api/v1/tokens", {
       method: "POST",
@@ -277,7 +277,7 @@ describe("notes routes", () => {
       expect((await post({ [field]: "readable" })).status, field).toBe(422);
     }
     expect((await post({ tags: ["readable"] })).status).toBe(422);
-    // A colour or tags never set are empty, and nothing else is.
+    // A color or tags that were never set are empty, and nothing else is.
     expect((await post({ color: "", tags: "" })).status).toBe(201);
     expect((await post({ color: "yellow" })).status).toBe(422);
   });
@@ -313,8 +313,8 @@ describe("notes routes", () => {
   it("keeps the day a monthly reminder repeats on, and refuses one no month has", async () => {
     const { token } = await registerTestUser(rig, "alice");
     const note = await createNote(rig, token);
-    // A reminder set for the 31st, clamped to February: the schema used to
-    // strip `day`, so the next month stepped from the 28th.
+    // A reminder set for the 31st, clamped to February. Before, the schema
+    // removed `day`, and the next month started from the 28th.
     const reminder = {
       time: "2026-02-28T09:00:00",
       recurrence: "monthly",
@@ -342,7 +342,7 @@ describe("notes routes", () => {
   it("refuses an image that is not an attachment reference", async () => {
     const { token } = await registerTestUser(rig, "alice");
     const cases: Array<[string, string]> = [
-      // Bytes never ride in a note; they are uploaded first.
+      // Bytes never go in a note. The client uploads them first.
       [`data:image/png;base64,${"iVBORw0KGgo".repeat(4)}=`, "an inline image"],
       ["javascript:alert(1)", "javascript scheme"],
       ["file:///etc/passwd", "file scheme"],
@@ -363,8 +363,8 @@ describe("notes routes", () => {
 
   it("stamps trashedAt from the server clock, ignoring the client's", async () => {
     const { token } = await registerTestUser(rig, "alice");
-    // A client asking for a note that was trashed long enough ago to be
-    // hard-deleted by the next cleanup sweep.
+    // A client that asks for a note that went to the trash long enough ago for
+    // the next cleanup sweep to delete it permanently.
     const note = await createNote(rig, token, {
       trashed: true,
       trashedAt: "2001-01-01T00:00:00.000Z",
@@ -426,7 +426,7 @@ describe("notes routes", () => {
     const { token } = await registerTestUser(rig, "alice");
     const note = await createNote(rig, token, { title: "Original" });
 
-    // Simulate a concurrent edit that bumps updatedAt.
+    // Simulate an edit at the same time, which moves updatedAt.
     await rig.request(`/api/v1/notes/${note.id}`, {
       method: "PUT",
       headers: authHeaders(token),
@@ -495,8 +495,8 @@ describe("notes routes", () => {
       const bob = await registerTestUser(rig, "bob");
       const theirs = await createNote(rig, alice.token, { title: "Alice's" });
 
-      // A sealed note is bound to its id, so the server cannot give it a
-      // new one as it did for a readable note.
+      // A sealed note is bound to its id. Thus, the server cannot give it a new
+      // id, as it did for a readable note.
       expect(
         await importNotes(bob.token, [{ ...baseNote, id: theirs.id }]),
       ).toEqual({ created: 0, updated: 0, skipped: 0, taken: [theirs.id] });
@@ -546,7 +546,7 @@ describe("notes routes", () => {
         return await res.json();
       };
 
-      // The key before a replacement, and a key of the device's own making.
+      // The key before a replacement, and a key that the device made itself.
       for (const [key, version] of [
         [held.key, held.keyVersion + 1],
         [ciphertext("another key"), held.keyVersion],
@@ -613,8 +613,8 @@ describe("notes routes", () => {
     const PNG = `data:image/png;base64,${"iVBORw0KGgo".repeat(4)}=`;
 
     it("lists a note with its sealed images, and reads their bytes by reference", async () => {
-      // The reason the endpoint is paged at all: an unpaged list of notes each
-      // carrying its own pictures is a response with no upper bound.
+      // The reason for pages on the endpoint: an unpaged list of notes, each
+      // with its own pictures, is a response with no upper limit.
       const { token } = await registerTestUser(rig, "alice");
       const uploaded = await rig.request("/api/v1/attachments", {
         method: "POST",
@@ -630,8 +630,8 @@ describe("notes routes", () => {
       const res = await rig.request("/api/v1/notes", {
         headers: authHeaders(token),
       });
-      // The sealed list of images is small and travels with the note; the
-      // references the server keeps for itself never do.
+      // The sealed list of images is small, and goes with the note. The
+      // references that the server keeps for itself never do.
       const raw = await rig.rawRequest("/api/v1/notes", {
         headers: authHeaders(token),
       });
@@ -640,7 +640,8 @@ describe("notes routes", () => {
       const body = (await res.json()) as NotesResponse;
       expect(body.notes[0]?.images).toEqual([uploadedRef]);
 
-      // Reading the one note gives the reference, and that the bytes.
+      // A read of one note gives the reference, and the reference gives the
+      // bytes.
       const one = await rig.request(
         `/api/v1/notes/${defined(body.notes[0]).id}`,
         {
@@ -681,8 +682,8 @@ describe("notes routes", () => {
     });
 
     it("clamps a limit rather than refusing it", async () => {
-      // A caller asking for more than a page holds wants as much as it can
-      // get; a 400 tells it nothing it can act on.
+      // A caller that asks for more than one page wants as much as possible. A
+      // 400 tells it nothing on which it can act.
       const { token } = await registerTestUser(rig, "alice");
       await createNote(rig, token, { title: "One" });
 
@@ -696,8 +697,9 @@ describe("notes routes", () => {
     });
 
     it("refuses a cursor it did not write", async () => {
-      // Quietly restarting from the top would hand a paging client the first
-      // page over and over, and look like a server with two notes on it.
+      // If the server silently started again from the top, a paging client
+      // would get the first page again and again. It would look like a server
+      // with two notes on it.
       const { token } = await registerTestUser(rig, "alice");
       const res = await rig.request("/api/v1/notes?cursor=not-a-cursor", {
         headers: authHeaders(token),
@@ -722,7 +724,7 @@ describe("a note's format", () => {
     await rig.close();
   });
 
-  /** A sealed write as an app sends it, with the format it says. */
+  /** A sealed write, as an app sends it, with the format that it gives. */
   const put = (body: object) =>
     rig.rawRequest(`/api/v1/notes/${id}`, {
       method: "PUT",
@@ -730,7 +732,7 @@ describe("a note's format", () => {
       body: JSON.stringify(body),
     });
 
-  /** Every word of the note, as a write that moves it to `format` sends. */
+  /** All words of the note, as a write that moves it to `format` sends them. */
   const everyWord = (title: string, format: number) => ({
     ...sealedUpdate({
       title,

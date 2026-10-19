@@ -64,13 +64,16 @@ CREATE INDEX IF NOT EXISTS notes_trashed_expiry
   ON notes(trashed, trashed_at);
 `;
 
-/** See the SQLite copy: same column, same reason. */
+/** See the SQLite copy: the same column, for the same reason. */
 const NOTE_IMAGE_COUNT = `
 ALTER TABLE notes ADD COLUMN image_count INTEGER NOT NULL DEFAULT 0;
 UPDATE notes SET image_count = json_array_length(images::json);
 `;
 
-/** See the SQLite copy: same columns, same promotion of the oldest account. */
+/**
+ * See the SQLite copy: the same columns, and the same promotion of the oldest
+ * account.
+ */
 const USER_ADMIN = `
 ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN must_change_password BOOLEAN NOT NULL DEFAULT FALSE;
@@ -78,14 +81,16 @@ UPDATE users SET is_admin = TRUE
   WHERE id IN (SELECT id FROM users ORDER BY created_at, id LIMIT 1);
 `;
 
-/** See the SQLite copy. Postgres has no `COLLATE NOCASE`, so the index is on
- * the lowered address, like `users_username_lower`. */
+/**
+ * See the SQLite copy. Postgres has no `COLLATE NOCASE`. Thus, the index is on
+ * the address in lowercase, as `users_username_lower`.
+ */
 const USER_EMAIL = `
 ALTER TABLE users ADD COLUMN email TEXT;
 CREATE UNIQUE INDEX users_email_lower ON users (LOWER(email));
 `;
 
-/** See the SQLite copy: same table, same reasons. */
+/** See the SQLite copy: the same table, for the same reasons. */
 const NOTE_SHARES = `
 CREATE TABLE note_shares (
   note_id     TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
@@ -215,19 +220,19 @@ CREATE INDEX audit_log_target ON audit_log(target_id);
 `;
 
 /**
- * Images are references to the attachment store now, never inline. Nothing
- * released held inline images, so any a development database has are
- * dropped rather than moved.
+ * Images are references to the attachment store now, never inline. No release
+ * contained inline images. Thus, the code drops those of a development
+ * database, and does not move them.
  */
 const DROP_INLINE_IMAGES = `
 UPDATE notes SET images = '[]', image_count = 0 WHERE images LIKE '%"data:%';
 `;
 
 /**
- * Link preview thumbnails and favicons are attachment references too now.
- * Moving an inline one into the attachment store takes more than SQL can do
- * in both dialects, so, as with images, a note still holding one loses its
- * preview cards. The links themselves stay in the note's text.
+ * The thumbnails and favicons of link previews are also attachment references
+ * now. SQL cannot move an inline one into the attachment store in both
+ * dialects. Thus, as for images, a note that still has one loses its preview
+ * cards. The links themselves stay in the text of the note.
  */
 const DROP_INLINE_PREVIEW_IMAGES = `
 UPDATE notes SET link_previews = '[]' WHERE link_previews LIKE '%"data:%';
@@ -336,7 +341,10 @@ CREATE TABLE oauth_codes (
 );
 `;
 
-/** See the SQLite copy. `counter` is a BIGINT, since it can pass 2^31. */
+/**
+ * See the SQLite copy. `counter` is a BIGINT, because it can be larger than
+ * 2^31.
+ */
 const PASSKEYS = `
 CREATE TABLE passkeys (
   id            TEXT PRIMARY KEY,
@@ -418,13 +426,13 @@ DROP TABLE totp_recovery_codes;
 `;
 
 /**
- * Notes sealed in the browser. The columns that held a note's words now hold
- * ciphertext, and beside them go the note key wrapped for its owner (and, in
- * `note_shares`, for each recipient), the version of that key, the excerpt,
- * and the sealed list of images. `images` keeps the attachment references
- * that list names and `preview_refs` those of the link previews, since the
- * server can read neither any more and still has to keep the attachments.
- * Preferences written before were readable, so they go.
+ * Notes sealed in the browser. The columns that contained the words of a note
+ * now contain ciphertext. Next to them are the note key wrapped for its owner
+ * (and, in `note_shares`, for each recipient), the version of that key, the
+ * excerpt, and the sealed list of images. `images` keeps the attachment
+ * references that the list names, and `preview_refs` those of the link
+ * previews, because the server cannot read either list now, and must still keep
+ * the attachments. Preferences written before were readable. Thus, they go.
  */
 const SEALED_NOTES = `
 ALTER TABLE notes ADD COLUMN excerpt TEXT NOT NULL DEFAULT '';
@@ -438,7 +446,7 @@ DELETE FROM user_prefs;
 `;
 
 /**
- * A note key on its way to someone the note is shared with: wrapped to their
+ * A note key on its way to a person who shares the note: wrapped to their
  * public key and signed (`offered_key`, as JSON), until their client keeps it
  * under their own notes key (`wrapped_key`, at `wrapped_key_version`).
  */
@@ -447,23 +455,26 @@ ALTER TABLE note_shares ADD COLUMN offered_key TEXT;
 ALTER TABLE note_shares ADD COLUMN wrapped_key_version INTEGER NOT NULL DEFAULT 0;
 `;
 
-/** A comment's text is sealed under its note's key; this is which one. */
+/**
+ * The text of a comment is sealed under the key of its note. This tells which
+ * key.
+ */
 const COMMENT_KEYS = `
 ALTER TABLE note_comments ADD COLUMN key_version INTEGER NOT NULL DEFAULT 1;
 `;
 
 /**
- * The keys a token carries, wrapped under a key derived from its secret, so
- * the server can open them only while a request presents the token.
+ * The keys of a token, wrapped under a key derived from its secret. Thus, the
+ * server can open them only while a request has the token.
  */
 const TOKEN_KEYS = `
 ALTER TABLE api_tokens ADD COLUMN wrapped_keys TEXT;
 `;
 
 /**
- * A public link's keys, neither of which the server can use: the note key
- * wrapped by the link key (a live link), and the link key sealed for its
- * owner to copy the address again.
+ * The keys of a public link, neither of which the server can use: the note key
+ * wrapped by the link key (a live link), and the link key sealed for its owner,
+ * to copy the address again.
  */
 const LINK_KEYS = `
 ALTER TABLE public_links ADD COLUMN wrapped_key TEXT;
@@ -471,9 +482,9 @@ ALTER TABLE public_links ADD COLUMN sealed_link_key TEXT NOT NULL DEFAULT '';
 `;
 
 /**
- * Replacing a note's key: the keys it was under before, sealed under the one
- * it is under now, and whether its owner's app is to replace it because
- * someone who held it no longer holds the note.
+ * The replacement of the key of a note: its previous keys, sealed under its
+ * current key, and if the app of its owner must replace it, because a person
+ * who had it does not have the note now.
  */
 const NOTE_REKEY = `
 ALTER TABLE notes ADD COLUMN previous_keys TEXT NOT NULL DEFAULT '';
@@ -481,9 +492,9 @@ ALTER TABLE notes ADD COLUMN rekey_due INTEGER NOT NULL DEFAULT 0;
 `;
 
 /**
- * The public keys an account has seen of the people it shares with, each
- * sealed under that account's own key: the server keeps the list and reads
- * none of it.
+ * The public keys that an account saw of the people with whom it shares, each
+ * sealed under the own key of that account. The server keeps the list, and
+ * reads none of it.
  */
 const SEEN_KEYS = `
 CREATE TABLE seen_keys (
@@ -496,9 +507,9 @@ CREATE TABLE seen_keys (
 `;
 
 /**
- * A note's key as a calendar feed opens it: wrapped under its reader's
- * reminder key while the note has a reminder. The owner's copy is on the
- * note and a recipient's on their share, like the reminder itself.
+ * The key of a note as a calendar feed opens it: wrapped under the reminder key
+ * of its reader while the note has a reminder. The copy of the owner is on the
+ * note, and that of a recipient is on their share, as the reminder itself.
  */
 const REMINDER_KEYS = `
 ALTER TABLE notes ADD COLUMN reminder_key TEXT NOT NULL DEFAULT '';
@@ -506,9 +517,9 @@ ALTER TABLE note_shares ADD COLUMN reminder_key TEXT NOT NULL DEFAULT '';
 `;
 
 /**
- * The keys an assistant's sign-in carries from the consent page to its
- * tokens: wrapped under the code until it is traded in, and then under the
- * refresh token beside the copy under the access token.
+ * The keys that the sign-in of an assistant carries from the consent page to
+ * its tokens: wrapped under the code until it is traded in, and then under the
+ * refresh token, next to the copy under the access token.
  */
 const OAUTH_KEYS = `
 ALTER TABLE oauth_codes ADD COLUMN wrapped_keys TEXT;
@@ -516,19 +527,19 @@ ALTER TABLE api_tokens ADD COLUMN refresh_wrapped_keys TEXT;
 `;
 
 /**
- * The key of an image a token uploaded, wrapped under its uploader's notes
- * key until a note names the image: the server keeps nothing between the
- * upload and the note that follows, so it is kept here, unreadable.
+ * The key of an image that a token uploaded, wrapped under the notes key of its
+ * uploader until a note names the image. The server keeps nothing between the
+ * upload and the next note. Thus, it is kept here, unreadable.
  */
 const ATTACHMENT_KEYS = `
 ALTER TABLE attachments ADD COLUMN wrapped_key TEXT;
 `;
 
 /**
- * The format a note's words are in (`noteFormat.ts` in shared), for the note
- * and for each of its versions. Readable, since a client has to know before
- * opening a note whether it can read it, and the server holds a write to it.
- * Every note stored so far is format 1.
+ * The format of the words of a note (`noteFormat.ts` in shared), for the note
+ * and for each of its versions. Readable, because a client must know before it
+ * opens a note if it can read it, and the server checks each write against it.
+ * All notes stored so far are format 1.
  */
 const NOTE_FORMAT = `
 ALTER TABLE notes ADD COLUMN format INTEGER NOT NULL DEFAULT 1;
@@ -562,9 +573,10 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0024-sign-in-links", sql: SIGN_IN_LINKS },
   { id: "0025-note-comments", sql: NOTE_COMMENTS },
   { id: "0026-web-push", sql: WEB_PUSH },
-  // Refused on the first step of encryption, so a database that is turned
-  // away is still the one the older version left. The second keeps the
-  // refusal for a database an earlier build stopped in between.
+  // Refused on the first step of encryption. Thus, a database that the server
+  // refuses is still the database that the older version left. The second step
+  // keeps the refusal for a database that an earlier build stopped between the
+  // two steps.
   { id: "0027-account-keys", sql: ACCOUNT_KEYS, refuseIf: BEFORE_ENCRYPTION },
   { id: "0028-sealed-notes", sql: SEALED_NOTES, refuseIf: BEFORE_ENCRYPTION },
   { id: "0029-share-keys", sql: SHARE_KEYS },
@@ -580,20 +592,20 @@ export const MIGRATIONS: readonly Migration[] = [
 ];
 
 /**
- * The advisory lock every instance takes before it changes the schema: "MANI"
- * in ASCII. Any number would do, as long as nothing else sharing the database
- * picks the same one.
+ * The advisory lock that each instance takes before it changes the schema:
+ * "MANI" in ASCII. Any number is correct, if nothing else that shares the
+ * database uses the same number.
  */
 const MIGRATION_LOCK = 0x4d414e49;
 
 /**
- * One transaction that holds the migration lock from its first statement to
- * its commit. Instances that boot together (a rolling deploy, two replicas)
- * each read the ledger before the other has written to it, so without the
- * lock both run the same step, and the second fails on a column that is
- * already there and does not start. The lock is the transaction's own, so it
- * goes with the connection if the process dies, and works through a pooler
- * that hands out a connection per transaction.
+ * One transaction that keeps the migration lock from its first statement to its
+ * commit. Instances that start together (a rolling deploy, two replicas) each
+ * read the ledger before the other wrote to it. Thus, without the lock, both
+ * run the same step. The second then fails on a column that already exists, and
+ * does not start. The lock belongs to the transaction. Thus, it goes with the
+ * connection if the process dies, and works through a pooler that gives a
+ * connection for each transaction.
  */
 async function locked(
   client: PgClient,
@@ -616,10 +628,10 @@ export async function runMigrations(
 ): Promise<void> {
   const client = await pool.connect();
   try {
-    // Probed rather than re-issued on every boot: `CREATE TABLE IF NOT EXISTS`
-    // against a table that is already there is a statement whose only possible
-    // effect is nothing. Created under the lock, since `IF NOT EXISTS` does not
-    // keep two creates at the same moment from colliding.
+    // Probed, not issued again at each start. `CREATE TABLE IF NOT EXISTS`
+    // against an existing table is a statement whose only possible effect is
+    // nothing. Created under the lock, because `IF NOT EXISTS` does not prevent
+    // a collision of two creates at the same moment.
     const ledger = await client.query(
       `SELECT 1 FROM information_schema.tables
        WHERE table_schema = current_schema() AND table_name = 'schema_migrations'`,
@@ -636,14 +648,14 @@ export async function runMigrations(
       declared,
       rows.map((row) => row.id),
     );
-    // One transaction per step, so a partial failure can't leave the schema in
-    // an inconsistent state (most importantly, missing the unique
-    // LOWER(username) index, which would let duplicate usernames slip past
-    // `findByUsername`) and can't record a step that did not finish.
+    // One transaction for each step. Thus, a partial failure cannot leave the
+    // schema in an inconsistent state (most importantly, without the unique
+    // LOWER(username) index, which would let duplicate usernames pass
+    // `findByUsername`), and cannot record a step that did not complete.
     for (const migration of pending) {
       await locked(client, async () => {
-        // The list above was read before the lock was held, so another
-        // instance may have run this step since.
+        // The code read the list above before it had the lock. Thus, a
+        // different instance can have run this step after that.
         const done = await client.query(
           `SELECT 1 FROM schema_migrations WHERE id = $1`,
           [migration.id],

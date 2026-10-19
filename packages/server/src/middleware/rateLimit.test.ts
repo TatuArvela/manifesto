@@ -55,7 +55,8 @@ describe("rateLimit", () => {
   it("perUserApiRateLimit keys by authenticated userId", async () => {
     const app = new Hono<{ Variables: { auth: { userId: string } } }>();
     app.onError(onError);
-    // Stub auth from a header so each test request can vary the user.
+    // A stub of auth from a header. Thus, each test request can use a different
+    // user.
     app.use("*", async (c, next) => {
       const userId = c.req.header("x-test-user") ?? "anon";
       c.set("auth", { userId });
@@ -64,7 +65,7 @@ describe("rateLimit", () => {
     app.use("*", perUserApiRateLimit());
     app.get("/", (c) => c.json({ ok: true }));
 
-    // Same user hammers the endpoint and gets blocked at 301.
+    // The same user sends many requests to the endpoint, and is blocked at 301.
     for (let i = 0; i < 300; i++) {
       const res = await app.request("/", {
         headers: { "x-test-user": "alice" },
@@ -76,7 +77,7 @@ describe("rateLimit", () => {
     });
     expect(blocked.status).toBe(429);
 
-    // A different user has its own bucket and is not affected.
+    // A different user has its own bucket, and is not affected.
     const ok = await app.request("/", { headers: { "x-test-user": "bob" } });
     expect(ok.status).toBe(200);
   });
@@ -102,13 +103,12 @@ describe("ipBucketKey", () => {
   });
 
   it("keys an IPv4 client whole, mapped or not", () => {
-    // Slicing four hextets off the mapped form would file every IPv4 client
-    // on the internet into one bucket.
+    // If the code cut four hextets off the mapped form, it would put all IPv4
+    // clients on the internet into one bucket.
     expect(ipBucketKey("203.0.113.7")).toBe("203.0.113.7");
     expect(ipBucketKey("::ffff:203.0.113.7")).toBe("203.0.113.7");
     expect(ipBucketKey("::ffff:203.0.113.8")).toBe("203.0.113.8");
-    // The same address written as hex groups, which is how some stacks
-    // report it.
+    // The same address written as hex groups, as some stacks report it.
     expect(ipBucketKey("::ffff:c000:280")).toBe("192.0.2.128");
   });
 
@@ -135,9 +135,10 @@ describe("rateLimit keyed by address", () => {
   it("spends one budget on a whole IPv6 /64", async () => {
     const from = proxiedApp(1);
     expect((await from("2001:db8:1:2::1")).status).toBe(200);
-    // A routed /64 is one subscriber, so rotating inside it buys nothing.
+    // A routed /64 is one subscriber. Thus, a change of address inside it gives
+    // nothing.
     expect((await from("2001:db8:1:2:ffff:ffff:ffff:ffff")).status).toBe(429);
-    // The next /64 along is somebody else.
+    // The next /64 is a different subscriber.
     expect((await from("2001:db8:1:3::1")).status).toBe(200);
   });
 

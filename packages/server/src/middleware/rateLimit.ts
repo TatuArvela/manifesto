@@ -4,30 +4,33 @@ import { countMetric } from "#/lib/metrics.ts";
 import { HttpError } from "./error.ts";
 
 export interface RateLimitOptions {
-  /** Maximum requests allowed per key within the window. */
+  /** The maximum number of requests for each key within the window. */
   limit: number;
-  /** Window length in milliseconds. */
+  /** The window length in milliseconds. */
   windowMs: number;
   /** Build a string key from the request, usually the source IP. */
   keyFor?: (c: Parameters<MiddlewareHandler>[0]) => string;
-  /** Honor `X-Forwarded-For` (set this when behind a trusted reverse proxy).
-   * Defaults to false; without it, an attacker can rotate the header to
-   * bypass per-IP throttling. */
+  /**
+   * Use `X-Forwarded-For` (set this behind a trusted reverse proxy). The
+   * default is false. Without it, an attacker can change the header to go
+   * around the throttle for each IP.
+   */
   trustProxy?: boolean;
   /** Names the limiter in the rate-limit metric. */
   name?: string;
 }
 
 /**
- * Live buckets one limiter will hold. Past this, the oldest are evicted (see
- * `createExpiringCounter`). Sized well above any plausible honest load: the
- * per-user limiter would need this many accounts active within a minute, and
- * the per-IP one this many distinct networks within fifteen.
+ * The live buckets that one limiter keeps. After this, the oldest go (see
+ * `createExpiringCounter`). The size is much more than all likely honest load.
+ * The limiter for each user would need this many active accounts within one
+ * minute, and the limiter for each IP this many different networks within
+ * fifteen minutes.
  */
 const MAX_BUCKETS = 50_000;
 
 function socketAddress(c: Parameters<MiddlewareHandler>[0]): string {
-  // Hono on Node: fall back to the underlying socket peer address.
+  // Hono on Node: use the peer address of the socket.
   // biome-ignore lint/suspicious/noExplicitAny: env shape is platform-specific
   const incoming = (c.env as any)?.incoming;
   return incoming?.socket?.remoteAddress ?? "anon";
@@ -59,14 +62,15 @@ function ipv4Bytes(text: string): Ipv4Bytes | null {
   return bytes as Ipv4Bytes;
 }
 
-/** One side of a `::` as 16-bit groups, or null if any part is not one. */
+/** One side of a `::` as 16-bit groups, or null if a part is not one. */
 function expandGroups(half: string): number[] | null {
   if (half === "") return [];
   const parts = half.split(":");
   const groups: number[] = [];
   for (const [i, part] of parts.entries()) {
     if (part.includes(".")) {
-      // An embedded IPv4 fills the last two groups, so it can only come last.
+      // An embedded IPv4 fills the last two groups. Thus, it can only come
+      // last.
       const bytes = i === parts.length - 1 ? ipv4Bytes(part) : null;
       if (!bytes) return null;
       groups.push((bytes[0] << 8) | bytes[1], (bytes[2] << 8) | bytes[3]);
@@ -79,14 +83,13 @@ function expandGroups(half: string): number[] | null {
 }
 
 /**
- * The eight 16-bit groups of an IPv6 address, or null if it is not one.
- * Written-out and abbreviated forms of one address have to come back the
- * same, or `2001:db8::1` and `2001:0db8:0000:0000:0:0:0:1` would be keyed as
- * two networks.
+ * The eight 16-bit groups of an IPv6 address, or null if it is not one. The
+ * full form and the short form of one address must give the same result. If
+ * not, `2001:db8::1` and `2001:0db8:0000:0000:0:0:0:1` would be two networks.
  */
 function ipv6Groups(address: string): Ipv6Groups | null {
-  // A link-local address carries the interface it arrived on. That names a
-  // route, not a network, so it is not part of the key.
+  // A link-local address contains the interface on which it arrived. That names
+  // a route, not a network. Thus, it is not part of the key.
   const zone = address.indexOf("%");
   const bare = zone === -1 ? address : address.slice(0, zone);
   if (!bare.includes(":")) return null;
@@ -97,7 +100,7 @@ function ipv6Groups(address: string): Ipv6Groups | null {
   if (!head || !tail) return null;
   if (tailPart === undefined) return eightGroups(head);
   const gap = 8 - head.length - tail.length;
-  // `::` stands for at least one group of zeros.
+  // `::` means one or more groups of zeros.
   if (gap < 1) return null;
   return eightGroups([...head, ...Array<number>(gap).fill(0), ...tail]);
 }
@@ -106,7 +109,7 @@ function eightGroups(groups: number[]): Ipv6Groups | null {
   return groups.length === 8 ? (groups as Ipv6Groups) : null;
 }
 
-/** `::ffff:a.b.c.d`: an IPv4 client reaching a dual-stack listener. */
+/** `::ffff:a.b.c.d`: an IPv4 client that reaches a dual-stack listener. */
 function isIpv4Mapped(groups: Ipv6Groups): boolean {
   return (
     groups[0] === 0 &&
@@ -131,20 +134,21 @@ function ipv4String(groups: Ipv6Groups): string {
 /**
  * The bucket key for a client address.
  *
- * IPv6 is keyed on its /64 rather than on the whole address. A /64 is the
- * smallest block anyone is handed, so keying the /128 gives a single client
- * with a routed prefix 2^64 buckets to rotate through and no per-address
- * limit means anything. That matters most on `/api/v1/auth/login`, where one
- * cheap request buys the server a ~19 MiB argon2 verify.
+ * For IPv6, the key is its /64, not the full address. A /64 is the smallest
+ * block that a subscriber gets. If the key were the /128, one client with a
+ * routed prefix would have 2^64 buckets to use, and no limit for each address
+ * would have a meaning. This is most important on `/api/v1/auth/login`, where
+ * one cheap request costs the server an argon2 verification of approximately 19
+ * MiB.
  *
- * IPv4 is a host address already and is keyed whole. An IPv4 client reaching
- * a dual-stack listener arrives as `::ffff:a.b.c.d`, so the mapped form is
- * unwrapped to the same key it gets when it arrives unmapped: taking the
- * first four hextets of *that* would file every IPv4 client on the internet
- * into one shared bucket.
+ * IPv4 is already a host address, and the key is the full address. An IPv4
+ * client that reaches a dual-stack listener arrives as `::ffff:a.b.c.d`. Thus,
+ * the code unwraps the mapped form to the same key that it gets without the
+ * mapping. If the code took the first four hextets of *that* form, it would put
+ * all IPv4 clients on the internet into one shared bucket.
  *
- * Anything that does not parse as an address (a proxy's `unknown`, the `anon`
- * fallback) keys as itself.
+ * All values that do not parse as an address (the `unknown` of a proxy, the
+ * `anon` fallback) are their own key.
  */
 export function ipBucketKey(address: string): string {
   const groups = ipv6Groups(address);
@@ -158,9 +162,9 @@ export function ipBucketKey(address: string): string {
 }
 
 /**
- * The client's address as the server sees it: the first `X-Forwarded-For`
- * hop behind a trusted proxy, else the socket peer. Unbucketed, for the
- * audit log to show.
+ * The address of the client as the server sees it: the first `X-Forwarded-For`
+ * hop behind a trusted proxy, or the socket peer. Not in buckets, for the audit
+ * log.
  */
 export function clientAddress(
   c: Parameters<MiddlewareHandler>[0],
@@ -173,7 +177,7 @@ export function clientAddress(
   return socketAddress(c);
 }
 
-/** The client's own entry in an `X-Forwarded-For` list. */
+/** The own entry of the client in an `X-Forwarded-For` list. */
 function firstHop(forwardedFor: string): string {
   const [first = ""] = forwardedFor.split(",");
   return first.trim();
@@ -191,10 +195,11 @@ function makeDefaultKey(
 }
 
 /**
- * Per-authenticated-user limiter for /api/v1/notes and /api/v1/search. The bucket
- * key is the userId set by `createAuthMiddleware`, so this MUST be mounted
- * AFTER auth. 300 requests/minute is generous for normal use and catches
- * runaway clients / misuse without paging legitimate users.
+ * A limiter for each authenticated user, for /api/v1/notes and /api/v1/search.
+ * The bucket key is the userId that `createAuthMiddleware` sets. Thus, you MUST
+ * mount this AFTER auth. 300 requests each minute is generous for usual use. It
+ * stops clients that are out of control, and misuse, without problems for
+ * legitimate users.
  */
 export function perUserApiRateLimit(
   limit = 300,
@@ -211,8 +216,8 @@ export function perUserApiRateLimit(
 }
 
 /**
- * Tiny in-memory rate limiter. Single-process only; when this app outgrows
- * one node, swap the buckets for a Redis-backed implementation.
+ * A small rate limiter in memory, only for one process. When this app needs
+ * more than one node, replace the buckets with an implementation on Redis.
  */
 export function rateLimit(opts: RateLimitOptions): MiddlewareHandler {
   const buckets = createExpiringCounter({

@@ -4,22 +4,23 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   resolve: {
     alias: {
-      // Resolve the workspace package to its source, not its build output.
+      // Resolve the workspace package to its source, not to its build output.
       //
       // `@manifesto/shared` exports `types: src/index.ts` but `import:
-      // dist/index.js`, so a value added to shared and used here typechecks
-      // against source while resolving at runtime to whatever tsc last emitted.
-      // A stale dist therefore yields `undefined` at runtime with a green
-      // typecheck, which is a very expensive thing to debug. Tests read the
-      // same files the compiler checked.
+      // dist/index.js`. Thus, a value added to shared and used here typechecks
+      // against the source, but resolves at runtime to the last output of tsc.
+      // Thus, a stale dist gives `undefined` at runtime with a successful
+      // typecheck. That is very expensive to debug. Tests read the same files
+      // that the compiler checked.
       "@manifesto/shared": fileURLToPath(
         new URL("../shared/src/index.ts", import.meta.url),
       ),
     },
   },
-  // `#/` imports, in this package and in shared, read from source: the import
-  // maps send anyone without this condition to `dist/`. The rest is Vite's
-  // `defaultServerConditions`, which this package has no `vite` to import.
+  // `#/` imports, in this package and in shared, read from the source. The
+  // import maps send all builds without this condition to `dist/`. The others
+  // are the `defaultServerConditions` of Vite, which this package cannot
+  // import, because it has no `vite`.
   ssr: {
     resolve: {
       conditions: [

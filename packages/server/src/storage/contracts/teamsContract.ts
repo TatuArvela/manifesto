@@ -3,9 +3,9 @@ import type { StorageDriver } from "#/storage/types.ts";
 import { claimed } from "./claimed.ts";
 
 /**
- * Teams, the same in both drivers: names unique within a source, members
- * counted, and the rows that say which notes a team has and which of a
- * user's shares came through it.
+ * Teams, the same in both drivers: names are unique within a source, members
+ * are counted, and rows tell which notes a team has, and which shares of a user
+ * came through it.
  */
 
 const T0 = "2026-04-01T00:00:00.000Z";

@@ -664,8 +664,8 @@ describe("heartbeat on /api/v1/ws", () => {
     const code = await new Promise<number>((resolve) => {
       gone.once("close", (c) => resolve(c));
     });
-    // 1006: terminated without a closing handshake, which a vanished peer
-    // could never have completed.
+    // 1006: terminated without a closing handshake, which a peer that
+    // disappeared could never have completed.
     expect(code).toBe(1006);
     expect(here.ws.readyState).toBe(WebSocket.OPEN);
 

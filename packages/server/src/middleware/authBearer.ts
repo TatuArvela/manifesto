@@ -13,35 +13,35 @@ export interface AuthContext {
   userId: string;
   token: string;
   via: CredentialKind;
-  /** What a token may reach; absent for a session. */
+  /** What a token can reach. Absent for a session. */
   scopes?: readonly ApiTokenScope[];
-  /** When a session was signed in; absent for a token. */
+  /** When a session signed in. Absent for a token. */
   signedInAt?: string;
   /**
-   * The keys a token carries, opened for this request with the token it
-   * presented: what the server opens and seals that account's notes with
-   * while the request runs, and never keeps. Absent for a session, which
-   * sends no key, and for a token that carries none.
+   * The keys of a token, opened for this request with the presented token. The
+   * server opens and seals the notes of that account with them while the
+   * request runs, and never keeps them. Absent for a session, which sends no
+   * key, and for a token that has none.
    */
   keys?: AccountSealKeys;
 }
 
 export interface AuthMiddlewareOptions {
   /**
-   * Refuse a personal API token (403). For whatever changes how the account
-   * is secured or reaches past it: passwords, tokens, the admin API.
+   * Refuse a personal API token (403). For all actions that change the security
+   * of the account, or reach past it: passwords, tokens, the admin API.
    */
   sessionOnly?: boolean;
-  /** Take an MCP token and nothing else: `/api/v1/mcp` itself. */
+  /** Accept an MCP token and nothing else: `/api/v1/mcp` itself. */
   mcpOnly?: boolean;
 }
 
 /**
- * Set in the `env` of the REST requests `/api/v1/mcp` makes in-process for its
- * tools, and nowhere else: a request from the network carries only what the
- * Node adapter puts there. An MCP token is accepted on a REST route only
- * with it, so a secret taken from an assistant's settings can do what the
- * tools do and no more.
+ * Set in the `env` of the REST requests that `/api/v1/mcp` makes in the process
+ * for its tools, and in no other place. A request from the network contains
+ * only what the Node adapter puts there. A REST route accepts an MCP token only
+ * with it. Thus, a secret taken from the settings of an assistant can do only
+ * what the tools do.
  */
 export const MCP_FORWARDED = Symbol("mcp-forwarded");
 
@@ -50,21 +50,21 @@ const BEARER_PREFIX = "Bearer ";
 let scopeByRoute: Map<string, ApiTokenScope | undefined> | undefined;
 
 /**
- * The scope `OPERATIONS` names for the route that will answer this request,
- * or undefined if it names none. `found` is false when no route matched, and
- * the request is on its way to a 404 anyway.
+ * The scope that `OPERATIONS` names for the route that will answer this
+ * request, or undefined if it names none. `found` is false when no route
+ * matched, and the request will get a 404 anyway.
  */
 function scopeFor(c: Context): {
   found: boolean;
   scope?: ApiTokenScope | undefined;
 } {
-  // Built on first use rather than at load: `openapi.ts` reaches the
-  // validation schemas, and nothing here should depend on load order.
+  // Built on the first use, not at load. `openapi.ts` reaches the validation
+  // schemas, and nothing here must depend on the load order.
   scopeByRoute ??= new Map(
     OPERATIONS.map((op) => [`${op.method.toUpperCase()} ${op.path}`, op.scope]),
   );
-  // A router's middleware already knows its handler: the last route matched
-  // that is not middleware (`ALL`).
+  // The middleware of a router already knows its handler: the last matched
+  // route that is not middleware (`ALL`).
   const route = c.req.matchedRoutes.findLast((r) => r.method !== "ALL");
   if (!route) return { found: false };
   return {
@@ -105,8 +105,8 @@ export function createAuthMiddleware(
     if (sessionOnly && identity.via !== "session") {
       throw new HttpError(403, "Sign in to do this; an API token cannot");
     }
-    // A token reaches only what its scopes name, and only routes that name
-    // one: an operation declared without a scope is closed to tokens.
+    // A token reaches only what its scopes name, and only routes that name one.
+    // Tokens cannot use an operation declared without a scope.
     if (identity.via !== "session") {
       const { found, scope } = scopeFor(c);
       if (found && scope === undefined) {

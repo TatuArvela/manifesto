@@ -38,15 +38,15 @@ const FLOW_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 /**
  * Ties a callback to the browser that started the flow. Without it, `state`
- * alone only proves *someone* started a flow: an attacker can begin a login,
- * hold on to the resulting callback URL, and lure the victim into visiting it:
- * the victim's browser then gets a session for the attacker's IdP account, and
- * everything they write afterwards lands in it.
+ * alone only proves that *a person* started a flow. An attacker can start a
+ * login, keep the callback URL, and make the victim open it. The browser of the
+ * victim then gets a session for the IdP account of the attacker, and all that
+ * the victim writes after that goes into it.
  *
- * Scoped to the auth routes and readable only by the server. `SameSite=Lax`
- * rather than `Strict` because the IdP sends the user back as a top-level
- * cross-site GET, which `Strict` would withhold. Lax is exactly the setting
- * that covers that navigation and nothing else.
+ * It applies only to the auth routes, and only the server can read it. It is
+ * `SameSite=Lax`, not `Strict`, because the IdP sends the user back as a
+ * top-level cross-site GET, and `Strict` would not send the cookie. Lax is
+ * exactly the setting that covers that navigation and nothing else.
  */
 const FLOW_COOKIE = "manifesto_oidc_flow";
 const FLOW_COOKIE_PATH = "/api/v1/auth";
@@ -55,8 +55,8 @@ const FLOW_COOKIE_PATH = "/api/v1/auth";
 const SWEEP_EVERY = 256;
 
 function providerKey(issuer: string): string {
-  // Issuer is normalized at config-load time, but be defensive: trailing
-  // slashes have caused account-orphaning bugs in other OIDC clients.
+  // The config load normalizes the issuer, but be careful: trailing slashes
+  // caused bugs in other OIDC clients that lost the link to accounts.
   return `oidc:${issuer.replace(/\/+$/, "")}`;
 }
 
@@ -78,13 +78,14 @@ function pickDisplayName(claims: openid.IDToken, fallback: string): string {
 }
 
 /**
- * The address the identity provider vouches for, or null. One it marks as
- * unverified is never taken: an address is how a note's owner finds a person
- * to share with, and an unverified one would let anybody claim someone
- * else's. One it says nothing about is not vouched for either, since some
- * providers leave the claim out for an address the user typed in themselves;
- * `OIDC_UNVERIFIED_EMAIL=accept` takes those, for a provider known to hand
- * out only addresses it controls.
+ * The address for which the identity provider vouches, or null. The code never
+ * takes an address that the provider marks as unverified. A note owner finds a
+ * person for a share by an address, and an unverified address would let any
+ * person claim the address of a different person. An address about which the
+ * provider says nothing is also not vouched for, because some providers do not
+ * send the claim for an address that the user typed.
+ * `OIDC_UNVERIFIED_EMAIL=accept` takes those, for a provider that gives out
+ * only addresses that it controls.
  */
 function pickEmail(
   claims: openid.IDToken,
@@ -98,9 +99,9 @@ function pickEmail(
 }
 
 /**
- * Keep an account's address in step with the identity provider, which owns
- * it. One already held by another account is left where it is: which of the
- * two is right is not something a sign-in can settle.
+ * Keep the address of an account the same as at the identity provider, which
+ * owns it. If a different account already has the address, the code does not
+ * change it. A sign-in cannot decide which of the two is correct.
  */
 async function syncEmail(
   storage: StorageDriver,
@@ -117,8 +118,9 @@ async function syncEmail(
 }
 
 /**
- * Why a sign-in the identity provider accepted is refused here. Sent back to
- * the client as `#error=<reason>`, which says it in the catalogue's words.
+ * Why the server refuses here a sign-in that the identity provider accepted. It
+ * goes back to the client as `#error=<reason>`, which shows it in the words of
+ * the catalogue.
  */
 export type SignInRefusal =
   | "not_in_group"
@@ -132,8 +134,8 @@ class SignInRefused extends Error {
 }
 
 /**
- * The user's groups, from `claim` (a list, or one group as a string). Group
- * names are compared as the identity provider writes them.
+ * The groups of the user, from `claim` (a list, or one group as a string). The
+ * code compares group names as the identity provider writes them.
  */
 export function groupsOf(
   claims: Record<string, unknown> | undefined,
@@ -177,19 +179,21 @@ async function provisionUser(
     createdAt: nowIso(),
   };
 
-  // Try the seed first, then fall back to ULID-derived suffixes on collision.
-  // The (provider, external_id) lookup is the source of truth; username is
-  // just the display handle, so collisions resolve by appending a short tag.
-  // We avoid the raw `sub` as a candidate because it's often an email or UUID
-  // (PII leak into the username column).
+  // Try the seed first. On a collision, use suffixes from a ULID. The
+  // (provider, external_id) lookup is the source of truth. The username is only
+  // the display handle. Thus, a collision gets a short tag at the end. We do
+  // not use the raw `sub` as a candidate, because it is frequently an email or
+  // a UUID (personal data in the username column).
   const candidates = [
     seed,
     `${seed}-${newShortSuffix()}`,
     `${seed}-${newShortSuffix()}`,
     `${seed}-${newShortSuffix()}`,
   ];
-  /** Lost a race for the address: sign them in without one rather than not
-   * at all. */
+  /**
+   * A different sign-in got the address first. Sign them in without an address,
+   * not refuse the sign-in.
+   */
   const create = async (username: string) => {
     try {
       return await storage.users.create({
@@ -211,10 +215,10 @@ async function provisionUser(
     try {
       return (await create(username)).id;
     } catch (err) {
-      // Only retry on UNIQUE-constraint collisions on username. Any other
-      // error (disk full, broken schema, network) propagates so it lands in
-      // the operator's logs as a genuine failure rather than being masked
-      // as a "username taken".
+      // Try again only on UNIQUE-constraint collisions on the username. All
+      // other errors (full disk, broken schema, network) go up. Thus, they go
+      // into the logs of the operator as real failures, and do not look like
+      // "username taken".
       if (!(err instanceof UsernameTakenError)) throw err;
       logger.warn("OIDC user provisioning username collision, retrying", {
         username,
@@ -226,11 +230,11 @@ async function provisionUser(
 
 export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
   const auth = new Hono<{ Variables: { auth: AuthContext } }>();
-  // Pending flows live in process memory. That's fine for a single-node
-  // deployment, but behind a load balancer the callback may hit a different
-  // instance than the one that issued the state, and the user will see
-  // "Unknown or expired login state". Loudly warn operators at boot so they
-  // either pin sessions to a node or move this to shared storage.
+  // Pending flows are in process memory. That is acceptable for a deployment on
+  // one node. But behind a load balancer, the callback can go to a different
+  // instance than the instance that gave the state. The user then sees "Unknown
+  // or expired login state". Show a clear warning to operators at start. Thus,
+  // they pin sessions to a node, or move this to shared storage.
   logger.info(
     "OIDC pending-flow state is in-process; sticky sessions are required for multi-instance deployments",
   );
@@ -240,11 +244,12 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
 
   function rememberFlow(state: string, codeVerifier: string): void {
     pending.set(state, { state, codeVerifier, createdAt: Date.now() });
-    // Sweep expired entries every SWEEP_EVERY insertions rather than on each
-    // one: walking the whole map per login made a burst quadratic. Amortized
-    // to O(1) per insert, and at most SWEEP_EVERY stale entries are held
-    // between sweeps. Same idiom as `middleware/rateLimit.ts`, and for the
-    // same reason it is a counter and not a timer, with nothing to tear down.
+    // Sweep expired entries each SWEEP_EVERY insertions, not on each one. A
+    // walk through the full map on each login made a burst quadratic. This
+    // makes it O(1) on average for each insert. A maximum of SWEEP_EVERY stale
+    // entries stay between sweeps. This is the same method as in
+    // `middleware/rateLimit.ts`. For the same reason, it is a counter, not a
+    // timer, and there is nothing to tear down.
     if (++sinceSweep < SWEEP_EVERY) return;
     sinceSweep = 0;
     const cutoff = Date.now() - FLOW_TTL_MS;
@@ -270,9 +275,9 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     setCookie(c, FLOW_COOKIE, state, {
       httpOnly: true,
       sameSite: "Lax",
-      // The callback is whatever scheme the deployment redirects to; marking
-      // the cookie Secure over plain http would mean the browser never sends
-      // it back and every login would fail.
+      // The callback uses the scheme to which the deployment redirects. If the
+      // cookie were Secure over plain http, the browser would never send it
+      // back, and each login would fail.
       secure: deps.oidc.redirectUri.startsWith("https:"),
       path: FLOW_COOKIE_PATH,
       maxAge: FLOW_TTL_MS / 1000,
@@ -285,8 +290,8 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
       code_challenge_method: "S256",
       state,
       // An action that needs a recent sign-in (`auth/confirmation.ts`) sends
-      // the user back here with `reauth`: the identity provider has to ask
-      // again, not wave them through on the session it already holds.
+      // the user back here with `reauth`. The identity provider must ask again.
+      // It must not use the session that it already has.
       ...(c.req.query("reauth") !== undefined && { prompt: "login" }),
     });
     return c.redirect(authorizationUrl.toString(), 302);
@@ -299,8 +304,8 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
       throw new HttpError(400, "Missing state parameter");
     }
 
-    // Checked before the flow is consumed, so a forged callback can't burn
-    // the pending state of a login someone else has in progress.
+    // Checked before the flow is used. Thus, a forged callback cannot use up
+    // the pending state of a login that a different person started.
     const boundState = getCookie(c, FLOW_COOKIE);
     deleteCookie(c, FLOW_COOKIE, { path: FLOW_COOKIE_PATH });
     if (!boundState || boundState !== state) {
@@ -339,12 +344,13 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
     const { adminGroup, userGroup, groupsClaim, teamGroups } = deps.oidc;
     const mirrorsTeams = teamGroups !== null && deps.teamSync !== undefined;
 
-    // Groups only matter when a group is configured. Many identity providers
-    // leave them out of the ID token unless asked, so userinfo is asked when
-    // the token does not carry the claim. A userinfo that could not be read
-    // leaves them unknown, which is not the same as no groups: it refuses a
-    // sign-in the user group gates and leaves admin as it was, or an outage at
-    // the identity provider would take admin from everyone who signed in.
+    // Groups are only important when a group is configured. Many identity
+    // providers do not put them in the ID token unless asked. Thus, the code
+    // asks userinfo when the token does not contain the claim. If the code
+    // could not read userinfo, the groups are unknown. That is not the same as
+    // no groups. It refuses a sign-in that the user group controls, and keeps
+    // admin rights as they were. If not, an outage at the identity provider
+    // would remove admin rights from all persons who signed in.
     let groups: string[] | null = null;
     let groupsUnknown = false;
     if (adminGroup || userGroup || mirrorsTeams) {
@@ -391,9 +397,9 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
       return c.redirect(target.toString(), 302);
     }
 
-    // Admin follows the group at every sign-in, both ways, so taking someone
-    // out of the group at the identity provider takes admin away here. The
-    // last admin is kept, as it is everywhere else.
+    // Admin rights follow the group at each sign-in, in both directions. Thus,
+    // when a person is removed from the group at the identity provider, they
+    // lose admin rights here. The last admin stays, as in all other places.
     if (adminGroup && !groupsUnknown) {
       const wanted = (groups ?? []).includes(adminGroup);
       const user = await deps.storage.users.findById(userId);
@@ -414,8 +420,9 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
       }
     }
 
-    // Teams follow the groups at every sign-in, as admin does. Groups that
-    // could not be read leave the teams as they were rather than empty them.
+    // Teams follow the groups at each sign-in, as admin rights do. If the code
+    // could not read the groups, the teams stay as they were. They do not
+    // become empty.
     if (mirrorsTeams && !groupsUnknown && deps.teamSync) {
       const named = groups ?? [];
       const mirrored =
@@ -425,7 +432,7 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
       try {
         await deps.teamSync(userId, mirrored);
       } catch (err) {
-        // The sign-in stands; the teams catch up next time.
+        // The sign-in stays. The teams update the next time.
         logger.warn("OIDC team sync failed", {
           userId,
           error: err instanceof Error ? err.message : String(err),
@@ -439,8 +446,8 @@ export function createOidcAuthRouter(deps: OidcRouterDeps): AuthProviderRouter {
       actorId: userId,
       detail: { method: "oidc" },
     });
-    // Token is delivered in the URL fragment so it never enters Referer
-    // headers or server access logs on the client side.
+    // The token goes in the URL fragment. Thus, it never goes into Referer
+    // headers or into the access logs of the server on the client side.
     target.hash = `token=${encodeURIComponent(token)}`;
     return c.redirect(target.toString(), 302);
   });

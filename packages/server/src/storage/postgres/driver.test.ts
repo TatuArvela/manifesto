@@ -129,7 +129,7 @@ describe("postgres: password resets", () => {
     expect(
       await storage.signInLinks.find("s1", "2026-04-01T00:16:00.000Z"),
     ).toBeNull();
-    // Found as often as asked; spent once.
+    // Found each time the test asks. Used one time.
     expect(
       await storage.signInLinks.find("s1", "2026-04-01T00:10:00.000Z"),
     ).toBe("u1");
@@ -142,7 +142,7 @@ describe("postgres: password resets", () => {
     expect(
       await storage.signInLinks.consume("s1", "2026-04-01T00:11:00.000Z"),
     ).toBeNull();
-    // Handed back, it is good again until it expires.
+    // When it is given back, it is good again until it expires.
     await storage.signInLinks.release("s1");
     expect(
       await storage.signInLinks.consume("s1", "2026-04-01T00:16:00.000Z"),
@@ -166,7 +166,7 @@ describe("postgres: password resets", () => {
       createdAt: NOW,
       expiresAt: "2026-04-01T00:15:00.000Z",
     });
-    // Voided with the rest of the user's, spent or not.
+    // Cancelled with the other links of the user, used or not.
     expect(await storage.signInLinks.deleteByUser("u1")).toBe(2);
     expect(
       await storage.signInLinks.find("s2", "2026-04-01T00:10:00.000Z"),
@@ -343,7 +343,7 @@ describe("postgres: versions", () => {
   });
 });
 
-/** A page big enough that these fixtures are never split across two. */
+/** A page large enough that these fixtures never split across two. */
 const PAGE = { limit: 50 };
 
 const NOW = "2026-04-01T00:00:00.000Z";

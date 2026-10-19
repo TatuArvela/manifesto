@@ -6,7 +6,9 @@ import {
 } from "#/validation/accountSchemas.ts";
 import { noContent, notFound, type Operation, ok } from "./operation.ts";
 
-/** Second factors and passkeys, set up by an account and used to sign in. */
+/**
+ * Second factors and passkeys, which an account sets up and uses to sign in.
+ */
 export const AUTH_FACTOR_OPERATIONS: Operation[] = [
   {
     method: "get",

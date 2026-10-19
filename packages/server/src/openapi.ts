@@ -17,17 +17,17 @@ export { isPublicSurface, type Operation } from "./openapi/operation.ts";
 /**
  * The API as an OpenAPI 3.1 document, served at `GET /api/v1/openapi.json`.
  *
- * Request bodies are not described here: they are the zod schemas the routes
- * validate with, converted, so a change to what a route accepts changes the
- * document with it. What this file adds is the list of operations (one module
- * per area in `openapi/`), and `openapi.test.ts` holds that list to the routes
- * the app actually registers, in both directions, so an endpoint cannot be
- * added or removed without the document following. Response bodies are named after the types in
- * `@manifesto/shared/api.ts`; the notes are described in full, the rest by
- * name and shape.
+ * This file does not describe request bodies. They are the converted zod
+ * schemas with which the routes validate. Thus, a change to what a route
+ * accepts also changes the document. This file adds the list of operations (one
+ * module for each area in `openapi/`). `openapi.test.ts` compares that list
+ * with the routes that the app really registers, in both directions. Thus, you
+ * cannot add or remove an endpoint unless the document follows. Response bodies
+ * have the names of the types in `@manifesto/shared/api.ts`. The notes have a
+ * full description. The others have only a name and a shape.
  */
 
-/** Every operation, area by area, in the order the document lists them. */
+/** All operations, area by area, in the order of the document. */
 export const OPERATIONS: Operation[] = [
   ...SERVER_OPERATIONS,
   ...AUTH_OPERATIONS,
@@ -44,7 +44,7 @@ const noteResponseSchema = noteCreateSchema.extend({
   id: z.string(),
   trashedAt: z.string().nullable(),
   imageCount: z.number().int().optional(),
-  // Written by the app alone; a token's change of images keeps them.
+  // Only the app writes it. A change of images by a token keeps them.
   imageAlts: z.array(z.string()).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -57,19 +57,21 @@ const toSchema = (schema: z.ZodType, io: "input" | "output") =>
     target: "draft-2020-12",
   });
 
-/** A response described by name and a few properties, for the types that
- * have no zod schema of their own. Nothing is marked required: this is the
- * client's own surface, described loosely. */
+/**
+ * A response described by a name and a few properties, for the types that have
+ * no zod schema of their own. Nothing is required, because this is the own
+ * surface of the client, described with less detail.
+ */
 const shape = (properties: Record<string, unknown>) => ({
   type: "object",
   properties,
 });
 
 /**
- * A response of the public surface, described as a client generator needs
- * it: every property is required unless `optional` names it, so a generated
- * type says `string` and not `string | undefined`. `openapi.conformance.test.ts`
- * holds these to what the server actually answers.
+ * A response of the public surface, described as a client generator needs it.
+ * Each property is required, unless `optional` names it. Thus, a generated type
+ * says `string`, not `string | undefined`. `openapi.conformance.test.ts` checks
+ * these against what the server really answers.
  */
 const exact = (
   properties: Record<string, unknown>,
@@ -87,7 +89,7 @@ const nullableRef = (name: string) => ({
   anyOf: [ref(name), { type: "null" }],
 });
 
-/** The people and shapes the public responses are made of. */
+/** The people and shapes of which the public responses are made. */
 function publicParts() {
   const shareUser = {
     id: { type: "string" },
@@ -97,8 +99,8 @@ function publicParts() {
   };
   const teamRef = exact({ id: { type: "string" }, name: { type: "string" } });
   return {
-    // Named, so a generated client has one type for a color wherever a
-    // response carries one.
+    // Named. Thus, a generated client has one type for a color in each response
+    // that contains one.
     NoteColor: { type: "string", enum: Object.values(NoteColor) },
     NoteFont: { type: "string", enum: Object.values(NoteFont) },
     LinkPreview: exact(
@@ -165,7 +167,7 @@ function publicParts() {
     NoteComment: exact({
       id: { type: "string" },
       noteId: { type: "string" },
-      // Null once whoever wrote it no longer has the note.
+      // Null when the writer does not have the note now.
       author: nullableRef("ShareUser"),
       body: { type: "string" },
       keyVersion: { type: "integer" },
@@ -176,9 +178,9 @@ function publicParts() {
 }
 
 function components() {
-  // The note itself comes from the zod schema; who it is shared with is the
-  // one part of it described by hand, and its color and font point at the
-  // named enums the other responses use.
+  // The note itself comes from the zod schema. Its share data is the only part
+  // described manually. Its color and font point to the named enums that the
+  // other responses use.
   const converted = toSchema(noteResponseSchema, "output") as {
     properties: Record<string, unknown>;
   };
@@ -323,8 +325,8 @@ function components() {
           },
           ["magicLink"],
         ),
-        // One boolean a feature, and `userLookup`, which is a word. Features
-        // are added over time, so they are not listed one by one.
+        // One boolean for each feature, and `userLookup`, which is a word.
+        // Features are added over time. Thus, they are not listed one by one.
         features: {
           type: "object",
           properties: { userLookup: { enum: ["search", "exact"] } },
@@ -419,9 +421,10 @@ function components() {
 }
 
 /**
- * The name a generated client gives an operation's method: the HTTP method and
- * the path's words, `getNotesById` for `GET /api/v1/notes/:id`. Derived, so it
- * exists for every operation and changes only when its route does.
+ * The name that a generated client gives the method of an operation: the HTTP
+ * method and the words of the path, `getNotesById` for `GET /api/v1/notes/:id`.
+ * It is derived. Thus, it exists for each operation, and changes only when its
+ * route changes.
  */
 export function operationId(op: Pick<Operation, "method" | "path">): string {
   const words = op.path
@@ -434,20 +437,20 @@ export function operationId(op: Pick<Operation, "method" | "path">): string {
   return op.method + words.join("");
 }
 
-/** Query parameters that are numbers; the rest are strings. */
+/** Query parameters that are numbers. The others are strings. */
 const INTEGER_QUERY = new Set(["limit"]);
 
-/** `/api/v1/notes/:id` in the document's `{id}` form. */
+/** `/api/v1/notes/:id` in the `{id}` form of the document. */
 export function openApiPath(path: string): string {
   return path.replace(/:([A-Za-z]+)/g, "{$1}");
 }
 
 /**
- * A request schema as it can sit inside the document. zod puts a schema that
- * refers to itself (`z.json()`, any JSON value) under `$defs` and points at it
- * with `#/$defs/...`, which is right for a schema standing alone and dangling
- * once it is embedded: the `#` is then the whole document. Each such
- * definition moves to `components.schemas`, named by `name`, and the
+ * A request schema in a form that can be inside the document. zod puts a schema
+ * that refers to itself (`z.json()`, any JSON value) under `$defs`, and points
+ * to it with `#/$defs/...`. That is correct for a schema alone, but broken
+ * after it is embedded, because the `#` is then the full document. Each such
+ * definition moves to `components.schemas`, with the name `name`, and the
  * references follow it.
  */
 function embeddable(
@@ -476,7 +479,7 @@ function embeddable(
 
 export function buildOpenApiDocument(version: string) {
   const paths: Record<string, Record<string, unknown>> = {};
-  /** Definitions lifted out of request schemas, see `embeddable`. */
+  /** Definitions taken out of request schemas. See `embeddable`. */
   const hoisted: Record<string, unknown> = {};
   for (const op of OPERATIONS) {
     const path = openApiPath(op.path);

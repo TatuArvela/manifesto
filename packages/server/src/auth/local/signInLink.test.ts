@@ -57,7 +57,7 @@ describe("sign-in by a mailed link", () => {
     return ((await res.json()) as AuthSuccessResponse).token;
   }
 
-  /** Asks for a link and reads its token out of the mail. */
+  /** Asks for a link, and reads its token from the mail. */
   async function mailedToken(): Promise<string> {
     const asked = await post("/api/v1/auth/sign-in-link", {
       email: "alice@example.com",
@@ -148,7 +148,7 @@ describe("sign-in by a mailed link", () => {
       entries.some((e) => e.action === "auth.sign_in_link_requested"),
     ).toBe(false);
 
-    // Asking again is not held back by the one that never arrived.
+    // The link that never arrived does not stop a new request.
     mailer.send = send;
     expect((await confirm(await mailedToken())).status).toBe(200);
   });
@@ -165,7 +165,7 @@ describe("sign-in by a mailed link", () => {
   it("refuses a made-up token and an expired one", async () => {
     expect((await confirm("0".repeat(64))).status).toBe(410);
     const token = await mailedToken();
-    // The link's fifteen minutes, gone.
+    // The fifteen minutes of the link are over.
     await storage.signInLinks.deleteExpired("2999-01-01T00:00:00.000Z");
     expect((await confirm(token)).status).toBe(410);
   });
@@ -183,7 +183,7 @@ describe("sign-in by a mailed link", () => {
     expect(mailer.sent).toEqual([]);
   });
 
-  /** Signs alice in with her password, for the routes that want a session. */
+  /** Signs in alice with her password, for the routes that need a session. */
   async function sessionHeaders() {
     const res = await post("/api/v1/auth/login", {
       username: "alice",
@@ -192,7 +192,7 @@ describe("sign-in by a mailed link", () => {
     return authHeaders(((await res.json()) as AuthSuccessResponse).token);
   }
 
-  /** Turns two-factor on for alice and hands back what makes her codes. */
+  /** Turns on two-factor for alice, and returns what makes her codes. */
   async function enableTwoFactor() {
     const headers = await sessionHeaders();
     const setup = await post(
@@ -215,8 +215,10 @@ describe("sign-in by a mailed link", () => {
     return codeAt;
   }
 
-  /** A sign-in from an address of its own each time, so the per-address
-   * throttle stays out of it and only the per-account count is left. */
+  /**
+   * A sign-in from a different address each time. Thus, the throttle for each
+   * address does not apply, and only the count for each account stays.
+   */
   let addresses = 0;
   const signInFromElsewhere = (password: string) =>
     post(
@@ -225,7 +227,9 @@ describe("sign-in by a mailed link", () => {
       { "x-forwarded-for": `2001:db8:0:${(addresses++).toString(16)}::1` },
     );
 
-  /** Runs the account's budget of failed sign-ins out, as anyone can. */
+  /**
+   * Uses up the budget of failed sign-ins of the account, as all persons can.
+   */
   async function lockOut() {
     for (let i = 0; i < MAX_LOGIN_FAILURES; i++) {
       await signInFromElsewhere("wrong-password");
@@ -271,7 +275,7 @@ describe("sign-in by a mailed link", () => {
       const token = await mailedToken();
       await lockOut();
       expect((await confirm(token)).status).toBe(200);
-      // And the link has not cleared the count for whoever was guessing.
+      // Also, the link did not clear the count for the person who guessed.
       expect((await signInFromElsewhere(PASSWORD)).status).toBe(429);
     });
 
@@ -295,7 +299,7 @@ describe("sign-in by a mailed link", () => {
     expect(((await asked.json()) as { code: string }).code).toBe(
       "two_factor_required",
     );
-    // A wrong code costs an attempt, not the link.
+    // A wrong code uses an attempt, not the link.
     expect((await confirm(token, { otp: "000000" })).status).toBe(401);
     const passed = await confirm(token, { otp: codeAt(0) });
     expect(passed.status).toBe(200);

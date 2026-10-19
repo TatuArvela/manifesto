@@ -12,8 +12,11 @@ function isUniqueViolation(err: unknown): boolean {
   return err instanceof Error && (err as { code?: string }).code === "23505";
 }
 
-/** See the SQLite copy. `create` lets the primary key refuse a second set-up
- * rather than `ON CONFLICT DO NOTHING`, whose row count pg-mem gets wrong. */
+/**
+ * See the SQLite copy. `create` lets the primary key refuse a second set-up. It
+ * does not use `ON CONFLICT DO NOTHING`, because pg-mem gives the wrong row
+ * count for it.
+ */
 export function createPostgresAccountKeysRepo(pool: PgPool): AccountKeysRepo {
   return {
     async get(userId) {
@@ -97,7 +100,7 @@ export function createPostgresAccountKeysRepo(pool: PgPool): AccountKeysRepo {
       return true;
     },
     async delete(userId) {
-      // Sealed under the keys that are going: nothing would open them again.
+      // Sealed under the keys that go: nothing would open them again.
       await pool.query(`DELETE FROM seen_keys WHERE user_id = $1`, [userId]);
       const result = await pool.query(
         `DELETE FROM account_keys WHERE user_id = $1`,

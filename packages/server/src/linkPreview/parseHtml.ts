@@ -1,18 +1,19 @@
 /**
- * Reads a page's preview metadata out of its HTML.
+ * Reads the preview metadata of a page from its HTML.
  *
- * This is not an HTML parser and does not try to be one: it scans tags with
- * regular expressions, which is enough for `<meta>`, `<link>` and `<title>` in
- * a document's head. The input is attacker-controlled, so every quantifier is
- * bounded; an unbounded one over a crafted page is how a regex pins a CPU.
+ * This is not an HTML parser, and does not try to be one. It scans tags with
+ * regular expressions, which is sufficient for `<meta>`, `<link>` and `<title>`
+ * in the head of a document. An attacker can control the input. Thus, each
+ * quantifier is bounded. An unbounded quantifier over a crafted page is how a
+ * regex uses all of a CPU.
  */
 
 export interface PageMetadata {
   title?: string;
   description?: string;
-  /** Absolute http(s) URL. */
+  /** An absolute http(s) URL. */
   image?: string;
-  /** Absolute http(s) URL. */
+  /** An absolute http(s) URL. */
   favicon?: string;
 }
 

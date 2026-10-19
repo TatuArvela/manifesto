@@ -8,17 +8,17 @@ import {
 } from "node:crypto";
 
 /**
- * Web Push, written here rather than taken from a library: the two RFCs it
- * needs are an ECDH agreement, two HKDFs, one AES-GCM record and a signed
- * token, all of which `node:crypto` has, and the usual package brings an HTTP
- * client and a JWT stack along for them.
+ * Web Push. We wrote it here, and did not take it from a library. The two RFCs
+ * that it needs are an ECDH agreement, two HKDFs, one AES-GCM record and a
+ * signed token. `node:crypto` has all of them. The usual package brings an HTTP
+ * client and a JWT stack for them.
  *
- * - RFC 8291 (`encryptPayload`): the message is encrypted to the keys the
- *   browser made for its subscription, so the push service that carries it
- *   (Google's, Apple's, Mozilla's) cannot read it.
- * - RFC 8292 (`vapidAuthorization`): the request is signed with this server's
- *   own key, the one the browser was given when it subscribed, so the push
- *   service takes messages for that subscription from this server only.
+ * - RFC 8291 (`encryptPayload`): the message is encrypted to the keys that the
+ *   browser made for its subscription. Thus, the push service that carries it
+ *   (of Google, Apple, Mozilla) cannot read it.
+ * - RFC 8292 (`vapidAuthorization`): the request is signed with the own key of
+ *   this server, the key that the browser got when it subscribed. Thus, the
+ *   push service accepts messages for that subscription only from this server.
  */
 
 const b64url = (bytes: Buffer) => bytes.toString("base64url");
@@ -26,13 +26,18 @@ export const fromB64url = (text: string) => Buffer.from(text, "base64url");
 
 /** An uncompressed P-256 point: 0x04, then X and Y. */
 const POINT_BYTES = 65;
-/** The largest record this writes; one record holds any message sent here. */
+/**
+ * The largest record that this writes. One record contains each message sent
+ * here.
+ */
 const RECORD_SIZE = 4096;
-/** What a push service takes at most, by the RFC: 4096 bytes, less the
- * header and the tag. */
+/**
+ * The maximum that a push service accepts, by the RFC: 4096 bytes, minus the
+ * header and the tag.
+ */
 export const MAX_PAYLOAD_BYTES = 3900;
 
-/** This server's signing key for push, as it is stored. */
+/** The signing key of this server for push, as it is stored. */
 export interface VapidKeys {
   /** The uncompressed point, base64url: what a browser subscribes with. */
   publicKey: string;
@@ -49,17 +54,19 @@ export function generateVapidKeys(): VapidKeys {
   };
 }
 
-/** What a browser hands over when it subscribes, as `PushSubscription.toJSON`
- * gives it. */
+/**
+ * What a browser gives when it subscribes, as `PushSubscription.toJSON` gives
+ * it.
+ */
 export interface PushTarget {
   endpoint: string;
-  /** The subscription's public key, an uncompressed P-256 point. */
+  /** The public key of the subscription, an uncompressed P-256 point. */
   p256dh: string;
-  /** Its 16 byte authentication secret. */
+  /** Its 16-byte authentication secret. */
   auth: string;
 }
 
-/** Whether the keys are the size they must be, before anything is derived. */
+/** If the keys have the necessary size, before the code derives anything. */
 export function isUsableTarget(target: Pick<PushTarget, "p256dh" | "auth">) {
   const point = fromB64url(target.p256dh);
   return (
@@ -70,10 +77,10 @@ export function isUsableTarget(target: Pick<PushTarget, "p256dh" | "auth">) {
 }
 
 /**
- * The body of a push request: `plaintext` encrypted for one subscription
- * (RFC 8291, `aes128gcm`). The sender's key pair and the salt are made fresh
- * for each message; they are parameters only so the RFC's own example can be
- * reproduced in a test.
+ * The body of a push request: `plaintext` encrypted for one subscription (RFC
+ * 8291, `aes128gcm`). The key pair of the sender and the salt are new for each
+ * message. They are parameters only so that a test can reproduce the example of
+ * the RFC.
  */
 export function encryptPayload(
   plaintext: Buffer,
@@ -92,8 +99,8 @@ export function encryptPayload(
   const senderPublic = sender.getPublicKey();
   const shared = sender.computeSecret(receiverPublic);
 
-  // The input keying material binds both public keys and the auth secret,
-  // so nothing but this subscription can derive the content key.
+  // The input keying material binds both public keys and the auth secret. Thus,
+  // only this subscription can derive the content key.
   const keyInfo = Buffer.concat([
     Buffer.from("WebPush: info\0"),
     receiverPublic,
@@ -131,9 +138,9 @@ export function encryptPayload(
 }
 
 /**
- * The `Authorization` header of a push request (RFC 8292): a token signed
- * with this server's key, good for the push service at `endpoint`'s origin
- * and for twelve hours, naming `subject` as who to contact about it.
+ * The `Authorization` header of a push request (RFC 8292): a token signed with
+ * the key of this server. It is good for the push service at the origin of
+ * `endpoint`, for twelve hours, and names `subject` as the contact.
  */
 export function vapidAuthorization(
   endpoint: string,
@@ -158,7 +165,7 @@ export function vapidAuthorization(
       y: b64url(publicPoint.subarray(33, 65)),
     },
   });
-  // The raw R and S, as a JWT carries them, not the DER a certificate would.
+  // The raw R and S, as a JWT contains them, not the DER of a certificate.
   const signature = createSign("SHA256")
     .update(unsigned)
     .sign({ key, dsaEncoding: "ieee-p1363" });

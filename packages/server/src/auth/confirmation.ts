@@ -4,27 +4,29 @@ import { HttpError } from "#/middleware/error.ts";
 import type { StorageDriver } from "#/storage/types.ts";
 import type { LoginAttempts } from "./local/loginAttempts.ts";
 
-/** How recent a sign-in through an identity provider has to be to stand in
- * for a password the account does not have. */
+/**
+ * How recent a sign-in through an identity provider must be to replace a
+ * password that the account does not have.
+ */
 export const RECENT_SIGN_IN_MS = 15 * 60 * 1000;
 
 /**
- * Proof that the person at the session is the account's owner, asked before
- * anything that would let whoever holds a stolen session keep the account or
- * its notes: an email address (through which a reset link takes the
- * password), an API token, a webhook, and the two-factor changes.
- * `sessionOnly` already keeps tokens away from these; this keeps a session
- * that is not the owner's away too.
+ * Proof that the person at the session is the owner of the account. The server
+ * asks for it before each action that would let the holder of a stolen session
+ * keep the account or its notes: an email address (a reset link to it takes the
+ * password), an API token, a webhook, and the two-factor changes. `sessionOnly`
+ * already keeps tokens away from these. This also keeps away a session that
+ * does not belong to the owner.
  *
- * An account with a password confirms with it, counted against the same
- * per-name budget as signing in, so a stolen session cannot guess at it
- * faster than the sign-in form could. An account that signs in only through
- * an identity provider has nothing to type, so its proof is a sign-in within
+ * An account with a password confirms with it. It counts against the same
+ * budget for each name as a sign-in. Thus, a stolen session cannot guess it
+ * faster than the sign-in form could. An account that signs in only through an
+ * identity provider has nothing to type. Thus, its proof is a sign-in within
  * `RECENT_SIGN_IN_MS`, which the client asks for with `prompt=login`.
  *
- * Throws with a code the client turns into its own words:
+ * Throws with a code that the client changes into its own words:
  * `confirmation_required` (no password sent), `password_incorrect`,
- * `reauthentication_required`; 429 while the name is locked.
+ * `reauthentication_required`. 429 while the name is locked.
  */
 export async function requireConfirmation(
   deps: { storage: StorageDriver; loginAttempts: LoginAttempts },

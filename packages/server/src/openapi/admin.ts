@@ -8,8 +8,10 @@ import {
 } from "#/validation/sharingSchemas.ts";
 import { noContent, notFound, type Operation, ok } from "./operation.ts";
 
-/** The admin API: accounts, teams, the audit log, the update check and the
- * setup checks. */
+/**
+ * The admin API: accounts, teams, the audit log, the update check and the setup
+ * checks.
+ */
 export const ADMIN_OPERATIONS: Operation[] = [
   {
     method: "get",

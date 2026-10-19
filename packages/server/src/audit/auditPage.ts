@@ -14,14 +14,14 @@ export interface AuditPageQuery {
 }
 
 /**
- * One page of the audit log, newest first: `before` an entry id for older
- * ones, and narrowed to one account (as actor or target) or one action. Actor
- * and target come with their names while the accounts exist.
+ * One page of the audit log, newest first. `before` an entry id gives older
+ * entries. It can be limited to one account (as actor or target) or one action.
+ * The actor and the target come with their names while the accounts exist.
  *
- * With `viewerId`, the page is that user's own activity: an address is kept
- * only where they acted themselves or nobody was signed in (a failed sign-in
- * on their account). Where someone else acted on them, an admin or a sharer,
- * the entry says who, but not from where.
+ * With `viewerId`, the page is the own activity of that user. It keeps an
+ * address only where they acted themselves, or where nobody was signed in (a
+ * failed sign-in on their account). Where a different person acted on them, an
+ * admin or a person who shared, the entry tells who, but not from where.
  */
 export async function auditPage(
   storage: StorageDriver,

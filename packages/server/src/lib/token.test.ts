@@ -46,7 +46,8 @@ describe("tokens", () => {
         if (a !== b) expect(a.startsWith(b), `${a} ${b}`).toBe(false);
       }
     }
-    // The part shown in Settings tells tokens apart without giving one away.
+    // The part that Settings shows tells tokens apart, and does not give one
+    // away.
     expect(SHOWN_PREFIX_LENGTH).toBeLessThan(API_TOKEN_PREFIX.length + 43);
   });
 

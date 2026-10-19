@@ -24,14 +24,14 @@ export const RESET_LINK_MINUTES = 30;
 
 /**
  * `/api/v1/auth/password-reset`: a link by mail, for a local account whose
- * owner has forgotten the password. Only on a server with `SMTP_URL`; without
- * it an admin's temporary password is the way back in.
+ * owner forgot the password. Only on a server with `SMTP_URL`. Without it, a
+ * temporary password from an admin is the way back in.
  *
- * Asking is `mailedLinks`, shared with sign-in by mail: always 204, whether
- * or not the address belongs to anyone, with the mail after the answer. Using the link ends every
- * session and API token of the account, as a password change does.
- * Two-factor sign-in stays on: the link proves control of the mailbox, not of
- * the authenticator.
+ * The request is `mailedLinks`, shared with sign-in by mail: always 204,
+ * whether the address belongs to an account or not, with the mail after the
+ * answer. The use of the link ends all sessions and API tokens of the account,
+ * as a password change does. Two-factor sign-in stays on, because the link
+ * proves control of the mailbox, not of the authenticator.
  */
 export function registerPasswordResetRoutes(
   auth: Hono<{ Variables: { auth: AuthContext } }>,

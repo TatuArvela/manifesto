@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageDriver } from "#/storage/types.ts";
 import { claimed, heldKey } from "./claimed.ts";
 
-/** The attachment store's rules, run against both drivers. */
+/** The rules of the attachment store, run against both drivers. */
 
 const T0 = "2026-04-01T00:00:00.000Z";
 
@@ -130,7 +130,7 @@ export function describeAttachmentsContract(
         [
           {
             url: "https://example.com/",
-            // A title is free text: naming an attachment there refers to nothing.
+            // A title is free text. An attachment name there refers to nothing.
             title: `attachment:${named.id}`,
             image: `attachment:${thumb.id}`,
             favicon: `attachment:${icon.id}`,

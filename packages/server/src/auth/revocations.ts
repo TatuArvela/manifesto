@@ -1,23 +1,25 @@
 /**
- * Tells the sockets that a user's sessions have been ended.
+ * Tells the sockets that the sessions of a user ended.
  *
- * Deleting session rows stops the next HTTP request, but a WebSocket is
- * authenticated once, at the handshake, and stays open on that. A password
- * reset that left the old sessions' sockets connected would leave whoever
- * held them still receiving note events and still writing to live documents,
- * which is exactly what a reset is meant to end. The sockets subscribe here and
- * close what the revocation covers.
+ * When the server deletes session rows, the next HTTP request stops. But a
+ * WebSocket authenticates one time, at the handshake, and stays open on that.
+ * If a password reset left the sockets of the old sessions connected, their
+ * holder would continue to get note events and to write to live documents. A
+ * reset must end exactly that. The sockets subscribe here, and close the
+ * connections that the revocation covers.
  */
 
 export interface SessionRevocation {
   userId: string;
-  /** A raw bearer token whose connections survive: the session that asked for
-   * the change, when a user changes their own password. */
+  /**
+   * A raw bearer token whose connections stay: the session that asked for the
+   * change, when a user changes their own password.
+   */
   keepToken?: string | undefined;
   /**
-   * Only the connections opened with this credential, by the SHA-256 of the
-   * raw token (`hashToken`): revoking one API token, whose raw form the
-   * server no longer has.
+   * Only the connections opened with this credential, by the SHA-256 of the raw
+   * token (`hashToken`). This is for the revocation of one API token, whose raw
+   * form the server does not have now.
    */
   onlyTokenHash?: string;
 }
@@ -37,7 +39,7 @@ export function createSessionRevocations(): SessionRevocations {
         try {
           listener(revocation);
         } catch {
-          // one socket layer failing to close must not spare the other
+          // If one socket layer fails to close, the other must still close.
         }
       }
     },

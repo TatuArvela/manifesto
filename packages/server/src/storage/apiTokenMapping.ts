@@ -25,8 +25,10 @@ export interface ApiTokenRow {
 export const API_TOKEN_COLUMNS =
   "id, user_id, name, kind, scopes, prefix, created_at, last_used_at, expires_at, oauth_client_id, access_expires_at, wrapped_keys, refresh_wrapped_keys";
 
-/** The scopes a row names, leaving out any this server does not know: a
- * scope is a grant, so an unreadable one grants nothing. */
+/**
+ * The scopes that a row names, without the scopes that this server does not
+ * know. A scope is a grant. Thus, an unreadable scope grants nothing.
+ */
 export function parseScopes(text: string): ApiTokenScope[] {
   let parsed: unknown;
   try {
@@ -43,7 +45,7 @@ export function rowToApiToken(row: ApiTokenRow): StoredApiToken {
     id: row.id,
     userId: row.user_id,
     name: row.name,
-    // Anything unknown reads as the narrowest that signs in to nothing
+    // All unknown values read as the narrowest type, which signs in to nothing
     // but its own route.
     kind: (row.kind === "api" || row.kind === "calendar"
       ? row.kind
@@ -62,8 +64,10 @@ export function rowToApiToken(row: ApiTokenRow): StoredApiToken {
   };
 }
 
-/** A listed token: whose it is goes without saying, and how long a grant's
- * current secret lasts is the assistant's business. */
+/**
+ * A listed token. Its owner is clear. How long the current secret of a grant
+ * lasts is the business of the assistant.
+ */
 export function listedToken({
   userId: _userId,
   accessExpiresAt: _accessExpiresAt,

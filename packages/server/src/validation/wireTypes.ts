@@ -65,11 +65,11 @@ import type {
 } from "./sharingSchemas.ts";
 
 /**
- * The request bodies are declared twice: as TypeScript types in
- * `@manifesto/shared`, which the client builds requests from, and as the zod
- * schemas here, which the server validates them with. This file holds the two
- * together at compile time: if either side gains, loses or retypes a field,
- * the typecheck fails here rather than a request failing at runtime.
+ * The request bodies are declared two times: as TypeScript types in
+ * `@manifesto/shared`, from which the client builds requests, and as the zod
+ * schemas here, with which the server validates them. This file compares the
+ * two at compile time. If either side gets, loses or changes the type of a
+ * field, the typecheck fails here. A request does not fail at runtime.
  */
 
 /** True when each type is assignable to the other. */
@@ -79,7 +79,7 @@ type Assert<T extends true> = T;
 
 type Body<S extends z.ZodType> = z.input<S>;
 
-// `trashedAt` is stamped by the server and deliberately not accepted.
+// The server sets `trashedAt`, and does not accept it, on purpose.
 type NoteBody = Omit<NoteCreate, "trashedAt">;
 
 export type WireTypeChecks = [

@@ -1,24 +1,25 @@
 /**
- * Tells the sockets that people have gained or lost access to a note.
+ * Tells the sockets that people got or lost access to a note.
  *
- * A socket checks a note's access when a document is joined or presence is
- * reported, and not again after that. Removing someone from a note, trashing
- * it, or turning an editor into a viewer therefore has to reach the sockets
- * they already hold, or they would carry on writing to a live document they
- * can no longer open. The same shape as `auth/revocations.ts`, for the same
- * reason. Gaining access matters to presence the other way round: someone who
- * accepts a note while others are looking at it should see them there.
+ * A socket checks the access to a note when a document is joined or presence is
+ * reported, and not again after that. Thus, the removal of a person from a
+ * note, a move to the trash, or a change of an editor to a viewer must reach
+ * the sockets that they already have. If not, they would continue to write to a
+ * live document that they cannot open now. This has the same shape as
+ * `auth/revocations.ts`, for the same reason. For presence, access that a
+ * person gets is also important: a person who accepts a note while others look
+ * at it must see them there.
  */
 
 export interface AccessChange {
   noteId: string;
   userIds: string[];
   /**
-   * - `gained`: the users can now see the note (they accepted it, or its
-   *   owner took it back out of the trash).
-   * - `lost-edit`: they can still read it but no longer write it, so only the
-   *   collaboration socket has anything to end.
-   * - `lost-all`: they can no longer see it at all.
+   * - `gained`: the users can now see the note (they accepted it, or its owner
+   *   took it back out of the trash).
+   * - `lost-edit`: they can still read it, but cannot write it now. Thus, only
+   *   the collaboration socket has something to end.
+   * - `lost-all`: they cannot see it now.
    */
   change: "gained" | "lost-edit" | "lost-all";
 }
@@ -39,7 +40,7 @@ export function createAccessChanges(): AccessChanges {
         try {
           listener(change);
         } catch {
-          // one socket layer failing to close must not spare the other
+          // If one socket layer fails to close, the other must still close.
         }
       }
     },

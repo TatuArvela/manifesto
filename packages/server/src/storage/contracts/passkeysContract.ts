@@ -3,8 +3,8 @@ import type { StorageDriver, StoredPasskey } from "#/storage/types.ts";
 
 /**
  * Passkeys, the same in both drivers: a counter past 2^31 comes back as a
- * number (Postgres hands a BIGINT over as a string), and one user cannot
- * remove another's.
+ * number (Postgres gives a BIGINT as a string), and one user cannot remove the
+ * passkey of a different user.
  */
 
 const T0 = "2026-04-01T00:00:00.000Z";

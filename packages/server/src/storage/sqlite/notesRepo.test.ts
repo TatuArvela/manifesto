@@ -6,7 +6,7 @@ import { openDatabase, type SqliteDB } from "./database.ts";
 import { createSqliteNotesRepo } from "./notesRepo.ts";
 import { createSqliteUsersRepo } from "./usersRepo.ts";
 
-/** A page big enough that these fixtures are never split across two. */
+/** A page large enough that these fixtures never split across two. */
 const PAGE = { limit: 50 };
 
 const NOW = "2026-04-01T00:00:00.000Z";

@@ -43,14 +43,14 @@ describe("two-factor sign-in", () => {
   const codeAt = (secret: string, offsetSteps = 0) =>
     hotp(base32Decode(secret), totpStep(Date.now()) + offsetSteps);
 
-  /** Turns two-factor on; returns the secret. */
+  /** Turns on two-factor. Returns the secret. */
   async function turnOn() {
     const setup = await call("POST", "/api/v1/auth/two-factor/setup", {
       password: PASSWORD,
     });
     expect(setup.status).toBe(200);
     const { secret } = (await setup.json()) as TwoFactorSetupResponse;
-    // One step back, so the sign-in in the tests can use the current one.
+    // One step back. Thus, the sign-in in the tests can use the current step.
     const enabled = await call("POST", "/api/v1/auth/two-factor/enable", {
       code: codeAt(secret, -1),
     });
@@ -154,8 +154,8 @@ describe("two-factor sign-in", () => {
   it("goes when an admin issues a temporary password", async () => {
     await turnOn();
     const { token: bob, userId: bobId } = await registerTestUser(rig, "bob");
-    // An admin cannot reset their own password here, so a second admin
-    // resets Alice's.
+    // An admin cannot reset their own password here. Thus, a second admin
+    // resets the password of Alice.
     await rig.storage.users.setAdmin(bobId, true);
     const alice = await rig.storage.users.findByUsername("alice");
     const reset = await call(

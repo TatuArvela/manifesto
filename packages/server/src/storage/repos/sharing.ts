@@ -8,7 +8,7 @@ import type {
   TeamSource,
 } from "@manifesto/shared";
 
-// Sharing a note: with accounts, with teams, and by public link.
+// How to share a note: with accounts, with teams, and by public link.
 
 /** A note shared with one user: an invitation until `acceptedAt` is set. */
 export interface NoteShare {
@@ -17,16 +17,16 @@ export interface NoteShare {
   role: ShareRole;
   createdAt: string;
   acceptedAt: string | null;
-  /** The team it came through; null for a share made to the user directly. */
+  /** The team through which it came. Null for a direct share to the user. */
   viaTeam: string | null;
 }
 
-/** Everyone with a stake in one note, for deciding who hears about it. */
+/** All persons that a note concerns, to decide who gets its events. */
 export interface NoteAudience {
   ownerId: string;
-  /** In the owner's trash, which hides it from everyone else. */
+  /** In the trash of the owner, which hides it from all other persons. */
   trashed: boolean;
-  /** Invitations and accepted shares both. */
+  /** Invitations and accepted shares. */
   shares: NoteShare[];
 }
 
@@ -35,7 +35,7 @@ export interface CreateShareInput {
   userId: string;
   role: ShareRole;
   createdAt: string;
-  /** The team it comes through, if it does. */
+  /** The team through which it comes, if it does. */
   viaTeam?: string | null;
   /** The note key wrapped for them, when the inviter could make one. */
   offeredKey?: OfferedKey | null;
@@ -50,20 +50,24 @@ export interface HeldKey {
 export interface SharesRepo {
   /** Null when there is no such note. */
   audience(noteId: string): Promise<NoteAudience | null>;
-  /** Invite a user. `exists` when they already hold an invitation or a share,
-   * and nothing was written. */
+  /**
+   * Invite a user. `exists` when they already have an invitation or a share.
+   * Then nothing was written.
+   */
   create(input: CreateShareInput): Promise<"ok" | "exists">;
   setRole(noteId: string, userId: string, role: ShareRole): Promise<boolean>;
-  /** Which team a share comes through, or null to make it a direct one. */
+  /**
+   * The team through which a share comes, or null to make it a direct share.
+   */
   setViaTeam(
     noteId: string,
     userId: string,
     teamId: string | null,
   ): Promise<boolean>;
   /**
-   * Accept an invitation to a note that is not in its owner's trash, keeping
-   * the note key as the recipient wrapped it for themselves. The recipient
-   * starts at the head of their manual order. False when there was no such
+   * Accept an invitation to a note that is not in the trash of its owner, and
+   * keep the note key as the recipient wrapped it for themselves. The recipient
+   * starts at the start of their manual order. False when there was no such
    * invitation.
    */
   accept(
@@ -73,8 +77,8 @@ export interface SharesRepo {
     held: HeldKey,
   ): Promise<boolean>;
   /**
-   * Hand someone on the note its key, wrapped to their public key. Replaces
-   * an earlier offer. False when they hold no invitation or share.
+   * Give a person on the note its key, wrapped to their public key. It replaces
+   * an earlier offer. False when they have no invitation or share.
    */
   offerKey(
     noteId: string,
@@ -82,63 +86,69 @@ export interface SharesRepo {
     offered: OfferedKey,
   ): Promise<boolean>;
   /**
-   * The note key as an accepted recipient now keeps it, after the note's key
-   * was replaced; the offer it came from is done with. False when they hold
-   * no accepted share.
+   * The note key as an accepted recipient keeps it now, after the key of the
+   * note was replaced. Its offer is complete. False when they have no accepted
+   * share.
    */
   holdKey(noteId: string, userId: string, held: HeldKey): Promise<boolean>;
-  /** Remove an invitation or a share, returning what it was. */
+  /** Remove an invitation or a share, and return what it was. */
   delete(noteId: string, userId: string): Promise<NoteShare | null>;
-  /** The invitations waiting for a user, newest first, leaving out notes in
-   * their owner's trash. */
+  /**
+   * The invitations that wait for a user, newest first, without the notes in
+   * the trash of their owner.
+   */
   listInvitations(userId: string): Promise<ShareInvitation[]>;
   /** One invitation, as `listInvitations` describes it. */
   getInvitation(
     noteId: string,
     userId: string,
   ): Promise<ShareInvitation | null>;
-  /** Every invitation and share a user holds on other people's notes. */
+  /** All invitations and shares that a user has on notes of other people. */
   listByRecipient(userId: string): Promise<NoteShare[]>;
-  /** Every invitation and share on a user's own notes. */
+  /** All invitations and shares on the own notes of a user. */
   listByOwner(ownerId: string): Promise<NoteShare[]>;
-  /** Every invitation and share that came through a team, whether or not the
-   * team is still there. */
+  /**
+   * All invitations and shares that came through a team, whether the team still
+   * exists or not.
+   */
   listByTeam(teamId: string): Promise<NoteShare[]>;
 }
 
 export type { ShareUser };
 
 /**
- * A public link as the server keeps it: what its owner sees, and what only
- * the server reads (the password hash, and a snapshot link's copy of the note).
+ * A public link as the server keeps it: what its owner sees, and what only the
+ * server reads (the password hash, and the copy of the note of a snapshot
+ * link).
  */
 export interface StoredPublicLink extends PublicLink {
   ownerId: string;
   passwordHash: string | null;
-  /** The note as it stood when a `snapshot` link was made, sealed for the
-   * link; null for `live`. */
+  /**
+   * The note as it was when a `snapshot` link was made, sealed for the link.
+   * Null for `live`.
+   */
   snapshot: StoredSnapshot | null;
-  /** A `live` link's copy of the note key, wrapped by the link key. */
+  /** The copy of the note key of a `live` link, wrapped by the link key. */
   wrappedKey: string | null;
 }
 
-/** A snapshot as kept: what the owner's browser sealed, and when. */
+/** A snapshot as kept: what the browser of the owner sealed, and when. */
 export interface StoredSnapshot extends PublicSnapshot {
   updatedAt: string;
 }
 
 export interface PublicLinksRepo {
   create(link: StoredPublicLink): Promise<void>;
-  /** A note's links, newest first. */
+  /** The links of a note, newest first. */
   listByNote(noteId: string): Promise<StoredPublicLink[]>;
   get(token: string): Promise<StoredPublicLink | null>;
-  /** Revoke: the link stops working at once. False if the note has no such
-   * link. */
+  /** Revoke: the link stops immediately. False if the note has no such link. */
   delete(token: string, noteId: string): Promise<boolean>;
   /**
    * Count one view, as one statement, if the link can still be viewed at `at`
-   * (not expired, not used up). False when it cannot, so two viewers racing
-   * for a link's last view cannot both have it.
+   * (not expired, not at its limit). False when it cannot. Thus, two viewers
+   * that race for the last view of a link cannot both get it.
    */
   recordView(token: string, at: string): Promise<boolean>;
 }
@@ -160,17 +170,18 @@ export interface NoteTeamShare {
 }
 
 /**
- * Teams, their members, and the notes shared with them. Only the rows: what a
- * team share means for each member's own share is `sharing/teamShares.ts`.
+ * Teams, their members, and the notes shared with them. Only the rows.
+ * `sharing/teamShares.ts` tells what a team share means for the own share of
+ * each member.
  */
 export interface TeamsRepo {
-  /** `exists` when the source already has a team by that name. */
+  /** `exists` when the source already has a team with that name. */
   create(team: Omit<StoredTeam, "memberCount">): Promise<"ok" | "exists">;
   get(id: string): Promise<StoredTeam | null>;
   findByName(source: TeamSource, name: string): Promise<StoredTeam | null>;
-  /** Every team, by name. */
+  /** All teams, by name. */
   list(): Promise<StoredTeam[]>;
-  /** The teams a user is in, by name. */
+  /** The teams of a user, by name. */
   listForUser(userId: string): Promise<StoredTeam[]>;
   rename(id: string, name: string): Promise<"ok" | "exists" | "missing">;
   delete(id: string): Promise<boolean>;
@@ -187,17 +198,17 @@ export interface TeamsRepo {
     role: ShareRole,
   ): Promise<boolean>;
   unshareNote(noteId: string, teamId: string): Promise<boolean>;
-  /** The teams a note is shared with, oldest first. */
+  /** The teams with which a note is shared, oldest first. */
   sharesOfNote(noteId: string): Promise<NoteTeamShare[]>;
   /** The notes shared with a team. */
   notesOf(teamId: string): Promise<NoteTeamShare[]>;
 }
 
-/** A comment as stored: who wrote it, not whether they still have the note. */
+/** A comment as stored: who wrote it, not if they still have the note. */
 export interface StoredComment {
   id: string;
   noteId: string;
-  /** Null once the author's account is gone. */
+  /** Null after the account of the author is gone. */
   authorId: string | null;
   /** Sealed under the note key of `keyVersion`. */
   body: string;
@@ -207,18 +218,18 @@ export interface StoredComment {
 }
 
 /**
- * Comments beside a note. They go with the note (deleted by cascade) and
- * outlive their author's share and account; who may read or write one is the
- * routes' business, from the note's access.
+ * Comments next to a note. They go with the note (deleted by cascade), and stay
+ * after the share and the account of their author go. The routes decide who can
+ * read or write one, from the access to the note.
  */
 export interface CommentsRepo {
   /** Oldest first. */
   listByNote(noteId: string): Promise<StoredComment[]>;
   get(id: string): Promise<StoredComment | null>;
   /**
-   * Adds a comment unless its note already holds `limit` of them: false then,
-   * with nothing written. Counting and writing are one step, so comments
-   * arriving together cannot each find room for themselves.
+   * Adds a comment, unless its note already has `limit` of them. Then it
+   * returns false, and writes nothing. The count and the write are one step.
+   * Thus, comments that arrive together cannot each find space for themselves.
    */
   create(comment: StoredComment, limit: number): Promise<boolean>;
   /** False when there is no such comment. */

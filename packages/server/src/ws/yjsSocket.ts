@@ -24,12 +24,12 @@ import {
 } from "./yjsExtension.ts";
 
 /**
- * Single endpoint for every note. Hocuspocus multiplexes documents over one
- * socket by name, so the note id travels in the protocol rather than the path.
+ * One endpoint for all notes. Hocuspocus sends documents over one socket by
+ * name. Thus, the note id is in the protocol, not in the path.
  */
 export const YJS_PATH = "/api/v1/yjs";
 
-/** As much of a connection's socket as closing it takes. */
+/** The part of the socket of a connection that its close needs. */
 interface WebSocketLike {
   close(code?: number, reason?: string): void;
 }
@@ -41,7 +41,7 @@ interface AttachOptions {
   revocations: SessionRevocations;
   accessChanges: AccessChanges;
   cfg: ServerConfig;
-  /** Tests shorten this; everyone else uses {@link SOCKET_RECHECK_MS}. */
+  /** Tests make this shorter. All others use {@link SOCKET_RECHECK_MS}. */
   recheckMs?: number | undefined;
 }
 
@@ -73,38 +73,41 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
     maxDebounce: 10_000,
 
     /**
-     * Authorization must happen here, not at the HTTP upgrade.
+     * Authorization must occur here, not at the HTTP upgrade.
      *
-     * Hocuspocus reads the document name from the first varString of every
-     * incoming frame and keys its process-global document map on that; it
-     * never looks at the URL. Checking a note id parsed from the path would
-     * therefore authorize one document while the client joined another, so a
-     * user cleared for their own note could address frames at someone else's
-     * live Y.Doc. `documentName` here is the value actually used to find the
-     * room, which makes the check binding.
+     * Hocuspocus reads the document name from the first varString of each
+     * incoming frame, and uses it as the key of its document map for the
+     * process. It never looks at the URL. Thus, a check of a note id from the
+     * path would authorize one document while the client joined a different
+     * one. A user with access to their own note could then send frames to the
+     * live Y.Doc of a different person. `documentName` here is the value that
+     * really finds the room. This makes the check binding.
      *
-     * Throwing rejects the connection with a permission-denied message before
-     * any document is created or joined.
+     * A throw refuses the connection with a permission-denied message, before a
+     * document is created or joined.
      *
-     * The live document is the note's text, so joining it is writing it: the
-     * owner and people it is shared with to edit may, and someone who can only
-     * view it may not. A viewer reads the note as REST writes and `note:updated`
-     * events bring it, and never needs the room.
+     * The live document is the text of the note. Thus, to join it is to write
+     * it. The owner and the people who have the note shared with them to edit
+     * can join. A person who can only view it cannot. A viewer reads the note
+     * as REST writes and `note:updated` events bring it, and never needs the
+     * room.
      *
-     * An editor older than this server's is refused first, with a reason the
-     * client turns into "reload to keep editing": it would drop whatever
-     * nodes it has no schema for and write the loss back into everyone's copy.
+     * An editor older than that of this server is refused first, with a reason
+     * that the client changes into "reload to keep editing". It would remove
+     * the nodes for which it has no schema, and write the loss back into the
+     * copies of all persons.
      */
     onAuthenticate: async ({ token, documentName, requestParameters }) => {
       if (!editorIsCurrent(requestParameters.get("editor"))) {
-        // Hocuspocus sends a thrown value's `reason` as the refusal.
+        // Hocuspocus sends the `reason` of a thrown value as the refusal.
         throw Object.assign(new Error("Editor outdated"), {
           reason: EDITOR_OUTDATED_REASON,
         });
       }
 
       const identity = await authProvider.authenticate(token);
-      // An MCP token is for `/api/v1/mcp` alone, and joining a note is writing it.
+      // An MCP token is only for `/api/v1/mcp`, and to join a note is to write
+      // it.
       if (
         !identity ||
         identity.via === "mcp-token" ||
@@ -130,16 +133,17 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
     },
 
     /**
-     * The name and colour at a remote cursor are the account's, not what the
-     * client claims. Each connection publishes its own client ids, and
-     * Hocuspocus records the ones it added; a state for an id another
-     * connection holds is dropped, since publishing it would overwrite that
-     * peer's cursor. What is left is this connection's, and its `user` is
-     * replaced with the authenticated one. The colour goes into the cursor's
-     * inline style, so it must not be the client's text either.
+     * The name and color at a remote cursor come from the account, not from the
+     * client. Each connection publishes its own client ids, and Hocuspocus
+     * records the ids that it added. The code drops a state for an id that a
+     * different connection has, because its publication would overwrite the
+     * cursor of that peer. The remaining states belong to this connection, and
+     * their `user` is replaced with the authenticated user. The color goes into
+     * the inline style of the cursor. Thus, it must also not be text from the
+     * client.
      *
-     * An honest provider only ever sends its own id: updates it applied from
-     * the server are not echoed back.
+     * An honest provider only sends its own id. It does not send back updates
+     * that it applied from the server.
      */
     beforeHandleAwareness: async ({
       states,
@@ -164,11 +168,10 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
     },
   });
 
-  // Close the whole socket rather than the one document's connection. A
-  // socket carries every note a tab has open under one token, and closing a
-  // document connection alone sends a close message the peer is free to
-  // ignore. The provider reconnects, and `onAuthenticate` refuses the ended
-  // session.
+  // Close the full socket, not only the connection of the document. A socket
+  // carries all notes that a tab has open under one token. A close of only the
+  // connection of a document sends a close message that the peer can ignore.
+  // The provider reconnects, and `onAuthenticate` refuses the ended session.
   const stopRevocations = revocations.subscribe(
     ({ userId, keepToken, onlyTokenHash }) => {
       for (const document of hocuspocus.documents.values()) {
@@ -186,9 +189,9 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
     },
   );
 
-  // Losing a note, or the right to edit it, ends the connections to its
-  // document. The whole socket, for the reason above: the provider
-  // reconnects, rejoins the notes still allowed, and is refused this one.
+  // The loss of a note, or of the right to edit it, ends the connections to its
+  // document. The full socket, for the reason above. The provider reconnects,
+  // joins again the notes that are still permitted, and is refused this one.
   const stopAccessChanges = accessChanges.subscribe(
     ({ noteId, userIds, change }) => {
       if (change === "gained") return;
@@ -202,8 +205,8 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
     },
   );
 
-  // A session or token that ran out announces nothing (see `recheck.ts`).
-  // The whole socket again, once for each one, however many notes it has open.
+  // A session or token that expired announces nothing (see `recheck.ts`). Again
+  // the full socket, one time for each, however many notes it has open.
   const recheckTimer = setInterval(() => {
     const open = new Map<object, { token: string; socket: WebSocketLike }>();
     for (const document of hocuspocus.documents.values()) {
@@ -222,28 +225,28 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
   }, opts.recheckMs ?? SOCKET_RECHECK_MS);
   recheckTimer.unref();
 
-  // Bounded, or `ws` assembles frames of up to 100 MiB in memory before
-  // Hocuspocus, and so before `onAuthenticate`, sees any of them. A frame
-  // carries at most one document's whole state.
+  // Limited. If not, `ws` assembles frames of up to 100 MiB in memory before
+  // Hocuspocus, and thus before `onAuthenticate`, sees any of them. A frame
+  // carries a maximum of the full state of one document.
   const wss = new WebSocketServer({
     noServer: true,
     maxPayload: MAX_YJS_BYTES,
   });
 
-  // Capture and replace existing upgrade listeners so that WS requests targeting
-  // `/api/v1/yjs` go to Hocuspocus while everything else (including the
-  // application JSON socket at /api/v1/ws) continues to flow through the listeners
-  // already registered (e.g. by `@hono/node-ws`).
+  // Capture and replace the existing upgrade listeners. Thus, WS requests to
+  // `/api/v1/yjs` go to Hocuspocus, and all others (also the application JSON
+  // socket at /api/v1/ws) continue through the listeners that are already
+  // registered (for example, by `@hono/node-ws`).
   const previousListeners = httpServer.listeners("upgrade").slice() as Array<
     (req: IncomingMessage, socket: Duplex, head: Buffer) => void
   >;
   httpServer.removeAllListeners("upgrade");
 
   httpServer.on("upgrade", (request, socket, head) => {
-    // Node removes its own socket error listener before emitting `upgrade`, and
-    // `wss.handleUpgrade` is what attaches the next one. Anything in between is
-    // unguarded, so a peer that resets the connection there would raise an
-    // uncaught exception and take the process down. Keep this first.
+    // Node removes its own socket error listener before it emits `upgrade`, and
+    // `wss.handleUpgrade` attaches the next one. Nothing protects the time
+    // between them. Thus, a peer that resets the connection there would cause
+    // an uncaught exception, and stop the process. Keep this first.
     socket.on("error", () => {});
 
     const url = new URL(

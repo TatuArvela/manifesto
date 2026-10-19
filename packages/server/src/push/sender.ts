@@ -11,21 +11,27 @@ import {
   vapidAuthorization,
 } from "./webPush.ts";
 
-/** Sends that may fail in a row before a subscription is dropped. */
+/**
+ * The number of sends that can fail in sequence before the server drops a
+ * subscription.
+ */
 export const PUSH_DROP_AFTER = 10;
-/** How long a push service keeps a message for a device that is off. A
- * reminder an hour late is not worth delivering, as on the client. */
+/**
+ * How long a push service keeps a message for a device that is off. A reminder
+ * that is one hour late is not worth a delivery, as on the client.
+ */
 const TTL_SECONDS = 60 * 60;
 const SECRET_NAME = "vapid";
 
 export type PushOutcome = "sent" | "gone" | "failed";
 
 export interface PushSender {
-  /** The key browsers subscribe with, made on first use and kept. */
+  /** The key with which browsers subscribe, made on the first use and kept. */
   publicKey(): Promise<string>;
   /**
-   * Sends one message to one subscription. A subscription the push service
-   * no longer knows is deleted, and one that keeps failing is too.
+   * Sends one message to one subscription. The code deletes a subscription that
+   * the push service does not know now, and also a subscription that continues
+   * to fail.
    */
   send(
     subscription: StoredPushSubscription,
@@ -34,12 +40,12 @@ export interface PushSender {
 }
 
 /**
- * Who a push service should contact about this server's messages (the `sub`
- * of RFC 8292): the client's public address, when the server knows one over
- * `https`. The RFC allows only that or a `mailto:`, and Apple refuses the
- * whole message for anything else, so an `http` address (a server on the
- * local network, or in development) is passed over. Without one there is
- * only a placeholder to give, which the large push services accept.
+ * Whom a push service must contact about the messages of this server (the `sub`
+ * of RFC 8292): the public address of the client, when the server knows one
+ * over `https`. The RFC permits only that or a `mailto:`. Apple refuses the
+ * full message for all other values. Thus, the code skips an `http` address (a
+ * server on the local network, or in development). Without one, it can give
+ * only a placeholder, which the large push services accept.
  */
 export function subjectOf(
   cfg: Pick<ServerConfig, "appUrl" | "corsOrigins">,
@@ -53,16 +59,18 @@ export function subjectOf(
 export function createPushSender(deps: {
   storage: StorageDriver;
   cfg: Pick<ServerConfig, "appUrl" | "corsOrigins">;
-  /** Test seam. Production reaches public addresses only. */
+  /** Test seam. Production reaches only public addresses. */
   isAllowedAddress?: ((address: string) => boolean) | undefined;
-  /** Test seam. Production accepts only the scheme's default port. */
+  /** Test seam. Production accepts only the default port of the scheme. */
   allowAnyPort?: boolean | undefined;
 }): PushSender {
   const { storage } = deps;
   let keys: Promise<VapidKeys> | null = null;
 
-  /** The server's push key: read, or made and stored the first time. Made in
-   * the database rather than at boot so two processes agree on one. */
+  /**
+   * The push key of the server: read, or made and stored the first time. It is
+   * made in the database, not at start. Thus, two processes agree on one.
+   */
   const vapidKeys = () => {
     keys ??= (async () => {
       const held = await storage.serverSecrets.setIfAbsent(
@@ -72,7 +80,7 @@ export function createPushSender(deps: {
       );
       return JSON.parse(held) as VapidKeys;
     })().catch((err) => {
-      // Not held as a failure: the next call tries again.
+      // Not kept as a failure. The next call tries again.
       keys = null;
       throw err;
     });
@@ -88,8 +96,8 @@ export function createPushSender(deps: {
       let status: number | null = null;
       try {
         const vapid = await vapidKeys();
-        // The endpoint is whatever the browser reported, so it goes through
-        // the same boundary as a webhook or a link preview.
+        // The browser reported the endpoint. Thus, it goes through the same
+        // boundary as a webhook or a link preview.
         await safeFetch(new URL(subscription.endpoint), {
           method: "POST",
           body: encryptPayload(
@@ -119,7 +127,8 @@ export function createPushSender(deps: {
         });
       } catch (err) {
         status = err instanceof FetchRefused ? (err.status ?? null) : null;
-        // The push service says the browser unsubscribed, or was uninstalled.
+        // The push service says that the browser unsubscribed, or was
+        // uninstalled.
         if (status === 404 || status === 410) {
           await storage.pushSubscriptions.delete(subscription.id);
           countMetric("manifesto_push_messages_total", PUSH_HELP, {

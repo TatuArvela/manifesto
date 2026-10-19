@@ -47,7 +47,7 @@ describe("startSessionCleanup", () => {
       auditRetentionDays: 180,
       intervalMs: 1_000_000,
     });
-    // The sweep runs asynchronously on startup; give it a tick.
+    // The sweep runs asynchronously at startup. Give it one tick.
     await new Promise((r) => setTimeout(r, 10));
 
     expect(await storage.sessions.findByToken(hashToken("stale"))).toBeNull();

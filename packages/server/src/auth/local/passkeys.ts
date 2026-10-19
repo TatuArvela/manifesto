@@ -37,32 +37,41 @@ import {
 import { validatorHook } from "#/validation/zValidator.ts";
 import type { LoginAttempts } from "./loginAttempts.ts";
 
-/** Enough for every device and key a person owns, and a bound on a script. */
+/**
+ * Sufficient for all devices and keys of a person, and a limit for a script.
+ */
 export const MAX_PASSKEYS_PER_USER = 20;
 
-/** How long a challenge can be answered. The browser's own prompt gives up
- * sooner, at the `timeout` in the options. */
+/**
+ * How long a challenge can be answered. The prompt of the browser stops sooner,
+ * at the `timeout` in the options.
+ */
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
-/** Challenges held at once. Asking for one needs no account, so this is what
- * bounds the map; past it, the oldest go first. */
+/**
+ * The number of challenges kept at the same time. A request for one needs no
+ * account. Thus, this is the limit of the map. After it, the oldest go first.
+ */
 const MAX_CHALLENGES = 10_000;
 
 type Purpose = "register" | "second-factor" | "sign-in";
 
 interface PendingChallenge {
   purpose: Purpose;
-  /** Whose ceremony it is; null for a sign-in, where nobody is known yet. */
+  /**
+   * The owner of the ceremony. Null for a sign-in, where nobody is known yet.
+   */
   userId: string | null;
   origin: string;
   expiresAt: number;
 }
 
 /**
- * The challenges handed out and not yet answered. Each is good once, for the
- * purpose, account and page it was issued to, until it expires. Every entry
- * lives equally long, so insertion order is expiry order: the sweep stops at
- * the first live one, and an eviction takes the one closest to expiring.
+ * The challenges that the server gave and that are not answered yet. Each is
+ * good one time, for its purpose, account and page, until it expires. All
+ * entries have the same life. Thus, the insertion order is the expiry order.
+ * The sweep stops at the first live entry, and an eviction takes the entry
+ * nearest to expiry.
  */
 export function createPasskeyChallenges(now: () => number = Date.now) {
   const pending = new Map<string, PendingChallenge>();
@@ -84,7 +93,7 @@ export function createPasskeyChallenges(now: () => number = Date.now) {
         if (oldest !== undefined) pending.delete(oldest);
       }
     },
-    /** Spends a challenge; true only if it was issued for exactly this. */
+    /** Uses a challenge. True only if it was given for exactly this. */
     take(
       challenge: string,
       purpose: Purpose,
@@ -112,10 +121,11 @@ type CeremonyConfig = Pick<
 >;
 
 /**
- * Where a passkey is being used: the origin of the page asking, which has to
- * be one this server's client is served from (`CORS_ORIGINS`, `APP_URL`, or
- * this server itself), and the host that is its relying party ID. A passkey
- * belongs to that host, so one made on one address does not work on another.
+ * Where a passkey is in use: the origin of the page that asks, which must be an
+ * origin from which the client of this server is served (`CORS_ORIGINS`,
+ * `APP_URL`, or this server itself), and the host that is its relying party ID.
+ * A passkey belongs to that host. Thus, a passkey made on one address does not
+ * work on a different address.
  */
 function ceremonyOf(
   c: Context,
@@ -136,8 +146,10 @@ const descriptor = (passkey: StoredPasskey) => ({
   transports: passkey.transports,
 });
 
-/** Checks a passkey's answer against the stored key, and records the use.
- * The library throws for a malformed answer, which is a failure like any. */
+/**
+ * Checks the answer of a passkey against the stored key, and records the use.
+ * The library throws for a malformed answer, which is a failure as all others.
+ */
 async function verifyAssertion(
   storage: StorageDriver,
   passkey: StoredPasskey,
@@ -176,8 +188,8 @@ async function verifyAssertion(
 }
 
 /**
- * The passkey half of the second factor at sign-in: a challenge for the
- * account's passkeys on this address, and the check of the answer.
+ * The passkey part of the second factor at sign-in: a challenge for the
+ * passkeys of the account on this address, and the check of the answer.
  */
 export function createPasskeySecondFactor(deps: {
   storage: StorageDriver;
@@ -185,8 +197,10 @@ export function createPasskeySecondFactor(deps: {
   challenges: PasskeyChallenges;
 }) {
   return {
-    /** Null when none of the account's passkeys belongs to this address, or
-     * the request did not come from a page that could use one. */
+    /**
+     * Null when no passkey of the account belongs to this address, or the
+     * request did not come from a page that could use one.
+     */
     async options(
       c: Context,
       userId: string,
@@ -243,11 +257,11 @@ export function createPasskeySecondFactor(deps: {
 }
 
 /**
- * Passkeys for a local account: `/api/v1/auth/passkeys` to list, add and remove
- * them (session only, the password asked again to add or remove one), and
- * `/api/v1/auth/passkey/*` to sign in with one alone, with no name or password.
- * A passkey made here is discoverable (a resident key), so the browser can
- * offer it at sign-in without being told whose account it is.
+ * Passkeys for a local account. `/api/v1/auth/passkeys` lists, adds and removes
+ * them (session only; the server asks for the password again to add or remove
+ * one). `/api/v1/auth/passkey/*` signs in with only a passkey, with no name or
+ * password. A passkey made here is discoverable (a resident key). Thus, the
+ * browser can offer it at sign-in without information about the account.
  */
 export function registerPasskeyRoutes(
   auth: Hono<{ Variables: { auth: AuthContext } }>,
@@ -261,7 +275,7 @@ export function registerPasskeyRoutes(
   const { storage, challenges } = deps;
   const confirmation = { storage, loginAttempts: deps.loginAttempts };
 
-  /** The signed-in local account, which has a password to confirm with. */
+  /** The signed-in local account, which has a password for the confirmation. */
   async function localUser(userId: string) {
     const user = await storage.users.findById(userId);
     if (!user) throw new HttpError(401, "User not found");
@@ -288,7 +302,7 @@ export function registerPasskeyRoutes(
     async (c) => {
       const auth = c.get("auth");
       const user = await localUser(auth.userId);
-      // A passkey is a way into the account on its own, as a token is.
+      // A passkey alone is a way into the account, as a token is.
       await requireConfirmation(
         confirmation,
         auth,
@@ -306,7 +320,7 @@ export function registerPasskeyRoutes(
         userDisplayName: user.displayName || user.username,
         userID: new TextEncoder().encode(user.id),
         attestationType: "none",
-        // Its own on the device, so a sign-in can find it without a name.
+        // Its own on the device. Thus, a sign-in can find it without a name.
         authenticatorSelection: {
           residentKey: "required",
           userVerification: "preferred",
@@ -406,8 +420,8 @@ export function registerPasskeyRoutes(
     const ceremony = ceremonyOf(c, deps.cfg);
     const options = await generateAuthenticationOptions({
       rpID: ceremony.rpId,
-      // Alone, the passkey is both factors: the device has to check that it
-      // is its owner using it.
+      // Alone, the passkey is both factors. The device must make sure that its
+      // owner uses it.
       userVerification: "required",
     });
     challenges.issue(options.challenge, {
@@ -440,8 +454,8 @@ export function registerPasskeyRoutes(
         });
         return new HttpError(401, "That passkey is not known here");
       };
-      // A temporary password is to be replaced before anything else happens,
-      // and an account without a password signs in through its provider.
+      // A temporary password must be replaced before all other actions. An
+      // account without a password signs in through its provider.
       if (
         !passkey ||
         !user ||

@@ -195,7 +195,7 @@ describe("comments beside a shared note", () => {
     expect(edited.editedAt).not.toBeNull();
     expect(edited.createdAt).toBe(comment.createdAt);
 
-    // The same text again is no edit.
+    // The same text again is not an edit.
     events = [];
     const same = await call(editor, "PUT", path(comment.id), {
       body: "Booked",
@@ -244,10 +244,10 @@ describe("comments beside a shared note", () => {
       ["I was here", null],
       ["So was I", "olivia"],
     ]);
-    // They are off the note, and so off its comments.
+    // They are off the note. Thus, they are also off its comments.
     expect((await call(editor, "GET", path())).status).toBe(404);
 
-    // Shared with again, the name comes back: nothing was rewritten.
+    // After a new share, the name comes back. Nothing was written again.
     await share(editor, "view");
     expect((await list(viewer))[0]?.author?.username).toBe("eddie");
   });
@@ -310,7 +310,7 @@ describe("comments beside a shared note", () => {
     expect((await send(sealed)).status).toBe(201);
     const [stored] = await rig.storage.comments.listByNote(noteId);
     expect(stored).toMatchObject(sealed);
-    // The id is what the text is bound to, so it cannot be had twice.
+    // The text is bound to the id. Thus, nobody can use the id two times.
     expect((await send(sealed)).status).toBe(409);
     expect((await send({ ...sealed, id: "c2", body: "Hello" })).status).toBe(
       422,
@@ -328,7 +328,8 @@ describe("comments beside a shared note", () => {
       token: ((await minted.json()) as { secret: string }).secret,
       userId: owner.userId,
     };
-    // A note the token wrote, so it is sealed under keys the token opens.
+    // A note that the token wrote. Thus, it is sealed under keys that the token
+    // opens.
     const made = await call(script, "POST", "/api/v1/notes", baseNote);
     const own = ((await made.json()) as { note: Note }).note.id;
     const at = (commentId?: string) =>
@@ -338,7 +339,7 @@ describe("comments beside a shared note", () => {
     expect(posted.status).toBe(201);
     const { comment } = (await posted.json()) as NoteCommentResponse;
     expect(comment).toMatchObject({ body: "Booked.", keyVersion: 1 });
-    // What is stored is not the words.
+    // The stored data is not the words.
     const [stored] = await rig.storage.comments.listByNote(own);
     expect(stored?.body).toMatch(/^e1\./);
     expect(stored?.body).not.toContain("Booked");
@@ -348,7 +349,7 @@ describe("comments beside a shared note", () => {
     ).json()) as NoteCommentsResponse;
     expect(listed.comments.map((c) => c.body)).toEqual(["Booked."]);
 
-    // The same words again are no edit; other words are.
+    // The same words again are not an edit. Different words are.
     const same = await call(script, "PUT", at(comment.id), { body: "Booked." });
     expect(((await same.json()) as NoteCommentResponse).comment.editedAt).toBe(
       null,
@@ -370,7 +371,7 @@ describe("comments beside a shared note", () => {
         })
       ).status,
     ).toBe(422);
-    // A note sealed with keys the token does not hold is not its to read.
+    // A token cannot read a note sealed with keys that it does not have.
     expect((await call(script, "GET", path())).status).toBe(409);
   });
 

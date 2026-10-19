@@ -11,8 +11,8 @@ export function createSqliteAccountKeysRepo(db: SqliteDB): AccountKeysRepo {
   const getStmt = db.prepare(
     `SELECT ${ACCOUNT_KEYS_COLUMNS} FROM account_keys WHERE user_id = ?`,
   );
-  // The primary key decides who was first, so two set-ups arriving together
-  // cannot both be kept.
+  // The primary key decides which was first. Thus, two set-ups that arrive
+  // together cannot both stay.
   const createStmt = db.prepare(
     `INSERT INTO account_keys (${ACCOUNT_KEYS_COLUMNS})
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -45,7 +45,7 @@ export function createSqliteAccountKeysRepo(db: SqliteDB): AccountKeysRepo {
      ON CONFLICT (user_id, peer_id) DO UPDATE SET sealed = excluded.sealed,
        updated_at = excluded.updated_at`,
   );
-  // Sealed under the keys that are going: nothing would open them again.
+  // Sealed under the keys that go: nothing would open them again.
   const forgetSeenStmt = db.prepare(`DELETE FROM seen_keys WHERE user_id = ?`);
   const remember = db.transaction(
     (

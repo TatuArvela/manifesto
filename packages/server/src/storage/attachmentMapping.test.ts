@@ -11,9 +11,9 @@ const B = "01J8Z3Q4R5S6T7V8W9X0Y1Z2CD";
 const C = "01J8Z3Q4R5S6T7V8W9X0Y1Z2EF";
 
 /**
- * The sweep deletes an attachment nothing refers to. Everything here is about
- * the other direction: what does refer to one must be found, from either
- * column, or a picture a note still shows is deleted under it.
+ * The sweep deletes an attachment to which nothing refers. All tests here are
+ * about the other direction: the code must find all that refers to one, from
+ * either column. If not, the sweep deletes a picture that a note still shows.
  */
 describe("referencesOf", () => {
   it("finds every attachment a note's images and previews name", () => {
@@ -55,7 +55,7 @@ describe("refPattern", () => {
   it("finds the reference wherever it sits in a stored column", () => {
     const pattern = refPattern(A);
     expect(pattern).toBe(`%attachment:${A}%`);
-    // What LIKE would do, spelled out: the id holds no wildcard of its own.
+    // What LIKE would do, written out: the id contains no wildcard.
     expect(pattern.slice(1, -1)).not.toMatch(/[%_]/);
   });
 });

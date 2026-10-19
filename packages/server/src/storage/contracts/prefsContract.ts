@@ -17,9 +17,9 @@ async function withUser(storage: StorageDriver, id = "u1") {
 }
 
 /**
- * An account's preferences, merged the same way by both drivers.
- * `locks: false` skips the case two writers race in, for pg-mem, which does
- * not implement `FOR UPDATE`; real Postgres does, and serializes them.
+ * The preferences of an account, merged in the same way by both drivers.
+ * `locks: false` skips the case where two writers race, for pg-mem, which does
+ * not implement `FOR UPDATE`. Real Postgres does, and puts them in sequence.
  */
 export function describePrefsContract(
   name: string,

@@ -11,8 +11,10 @@ import type { PgPool } from "./database.ts";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** See the SQLite copy. The trim reads the ids to keep first, since pg-mem
- * is unreliable about `NOT IN` over a subquery with `LIMIT`. */
+/**
+ * See the SQLite copy. The trim first reads the ids to keep, because pg-mem is
+ * not reliable for `NOT IN` over a subquery with `LIMIT`.
+ */
 export function createPostgresVersionsRepo(pool: PgPool): VersionsRepo {
   return {
     async list(noteId) {
@@ -25,9 +27,9 @@ export function createPostgresVersionsRepo(pool: PgPool): VersionsRepo {
     },
 
     async add(input) {
-      // Asked first rather than left to `ON CONFLICT`, whose row count
-      // pg-mem gets wrong; the id is a ULID the writer just made, so the
-      // race this leaves is with itself.
+      // Asked first, not left to `ON CONFLICT`, because pg-mem gives the wrong
+      // row count for it. The id is a ULID that the writer just made. Thus, the
+      // only possible race is with itself.
       const taken = await pool.query(
         `SELECT 1 FROM note_versions WHERE id = $1`,
         [input.id],

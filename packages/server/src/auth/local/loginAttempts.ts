@@ -1,54 +1,61 @@
 import { createExpiringCounter } from "#/lib/expiringCounter.ts";
 
-/** Failed sign-ins one name may collect before it stops being asked. */
+/**
+ * The failed sign-ins that one name can collect before the server stops to ask.
+ */
 export const MAX_LOGIN_FAILURES = 10;
-/** How long failures are remembered, and so how long a locked name waits. */
+/**
+ * How long the server remembers failures. Thus, how long a locked name waits.
+ */
 const WINDOW_MS = 15 * 60 * 1000;
-/** Names tracked at once. Far above any real server's signed-in population,
- * and small enough that the map cannot become the attack. */
+/**
+ * The number of names tracked at the same time. It is much more than the
+ * signed-in users of a real server, and small enough that the map cannot become
+ * the attack.
+ */
 const MAX_NAMES = 50_000;
 
 export interface LoginAttempts {
-  /** Seconds this name must wait, or 0 when it may be tried. */
+  /** The seconds that this name must wait, or 0 when it can try. */
   retryAfter(username: string): number;
-  /** Record a sign-in that did not produce a session. */
+  /** Record a sign-in that did not make a session. */
   fail(username: string): void;
-  /** Record the right password, which forgives everything before it. */
+  /** Record the correct password, which clears all previous failures. */
   succeed(username: string): void;
 }
 
 /**
- * A budget of failed sign-ins, counted per account name.
+ * A budget of failed sign-ins, counted for each account name.
  *
- * The per-IP throttle in `middleware/rateLimit.ts` cannot defend a named
- * account: an attacker with addresses to spare collects a fresh budget with
- * every one of them, and the name worth guessing is rarely a secret, since
- * `auth/initialAdmin.ts` creates `admin` on every local-auth server. Counting
- * against the submitted name instead makes the guesses add up however they
- * arrive.
+ * The throttle for each IP in `middleware/rateLimit.ts` cannot protect a named
+ * account. An attacker with many addresses gets a new budget with each address.
+ * The name to guess is rarely a secret, because `auth/initialAdmin.ts` creates
+ * `admin` on each local-auth server. When the count uses the submitted name,
+ * the guesses add up, however they arrive.
  *
- * Keyed on the name that was submitted rather than on a user id, so a name
- * nobody holds is counted exactly like one that exists. A counter that only
- * existed for real accounts would answer the question the handler is careful
- * not to: whether the account is there.
+ * The key is the submitted name, not a user id. Thus, the server counts a name
+ * that no account has in exactly the same way as a name that exists. A counter
+ * that existed only for real accounts would answer the question that the
+ * handler carefully does not answer: if the account exists.
  *
- * The lock is a wait and not a latch. It lapses with the window, and the
- * right password clears it, so the worst anyone can do by guessing at a name
- * is cost it fifteen minutes. That is the trade every lockout makes, and the
- * alternative, a latch an admin has to release, turns the same guessing into
- * a standing denial of service.
+ * The lock is a wait, not a latch. It ends with the window, and the correct
+ * password clears it. Thus, a person who guesses at a name can only cost it
+ * fifteen minutes. All lockouts make this trade. The alternative, a latch that
+ * an admin must release, changes the same guesses into a permanent denial of
+ * service.
  *
- * In-process, like the rate limiter and for the same reason: across more than
- * one node each holds its own count until this moves to shared storage.
+ * It is in the process, as the rate limiter, for the same reason. With more
+ * than one node, each node keeps its own count until this moves to shared
+ * storage.
  */
 export function createLoginAttempts(): LoginAttempts {
   const failures = createExpiringCounter({
     windowMs: WINDOW_MS,
     maxEntries: MAX_NAMES,
   });
-  // Accounts are found case-insensitively (`findByUsername` collates that
-  // way), so the count has to be too, or `Admin` and `admin` would each get a
-  // budget for guessing at the one account.
+  // The server finds accounts without regard to case (`findByUsername` collates
+  // in that way). Thus, the count must do the same. If not, `Admin` and `admin`
+  // would each get a budget to guess the same account.
   const keyFor = (username: string) => username.trim().toLowerCase();
   return {
     retryAfter(username) {

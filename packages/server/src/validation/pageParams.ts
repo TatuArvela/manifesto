@@ -9,11 +9,12 @@ import type { ListNotesOptions } from "#/storage/types.ts";
 /**
  * `?limit=&cursor=` for the two list endpoints.
  *
- * A limit outside the allowed range is clamped rather than refused: a caller
- * asking for more than a page holds wants as much as it can get, and a 400
- * teaches it nothing it can act on. A malformed cursor *is* refused, because
- * quietly restarting from the top would hand a paging client the first page
- * over and over and look like a server with three notes on it.
+ * The code clamps a limit outside the permitted range, and does not refuse it.
+ * A caller that asks for more than one page wants as much as possible, and a
+ * 400 teaches it nothing on which it can act. The code *does* refuse a
+ * malformed cursor. If it silently started again from the top, a paging client
+ * would get the first page again and again, and it would look like a server
+ * with three notes on it.
  */
 export function readPageParams(
   limit: string | undefined,

@@ -59,17 +59,17 @@ interface OidcRig {
   cfg: ServerConfig;
   storage: StorageDriver;
   authProvider: AuthProvider;
-  /** Requests from one browser: keeps whatever cookies the server sets. */
+  /** Requests from one browser. It keeps the cookies that the server sets. */
   request: (input: string, init?: RequestInit) => Promise<Response>;
-  /** Requests from a browser that has never seen this server. */
+  /** Requests from a browser that never saw this server. */
   strangerRequest: (input: string, init?: RequestInit) => Promise<Response>;
   cookies: Map<string, string>;
   close: () => Promise<void>;
 }
 
 /**
- * Applies `Set-Cookie` to the jar the way a browser would, including the
- * expiry that `deleteCookie` sends to clear one.
+ * Applies `Set-Cookie` to the jar as a browser does, also the expiry that
+ * `deleteCookie` sends to clear one.
  */
 function applySetCookie(jar: Map<string, string>, res: Response): void {
   for (const header of res.headers.getSetCookie()) {
@@ -133,7 +133,7 @@ function makeIdToken(overrides: Partial<openid.IDToken> = {}): openid.IDToken {
   } as openid.IDToken;
 }
 
-/** The subset of a token response these tests exercise. */
+/** The part of a token response that these tests use. */
 type TokenGrant = Awaited<ReturnType<typeof openid.authorizationCodeGrant>>;
 
 function makeTokenResponse(claims: openid.IDToken): TokenGrant {
@@ -225,7 +225,7 @@ describe("oidc auth router", () => {
     expect(stored?.displayName).toBe("Alice Example");
     expect(stored?.passwordHash).toBeNull();
 
-    // Bearer token works against /api/v1/notes.
+    // The bearer token works against /api/v1/notes.
     const me = await rig.request("/api/v1/notes", {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -253,7 +253,7 @@ describe("oidc auth router", () => {
     );
     expect(firstUser).not.toBeNull();
 
-    // Second login round-trip with a fresh state.
+    // A second login round trip with a new state.
     oidcModule.randomState.mockReturnValueOnce("second-state-token");
     await rig.request("/api/v1/auth/login");
     oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
@@ -278,8 +278,8 @@ describe("oidc auth router", () => {
   });
 
   it("rejects callbacks with an unknown state (CSRF / replay)", async () => {
-    // Cookie and query agree, so this gets past the browser binding; what
-    // the server has forgotten is the flow itself.
+    // The cookie and the query agree. Thus, this passes the browser binding.
+    // The server forgot the flow itself.
     const res = await rig.request(
       "/api/v1/auth/callback?code=foo&state=never-issued",
       { headers: { cookie: "manifesto_oidc_flow=never-issued" } },
@@ -299,17 +299,17 @@ describe("oidc auth router", () => {
     expect(cookie).toContain("Secure"); // redirectUri is https in this rig
     expect(cookie).toContain("Path=/api/v1/auth");
 
-    // The attacker holds a valid, unspent state, but the victim's browser
-    // has no cookie for it, so the callback must not mint them a session on
-    // the attacker's IdP account.
+    // The attacker has a valid state that was not used. But the browser of the
+    // victim has no cookie for it. Thus, the callback must not give them a
+    // session on the IdP account of the attacker.
     const victim = await rig.strangerRequest(
       "/api/v1/auth/callback?code=auth-code&state=test-state-token",
     );
     expect(victim.status).toBe(400);
     expect(oidcModule.authorizationCodeGrant).not.toHaveBeenCalled();
 
-    // And the rejection didn't spend the flow: the real browser can still
-    // finish its own login.
+    // Also, the refusal did not use the flow. The real browser can still
+    // complete its own login.
     oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
       makeTokenResponse(makeIdToken({ sub: "still-valid" })),
     );
@@ -332,7 +332,7 @@ describe("oidc auth router", () => {
     expect(first.status).toBe(302);
     expect(rig.cookies.has("manifesto_oidc_flow")).toBe(false);
 
-    // Replaying the same callback URL in the same browser gets nothing.
+    // The same callback URL sent again in the same browser gets nothing.
     const replay = await rig.request(
       "/api/v1/auth/callback?code=c&state=test-state-token",
     );
@@ -340,7 +340,7 @@ describe("oidc auth router", () => {
   });
 
   it("throttles the unauthenticated login and callback endpoints per IP", async () => {
-    // 30 requests / 15 minutes, shared across both endpoints.
+    // 30 requests in 15 minutes, shared across both endpoints.
     for (let i = 0; i < 30; i += 1) {
       const res = await rig.request("/api/v1/auth/login");
       expect(res.status).toBe(302);
@@ -388,7 +388,7 @@ describe("oidc auth router", () => {
   describe("email addresses", () => {
     let flow = 0;
 
-    /** One sign-in with these claims, each with a state of its own. */
+    /** One sign-in with these claims, each with its own state. */
     async function signInWith(claims: Record<string, unknown>) {
       const state = `email-state-${++flow}`;
       oidcModule.randomState.mockReturnValueOnce(state);
@@ -527,7 +527,7 @@ describe("oidc groups and registration", () => {
     vi.clearAllMocks();
   });
 
-  /** One sign-in round trip; the fragment the client would receive. */
+  /** One sign-in round trip. The fragment that the client would get. */
   async function signIn(claims: Record<string, unknown>) {
     await rig.request("/api/v1/auth/login");
     oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
@@ -555,7 +555,7 @@ describe("oidc groups and registration", () => {
 
   it("makes admin follow the admin group, both ways", async () => {
     rig = bootOidcRig({ adminGroup: "admins" });
-    // Someone else is the admin first, so taking it away is allowed.
+    // A different person is the admin first. Thus, the removal is permitted.
     await signIn({ sub: "keeper", preferred_username: "keeper" });
     await signIn({
       sub: "s1",

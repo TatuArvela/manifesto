@@ -4,17 +4,18 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import type { Hono } from "hono";
 
 /**
- * Serves the built client from `dir` at the site root, beside the API, so one
- * container is the whole of a connected-mode deployment: one origin, so no
- * CORS to configure and a client CSP of `connect-src 'self'` that already
- * reaches the API and both sockets. The client in the image is built with its
- * server set to `/`, the same-origin form `resolveServerUrl` understands.
+ * Serves the built client from `dir` at the site root, together with the API.
+ * Thus, one container is the full connected-mode deployment. There is one
+ * origin. Thus, there is no CORS to configure, and a client CSP of `connect-src
+ * 'self'` already reaches the API and both sockets. The client in the image is
+ * built with its server set to `/`, the same-origin form that
+ * `resolveServerUrl` understands.
  *
- * Hashed assets are cached for good; the page, the manifest and the service
- * worker are revalidated every time, or an update would never reach anyone.
- * Any other path without a file extension is a client route and gets the
- * page, as the GitHub Pages fallback does for the static build. The headers
- * a `<meta>` CSP cannot carry (`frame-ancestors`) go on every response.
+ * Hashed assets are cached permanently. The page, the manifest and the service
+ * worker are revalidated each time. If not, an update would never reach the
+ * users. All other paths without a file extension are client routes, and get
+ * the page, as the GitHub Pages fallback does for the static build. The headers
+ * that a `<meta>` CSP cannot contain (`frame-ancestors`) go on each response.
  */
 export function mountClient(app: Hono, dir: string): void {
   const root = resolve(dir);
@@ -22,7 +23,7 @@ export function mountClient(app: Hono, dir: string): void {
   if (!existsSync(indexPath)) {
     throw new Error(`CLIENT_DIR has no index.html: ${root}`);
   }
-  // Read once: it is small, and every client route answers with it.
+  // Read one time. It is small, and each client route answers with it.
   const index = readFileSync(indexPath);
 
   const isApi = (path: string) =>
@@ -38,12 +39,12 @@ export function mountClient(app: Hono, dir: string): void {
   });
 
   const files = serveStatic({ root });
-  // Mounted after the API, so its routes answer first; an unknown API path
-  // falls through here and on to a 404, never to the page.
+  // Mounted after the API. Thus, its routes answer first. An unknown API path
+  // comes here, and then goes to a 404, never to the page.
   app.get("*", async (c, next) => {
     if (isApi(c.req.path)) return next();
-    // A file it found comes back as its own response; a miss has gone on to
-    // the page (or the 404) through `next`.
+    // A file that it found comes back as its own response. A miss went to the
+    // page (or the 404) through `next`.
     const found = await files(c, next);
     if (!(found instanceof Response)) return;
     found.headers.set(
@@ -57,9 +58,9 @@ export function mountClient(app: Hono, dir: string): void {
 
   app.get("*", (c, next) => {
     const path = c.req.path;
-    // A `.well-known` document the server does not serve (the OAuth ones
-    // with MCP off) is a 404, never the page: a client reading it as JSON
-    // should hear that there is none.
+    // A `.well-known` document that the server does not serve (the OAuth
+    // documents with MCP off) is a 404, never the page. A client that reads it
+    // as JSON must learn that there is none.
     if (isApi(path) || path.startsWith("/.well-known/")) return next();
     if (/\.[^/]+$/.test(path)) return next();
     return c.body(new Uint8Array(index), 200, {

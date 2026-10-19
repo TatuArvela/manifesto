@@ -1,18 +1,18 @@
 import { crc32, deflateRawSync } from "node:zlib";
 
 /**
- * A zip archive built in memory: the export's few files, each deflated.
- * Node's zlib does the compression and the checksum, so the format is the
- * only thing written out here: a local header before each file, a central
- * directory after them, and the end record. No zip64, which an export of
- * one account's notes never needs.
+ * A zip archive built in memory: the few files of the export, each deflated.
+ * The zlib of Node does the compression and the checksum. Thus, only the format
+ * is written here: a local header before each file, a central directory after
+ * them, and the end record. There is no zip64, because an export of the notes
+ * of one account never needs it.
  */
 export function buildZip(files: { name: string; data: Buffer }[]): Buffer {
   const parts: Buffer[] = [];
   const central: Buffer[] = [];
   let offset = 0;
-  // 1980-01-01 00:00, the earliest time the format can say: the export's
-  // files carry their dates inside them, where they are exact.
+  // 1980-01-01 00:00, the earliest time that the format can store. The files of
+  // the export contain their dates inside them, where they are exact.
   const dosTime = 0;
   const dosDate = (0 << 9) | (1 << 5) | 1;
 

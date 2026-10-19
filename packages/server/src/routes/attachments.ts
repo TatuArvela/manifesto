@@ -31,39 +31,44 @@ interface AttachmentDeps {
   storage: StorageDriver;
 }
 
-/** What a sealed image is stored and served as: bytes of no stated kind. */
+/**
+ * How the server stores and serves a sealed image: bytes with no stated type.
+ */
 const SEALED_TYPE = "application/octet-stream";
 
 /**
- * `/api/v1/attachments`: the images notes refer to as `attachment:<id>`, each
- * sealed in the browser before it arrives. The server stores bytes it cannot
- * read, and no longer says what kind of image one is: the note that names it
+ * `/api/v1/attachments`: the images to which notes refer as `attachment:<id>`.
+ * The browser seals each one before it arrives. The server stores bytes that it
+ * cannot read, and does not say the image type now. The note that names it
  * does, sealed, and the client that opens it checks.
  *
- * `POST /` uploads one, as the sealed bytes with the address the uploader
- * finds it by in `X-Attachment-Address`, and answers the reference to put in
- * a note's `images`. It is stored under the uploader, once for an address.
+ * `POST /` uploads one, as the sealed bytes, with the address by which the
+ * uploader finds it in `X-Attachment-Address`. It answers the reference to put
+ * in the `images` of a note. The server stores it under the uploader, one time
+ * for each address.
  *
- * `POST /claim` makes images the owner's of the note they are about to be
- * named in: a note's attachments all belong to its owner, whose notes they
- * are swept with, and a sealed note cannot have a reference rewritten under
- * it as a readable one could. See `adoptImages`.
+ * `POST /claim` gives images to the owner of the note that will name them. All
+ * attachments of a note belong to its owner, and the server sweeps them with
+ * the notes of the owner. Nobody can change a reference under a sealed note, as
+ * under a readable note. See `adoptImages`.
  *
- * `GET /:id` serves one to its owner and to anyone holding an accepted share
- * of a note of theirs that refers to it; to anyone else it does not exist.
+ * `GET /:id` serves one to its owner, and to each person with an accepted share
+ * of a note of the owner that refers to it. For all other persons, it does not
+ * exist.
  *
- * A token that carries keys sends and is sent the image itself: the server
- * seals what it uploads and opens what it reads, for that request, as it
- * does a note's words (`noteCodec.ts`).
+ * A token that carries keys sends and gets the image itself. The server seals
+ * what it uploads, and opens what it reads, for that request, as for the words
+ * of a note (`noteCodec.ts`).
  */
 export function createAttachmentRoutes(deps: AttachmentDeps) {
   const routes = new Hono<{ Variables: { auth: AuthContext } }>();
 
   /**
-   * An image from a token that carries keys: sent as it is, since a script
-   * cannot seal one, and sealed here under a key made for it. The key is
-   * kept with the attachment, wrapped under the account's notes key, until
-   * a note names the image and takes the key into its own sealed list.
+   * An image from a token that carries keys. It comes as it is, because a
+   * script cannot seal one. The server seals it here under a key made for it.
+   * The key is kept with the attachment, wrapped under the notes key of the
+   * account, until a note names the image and takes the key into its own sealed
+   * list.
    */
   async function uploadedByToken(c: Ctx, keys: AccountSealKeys) {
     const image = new Uint8Array(await c.req.arrayBuffer());
@@ -92,9 +97,9 @@ export function createAttachmentRoutes(deps: AttachmentDeps) {
   }
 
   /**
-   * What opens an image for a token: the key kept with one it uploaded, or
-   * the key the note it names holds for it. A token has to say which note,
-   * since the keys of a note's images are inside the note.
+   * What opens an image for a token: the key kept with an image that it
+   * uploaded, or the key that the named note has for it. A token must say which
+   * note, because the keys of the images of a note are inside the note.
    */
   async function keyFor(
     keys: AccountSealKeys,
@@ -135,8 +140,9 @@ export function createAttachmentRoutes(deps: AttachmentDeps) {
     const stored = await deps.storage.attachments.put({
       id: newId(),
       ownerId: userId,
-      // The column that held a hash of the bytes holds the uploader's
-      // address for them: an HMAC of the image under a key of theirs.
+      // The column that contained a hash of the bytes contains the address of
+      // the uploader for them: an HMAC of the image under a key of the
+      // uploader.
       sha256: address,
       contentType: SEALED_TYPE,
       data,
@@ -156,7 +162,7 @@ export function createAttachmentRoutes(deps: AttachmentDeps) {
       const { noteId, refs } = c.req.valid("json");
       let ownerId = userId;
       if (noteId !== undefined) {
-        // A note about to be made has no owner yet but its maker.
+        // A note that does not exist yet has no owner, other than its maker.
         const access = await deps.storage.notes.access(noteId, userId);
         if (access?.role === "view") {
           throw new HttpError(
@@ -186,8 +192,8 @@ export function createAttachmentRoutes(deps: AttachmentDeps) {
     if (!attachment) throw new HttpError(404, "Attachment not found");
     const keys = tokenKeys(c);
     if (keys) {
-      // Opened for the token, which cannot: the image itself, as the kind
-      // its note says it is and its bytes agree it is.
+      // Opened for the token, which cannot open it: the image itself, with the
+      // type that its note says and that its bytes confirm.
       const key = await keyFor(
         keys,
         id,
@@ -207,8 +213,8 @@ export function createAttachmentRoutes(deps: AttachmentDeps) {
     return c.body(new Uint8Array(attachment.data), 200, {
       "Content-Type": SEALED_TYPE,
       "Content-Length": String(attachment.size),
-      // An id names one set of bytes for good, so a copy never goes stale.
-      // Private: it was read with someone's credentials.
+      // An id always names the same bytes. Thus, a copy never becomes stale.
+      // Private, because it was read with the credentials of a person.
       "Cache-Control": "private, max-age=31536000, immutable",
       "X-Content-Type-Options": "nosniff",
       "Content-Security-Policy": "default-src 'none'; sandbox",

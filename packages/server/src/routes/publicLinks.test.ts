@@ -171,7 +171,7 @@ describe("public links", () => {
     ).toBe(422);
     const made = await post({ mode: "snapshot", sealedLinkKey, snapshot });
     expect(made.status).toBe(201);
-    // The owner is handed the link key back as they sealed it.
+    // The owner gets the link key back as they sealed it.
     expect(
       ((await made.json()) as { link: PublicLink }).link.sealedLinkKey,
     ).toBe(sealedLinkKey);
@@ -189,8 +189,8 @@ describe("public links", () => {
       title: "Recipe",
       content: "Flour and water",
     });
-    // Nothing about the owner's filing of it: the tags and the colour are
-    // the owner's own, under a key no link carries.
+    // Nothing about how the owner keeps it. The tags and the color belong to
+    // the owner, under a key that no link contains.
     expect(body.note).not.toHaveProperty("tags");
     expect(body.note).not.toHaveProperty("color");
     expect(body.access).toBeNull();
@@ -294,8 +294,9 @@ describe("public links", () => {
         },
       );
       const { link } = (await published.json()) as { link: PublicLink };
-      // Each from an address of its own, so only the link's count can stop
-      // them, and all at once, so none has been counted when the rest ask.
+      // Each from its own address, so that only the count of the link can stop
+      // them. All at the same time, so that none was counted when the others
+      // ask.
       const guess = (n: number, password = "wrong") =>
         proxied.request(`/api/v1/public/${link.token}/unlock`, {
           method: "POST",

@@ -3,17 +3,18 @@ import type { AdminGuardedResult, StorageDriver } from "#/storage/types.ts";
 import type { NoteEvents } from "./noteEvents.ts";
 
 /**
- * Deletes an account and everything that hangs off it, whoever asked: an
- * admin from the Users view, or the account's owner from Settings. The rows
- * go with the user by cascade (notes, their versions and images, shares
- * both ways, sessions, tokens, webhooks, passkeys, keys, preferences); what
- * is left to do is tell the people on the other end of its shares, and close
- * any socket still open on one of its sessions. The audit log keeps its
- * entries about the account until they expire (`AUDIT_RETENTION_DAYS`), as
- * it does for every account.
+ * Deletes an account and all data that belongs to it, whoever asked: an admin
+ * from the Users view, or the owner of the account from Settings. The cascade
+ * deletes the rows with the user (notes, their versions and images, shares in
+ * both directions, sessions, tokens, webhooks, passkeys, keys, preferences).
+ * This code must also tell the people at the other end of its shares, and close
+ * each socket that is still open on one of its sessions. The audit log keeps
+ * its entries about the account until they expire (`AUDIT_RETENTION_DAYS`), as
+ * for all accounts.
  *
- * Answers `last-admin` rather than leave a server with no admin, and
- * `not-found` for an account already gone; nothing is deleted then.
+ * It answers `last-admin`, and does not leave a server with no admin. It
+ * answers `not-found` for an account that is already gone. In both cases, it
+ * deletes nothing.
  */
 export async function deleteAccount(
   deps: {
@@ -24,14 +25,14 @@ export async function deleteAccount(
   userId: string,
 ): Promise<AdminGuardedResult> {
   const { storage, noteEvents, revocations } = deps;
-  // Read before the delete: the shares go with the account by cascade,
-  // and the people on the other end of them still have to hear about it.
+  // Read before the delete. The cascade deletes the shares with the account,
+  // and the people at the other end of them must still learn about it.
   const onTheirNotes = await storage.shares.listByOwner(userId);
   const onOthersNotes = await storage.shares.listByRecipient(userId);
   const result = await storage.users.delete(userId);
   if (result !== "ok") return result;
-  // The rows went with the user by cascade; what is left to end is any
-  // socket still open on one of them.
+  // The cascade deleted the rows with the user. The code must still end each
+  // socket that is open on one of them.
   revocations.revoke({ userId });
   noteEvents.ended(onTheirNotes);
   for (const noteId of new Set(onOthersNotes.map((s) => s.noteId))) {

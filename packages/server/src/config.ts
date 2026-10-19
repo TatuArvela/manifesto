@@ -17,41 +17,44 @@ export interface OidcConfig {
   redirectUri: string;
   postLoginRedirect: string;
   scopes: string[];
-  /** The claim holding the user's groups (`OIDC_GROUPS_CLAIM`). */
+  /** The claim that contains the groups of the user (`OIDC_GROUPS_CLAIM`). */
   groupsClaim: string;
-  /** Members are admins, and anyone else is not, from each sign-in on. */
+  /**
+   * Members are admins, and all other persons are not, from each sign-in on.
+   */
   adminGroup: string | null;
-  /** When set, only members may sign in at all. */
+  /** When set, only members can sign in. */
   userGroup: string | null;
   /**
-   * The groups mirrored as teams (`OIDC_TEAM_GROUPS`): these names, every
-   * group (`*`), or none (null, the default), since a directory's groups can
-   * run to hundreds and most mean nothing to note sharing.
+   * The groups mirrored as teams (`OIDC_TEAM_GROUPS`): these names, all groups
+   * (`*`), or none (null, the default). The groups of a directory can be
+   * hundreds, and most of them mean nothing for note sharing.
    */
   teamGroups: string[] | "*" | null;
-  /** When false, only identities that already have an account sign in. */
+  /** When false, only identities that already have an account can sign in. */
   autoRegister: boolean;
   /**
-   * Whether an address the identity provider does not vouch for is taken
-   * anyway (`OIDC_UNVERIFIED_EMAIL=accept`). Off, only `email_verified: true`
-   * is; a provider that leaves the claim out is one that has not said.
+   * If the server also takes an address for which the identity provider does
+   * not vouch (`OIDC_UNVERIFIED_EMAIL=accept`). When off, it takes only
+   * `email_verified: true`. A provider that does not send the claim did not
+   * say.
    */
   acceptUnverifiedEmail: boolean;
 }
 
 export interface BackupConfig {
   intervalHours: number;
-  /** How many backups to keep; older ones are deleted. */
+  /** The number of backups to keep. The server deletes older backups. */
   keep: number;
   dir: string;
 }
 
 export interface MailConfig {
-  /** `smtp://` (STARTTLS when offered) or `smtps://`, with credentials. */
+  /** `smtp://` (STARTTLS when available) or `smtps://`, with credentials. */
   url: string;
-  /** The From header, `Notes <notes@example.com>` or a bare address. */
+  /** The From header, `Notes <notes@example.com>`, or only an address. */
   from: string;
-  /** The client's public address, which links in mail point at. */
+  /** The public address of the client, to which links in mail point. */
   appUrl: string;
 }
 
@@ -60,21 +63,26 @@ export interface PostgresConfig {
 }
 
 /**
- * The server's settings. The features a host can turn off are held under
- * their own names (`FeatureToggles`, described in `features.ts`), and are
- * asked about through `isFeatureOn`, which also knows what each requires.
+ * The settings of the server. The features that a host can turn off are kept
+ * under their own names (`FeatureToggles`, described in `features.ts`). Code
+ * asks about them through `isFeatureOn`, which also knows the requirements of
+ * each one.
  */
 export interface ServerConfig extends FeatureToggles {
   port: number;
   dataDir: string;
   dbPath: string;
   corsOrigins: string[];
-  /** Inactivity timeout: a session's expiry slides this far forward on every
-   * authenticated request. */
+  /**
+   * The inactivity timeout: the expiry of a session slides this far forward on
+   * each authenticated request.
+   */
   sessionTtlDays: number;
-  /** Hard end-of-life measured from when the session was minted. A session in
-   * daily use would otherwise slide forward forever, so a token stolen once
-   * stays valid indefinitely. */
+  /**
+   * The hard end of life, from the time when the session was made. If not, a
+   * session in daily use would slide forward forever. Thus, a token that a
+   * person stole one time would stay valid permanently.
+   */
   sessionAbsoluteTtlDays: number;
   argon2MemoryKib: number;
   argon2TimeCost: number;
@@ -82,89 +90,102 @@ export interface ServerConfig extends FeatureToggles {
   storageDriver: StorageDriverName;
   /**
    * How people sign in: `local` (username and password), `oidc` (single
-   * sign-on), or `both` side by side. `signsInLocally` / `signsInWithOidc`
-   * are the questions to ask of it.
+   * sign-on), or `both` together. Use `signsInLocally` / `signsInWithOidc` to
+   * ask about it.
    */
   authProvider: AuthMode;
   /**
-   * With `both`, whether the password form is on the sign-in screen as it
-   * is, or folded behind a link under the single sign-on button, for servers
-   * where SSO is the way in and local accounts are the admin's spare key.
+   * With `both`: if the password form shows on the sign-in screen, or is folded
+   * behind a link under the single sign-on button. Use the second for servers
+   * where SSO is the usual way in, and local accounts are the spare key of the
+   * admin.
    */
   passwordForm: PasswordFormMode;
   oidc: OidcConfig | null;
   postgres: PostgresConfig | null;
-  /** When true, the rate limiter (and any future IP-aware logic) honors
-   * `X-Forwarded-For`. Set this only when running behind a trusted reverse
-   * proxy that overwrites the header; otherwise an attacker can rotate the
-   * value to defeat per-IP throttling. */
+  /**
+   * When true, the rate limiter (and all future logic that uses the IP) uses
+   * `X-Forwarded-For`. Set this only behind a trusted reverse proxy that
+   * overwrites the header. If not, an attacker can change the value to avoid
+   * the throttle for each IP.
+   */
   trustProxy: boolean;
-  /** When false, POST /api/v1/auth/register returns 403. Defaults to true to
-   * preserve open-signup behavior; set to false for managed-mode deployments
-   * where accounts are provisioned out-of-band. */
+  /**
+   * When false, POST /api/v1/auth/register returns 403. The default is true, to
+   * keep open sign-up. Set it to false for managed-mode deployments, where
+   * accounts come from a different process.
+   */
   registrationEnabled: boolean;
   /**
-   * Whether users may register webhooks, and where they may point: `public`
-   * addresses only (the default, the same rule as link previews), `private`
-   * to also reach the local network (a Home Assistant or n8n beside the
-   * server), or `off`. The one feature of `FEATURES` with modes.
+   * If users can register webhooks, and where they can point: only `public`
+   * addresses (the default, the same rule as for link previews), `private` to
+   * also reach the local network (a Home Assistant or n8n near the server), or
+   * `off`. This is the only feature of `FEATURES` with modes.
    */
   webhooks: WebhookMode;
   /**
-   * The client's public address (`APP_URL`), without a trailing slash, or
-   * null. Mail links point at it, and an assistant signing in to `/api/v1/mcp`
-   * is sent to its consent page there. With `CLIENT_DIR` and no `APP_URL`
-   * the client is this server's own origin.
+   * The public address of the client (`APP_URL`), without a slash at the end,
+   * or null. Mail links point to it. An assistant that signs in to
+   * `/api/v1/mcp` goes to its consent page there. With `CLIENT_DIR` and no
+   * `APP_URL`, the client is the origin of this server.
    */
   appUrl: string | null;
   /**
-   * Outgoing mail, for password reset links and share invitations. Null
-   * without `SMTP_URL`, and then an admin's temporary password stays the only
-   * way back into a local account.
+   * Outgoing mail, for password reset links and share invitations. Null without
+   * `SMTP_URL`. Then a temporary password from an admin is the only way back
+   * into a local account.
    */
   mail: MailConfig | null;
-  /** A built client to serve at the site root beside the API, or null. */
+  /** A built client to serve at the site root with the API, or null. */
   clientDir: string | null;
-  /** The bearer token `GET /metrics` asks for; null keeps it off. */
+  /** The bearer token for which `GET /metrics` asks. Null keeps it off. */
   metricsToken: string | null;
   /**
-   * The server key, which the few values the server reads by itself are
-   * stored under (`storage/atRest.ts`): 32 bytes in base64 or hex. Null
-   * keeps it in `dataKeyFile` instead, made on first start.
+   * The server key, under which the server stores the few values that it reads
+   * by itself (`storage/atRest.ts`): 32 bytes in base64 or hex. Null keeps it
+   * in `dataKeyFile`, made at the first start.
    */
   dataEncryptionKey: string | null;
-  /** The key before, while a replaced key's values are moved over. */
+  /** The previous key, while the server moves the values of a replaced key. */
   dataEncryptionKeyPrevious: string | null;
-  /** Where the key is kept when it is not supplied; null for
-   * `${dataDir}/server.key`. */
+  /**
+   * Where the server keeps the key when it is not given. Null for
+   * `${dataDir}/server.key`.
+   */
   dataKeyFile: string | null;
   /**
-   * A port of its own for `/metrics`, off the public one, or null. With it
+   * A separate port for `/metrics`, not the public port, or null. When it is
    * set, the main port never serves metrics.
    */
   metricsPort: number | null;
-  /** Where that listener binds: loopback unless told otherwise. */
+  /** Where that listener binds: loopback, unless a different value is given. */
   metricsHost: string;
   /** Scheduled SQLite backups, or null when off (the default). */
   backup: BackupConfig | null;
-  /** Days the audit log keeps an entry. */
+  /** The days that the audit log keeps an entry. */
   auditRetentionDays: number;
-  /** The GitHub repository whose releases the update check reads, or null
-   * with `UPDATE_CHECK=off`. */
+  /**
+   * The GitHub repository whose releases the update check reads, or null with
+   * `UPDATE_CHECK=off`.
+   */
   updateCheckRepo: string | null;
-  /** How someone sharing a note finds the account to share it with: by
-   * searching every account as they type, or only by its exact username or
-   * email address, which keeps the list of accounts private. */
+  /**
+   * How a person who shares a note finds the account for the share: a search of
+   * all accounts while they type, or only by its exact username or email
+   * address, which keeps the list of accounts private.
+   */
   userLookup: UserLookupMode;
-  /** The temporary password to give the initial admin account instead of a
-   * generated one, for deployments that cannot read the server's output. It
-   * still has to be changed at first sign-in. */
+  /**
+   * The temporary password for the initial admin account, in place of a
+   * generated password. It is for deployments that cannot read the output of
+   * the server. The user must still change it at the first sign-in.
+   */
   initialAdminPassword: string | null;
   /**
-   * The preferences a new account starts from, keyed as the client keys
-   * them (`DEFAULT_PREFS`), or empty. The client takes each for a key the
-   * account has never stored, in place of its own default; the server
-   * never reads a value, as it never reads an account's own.
+   * The preferences of a new account, with the keys of the client
+   * (`DEFAULT_PREFS`), or empty. The client uses each one for a key that the
+   * account never stored, in place of its own default. The server never reads a
+   * value, as it never reads the own values of an account.
    */
   defaultPrefs: AccountPrefs;
 }
@@ -240,12 +261,12 @@ const AUTH_MODES = [
 export const PASSWORD_FORM_MODES = ["shown", "collapsed"] as const;
 export type PasswordFormMode = (typeof PASSWORD_FORM_MODES)[number];
 
-/** Whether accounts with passwords can sign in on this server. */
+/** If accounts with passwords can sign in on this server. */
 export function signsInLocally(cfg: Pick<ServerConfig, "authProvider">) {
   return cfg.authProvider !== "oidc";
 }
 
-/** Whether single sign-on is offered on this server. */
+/** If this server offers single sign-on. */
 export function signsInWithOidc(cfg: Pick<ServerConfig, "authProvider">) {
   return cfg.authProvider !== "local";
 }
@@ -259,8 +280,8 @@ function loadPostgresConfig(): PostgresConfig {
 function loadInitialAdminPassword(): string | null {
   const raw = process.env.INITIAL_ADMIN_PASSWORD;
   if (raw === undefined || raw === "") return null;
-  // Held to the same minimum as any password, so the account it creates can
-  // actually be signed in to.
+  // It has the same minimum as all passwords. Thus, a person can really sign in
+  // to the account that it creates.
   if (raw.length < 8 || raw.length > 256) {
     throw new Error(
       "Invalid INITIAL_ADMIN_PASSWORD: must be 8 to 256 characters",
@@ -282,9 +303,9 @@ function loadBackupConfig(dataDir: string): BackupConfig | null {
 }
 
 /**
- * `DEFAULT_PREFS`: a JSON object of preferences. Refused at start when it is
- * not one, or larger than an account's own may grow, rather than handed to
- * every client to refuse in turn.
+ * `DEFAULT_PREFS`: a JSON object of preferences. The server refuses it at start
+ * when it is not an object, or is larger than the own preferences of an account
+ * can be. It does not give it to each client to refuse.
  */
 export function parseDefaultPrefs(raw: string | undefined): AccountPrefs {
   const value = raw?.trim();
@@ -335,9 +356,10 @@ function loadMailConfig(appUrl: string | null): MailConfig | null {
 
 function loadOidcConfig(): OidcConfig {
   const scopes = envList("OIDC_SCOPES", ["openid", "profile", "email"]);
-  // Normalize the issuer URL once at boot. The issuer is part of the user
-  // provider key (`oidc:<issuer>`); changing it via trailing slash, scheme
-  // case, or default port silently orphans every existing OIDC user.
+  // Normalize the issuer URL one time at start. The issuer is part of the
+  // provider key of the user (`oidc:<issuer>`). If it changes through a
+  // trailing slash, the case of the scheme, or a default port, all existing
+  // OIDC users silently lose their accounts.
   const issuer = envRequired("OIDC_ISSUER").replace(/\/+$/, "");
   return {
     issuer,
@@ -357,7 +379,7 @@ function loadOidcConfig(): OidcConfig {
   };
 }
 
-/** `OIDC_TEAM_GROUPS`: a comma-separated list of group names, or `*`. */
+/** `OIDC_TEAM_GROUPS`: a list of group names separated by commas, or `*`. */
 export function parseTeamGroups(
   raw: string | undefined,
 ): string[] | "*" | null {
@@ -372,12 +394,13 @@ export function parseTeamGroups(
 }
 
 /**
- * `FOO_FILE=/run/secrets/foo` as the value of `FOO`, the convention Docker and
- * Kubernetes secrets are mounted by (and the official Postgres image reads),
- * for the settings that are secrets. Only those: an environment has other
- * variables ending in `_FILE` (`COMPOSE_FILE`) that are none of ours. The
- * file's trailing newline is dropped, since editors add one. Setting both
- * `FOO` and `FOO_FILE` is refused rather than guessed at.
+ * `FOO_FILE=/run/secrets/foo` as the value of `FOO`, for the settings that are
+ * secrets. This is the convention with which Docker and Kubernetes mount
+ * secrets (the official Postgres image also reads it). Only for those settings:
+ * an environment has other variables that end in `_FILE` (`COMPOSE_FILE`),
+ * which are not ours. The code removes the newline at the end of the file,
+ * because editors add one. The code refuses `FOO` and `FOO_FILE` together, and
+ * does not guess.
  */
 export const FILE_SECRETS = [
   "DATABASE_URL",
@@ -466,9 +489,9 @@ export function loadConfig(): ServerConfig {
 }
 
 /**
- * Whether an assistant can connect to `/api/v1/mcp` by signing in through the
- * browser (OAuth): MCP is on, and the client, whose page asks the user, is
- * somewhere this server can send them (`APP_URL`, or served here).
+ * If an assistant can connect to `/api/v1/mcp` through a sign-in in the browser
+ * (OAuth): MCP is on, and the server can send the user to the client, whose
+ * page asks the user (`APP_URL`, or served here).
  */
 export function offersMcpSignIn(cfg: ServerConfig): boolean {
   return (

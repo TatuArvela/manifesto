@@ -71,7 +71,7 @@ describe("end-to-end smoke", () => {
     });
     expect(update.status).toBe(200);
 
-    // The app searches the notes it has opened; the server cannot.
+    // The app searches the notes that it opened. The server cannot.
     const search = await rig.request("/api/v1/search?q=renamed", {
       headers: authHeaders(token),
     });

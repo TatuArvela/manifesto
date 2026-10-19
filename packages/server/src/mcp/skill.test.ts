@@ -4,9 +4,10 @@ import { describe, expect, it } from "vitest";
 import { MCP_TOOLS } from "./tools.ts";
 
 /**
- * The agent skill in `skills/manifesto/` teaches an assistant these tools, so
- * it ships with them and is held to them here: a tool added, renamed or
- * removed, or a colour changed, fails this until the skill says the same.
+ * The agent skill in `skills/manifesto/` teaches an assistant these tools.
+ * Thus, it ships with them, and this test compares it with them. If a tool is
+ * added, renamed or removed, or a color changes, this test fails until the
+ * skill says the same.
  */
 const skill = readFileSync(
   new URL("../../../../skills/manifesto/SKILL.md", import.meta.url),

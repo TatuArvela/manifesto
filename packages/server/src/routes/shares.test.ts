@@ -158,7 +158,7 @@ describe("sharing notes between accounts", () => {
       notes: Note[];
     };
     expect(listed.notes.map((n) => n.id)).toEqual([note.id]);
-    // The owner hears that the invitation was taken up.
+    // The owner learns that the invitation was accepted.
     expect(eventsFor(owner.userId).at(-1)).toMatchObject({
       type: "note:updated",
       note: { sharing: { members: [{ accepted: true }] } },
@@ -263,7 +263,7 @@ describe("sharing notes between accounts", () => {
       color: NoteColor.Yellow,
       pinned: false,
     });
-    // Both hear about it, each with their own copy.
+    // Both learn about it, each with their own copy.
     const toOwner = eventsFor(owner.userId).at(-1);
     const toAlice = eventsFor(alice.userId).at(-1);
     expect(toOwner).toMatchObject({
@@ -303,7 +303,7 @@ describe("sharing notes between accounts", () => {
     const { note: aliceView } = (await trashed.json()) as { note: Note };
     expect(aliceView.trashed).toBe(true);
     expect(aliceView.trashedAt).not.toBeNull();
-    // The owner's copy is untouched, and nobody's access changed.
+    // The copy of the owner does not change, and the access of nobody changed.
     expect(eventsFor(owner.userId).at(-1)).toMatchObject({
       type: "note:updated",
       note: { trashed: false },
@@ -433,7 +433,7 @@ describe("sharing notes between accounts", () => {
     ).toBe(204);
     expect((await noteAs(alice, note.id)).status).toBe(404);
 
-    // Declining is for invitations, not a way to leave a note.
+    // Decline is for invitations. It is not a way to leave a note.
     expect(
       (await call(alice, "POST", `/api/v1/invitations/${note.id}/decline`))
         .status,
@@ -531,8 +531,8 @@ describe("handing a shared note's key on", () => {
     });
     expect(res.status).toBe(201);
     expect((await invitationOf(alice))?.offered).toEqual(offer(owner.userId));
-    // Signed by someone else, or for another key, it is not the owner's to
-    // send.
+    // If a different person signed it, or it is for a different key, the owner
+    // cannot send it.
     for (const key of [offer(bob.userId), offer(owner.userId, 2)]) {
       const bad = await call(owner, "POST", `/api/v1/notes/${id}/shares`, {
         userId: bob.userId,
@@ -561,19 +561,20 @@ describe("handing a shared note's key on", () => {
         `/api/v1/notes/${id}/shares/${bob.userId}/key`,
         offer(signer),
       );
-    // Someone who has not accepted holds no key to wrap.
+    // A person who did not accept has no key to wrap.
     expect((await put(alice)).status).toBe(404);
     await call(alice, "POST", `/api/v1/invitations/${id}/accept`);
     expect((await put(alice, owner.userId)).status).toBe(422);
     expect((await put(alice)).status).toBe(204);
     expect((await invitationOf(bob))?.offered?.signer).toBe(alice.userId);
-    // Offered one, bob is not waiting: nobody but the owner puts another in
-    // its place, or any holder could swap in a key of their own making.
+    // Bob has an offer. Thus, he does not wait. Nobody other than the owner can
+    // put a different key in its place. If not, each holder could put in their
+    // own key.
     expect((await put(alice)).status).toBe(409);
     expect((await invitationOf(bob))?.offered?.signer).toBe(alice.userId);
     expect((await put(owner)).status).toBe(204);
     expect((await invitationOf(bob))?.offered?.signer).toBe(owner.userId);
-    // Nobody is waiting any more, as everyone on the note can see.
+    // Nobody waits now, as all persons on the note can see.
     const seen = await call(owner, "GET", `/api/v1/notes/${id}`);
     const { note: ownerView } = (await seen.json()) as { note: Note };
     expect(ownerView.sharing?.members.some((m) => m.waitingForKey)).toBe(false);
@@ -619,8 +620,10 @@ describe("handing a shared note's key on", () => {
     ...extra,
   });
 
-  /** As the app sends it: from the note as it was just read, unless a test
-   * says which read (`ifMatch`), or sends none (null). */
+  /**
+   * As the app sends it: from the note as it was just read, unless a test says
+   * which read (`ifMatch`), or sends none (null).
+   */
   const rekey = async (
     who: { token: string },
     id: string,
@@ -647,7 +650,7 @@ describe("handing a shared note's key on", () => {
         role: "edit",
       });
     }
-    // Bob was never handed a key: his going gives nothing away.
+    // Bob never got a key. Thus, his departure gives nothing away.
     await call(owner, "DELETE", `/api/v1/notes/${id}/shares/${bob.userId}`);
     expect((await sealedAs(owner, id)).rekeyDue).toBeUndefined();
 
@@ -657,7 +660,7 @@ describe("handing a shared note's key on", () => {
       role: "edit",
     });
     await call(bob, "POST", `/api/v1/invitations/${id}/accept`);
-    // Alice leaves, holding the key.
+    // Alice leaves, and she has the key.
     await call(alice, "DELETE", `/api/v1/notes/${id}`);
     expect((await sealedAs(owner, id)).rekeyDue).toBe(true);
     expect((await sealedAs(bob, id)).rekeyDue).toBeUndefined();
@@ -677,8 +680,8 @@ describe("handing a shared note's key on", () => {
     await call(bob, "POST", `/api/v1/invitations/${id}/accept`);
     await call(owner, "DELETE", `/api/v1/notes/${id}/shares/${alice.userId}`);
 
-    // Not a recipient's to do, not to a version it is not next at, and not
-    // with anything readable in it.
+    // A recipient cannot do this. Also not to a version that is not the next
+    // version, and not with readable content in it.
     expect((await rekey(bob, id, rekeyed(2))).status).toBe(404);
     expect((await rekey(owner, id, rekeyed(3))).status).toBe(409);
     expect(
@@ -686,9 +689,9 @@ describe("handing a shared note's key on", () => {
     ).toBe(422);
     const { title: _title, ...partial } = rekeyed(2);
     expect((await rekey(owner, id, partial)).status).toBe(422);
-    // Not without saying which read the fields were sealed again from, and
-    // not from one the note has been written since: Bob's edit, made while
-    // the owner's app was sealing, is not in what it sends.
+    // Not without the read from which the fields were sealed again, and not
+    // from a read after which the note was written. The edit of Bob, made while
+    // the app of the owner sealed, is not in what it sends.
     expect((await rekey(owner, id, rekeyed(2), null)).status).toBe(428);
     const read = (await sealedAs(owner, id)).updatedAt;
     const edit = await rig.rawRequest(`/api/v1/notes/${id}`, {
@@ -721,8 +724,8 @@ describe("handing a shared note's key on", () => {
     ]);
     expect((await rekey(owner, id, rekeyed(2))).status).toBe(409);
 
-    // Bob's copy is behind: he is handed nothing that opens the note, and
-    // what he seals under the old key is refused.
+    // The copy of Bob is behind. He gets nothing that opens the note, and the
+    // server refuses what he seals under the old key.
     const behind = await sealedAs(bob, id);
     expect(behind).toMatchObject({ keyVersion: 2, key: "" });
     expect(behind.offered).toBeUndefined();
@@ -737,7 +740,7 @@ describe("handing a shared note's key on", () => {
     });
     expect(stale.status).toBe(409);
 
-    // The owner's client wraps the new key for him, and he keeps it.
+    // The client of the owner wraps the new key for him, and he keeps it.
     expect(
       (
         await call(
@@ -824,7 +827,7 @@ describe("handing a shared note's key on", () => {
     expect(await seen(owner)).toEqual({
       [alice.userId]: ciphertext("agreed to since"),
     });
-    // Nobody else's list.
+    // Not the list of a different person.
     expect(await seen(alice)).toEqual({});
   });
 

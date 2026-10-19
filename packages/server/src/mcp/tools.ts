@@ -12,16 +12,16 @@ import { z } from "zod";
 import { noteColorSchema } from "#/validation/noteSchemas.ts";
 
 /**
- * The tools `/api/v1/mcp` offers an AI assistant. Each one is REST calls and
- * nothing else: `call` is handed a `RestCall` that runs the real route
- * in-process with the caller's token, so authentication, validation, sharing
- * roles, rate limits, the `If-Match` check, broadcasts and webhooks all apply
- * as they would to the web client, and no rule is written twice. A tool that
- * needs more than one route (a new note's place on the board, the tag list)
- * composes them; it never reaches storage.
+ * The tools that `/api/v1/mcp` offers to an AI assistant. Each one is only REST
+ * calls. `call` gets a `RestCall` that runs the real route in the process, with
+ * the token of the caller. Thus, authentication, validation, sharing roles,
+ * rate limits, the `If-Match` check, broadcasts and webhooks all apply, as for
+ * the web client, and no rule is written two times. A tool that needs more than
+ * one route (the position of a new note on the board, the tag list) uses many
+ * routes. It never uses storage directly.
  *
- * Deleting is left out on purpose. `trash_note` is as far as an assistant
- * goes, so whatever it did can be undone from the trash.
+ * There is no delete, on purpose. An assistant can only use `trash_note`. Thus,
+ * a person can undo all that it did from the trash.
  */
 
 export interface RestAnswer {
@@ -46,8 +46,10 @@ export interface McpTool {
   title: string;
   description: string;
   inputSchema: Record<string, unknown>;
-  /** What the token needs for the tool to be offered at all. The REST
-   * routes the tool calls check their own scopes as well. */
+  /**
+   * What the token needs before the server offers the tool. The REST routes
+   * that the tool calls also check their own scopes.
+   */
   scope: ApiTokenScope;
   annotations: {
     readOnlyHint: boolean;
@@ -81,7 +83,9 @@ function toolError(text: string): ToolResult {
   return { content: [{ type: "text", text }], isError: true };
 }
 
-/** What a route's refusal means, in words an assistant can act on. */
+/**
+ * What the refusal of a route means, in words on which an assistant can act.
+ */
 function describeFailure({ status, body }: RestAnswer): string {
   const said =
     typeof body === "object" && body !== null && "error" in body
@@ -119,7 +123,7 @@ function brief(note: Note) {
   };
 }
 
-/** Every note the account has, archived and trashed ones included. */
+/** All notes of the account, also archived and trashed notes. */
 async function allNotes(rest: RestCall): Promise<Note[]> {
   const notes: Note[] = [];
   let cursor: string | null = null;
@@ -137,8 +141,8 @@ async function allNotes(rest: RestCall): Promise<Note[]> {
 
 const notePath = (id: string) => `/api/v1/notes/${encodeURIComponent(id)}`;
 
-// The alphabet `/api/v1/notes/import` holds an id to. An id becomes a path
-// segment, and `.` or `..` there would name another route, not a note.
+// The alphabet that `/api/v1/notes/import` permits for an id. An id becomes a
+// path segment, and `.` or `..` there would name a different route, not a note.
 const idField = z
   .string()
   .regex(/^[0-9A-Za-z_-]{1,64}$/, "Not a note id")
@@ -218,7 +222,7 @@ const VIEWS = {
   all: () => true,
 };
 
-/** Where a new note goes: ahead of every other, as the web client puts it. */
+/** The position of a new note: before all others, as the web client does. */
 const POSITION_STEP = 1000;
 
 export const MCP_TOOLS: readonly McpTool[] = [

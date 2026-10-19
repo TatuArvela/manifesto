@@ -9,18 +9,18 @@ export interface MailMessage {
 }
 
 /**
- * Outgoing mail. Sending never throws into a request: a message that could
- * not go is logged, and the caller carries on, since every mail this server
- * sends is a convenience beside something that already happened (a link
- * requested, a note shared).
+ * Outgoing mail. A send never throws into a request. The code logs a message
+ * that could not go out, and the caller continues. Each mail that this server
+ * sends is an extra service next to an action that already occurred (a
+ * requested link, a shared note).
  */
 export interface Mailer {
   send(message: MailMessage): Promise<boolean>;
 }
 
 /**
- * The SMTP mailer, over nodemailer. Imported on first use, so a server with no
- * `SMTP_URL` never loads it.
+ * The SMTP mailer, over nodemailer. It is imported on the first use. Thus, a
+ * server without `SMTP_URL` never loads it.
  */
 export function createSmtpMailer(cfg: MailConfig): Mailer {
   let transport: Promise<{
@@ -49,16 +49,16 @@ export function createSmtpMailer(cfg: MailConfig): Mailer {
   };
 }
 
-/** When mail last went, and when it last could not; null for never. */
+/** When mail last went out, and when it last could not. Null for never. */
 export interface MailStatus {
   lastSentAt: string | null;
   lastFailedAt: string | null;
 }
 
 /**
- * The same mailer, remembering how its sends went, for the admin's setup
- * checks. In memory, like the job statuses: it describes this process since
- * it started. Why a send failed is in the log, not here.
+ * The same mailer, which remembers the results of its sends, for the setup
+ * checks of the admin. It is in memory, as the job statuses: it describes this
+ * process since its start. The log tells why a send failed. This does not.
  */
 export function withMailStatus(
   mailer: Mailer,

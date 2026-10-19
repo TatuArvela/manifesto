@@ -18,14 +18,14 @@ type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
 interface AdminChecksDeps {
   cfg: ServerConfig;
   storage: StorageDriver;
-  /** The server's mailer and how it has gone; null without `SMTP_URL`. */
+  /** The mailer of the server and its status. Null without `SMTP_URL`. */
   mail?: (Mailer & { status(): MailStatus }) | null | undefined;
 }
 
 /**
- * What a proxy did to the probe the client sent as `X-Forwarded-For`. An
- * overwriting proxy leaves one address that is not the probe; an appending
- * one keeps the probe in front of the address it saw.
+ * What a proxy did to the probe that the client sent as `X-Forwarded-For`. A
+ * proxy that overwrites leaves one address that is not the probe. A proxy that
+ * appends keeps the probe in front of the address that it saw.
  */
 export function proxyFinding(forwardedFor: string | undefined): ProxyFinding {
   const hops = (forwardedFor ?? "")
@@ -38,10 +38,10 @@ export function proxyFinding(forwardedFor: string | undefined): ProxyFinding {
 }
 
 /**
- * `/api/v1/admin/checks`: the facts behind the overview's setup checks, the ones
- * that go wrong without anything saying so. Registered on the admin router.
- * The request itself is part of the answer: the proxy in front of the server
- * is judged by what it did to this one.
+ * `/api/v1/admin/checks`: the facts behind the setup checks of the overview,
+ * which can be wrong without a message. Registered on the admin router. The
+ * request itself is part of the answer: the check judges the proxy in front of
+ * the server by what it did to this request.
  */
 export function registerAdminCheckRoutes(
   admin: AuthedApp,
@@ -70,7 +70,7 @@ export function registerAdminCheckRoutes(
     return c.json(body);
   });
 
-  /** A message to the admin's own address, to see that mail arrives. */
+  /** A message to the own address of the admin, to see that mail arrives. */
   admin.post("/checks/mail", async (c) => {
     const { mail } = deps;
     if (!mail || !cfg.mail) throw new HttpError(409, "Mail is not set up");

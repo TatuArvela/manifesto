@@ -7,20 +7,21 @@ import {
 
 /**
  * The server key (`docs/specification/features/encryption.md`, "The server
- * key"): what a few values the server has to read by itself are stored
- * under. A note's words are not among them, since the server holds no key to
- * those. These are the ones it acts on with nobody signed in: a reminder's
- * time, a webhook's signing secret, an authenticator's secret, the key that
- * signs push messages and the keys of each push subscription.
+ * key"): the key under which the server stores the few values that it must read
+ * by itself. The words of a note are not among them, because the server has no
+ * key for those. These are the values on which it acts when nobody is signed
+ * in: the time of a reminder, the signing secret of a webhook, the secret of an
+ * authenticator, the key that signs push messages, and the keys of each push
+ * subscription.
  *
- * AES-256-GCM, a random nonce a value, and the column's purpose as the
- * associated data, so a value moved to another column does not open. Each
- * value names the key it is under, which is what lets the key be replaced:
- * the one before stays readable until `moveToCurrentKey` has rewritten
- * everything under it.
+ * AES-256-GCM, a random nonce for each value, and the purpose of the column as
+ * the associated data. Thus, a value moved to a different column does not open.
+ * Each value names its key. This lets you replace the key: the previous key
+ * stays readable until `moveToCurrentKey` wrote all values again under the new
+ * key.
  *
- * The key is never in the database. Losing it loses these values, which can
- * all be made again, and no note.
+ * The key is never in the database. If you lose it, you lose these values,
+ * which you can all make again, and no note.
  */
 
 const PREFIX = "s1.";
@@ -29,7 +30,7 @@ const TAG_BYTES = 16;
 
 export interface ServerKeys {
   current: Buffer;
-  /** The key before, while values under it are still being moved over. */
+  /** The previous key, while values under it still move. */
   previous: Buffer | null;
 }
 
@@ -37,19 +38,20 @@ export interface AtRest {
   /** `text` under the current key. */
   seal(text: string, purpose: string): string;
   /**
-   * What `stored` holds. A value from before the server had a key is not
-   * sealed and comes back as it is. Null for a sealed value that opens with
-   * neither key: the key it was under is gone.
+   * What `stored` contains. A value from before the server had a key is not
+   * sealed, and comes back as it is. Null for a sealed value that opens with
+   * neither key: its key is gone.
    */
   open(stored: string, purpose: string): string | null;
-  /** `stored` under the current key, or null when it already is, or cannot
-   * be opened. */
+  /**
+   * `stored` under the current key, or null when it already is, or cannot open.
+   */
   moved(stored: string, purpose: string): string | null;
-  /** Whether `stored` is under the key before the current one. */
+  /** If `stored` is under the key before the current key. */
   underPrevious(stored: string): boolean;
 }
 
-/** A key as an operator supplies it: 32 bytes, in base64 or in hex. */
+/** A key as an operator gives it: 32 bytes, in base64 or in hex. */
 export function parseServerKey(text: string): Buffer | null {
   const trimmed = text.trim();
   if (/^[0-9a-fA-F]{64}$/.test(trimmed)) return Buffer.from(trimmed, "hex");
@@ -63,8 +65,10 @@ export function newServerKey(): string {
   return randomBytes(32).toString("base64url");
 }
 
-/** What a value says of the key it is under: not the key, and not enough of
- * a hash to test a guess against anything but another 256-bit key. */
+/**
+ * What a value says about its key: not the key, and not sufficient of a hash to
+ * test a guess against anything other than a different 256-bit key.
+ */
 function keyId(key: Buffer): string {
   return createHash("sha256")
     .update("manifesto/v1/server-key-id\n")
@@ -140,8 +144,10 @@ export function createAtRest(keys: ServerKeys): AtRest {
   };
 }
 
-/** No key: values are stored as they are. What a storage driver built by
- * hand (a storage test) runs with; a server always sets a real one. */
+/**
+ * No key: values are stored as they are. A storage driver that you build
+ * manually (a storage test) runs with this. A server always sets a real key.
+ */
 const UNSEALED: AtRest = {
   seal: (text) => text,
   open: (stored) => stored,
@@ -152,15 +158,17 @@ const UNSEALED: AtRest = {
 let active: AtRest = UNSEALED;
 
 /**
- * Sets the key this process stores with. One for the process, as there is
- * one server key: `createStorage` calls it before a driver is built.
+ * Sets the key with which this process stores. One for the process, because
+ * there is one server key. `createStorage` calls it before it builds a driver.
  */
 export function useAtRest(next: AtRest | null): void {
   active = next ?? UNSEALED;
 }
 
-/** The process's server key, as the row mappings and the repositories use
- * it. */
+/**
+ * The server key of the process, as the row mappings and the repositories use
+ * it.
+ */
 export const atRest: AtRest = {
   seal: (text, purpose) => active.seal(text, purpose),
   open: (stored, purpose) => active.open(stored, purpose),
@@ -168,7 +176,7 @@ export const atRest: AtRest = {
   underPrevious: (stored) => active.underPrevious(stored),
 };
 
-/** What each column under the server key is sealed as. */
+/** How each column under the server key is sealed. */
 export const AT_REST = {
   reminder: "reminder",
   webhookSecret: "webhook.secret",
@@ -178,8 +186,8 @@ export const AT_REST = {
 } as const;
 
 /**
- * Every column under the server key: where a new one is added, so that
- * replacing the key moves it too. `keys` is the row's primary key.
+ * Each column under the server key. Add a new one here, so that a key
+ * replacement also moves it. `keys` is the primary key of the row.
  */
 export const AT_REST_COLUMNS: readonly {
   table: string;

@@ -13,12 +13,12 @@ import { readPageParams } from "#/validation/pageParams.ts";
 import { tokenKeys } from "./noteCodec.ts";
 
 /**
- * `/api/v1/search`. The server cannot read a note, so it cannot search one: the
- * app searches the notes it has opened, in memory, and its session is
- * refused here. A token that carries keys is answered by doing the same on
- * the server for the length of the request: the account's notes are opened
- * in memory and those whose title or text holds the query, whatever its
- * case, are returned newest first. Nothing opened is kept.
+ * `/api/v1/search`. The server cannot read a note. Thus, it cannot search one.
+ * The app searches the notes that it opened, in memory, and the server refuses
+ * its session here. A token that carries keys gets an answer: the server does
+ * the same for the duration of the request. It opens the notes of the account
+ * in memory, and returns the notes whose title or text contains the query,
+ * whatever its case, newest first. It keeps nothing that it opened.
  */
 export function createSearchRoutes(deps: { storage: StorageDriver }) {
   const search = new Hono<{ Variables: { auth: AuthContext } }>();
@@ -37,8 +37,9 @@ export function createSearchRoutes(deps: { storage: StorageDriver }) {
     }
     const found: Note[] = [];
     let more = false;
-    // Where the page before left off: a result's cursor is the listing's
-    // own, so the scan starts there and reads nothing it has answered.
+    // Where the previous page stopped. The cursor of a result is that of the
+    // listing. Thus, the scan starts there, and reads nothing that it already
+    // answered.
     let next: string | undefined = cursor;
     scan: do {
       const page = await deps.storage.notes.listByUser(userId, {

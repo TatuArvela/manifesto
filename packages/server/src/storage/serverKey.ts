@@ -11,11 +11,11 @@ import {
 } from "./atRest.ts";
 import type { StorageDriver } from "./types.ts";
 
-/** What is asked of the file system, so a test can stand in for it. */
+/** What the code asks of the file system. Thus, a test can replace it. */
 export interface KeyFiles {
   exists(path: string): boolean;
   read(path: string): string;
-  /** Writes a new file readable by its owner alone; throws if it exists. */
+  /** Writes a new file that only its owner can read. Throws if it exists. */
   create(path: string, content: string): void;
 }
 
@@ -50,11 +50,11 @@ function keyFrom(text: string, name: string): Buffer {
 }
 
 /**
- * The server key this process stores with: the operator's
- * (`DATA_ENCRYPTION_KEY`), or one kept in a key file, made on first start.
- * Says where the file is and that it has to be backed up apart from the
- * database, and warns when it sits beside the database or its backups, where
- * a copy of one would carry the other.
+ * The server key with which this process stores: that of the operator
+ * (`DATA_ENCRYPTION_KEY`), or a key kept in a key file, made at the first
+ * start. It tells where the file is, and that you must make a backup of it
+ * separately from the database. It shows a warning when the file is next to the
+ * database or its backups, where a copy of one would contain the other.
  */
 export function loadServerKeys(
   cfg: KeyConfig,
@@ -69,7 +69,7 @@ export function loadServerKeys(
       previous,
     };
   }
-  // Nothing outlives a database in memory, so neither does its key.
+  // Nothing stays after a database in memory. Thus, its key also does not stay.
   if (cfg.dataDir === ":memory:" && cfg.dataKeyFile === null) {
     return { current: keyFrom(newServerKey(), "the key"), previous };
   }
@@ -104,10 +104,10 @@ function warnIfBeside(cfg: KeyConfig, keyFile: string): void {
 }
 
 /**
- * Rewrites every value that is not under the current server key: one from
- * before the server had a key, or one under the key before. Run at start-up.
- * Says when nothing is left under the previous key, which is when
- * `DATA_ENCRYPTION_KEY_PREVIOUS` can be removed.
+ * Writes again each value that is not under the current server key: a value
+ * from before the server had a key, or a value under the previous key. Runs at
+ * start-up. It tells when nothing is under the previous key. Then you can
+ * remove `DATA_ENCRYPTION_KEY_PREVIOUS`.
  */
 export async function moveToCurrentKey(
   storage: StorageDriver,
@@ -122,7 +122,7 @@ export async function moveToCurrentKey(
       column,
       (stored) => {
         const next = atRest.moved(stored, purpose);
-        // Under a key this server was not given: left as it is, and counted.
+        // Under a key that this server did not get: kept as it is, and counted.
         if (next === null && atRest.open(stored, purpose) === null) left++;
         return next;
       },

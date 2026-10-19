@@ -14,20 +14,24 @@ import { MAX_PAYLOAD_BYTES } from "#/push/webPush.ts";
 import type { NoteEvents } from "#/sharing/noteEvents.ts";
 import type { StorageDriver } from "#/storage/types.ts";
 
-/** How often the server looks for reminders that have come due. */
+/** How frequently the server looks for reminders that are due. */
 const TICK_MS = 30_000;
 /**
- * How long a due reminder is left to the user's own devices. An open app
- * fires it on time and moves it on within a moment; the server steps in only
- * for one still standing after this, which is one no client fired. So a
- * reminder never arrives twice, and one for a closed app arrives this late.
+ * How long the devices of the user have to fire a due reminder. An open app
+ * fires it on time, and moves it on almost immediately. The server acts only
+ * for a reminder that is still there after this time, which is a reminder that
+ * no client fired. Thus, a reminder never arrives two times, and a reminder for
+ * a closed app arrives this late.
  */
 export const PUSH_GRACE_MS = 45_000;
-/** Matches the client: an occurrence more than an hour stale is not worth
- * surfacing. The app moves a recurring one past it when it next opens. */
+/**
+ * The same as the client: an occurrence that is more than one hour old is not
+ * worth a notification. The app moves a recurring reminder past it when it
+ * opens next.
+ */
 const CATCHUP_WINDOW_MS = 60 * 60_000;
 
-/** The client's `reminder.untitled`, in the languages it speaks. */
+/** The `reminder.untitled` of the client, in its languages. */
 const UNTITLED: Record<MailLocale, string> = {
   en: "Untitled reminder",
   fi: "Nimetön muistutus",
@@ -35,23 +39,23 @@ const UNTITLED: Record<MailLocale, string> = {
 
 /**
  * What a notification says about a note, as the client words it
- * (`reminderScheduler.ts`), an untitled note included: in the language the
- * account last reported, so the same reminder reads the same whether the
- * app or the server fired it.
+ * (`reminderScheduler.ts`), also for an untitled note. It uses the language
+ * that the account reported last. Thus, the same reminder reads the same,
+ * whether the app or the server fired it.
  */
 function notificationOf(locale: MailLocale): { title: string; body: string } {
-  // The note's title and text are sealed, and the server has no key: this
-  // is what a device without one shows.
+  // The title and the text of the note are sealed, and the server has no key. A
+  // device without a key shows this.
   return { title: UNTITLED[locale], body: "" };
 }
 
 /**
- * The message with what the reminder is about, sealed as the note holds it:
- * the title, the excerpt (the first of the text, which every client that
- * saves a note saves beside it) and the reader's own wrapped copy of the
- * note key. The browser opens them with the account key it keeps while
- * signed in. Left off when the reader holds no current key, and trimmed to
- * what a push service takes: the excerpt goes first, then the title.
+ * The message with what the reminder is about, sealed as the note has it: the
+ * title, the excerpt (the start of the text, which each client that saves a
+ * note saves with it), and the own wrapped copy of the note key of the reader.
+ * The browser opens them with the account key that it keeps while it is signed
+ * in. Not included when the reader has no current key. Made smaller to what a
+ * push service accepts: the excerpt goes first, then the title.
  */
 function withSealed(message: ReminderPush, note: SealedNote): ReminderPush {
   if (note.key === "") return message;
@@ -70,8 +74,8 @@ function withSealed(message: ReminderPush, note: SealedNote): ReminderPush {
 }
 
 /**
- * Whether the server should fire this reminder now: due for longer than the
- * grace, not yet stale, and not fired already for this occurrence.
+ * If the server must fire this reminder now: due for longer than the grace
+ * time, not too old yet, and not already fired for this occurrence.
  */
 export function isDueForPush(reminder: NoteReminder, now: number): boolean {
   if (reminder.recurrence === "none" && reminder.lastFiredAt) return false;
@@ -93,20 +97,23 @@ export interface PushRemindersDeps {
 }
 
 /**
- * One pass: for everyone with a subscribed browser, every reminder that came
- * due and that none of their devices fired is sent as a push and then moved
- * on, exactly as a client firing it would have moved it (the next occurrence,
- * or `lastFiredAt` for one that does not repeat). The write is what stops the
- * next pass, and every open client, from firing it again.
+ * One pass. For each person with a subscribed browser, the server sends as a
+ * push each reminder that is due and that none of their devices fired. Then it
+ * moves the reminder on, exactly as a client that fires it would move it (the
+ * next occurrence, or `lastFiredAt` for a reminder that does not repeat). The
+ * write stops the next pass, and each open client, from a second fire.
  *
- * Only accounts with a subscription are read at all, so a server nobody has
- * subscribed on does no work here.
+ * The pass reads only accounts with a subscription. Thus, a server on which
+ * nobody subscribed does no work here.
  */
 export async function pushDueReminders(deps: PushRemindersDeps): Promise<void> {
   const { storage, sender, noteEvents } = deps;
   const now = (deps.now ?? Date.now)();
   for (const userId of await storage.pushSubscriptions.userIds()) {
-    /** Looked up for the first reminder to send, which most passes lack. */
+    /**
+     * The code looks it up for the first reminder to send. Most passes have
+     * none.
+     */
     let locale: MailLocale | undefined;
     let cursor: string | undefined;
     do {
@@ -125,12 +132,13 @@ export async function pushDueReminders(deps: PushRemindersDeps): Promise<void> {
           ...(next ?? reminder),
           lastFiredAt: firedAt,
         };
-        // Written before anything is sent: a pass that dies half way must
-        // not leave a reminder to be pushed again on the next. And only if
-        // the note is still as this pass read it: the sends below can take
-        // long enough for a client, the next pass or another process to
-        // have fired or edited the reminder since, and whoever wrote first
-        // has it. A note changed some other way is met again next pass.
+        // Written before anything is sent. A pass that stops halfway must not
+        // leave a reminder that the next pass pushes again. The write occurs
+        // only if the note is still as this pass read it. The sends below can
+        // take long enough for a client, the next pass or a different process
+        // to fire or edit the reminder in the meantime, and the first writer
+        // gets it. The next pass handles a note that changed in a different
+        // way.
         const written = await storage.notes.update(
           note.id,
           userId,

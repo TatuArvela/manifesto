@@ -41,7 +41,7 @@ function toTeam(team: StoredTeam): Team {
   };
 }
 
-/** `GET /api/v1/teams`: the teams the signed-in user is in, to share with. */
+/** `GET /api/v1/teams`: the teams of the signed-in user, for a share. */
 export function createTeamRoutes(deps: { storage: StorageDriver }) {
   const routes: AuthedApp = new Hono();
 
@@ -54,9 +54,9 @@ export function createTeamRoutes(deps: { storage: StorageDriver }) {
 }
 
 /**
- * `/api/v1/notes/:id/team-shares`: the teams a note is shared with, managed by
- * its owner, who may share only with a team they are in. What that does for
- * each member is `sharing/teamShares.ts`.
+ * `/api/v1/notes/:id/team-shares`: the teams with which a note is shared,
+ * managed by its owner. The owner can share only with a team that they are in.
+ * `sharing/teamShares.ts` tells what that does for each member.
  */
 export function registerTeamShareRoutes(notes: AuthedApp, deps: TeamDeps) {
   const { storage, teamShares } = deps;
@@ -103,7 +103,7 @@ export function registerTeamShareRoutes(notes: AuthedApp, deps: TeamDeps) {
       if (note.readonly) {
         throw new HttpError(422, "Automatic notes cannot be shared");
       }
-      // Only your own teams: nobody else's are yours to see or to fill.
+      // Only your own teams. You cannot see or fill the teams of other persons.
       const members = await storage.teams.members(teamId);
       if (!members.includes(userId)) {
         throw new HttpError(404, "Team not found");
@@ -162,10 +162,10 @@ export function registerTeamShareRoutes(notes: AuthedApp, deps: TeamDeps) {
 }
 
 /**
- * `/api/v1/admin/teams`: every team, made, renamed, filled and removed by an
- * admin. An `oidc` team's members are the identity provider's and cannot be
- * set here; it can be renamed only there, so not here either. Registered on
- * the admin router, behind its session-only admin check.
+ * `/api/v1/admin/teams`: all teams, which an admin makes, renames, fills and
+ * removes. The identity provider owns the members of an `oidc` team. You cannot
+ * set them here. You can rename it only there. Thus, also not here. Registered
+ * on the admin router, behind its session-only admin check.
  */
 export function registerAdminTeamRoutes(admin: AuthedApp, deps: TeamDeps) {
   const { storage, teamShares } = deps;
@@ -192,8 +192,10 @@ export function registerAdminTeamRoutes(admin: AuthedApp, deps: TeamDeps) {
     return team;
   }
 
-  /** Refuses a member list naming someone who does not exist. Called before
-   * anything is written, so a refused request leaves no team or name behind. */
+  /**
+   * Refuses a member list that names a person who does not exist. Called before
+   * anything is written. Thus, a refused request leaves no team or name behind.
+   */
   async function checkMembers(wanted: string[]): Promise<void> {
     for (const id of new Set(wanted)) {
       if (!(await storage.users.findById(id))) {
@@ -203,10 +205,10 @@ export function registerAdminTeamRoutes(admin: AuthedApp, deps: TeamDeps) {
   }
 
   /**
-   * Brings a team's members to `wanted`, through joined/left. Each change is
-   * its own audit entry, written as it is made: joining a team is an
-   * invitation to every note shared with it, so who was put in which has to
-   * be on record, and a run that fails halfway has recorded what it did.
+   * Makes the members of a team the same as `wanted`, through joined/left. Each
+   * change is its own audit entry, written when it is made. To join a team is
+   * an invitation to each note shared with it. Thus, the record must show who
+   * was put in which team, and a run that fails halfway recorded what it did.
    */
   async function setMembers(
     c: Context,
@@ -297,7 +299,7 @@ export function registerAdminTeamRoutes(admin: AuthedApp, deps: TeamDeps) {
         if (renamed === "exists") {
           throw new HttpError(409, "A team by that name already exists");
         }
-        // A rename, with both names: people share with a team by its name.
+        // A rename, with both names. People share with a team by its name.
         audit(storage, c, {
           action: "admin.team_updated",
           actorId: c.get("auth").userId,
@@ -313,11 +315,11 @@ export function registerAdminTeamRoutes(admin: AuthedApp, deps: TeamDeps) {
 
   admin.delete("/teams/:id", async (c) => {
     const team = await found(c.req.param("id") as string);
-    // Its members lose what came through it before it goes, and the notes
-    // pass to another team they share where there is one.
+    // Its members lose what came through it before it goes. The notes go to a
+    // different team that they share, if there is one.
     await teamShares.dissolve(team.id);
     await storage.teams.delete(team.id);
-    // A note shared with it, or a member put in it, while it was going.
+    // A note shared with it, or a member put in it, while it was in removal.
     await teamShares.settle(team.id);
     audit(storage, c, {
       action: "admin.team_deleted",

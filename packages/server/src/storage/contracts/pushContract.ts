@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageDriver, StoredPushSubscription } from "#/storage/types.ts";
 
 /**
- * Push subscriptions and the server's own secrets, the same in both drivers:
- * an endpoint belongs to whoever saved it last, failures are counted and
- * cleared, and a secret is made once.
+ * Push subscriptions and the own secrets of the server, the same in both
+ * drivers: an endpoint belongs to the last person who saved it, failures are
+ * counted and cleared, and a secret is made one time.
  */
 
 const T0 = "2026-04-01T00:00:00.000Z";

@@ -64,7 +64,7 @@ describe("admin setup checks", () => {
     return (await res.json()) as AdminChecksResponse;
   }
 
-  /** The server's first account, so its admin; its token. */
+  /** The first account of the server, thus its admin. Its token. */
   async function register(
     server: { request: TestRig["request"] },
     email: string | null,
@@ -131,7 +131,7 @@ describe("admin setup checks", () => {
   });
 
   it("has no backup check on Postgres, whose backups are its own", async () => {
-    // The check reads only the setting, so SQLite storage stands in.
+    // The check reads only the setting. Thus, SQLite storage is sufficient.
     storage = await createStorage(TEST_CONFIG);
     const cfg: ServerConfig = { ...TEST_CONFIG, storageDriver: "postgres" };
     const { app } = createApp({

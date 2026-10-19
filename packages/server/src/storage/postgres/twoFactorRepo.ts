@@ -3,8 +3,10 @@ import { rowToTotp } from "#/storage/sqlite/twoFactorRepo.ts";
 import type { TwoFactorRepo } from "#/storage/types.ts";
 import type { PgPool } from "./database.ts";
 
-/** See the SQLite copy. `begin` reads before it writes rather than using a
- * conditional upsert, which pg-mem does not parse. */
+/**
+ * See the SQLite copy. `begin` reads before it writes, and does not use a
+ * conditional upsert, which pg-mem does not parse.
+ */
 export function createPostgresTwoFactorRepo(pool: PgPool): TwoFactorRepo {
   return {
     async get(userId) {

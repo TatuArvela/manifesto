@@ -18,8 +18,8 @@ interface OidcAuthProviderDeps {
   storage: StorageDriver;
   cfg: ServerConfig;
   oidc: OidcConfig;
-  // Test seam: lets tests inject a stubbed openid-client without going through
-  // real discovery against a network.
+  // Test seam: lets tests inject a stub of openid-client, without real
+  // discovery against a network.
   discoveryClient?: OidcDiscoveryClient;
 }
 

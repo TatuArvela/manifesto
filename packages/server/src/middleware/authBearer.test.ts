@@ -6,9 +6,10 @@ import { createAuthMiddleware } from "./authBearer.ts";
 import { onError } from "./error.ts";
 
 /**
- * A token reaches a route only through the scope `OPERATIONS` names for it,
- * so these run the middleware against routes the document does and does not
- * describe, with a provider that answers whatever identity the test asks for.
+ * A token reaches a route only through the scope that `OPERATIONS` names for
+ * it. Thus, these tests run the middleware against routes that the document
+ * describes and does not describe, with a provider that answers the identity
+ * that the test asks for.
  */
 function appFor(identity: Omit<AuthIdentity, "token">) {
   const provider: AuthProvider = {

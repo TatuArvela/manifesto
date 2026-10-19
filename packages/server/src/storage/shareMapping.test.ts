@@ -17,10 +17,11 @@ import {
 } from "./shareMapping.ts";
 
 /**
- * Where a recipient's write of each field lands. Keyed on every field of
- * `SealedNoteUpdate`, so a field added to a note fails the typecheck here until
- * someone decides whether recipients may write it; without that decision it
- * falls to the owner alone and every recipient's write of it is refused.
+ * Where a write of each field by a recipient goes. The keys are all fields of
+ * `SealedNoteUpdate`. Thus, if you add a field to a note, the typecheck fails
+ * here until a person decides if recipients can write it. Without that
+ * decision, it belongs only to the owner, and the server refuses each write of
+ * it by a recipient.
  */
 const WHERE: Record<
   keyof Required<SealedNoteUpdate>,
@@ -44,7 +45,7 @@ const WHERE: Record<
   tags: "personal",
   reminder: "personal",
   reminderKey: "personal",
-  // Auto-note markers, the stamp the server writes itself, and the note
+  // Auto-note markers, the stamp that the server writes itself, and the note
   // key, which only its owner replaces.
   readonly: "owner",
   source: "owner",
@@ -105,8 +106,8 @@ describe("splitChanges", () => {
   });
 
   it("skips a field whose value is undefined, and keeps null and false", () => {
-    // Past the types, which no longer let a key hold `undefined`: the check
-    // is for a caller that builds its changes some other way.
+    // After the types, which do not let a key contain `undefined` now. The
+    // check is for a caller that builds its changes in a different way.
     const split = splitChanges({
       title: undefined,
       reminder: null,
@@ -230,7 +231,8 @@ describe("rowToViewNote", () => {
         s_archived: 1,
         s_trashed: 0,
         s_position: "3.5",
-        // The columns' defaults, for a colour and tags never set.
+        // The defaults of the columns, for a color and tags that were never
+        // set.
         s_color: "default",
         s_tags: "[]",
         s_reminder: null,
@@ -241,7 +243,8 @@ describe("rowToViewNote", () => {
     expect(note).toMatchObject({
       title: ciphertext("Title"),
       content: ciphertext("Body"),
-      // Their own copy of the key, and nothing of the owner's colour or tags.
+      // Their own copy of the key, and nothing of the color or tags of the
+      // owner.
       key: ciphertext("recipient's key"),
       color: "",
       pinned: false,
@@ -273,7 +276,7 @@ describe("rowToViewNote", () => {
     );
     expect(behind.key).toBe("");
     expect(behind.offered).toEqual(offered);
-    // An offer for a key the note is no longer under opens nothing.
+    // An offer for a key that is not the current key of the note opens nothing.
     const stale = rowToViewNote(
       row({
         key_version: 3,
@@ -366,7 +369,7 @@ describe("attachSharing", () => {
       id: "team1",
       name: "Crew",
     });
-    // A member with no display name goes by their username.
+    // A member with no display name uses their username.
     expect(note?.sharing?.members[2]?.displayName).toBe("bob");
   });
 

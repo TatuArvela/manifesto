@@ -36,31 +36,35 @@ import {
 } from "#/storage/types.ts";
 import type { SqliteDB } from "./database.ts";
 
-/** Everything a reader is sent: the attachment references are the server's
- * own record and stay behind. */
+/**
+ * All that a reader gets. The attachment references are the own record of the
+ * server, and stay.
+ */
 const LIST_COLUMNS = INSERT_COLUMNS.filter(
   (c) => c !== "images" && c !== "preview_refs" && c !== "image_count",
 );
 
 /**
- * Ordered by `updated_at DESC, id DESC`, so a cursor is a place in a total
- * order rather than a timestamp two notes might share. Written as two
- * comparisons rather than a row value because pg-mem, which the parallel
- * Postgres suite runs on, does not parse `(a, b) < (c, d)`, and both drivers
- * should be reading the same shape of query.
+ * In the order `updated_at DESC, id DESC`. Thus, a cursor is a position in a
+ * total order, not a timestamp that two notes can share. Written as two
+ * comparisons, not as a row value, because pg-mem, on which the parallel
+ * Postgres suite runs, does not parse `(a, b) < (c, d)`, and both drivers must
+ * read the same shape of query.
  */
 const PAGE_ORDER = `ORDER BY n.updated_at DESC, n.id DESC LIMIT @limit`;
 const AFTER_CURSOR = `AND (n.updated_at < @afterUpdatedAt
   OR (n.updated_at = @afterUpdatedAt AND n.id < @afterId))`;
-/** Row or members changed after `@since`; see `members_changed_at`. */
+/** The row or the members changed after `@since`. See `members_changed_at`. */
 const CHANGED = `AND (n.updated_at > @since OR n.members_changed_at > @since)`;
 
-/** The user's own notes. */
+/** The own notes of the user. */
 const OWN_FROM = `SELECT ${LIST_COLUMNS.map((c) => `n.${c}`).join(", ")}
   FROM notes n WHERE n.user_id = @userId`;
 
-/** Notes shared with the user that they accepted and the owner has not
- * trashed, with their personal columns alongside. */
+/**
+ * Notes shared with the user that they accepted and the owner did not put in
+ * the trash, with their personal columns next to them.
+ */
 const SHARED_FROM = `SELECT ${LIST_COLUMNS.map((c) => `n.${c}`).join(", ")},
   ${SHARE_OVERLAY_COLUMNS}
   FROM note_shares s JOIN notes n ON n.id = s.note_id
@@ -122,8 +126,9 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     `DELETE FROM notes WHERE id = ? AND user_id = ?`,
   );
 
-  /** The notes as `viewerId` sees them, with `sharing` where they have
-   * members. */
+  /**
+   * The notes as `viewerId` sees them, with `sharing` where they have members.
+   */
   function view(rows: ViewRow[], viewerId: string): SealedNote[] {
     const notes = rows.map((row) => rowToViewNote(row));
     if (rows.length === 0) return notes;
@@ -150,7 +155,7 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     return attachSharing(rows, notes, viewerId, members, users);
   }
 
-  /** Narrows a listing to changes (`since`). */
+  /** Limits a listing to changes (`since`). */
   type Filter = { since: string } | null;
 
   function page(
@@ -158,8 +163,8 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     filter: Filter,
     { limit, cursor }: ListNotesOptions,
   ): NotePage {
-    // Both halves over-fetch by one, so the presence of a next page is a fact
-    // about the rows rather than a second COUNT query.
+    // Both halves get one row more than necessary. Thus, the presence of a next
+    // page is a fact about the rows, not a second COUNT query.
     const after = cursor ? decodeCursor(cursor) : null;
     const params = {
       userId,
@@ -192,9 +197,9 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
      WHERE token = ? AND note_id = ? AND mode = 'live'`,
   );
   /**
-   * The note, its feeds and its live links move to the new key as one
-   * transaction: a link left on the old key would stop opening, with nothing
-   * left to say so.
+   * The note, its feeds and its live links move to the new key in one
+   * transaction. A link left on the old key would stop to open, and nothing
+   * would tell this.
    */
   const rekeyTx = db.transaction(
     (
@@ -224,7 +229,7 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
           expectedUpdatedAt,
         ]);
       if (info.changes === 0) return false;
-      // Every feed's copy of the key is of the one before.
+      // The copy of the key of each feed is of the previous key.
       clearFeedKeysStmt.run(id);
       for (const link of links) {
         rewrapStmt.run(link.wrappedKey, link.token, id);
@@ -233,9 +238,10 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
     },
   );
   /**
-   * A recipient's write, as one transaction: their role is read and the note's
-   * `updated_at` compared in the same lock that writes both rows, so a share
-   * revoked or downgraded a moment earlier cannot slip one past.
+   * A write by a recipient, as one transaction. The code reads their role and
+   * compares the `updated_at` of the note in the same lock that writes both
+   * rows. Thus, a share that was revoked or downgraded a moment earlier cannot
+   * let a write through.
    */
   const recipientUpdate = db.transaction(
     (
@@ -378,19 +384,19 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
         (column) => `${column} = ?`,
       );
       const params = [...values, updatedAt, id, userId];
-      // Compare-and-set on `updated_at` when the caller passed `If-Match`;
-      // collapses the prior read-then-write race into a single atomic write.
+      // A compare-and-set on `updated_at` when the caller sent `If-Match`. This
+      // changes the old race of a read and a write into one atomic write.
       let where = `WHERE id = ? AND user_id = ?`;
       if (expectedUpdatedAt !== undefined) {
         where += ` AND updated_at = ?`;
         params.push(expectedUpdatedAt);
       }
-      // And on the key the words were sealed under, for the same reason.
+      // Also on the key under which the words were sealed, for the same reason.
       if (expectedKeyVersion !== undefined) {
         where += ` AND key_version = ?`;
         params.push(expectedKeyVersion);
       }
-      // And on the format the words are in: see `formatCondition`.
+      // Also on the format of the words: see `formatCondition`.
       const format = formatCondition(changes);
       if (format) {
         where += ` AND format ${format.op} ?`;

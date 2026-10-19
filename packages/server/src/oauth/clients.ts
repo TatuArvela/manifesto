@@ -2,35 +2,41 @@ import { safeFetch } from "#/linkPreview/safeFetch.ts";
 import type { StorageDriver } from "#/storage/types.ts";
 import { redirectUriProblem } from "./redirectUris.ts";
 
-/** An OAuth client as the consent page and the token endpoint need it. */
+/** An OAuth client, as the consent page and the token endpoint need it. */
 export interface ResolvedClient {
   id: string;
   name: string;
-  /** The host whose metadata document names the client, or null for one
-   * that registered itself here and vouches only for itself. */
+  /**
+   * The host whose metadata document names the client, or null for a client
+   * that registered itself here and vouches only for itself.
+   */
   publisher: string | null;
   redirectUris: string[];
 }
 
-/** Reads a client's metadata document: its parsed JSON, or a throw. */
+/** Reads the metadata document of a client: its parsed JSON, or a throw. */
 export type ClientMetadataFetcher = (url: URL) => Promise<unknown>;
 
 export const MAX_CLIENT_NAME_LENGTH = 100;
 
-/** What a client that names itself nothing is called in Settings. */
+/** The name in Settings for a client that gives itself no name. */
 export const UNNAMED_CLIENT = "MCP client";
 
-/** How big a metadata document may be; the draft asks for no more than 5 KB. */
+/** The maximum size of a metadata document. The draft asks for 5 KB or less. */
 const MAX_METADATA_BYTES = 5 * 1024;
 
-/** How long a fetched document stands for its client, and how many are kept. */
+/**
+ * How long a fetched document stays valid for its client, and how many are
+ * kept.
+ */
 const METADATA_TTL_MS = 5 * 60 * 1000;
 const MAX_CACHED = 256;
 
 /**
  * A client that identifies itself by the address of its own metadata document
- * (a Client ID Metadata Document, the MCP specification's preferred way): an
- * `https` address with a path, which the server reads rather than stores.
+ * (a Client ID Metadata Document, the preferred method of the MCP
+ * specification): an `https` address with a path, which the server reads and
+ * does not store.
  */
 export function isMetadataDocumentId(clientId: string): boolean {
   if (!clientId.startsWith("https://")) return false;
@@ -50,9 +56,9 @@ export function isMetadataDocumentId(clientId: string): boolean {
 }
 
 /**
- * Production's fetcher: the document is on an address the client chose, so
- * it goes through the same guard as a link preview and reaches only public
- * addresses, without following redirects.
+ * The fetcher of production. The document is on an address that the client
+ * selected. Thus, it goes through the same guard as a link preview, reaches
+ * only public addresses, and does not follow redirects.
  */
 export const fetchClientMetadata: ClientMetadataFetcher = async (url) => {
   const fetched = await safeFetch(url, {
@@ -65,14 +71,18 @@ export const fetchClientMetadata: ClientMetadataFetcher = async (url) => {
   return JSON.parse(fetched.body.toString("utf8"));
 };
 
-/** The client a document describes, or null if it describes none properly. */
+/**
+ * The client that a document describes, or null if it does not describe one
+ * correctly.
+ */
 function clientFromDocument(
   clientId: string,
   doc: unknown,
 ): ResolvedClient | null {
   if (typeof doc !== "object" || doc === null) return null;
   const record = doc as Record<string, unknown>;
-  // A document served at one address that claims another is not that client.
+  // A document served at one address that claims a different address is not
+  // that client.
   if (record.client_id !== clientId) return null;
   const method = record.token_endpoint_auth_method;
   if (method !== undefined && method !== "none") return null;
@@ -97,9 +107,10 @@ function clientFromDocument(
 }
 
 /**
- * Finds the client behind a `client_id`: a registered one in storage, or a
- * metadata document read (and kept a few minutes) from the address it is.
- * Null for one that cannot be found or does not describe itself properly.
+ * Finds the client of a `client_id`: a registered client in storage, or a
+ * metadata document read (and kept for a few minutes) from its address. Null
+ * for a client that the server cannot find, or that does not describe itself
+ * correctly.
  */
 export function createClientResolver(deps: {
   storage: StorageDriver;
@@ -127,15 +138,15 @@ export function createClientResolver(deps: {
     try {
       doc = await fetchMetadata(new URL(clientId));
     } catch {
-      // Refused, unreachable, too big or not JSON: all the same to the user,
-      // who is told the app cannot be found.
+      // Refused, not available, too large or not JSON: these are all the same
+      // for the user, who learns that the server cannot find the app.
       return null;
     }
     const client = clientFromDocument(clientId, doc);
     if (!client) return null;
     cache.delete(clientId);
     cache.set(clientId, { client, at: now });
-    // Insertion order is age order, so the first is the oldest.
+    // The insertion order is the age order. Thus, the first is the oldest.
     if (cache.size > MAX_CACHED) {
       const oldest = cache.keys().next().value;
       if (oldest !== undefined) cache.delete(oldest);

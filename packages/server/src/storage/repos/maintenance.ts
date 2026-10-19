@@ -1,7 +1,7 @@
 import type { AuditAction } from "@manifesto/shared";
 import type { NoteShare } from "./sharing.ts";
 
-// The server's own housekeeping: cleanup, stats and the audit log.
+// The own housekeeping of the server: cleanup, stats and the audit log.
 
 export interface ExpiredTrashedNote {
   id: string;
@@ -18,8 +18,10 @@ export interface ServerStats {
     attachmentBytes: number;
     versions: number;
   };
-  /** Every account with what it holds; attachments are counted under the
-   * notes' owner. */
+  /**
+   * Each account with what it contains. Attachments count under the owner of
+   * the notes.
+   */
   perUser: {
     userId: string;
     notes: number;
@@ -33,17 +35,17 @@ export interface MaintenanceRepo {
   stats(): Promise<ServerStats>;
   cleanupTrashedBefore(cutoffIso: string): Promise<ExpiredTrashedNote[]>;
   /**
-   * Remove shares their recipients put in their own trash before the cutoff,
-   * returning what was removed. The note stays with its owner and everyone
-   * else; for the recipient it is gone, as a note of their own would be.
+   * Remove the shares that their recipients put in their own trash before the
+   * cutoff, and return what was removed. The note stays with its owner and all
+   * other persons. For the recipient it is gone, as their own note would be.
    */
   cleanupTrashedSharesBefore(cutoffIso: string): Promise<NoteShare[]>;
   /**
-   * Passes every value of one column to `rewrite` and stores what it
-   * answers, leaving alone the rows it answers null for. For moving what is
-   * under the server key to another (`moveToCurrentKey`); the table, its
-   * primary key and the column are names from `AT_REST_COLUMNS`, never a
-   * caller's input. Returns how many rows were rewritten.
+   * Gives each value of one column to `rewrite`, and stores the answer. It does
+   * not change the rows for which the answer is null. This is to move what is
+   * under the server key to a different key (`moveToCurrentKey`). The table,
+   * its primary key and the column are names from `AT_REST_COLUMNS`, never
+   * input from a caller. Returns the number of rows that it wrote again.
    */
   rewriteColumn(
     table: string,
@@ -66,7 +68,7 @@ export interface AuditRecord {
 
 export interface AuditListOptions {
   limit: number;
-  /** Entries older than this id (ids are ULIDs, so they sort by time). */
+  /** Entries older than this id (ids are ULIDs. Thus, they sort by time). */
   before?: string | undefined;
   /** Entries where this account is the actor or the target. */
   userId?: string | undefined;

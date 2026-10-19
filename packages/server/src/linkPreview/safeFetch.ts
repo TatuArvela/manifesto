@@ -7,33 +7,38 @@ import zlib from "node:zlib";
 import { isPublicAddress } from "./addressPolicy.ts";
 
 export interface SafeFetchOptions {
-  /** Most bytes to read, after decompression. */
+  /** The maximum bytes to read, after decompression. */
   maxBytes: number;
   /**
-   * What to do with a body longer than `maxBytes`: a page's metadata is at the
-   * top, so its first bytes are still useful, while a cut-off image is not.
+   * What to do with a body longer than `maxBytes`. The metadata of a page is at
+   * the top. Thus, its first bytes are still useful. A cut-off image is not.
    */
   overflow: "truncate" | "refuse";
   accept: string;
-  /** Deadline for the whole exchange: DNS, every redirect, and the body. */
+  /** The deadline for the full exchange: DNS, each redirect, and the body. */
   timeoutMs?: number;
   maxRedirects?: number;
-  /** Test seam. Production refuses anything but public addresses. */
+  /** Test seam. Production refuses all addresses that are not public. */
   isAllowedAddress?: ((address: string) => boolean) | undefined;
-  /** Test seam. Production accepts only a scheme's default port. */
+  /** Test seam. Production accepts only the default port of a scheme. */
   allowAnyPort?: boolean;
-  /** GET unless given. A request with a body is never redirected: a 3xx is
-   * returned as it is, since resending a body elsewhere is not the caller's
-   * to assume. */
+  /**
+   * GET, unless a different method is given. A request with a body is never
+   * redirected. A 3xx returns as it is, because the caller did not ask to send
+   * a body to a different place.
+   */
   method?: "GET" | "POST";
   body?: Buffer;
   headers?: Record<string, string>;
-  /** Which final statuses count as success; 200 only unless given. */
+  /**
+   * The final statuses that count as success. Only 200, unless others are
+   * given.
+   */
   acceptStatus?: (status: number) => boolean;
 }
 
 export interface FetchedResource {
-  /** Where the body actually came from, after redirects. */
+  /** The real source of the body, after redirects. */
   url: URL;
   status: number;
   contentType: string;
@@ -41,7 +46,7 @@ export interface FetchedResource {
 }
 
 export class FetchRefused extends Error {
-  /** The HTTP status, when refused for one. */
+  /** The HTTP status, when the refusal is for a status. */
   constructor(
     message: string,
     readonly status?: number,
@@ -57,14 +62,14 @@ const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_MAX_REDIRECTS = 5;
 
 /**
- * GET a user-supplied URL without letting it reach anything private.
+ * GET a URL that a user supplied, without access to anything private.
  *
- * The address is checked after DNS resolution and the connection is then made
- * to that exact address, through `lookup`, rather than handing the hostname to
- * the HTTP client to resolve again. Resolving twice would let a hostname answer
- * with a public address for the check and a private one for the connection
- * (DNS rebinding). Every redirect goes through the same check, since a public
- * page can redirect anywhere.
+ * The code checks the address after DNS resolution. Then it makes the
+ * connection to that exact address, through `lookup`. It does not give the
+ * hostname to the HTTP client to resolve again. A second resolution would let a
+ * hostname answer with a public address for the check and a private address for
+ * the connection (DNS rebinding). Each redirect goes through the same check,
+ * because a public page can redirect to any place.
  */
 export async function safeFetch(
   url: URL,
@@ -102,8 +107,8 @@ export async function safeFetch(
       };
     }
   } catch (err) {
-    // The HTTP client reports an abort as its own generic error; the reason
-    // given to `abort()` is the one that says what happened.
+    // The HTTP client reports an abort as its own generic error. The reason
+    // given to `abort()` tells what occurred.
     throw controller.signal.aborted ? controller.signal.reason : err;
   } finally {
     clearTimeout(timer);
@@ -125,8 +130,8 @@ async function request(
     throw new FetchRefused("Only default ports are fetched");
   }
   const address = await resolveAllowed(url.hostname, options, signal);
-  // The one address that passed the check is the only one this socket may
-  // use, whatever the hostname would resolve to by now.
+  // The one address that passed the check is the only address that this socket
+  // can use, whatever the hostname resolves to now.
   const pinnedLookup: LookupFunction = (_hostname, lookupOptions, callback) => {
     const family = isIP(address);
     if (lookupOptions.all) {
@@ -169,8 +174,8 @@ async function resolveAllowed(
     : (
         await abortable(dnsLookup(bare, { all: true, verbatim: true }), signal)
       ).map((entry) => entry.address);
-  // Every answer must pass, not just the first: which one a later lookup
-  // would have used is not something to leave to chance.
+  // Each answer must pass, not only the first. Do not let chance decide which
+  // answer a later lookup uses.
   const [first] = addresses;
   if (first === undefined || !addresses.every(isAllowed)) {
     throw new FetchRefused("Address is not public");
@@ -204,9 +209,9 @@ function decoded(res: IncomingMessage): Readable {
 }
 
 /**
- * Reads at most `maxBytes` of the decompressed body. The limit is applied to
- * what comes out of the decompressor, not to what goes in, so a small
- * compressed response cannot expand into gigabytes in memory.
+ * Reads a maximum of `maxBytes` of the decompressed body. The limit applies to
+ * the output of the decompressor, not to its input. Thus, a small compressed
+ * response cannot expand into gigabytes in memory.
  */
 async function readBody(
   res: IncomingMessage,

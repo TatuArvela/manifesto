@@ -23,7 +23,7 @@ import type { StorageDriver } from "#/storage/types.ts";
 import { isMetadataDocumentId } from "./clients.ts";
 import { ACCESS_TOKEN_SECONDS, earlier, namesMcp, plusMs } from "./grants.ts";
 
-/** An error in the shape RFC 6749 gives a token endpoint. */
+/** An error in the shape that RFC 6749 gives a token endpoint. */
 export const oauthError = (
   c: Context,
   status: 400 | 401,
@@ -40,16 +40,18 @@ interface TokenEndpointDeps {
 }
 
 /**
- * `POST /api/v1/oauth/token`, the assistant's, with no session: a code from a
- * consent traded for a grant (PKCE-checked), or a refresh token traded for
- * the next pair. A refresh token used a second time has been copied, and
- * ends the grant.
+ * `POST /api/v1/oauth/token`, for the assistant, with no session. It trades a
+ * code from a consent for a grant (with a PKCE check), or a refresh token for
+ * the next pair. A refresh token used a second time was copied, and ends the
+ * grant.
  */
 export function createTokenEndpoint(deps: TokenEndpointDeps) {
   const { storage } = deps;
 
-  /** The client id of HTTP Basic credentials, which some clients send even
-   * without a secret. */
+  /**
+   * The client id of HTTP Basic credentials, which some clients send also
+   * without a secret.
+   */
   function basicClientId(c: Context): string | undefined {
     const header = c.req.header("Authorization");
     if (!header?.startsWith("Basic ")) return undefined;
@@ -63,11 +65,11 @@ export function createTokenEndpoint(deps: TokenEndpointDeps) {
   }
 
   /**
-   * A grant's keys, moved from the secret that is being spent to the two
-   * that replace it. The server holds them readable for this one step, as it
-   * does whenever the grant is used. Nothing to move for a grant without
-   * keys; `unreadable` when what is stored does not open with the secret
-   * presented, which a real code or refresh token always does.
+   * The keys of a grant, moved from the secret that is used now to the two
+   * secrets that replace it. The server keeps them readable for this one step,
+   * as it does each time the grant is used. There is nothing to move for a
+   * grant without keys. `unreadable` when the stored data does not open with
+   * the given secret. A real code or refresh token always opens it.
    */
   async function rewrapped(
     wrapped: string | null,
@@ -137,8 +139,9 @@ export function createTokenEndpoint(deps: TokenEndpointDeps) {
     if (redirectUri !== undefined && redirectUri !== stored.redirectUri) {
       return invalid();
     }
-    // PKCE: only whoever started the sign-in holds the verifier, so a code
-    // caught on its way back through the browser is worth nothing.
+    // PKCE: only the person who started the sign-in has the verifier. Thus, a
+    // code that a person catches on its way back through the browser is worth
+    // nothing.
     const challenge = createHash("sha256").update(verifier).digest("base64url");
     if (
       !/^[A-Za-z0-9._~-]{43,128}$/.test(verifier) ||
@@ -150,8 +153,8 @@ export function createTokenEndpoint(deps: TokenEndpointDeps) {
 
     const access = newApiToken(MCP_TOKEN_PREFIX);
     const refreshToken = newApiToken(REFRESH_TOKEN_PREFIX);
-    // The keys the consent wrapped under the code, wrapped again for the two
-    // tokens it becomes. The code's copy went with the code.
+    // The keys that the consent wrapped under the code, wrapped again for the
+    // two tokens that it becomes. The copy of the code went with the code.
     const carried = await rewrapped(
       stored.wrappedKeys,
       code,
@@ -218,8 +221,9 @@ export function createTokenEndpoint(deps: TokenEndpointDeps) {
     const hash = hashToken(refreshToken);
     const grant = await storage.apiTokens.findByRefreshHash(hash);
     if (!grant) {
-      // Replaced already, so two parties hold it: the assistant, and whoever
-      // copied it. Which is which cannot be told, so neither keeps the grant.
+      // It was already replaced. Thus, two parties have it: the assistant, and
+      // the person who copied it. The code cannot tell which is which. Thus,
+      // neither keeps the grant.
       const copied = await storage.apiTokens.findByPreviousRefreshHash(hash);
       if (copied) {
         await revokeApiToken(
@@ -246,8 +250,8 @@ export function createTokenEndpoint(deps: TokenEndpointDeps) {
       plusMs(now, ACCESS_TOKEN_SECONDS * 1000),
       grant.expiresAt,
     );
-    // The keys under the refresh token being spent, wrapped for the next
-    // pair; the copies under the tokens before them are written over.
+    // The keys under the refresh token that is used now, wrapped for the next
+    // pair. The copies under the previous tokens are written over.
     const carried = await rewrapped(
       grant.refreshWrappedKeys,
       refreshToken,
@@ -261,7 +265,7 @@ export function createTokenEndpoint(deps: TokenEndpointDeps) {
       accessExpiresAt,
       ...carried,
     });
-    // Another refresh with the same token won the race.
+    // A different refresh with the same token won the race.
     if (!rotated) return invalid();
     await storage.apiTokens.touch(grant.id, now);
     return tokenResponse(c, access, next, accessExpiresAt, grant.scopes);

@@ -14,14 +14,15 @@ import type { StorageDriver } from "#/storage/types.ts";
 import { type CalendarNote, remindersCalendar } from "./ics.ts";
 
 /**
- * `GET /api/v1/calendar/<token>.ics`: a user's reminders, for a calendar app to
- * subscribe to. A calendar app sends no header, so the secret is the address:
- * a `calendar` token (`mfc_`), minted in Settings, which opens this feed and
- * nothing else, and is listed, revocable and audited with the other tokens.
+ * `GET /api/v1/calendar/<token>.ics`: the reminders of a user, to which a
+ * calendar app subscribes. A calendar app sends no header. Thus, the secret is
+ * the address: a `calendar` token (`mfc_`), made in Settings. It opens this
+ * feed and nothing else. It is listed, revocable and audited with the other
+ * tokens.
  *
- * Any failure is the same 404, so an address that is wrong says nothing
- * about why. Calendar apps poll, some every few minutes, so the answer may be
- * kept five minutes.
+ * All failures are the same 404. Thus, a wrong address tells nothing about the
+ * reason. Calendar apps poll, some each few minutes. Thus, clients can keep the
+ * answer for five minutes.
  */
 export function createCalendarRoutes(deps: {
   storage: StorageDriver;
@@ -44,11 +45,12 @@ export function createCalendarRoutes(deps: {
     if (!user) throw notFound;
     await storage.apiTokens.touch(token.id, now);
 
-    // The address carries the account's reminder key, wrapped under a key
-    // made from the address itself: opened for this request and kept
-    // nowhere. It opens the notes that have a reminder, through the copy of
-    // each one's key their reader left for it, and no others. A note without
-    // that copy, or a feed made without a key, is named by the fallback.
+    // The address contains the reminder key of the account, wrapped under a key
+    // made from the address itself. The code opens it for this request, and
+    // keeps it nowhere. It opens the notes that have a reminder, through the
+    // copy of the key of each one that their reader left for it, and no other
+    // notes. A note without that copy, or a feed made without a key, gets the
+    // fallback name.
     const feed = token.wrappedKeys
       ? await unwrapFeedKey(secret, token.wrappedKeys)
       : null;
@@ -75,7 +77,7 @@ export function createCalendarRoutes(deps: {
       });
       for (const note of page.notes) {
         const { id, reminder, trashed } = note;
-        // Only a note the feed will show is opened.
+        // The code opens only a note that the feed will show.
         const words =
           reminder && !trashed ? await named(note) : { title: "", content: "" };
         notes.push({ id, reminder, trashed, ...words });

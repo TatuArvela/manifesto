@@ -19,7 +19,7 @@ export function pickAvatarColor(): string {
   ] as string;
 }
 
-/** The current user as the client is told about them. */
+/** The current user, as the client gets them. */
 export function toAuthUser(user: User): AuthUser {
   return {
     id: user.id,

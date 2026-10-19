@@ -1,13 +1,13 @@
 import type { Note, NoteReminder, ReminderRecurrence } from "@manifesto/shared";
 
 /**
- * A user's reminders as an iCalendar feed (RFC 5545), for a calendar app to
- * subscribe to: one event per note with a reminder, at its time in its
- * timezone, repeating as it does, with an alarm when it is due.
+ * The reminders of a user as an iCalendar feed (RFC 5545), to which a calendar
+ * app subscribes. There is one event for each note with a reminder, at its time
+ * in its timezone, with the same repetition, and an alarm when it is due.
  *
- * Written by hand rather than with a library: the feed is one read-only
- * calendar of simple events, and the rules that matter (escaping, line
- * folding, CRLF) fit on a page.
+ * We wrote it here, and did not use a library. The feed is one read-only
+ * calendar of simple events, and the important rules (escaping, line folding,
+ * CRLF) fit on a page.
  */
 
 const RRULES: Record<ReminderRecurrence, string | null> = {
@@ -19,11 +19,12 @@ const RRULES: Record<ReminderRecurrence, string | null> = {
 };
 
 /**
- * The RRULE for a reminder. `FREQ=MONTHLY` alone repeats on the start date
- * and skips a month that has none (RFC 5545 3.3.10), where the app fires on
- * the month's last day instead. So a monthly or yearly reminder past the 28th
- * asks for the last of the days from the 28th to its own (`BYSETPOS=-1`):
- * its day where the month has it, the month's last day where it does not.
+ * The RRULE for a reminder. `FREQ=MONTHLY` alone repeats on the start date, and
+ * skips a month that does not have it (RFC 5545 3.3.10). The app fires on the
+ * last day of the month in that case. Thus, a monthly or yearly reminder after
+ * the 28th asks for the last of the days from the 28th to its own day
+ * (`BYSETPOS=-1`): its day where the month has it, and the last day of the
+ * month where the month does not.
  */
 export function rruleOf(
   reminder: Pick<NoteReminder, "time" | "recurrence" | "day">,
@@ -42,11 +43,13 @@ export function rruleOf(
   return `${base}${month};BYMONTHDAY=${days};BYSETPOS=-1`;
 }
 
-/** How long an event is drawn; a reminder is a moment, but a calendar needs
- * something to show. */
+/**
+ * The duration of an event. A reminder is a moment, but a calendar needs
+ * something to show.
+ */
 const EVENT_DURATION = "PT15M";
 
-/** Most of a note's text put in an event's description. */
+/** The maximum amount of the text of a note in the description of an event. */
 const MAX_DESCRIPTION = 2000;
 
 /** TEXT values escape backslash, semicolon, comma and line breaks. */
@@ -59,8 +62,8 @@ export function escapeText(value: string): string {
 }
 
 /**
- * Folds a content line at 75 octets, as the RFC asks, continuing with a
- * space. Counted in UTF-8 bytes, and never inside a character.
+ * Folds a content line at 75 octets, as the RFC asks, and continues with a
+ * space. It counts UTF-8 bytes, and never breaks a character.
  */
 export function foldLine(line: string): string {
   const encoder = new TextEncoder();
@@ -90,14 +93,14 @@ function utcStamp(date: Date): string {
     .replace(/\.\d{3}/, "");
 }
 
-/** An IANA zone name as a TZID can carry it; anything else is refused. */
+/** An IANA zone name as a TZID can contain it. All other values are refused. */
 function safeTimezone(tz: string): string | null {
   return /^[A-Za-z][A-Za-z0-9_+\-/]{0,63}$/.test(tz) ? tz : null;
 }
 
 /**
  * DTSTART for a reminder: its wall-clock time in its timezone when both read
- * as they should, the moment in UTC when the time carries its own offset, and
+ * correctly, the moment in UTC when the time contains its own offset, and
  * nothing when it is neither.
  */
 function startOf(time: string, timezone: string): string | null {
@@ -108,8 +111,8 @@ function startOf(time: string, timezone: string): string | null {
     const [, y, mo, d, h, mi, s = "00"] = local;
     const stamp = `${y}${mo}${d}T${h}${mi}${s}`;
     const tz = safeTimezone(timezone);
-    // Without a zone the calendar shows it at that clock time wherever the
-    // reader is, which is what a reminder without one meant anyway.
+    // Without a zone, the calendar shows it at that clock time wherever the
+    // reader is. That is also the meaning of a reminder without a zone.
     return tz ? `DTSTART;TZID=${tz}:${stamp}` : `DTSTART:${stamp}`;
   }
   const moment = Date.parse(time);
@@ -134,17 +137,17 @@ function summaryOf(note: CalendarNote): string {
 }
 
 export interface CalendarOptions {
-  /** The calendar's name in the subscribing app. */
+  /** The name of the calendar in the app that subscribes. */
   name: string;
-  /** Written as each event's DTSTAMP. */
+  /** Written as the DTSTAMP of each event. */
   now: Date;
-  /** The app's address, for a link in each event; null for none. */
+  /** The address of the app, for a link in each event. Null for none. */
   appUrl: string | null;
-  /** What an untitled, empty note's event is called. */
+  /** The name of the event of an untitled, empty note. */
   untitled: string;
 }
 
-/** The feed: every note with a reminder that is not in the trash. */
+/** The feed: each note with a reminder that is not in the trash. */
 export function remindersCalendar(
   notes: CalendarNote[],
   options: CalendarOptions,

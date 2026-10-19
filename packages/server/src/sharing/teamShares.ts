@@ -5,51 +5,55 @@ import type { AccessChanges } from "./accessChanges.ts";
 import type { NoteEvents } from "./noteEvents.ts";
 
 /**
- * What sharing a note with a team means for each of its members.
+ * What a share of a note with a team means for each of its members.
  *
- * A team share is a `note_team_shares` row, and for each member an ordinary
- * `note_shares` row marked with the team it came through (`viaTeam`). It
- * arrives as an invitation, like a share to one person. Everything that
- * decides who may read or write a note keeps reading `note_shares` alone, so
- * this is the only place teams have to be understood.
+ * A team share is a `note_team_shares` row. For each member, it is a usual
+ * `note_shares` row marked with the team through which it came (`viaTeam`). It
+ * arrives as an invitation, as a share to one person. All code that decides who
+ * can read or write a note continues to read only `note_shares`. Thus, this is
+ * the only place that must understand teams.
  *
  * The rules, in one place:
- * - A share made to someone directly is never touched by a team: they are
- *   not invited again, their role is not changed, and they are not removed
- *   when the team share goes.
- * - Someone who has a note through two teams holds one share, through the
- *   first. When that team's share goes, or they leave that team, the share
- *   passes to the other team, with its role, instead of being taken away.
- * - Joining a team brings invitations to its notes; leaving it takes away
- *   what came through it. Declining, or leaving a note, is not undone by
- *   anything but joining again or the note being shared with the team again.
+ * - A team never changes a direct share. The person does not get a new
+ *   invitation, their role does not change, and they are not removed when the
+ *   team share goes.
+ * - A person who has a note through two teams has one share, through the first
+ *   team. When the share of that team goes, or they leave that team, the share
+ *   moves to the other team, with its role. It is not taken away.
+ * - When a person joins a team, they get invitations to its notes. When they
+ *   leave it, they lose what came through it. Only these undo a decline or a
+ *   leave: the person joins again, or the owner shares the note with the team
+ *   again.
  * - The owner is never a recipient of their own note.
  */
 export interface TeamShares {
-  /** Share a note with a team, inviting its members. `exists` if it already
-   * was, and `gone` if the team was removed meanwhile, with nobody invited. */
+  /**
+   * Share a note with a team, and invite its members. `exists` if it was
+   * already shared. `gone` if the team was removed in the meantime, with nobody
+   * invited.
+   */
   share(
     noteId: string,
     ownerId: string,
     teamId: string,
     role: ShareRole,
   ): Promise<"ok" | "exists" | "gone">;
-  /** Change the role a team has; its members' shares follow. */
+  /** Change the role of a team. The shares of its members follow. */
   setRole(noteId: string, teamId: string, role: ShareRole): Promise<boolean>;
-  /** Stop sharing a note with a team. False if it was not. */
+  /** Stop the share of a note with a team. False if there was none. */
   unshare(noteId: string, teamId: string): Promise<boolean>;
-  /** Someone joined a team: invite them to its notes. */
+  /** A person joined a team: invite them to its notes. */
   joined(teamId: string, userId: string): Promise<void>;
-  /** Someone left a team: take away what came through it. */
+  /** A person left a team: take away what came through it. */
   left(teamId: string, userId: string): Promise<void>;
-  /** Take a team's notes away from its members, before the team goes. */
+  /** Take the notes of a team away from its members, before the team goes. */
   dissolve(teamId: string): Promise<void>;
   /**
-   * End whatever still comes through a team that is gone. Removing a team
-   * takes several steps, and a note shared with it or a member put in it
-   * between two of them leaves shares `dissolve` never saw. Run after the
-   * team is deleted, and by whatever invited through it once it finds the
-   * team gone, so whichever of the two finishes last cleans up.
+   * End all that still comes through a team that is gone. The removal of a team
+   * has several steps. A note shared with it, or a member put in it, between
+   * two of them, leaves shares that `dissolve` never saw. Run this after the
+   * team is deleted, and also in the code that invited through the team when it
+   * finds the team gone. Thus, the code that finishes last cleans up.
    */
   settle(teamId: string): Promise<void>;
 }
@@ -80,9 +84,9 @@ export function createTeamShares(deps: {
   }
 
   /**
-   * A share that came through `teamId`, which no longer carries it. Passed to
-   * another team the note is shared with and the user is in, or ended.
-   * Returns the share when it ended.
+   * A share that came through `teamId`, which does not carry it now. It moves
+   * to a different team with which the note is shared and that the user is in,
+   * or it ends. Returns the share when it ended.
    */
   async function release(
     share: NoteShare,
@@ -93,7 +97,7 @@ export function createTeamShares(deps: {
       const members = await storage.teams.members(other.teamId);
       if (!members.includes(share.userId)) continue;
       await storage.shares.setViaTeam(share.noteId, share.userId, other.teamId);
-      // Removed while the share was on its way to it: try the next.
+      // Removed while the share was on its way to it. Try the next.
       if (!(await storage.teams.get(other.teamId))) continue;
       if (other.role !== share.role) {
         await applyRole(share, other.role);
@@ -103,7 +107,7 @@ export function createTeamShares(deps: {
     return storage.shares.delete(share.noteId, share.userId);
   }
 
-  /** A share's role changed: tell the member, as a direct change would. */
+  /** The role of a share changed. Tell the member, as for a direct change. */
   async function applyRole(share: NoteShare, role: ShareRole): Promise<void> {
     await storage.shares.setRole(share.noteId, share.userId, role);
     if (share.acceptedAt === null) {
@@ -149,7 +153,7 @@ export function createTeamShares(deps: {
     for (const noteId of noteIds) await noteEvents.changed(noteId);
   }
 
-  /** True, having settled it, when the team was removed meanwhile. */
+  /** True, after the settle, when the team was removed in the meantime. */
   async function settledIfGone(teamId: string): Promise<boolean> {
     if (await storage.teams.get(teamId)) return false;
     await settle(teamId);
@@ -190,9 +194,9 @@ export function createTeamShares(deps: {
     async joined(teamId, userId) {
       for (const shared of await storage.teams.notesOf(teamId)) {
         const audience = await storage.shares.audience(shared.noteId);
-        // A note in its owner's trash is invited to as well: the invitation
-        // stays out of view until the owner restores the note, which offers
-        // it then, as it does every pending invitation.
+        // A note in the trash of its owner also gets invitations. The
+        // invitation stays hidden until the owner restores the note. Then it
+        // shows, as all pending invitations do.
         if (!audience || audience.ownerId === userId) {
           continue;
         }

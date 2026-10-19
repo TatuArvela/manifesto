@@ -76,24 +76,26 @@ export interface AppDeps {
   storage: StorageDriver;
   authProvider: AuthProvider;
   broadcaster?: Broadcaster;
-  /** Where ended sessions are announced to the sockets. */
+  /** Where the server announces ended sessions to the sockets. */
   revocations?: SessionRevocations;
-  /** Where lost access to a note is announced to the sockets. */
+  /** Where the server announces lost access to a note to the sockets. */
   accessChanges?: AccessChanges;
-  /** Test seam: replaces the fetcher that reaches the network. */
+  /** Test seam: replaces the fetcher that connects to the network. */
   fetchLinkPreview?: LinkPreviewFetcher;
-  /** Test seam: which addresses webhooks may reach, and how fast they retry. */
+  /**
+   * Test seam: the addresses that webhooks can reach, and their retry speed.
+   */
   webhookAddressPolicy?: (address: string) => boolean;
   webhookRetryDelaysMs?: number[];
-  /** Test seam: which addresses push messages may reach, and on any port. */
+  /** Test seam: the addresses that push messages can reach, on any port. */
   pushAddressPolicy?: (address: string) => boolean;
-  /** Test seam: reads an OAuth client's metadata document. */
+  /** Test seam: reads the metadata document of an OAuth client. */
   fetchClientMetadata?: ClientMetadataFetcher;
-  /** Test seam: replaces the SMTP mailer `cfg.mail` would build. */
+  /** Test seam: replaces the SMTP mailer that `cfg.mail` would build. */
   mailer?: Mailer;
-  /** Log every request. The server turns this on; tests leave it off. */
+  /** Log each request. The server turns this on. Tests keep it off. */
   logRequests?: boolean;
-  /** What the update check found; index.ts starts it, the overview reads it. */
+  /** What the update check found. index.ts starts it. The overview reads it. */
   updateStatus?: () => UpdateStatus | null;
 }
 
@@ -105,7 +107,7 @@ export interface AppHandle {
   noteEvents: NoteEvents;
   /** Null when the server has webhooks off. */
   webhooks: WebhookDispatcher | null;
-  /** Sends push messages; the reminder job in index.ts uses it. */
+  /** Sends push messages. The reminder job in index.ts uses it. */
   pushSender: PushSender;
 }
 
@@ -120,11 +122,11 @@ export function createApp(deps: AppDeps): AppHandle {
     noteEvents,
     accessChanges,
   });
-  // One budget of wrong passwords per account name, whether they were typed
-  // to sign in or to confirm an action from a session that is already in.
+  // One budget of wrong passwords for each account name, for passwords typed to
+  // sign in and for passwords typed to confirm an action from a session.
   const loginAttempts = createLoginAttempts();
   const smtp = deps.mailer ?? (cfg.mail ? createSmtpMailer(cfg.mail) : null);
-  // Every send goes through this one, so the setup checks see real mail too.
+  // All sends go through this one. Thus, the setup checks also see real mail.
   const mailer = smtp ? withMailStatus(smtp) : null;
   const mail = mailer && cfg.mail ? { mailer, appUrl: cfg.mail.appUrl } : null;
   const webhooks =
@@ -150,8 +152,8 @@ export function createApp(deps: AppDeps): AppHandle {
   if (deps.logRequests) app.use("*", requestLog());
   app.onError(onError);
   app.use("/api/v1/*", recordClientAddress(cfg.trustProxy));
-  // Requests by method and status class, and the time they took. The route
-  // is not a label: note ids in paths would make one series per note.
+  // Requests by method and status class, and their duration. The route is not a
+  // label, because note ids in paths would make one series for each note.
   app.use("/api/v1/*", async (c, next) => {
     const started = performance.now();
     await next();
@@ -172,19 +174,20 @@ export function createApp(deps: AppDeps): AppHandle {
     );
   });
 
-  // Prometheus scrapes this. On the public port only with METRICS_TOKEN and
-  // never when METRICS_PORT gives metrics a port of their own: counts of
-  // sockets and failures are not for everyone.
+  // Prometheus scrapes this. On the public port, only with METRICS_TOKEN, and
+  // never when METRICS_PORT gives metrics their own port. Counts of sockets and
+  // failures are not for all persons.
   if (!cfg.metricsPort) {
     app.get("/metrics", metricsHandler(cfg, VERSION, true));
   }
 
-  // Cap request bodies on /api/v1/*. Without this, an authenticated user could
-  // POST a multi-MB JSON body and exhaust server memory.
+  // Limit the request bodies on /api/v1/*. Without this, an authenticated user
+  // could POST a JSON body of many MB and use up the memory of the server.
   //
-  // Two caps. Image uploads are the one route that carries bulk, a raw file
-  // up to the image limit; everything else, notes included (their images and
-  // preview images are references), has no reason to exceed 1 MiB.
+  // There are two limits. Image uploads are the only route that carries bulk
+  // data: a raw file up to the image limit. All other routes, also notes (their
+  // images and preview images are references), have no reason to be larger than
+  // 1 MiB.
   const onBodyTooLarge = () => {
     throw new HttpError(413, "Request body too large");
   };
@@ -203,10 +206,10 @@ export function createApp(deps: AppDeps): AppHandle {
       : defaultBodyLimit(c, next),
   );
 
-  // Addresses kept outside this server from before the API was versioned:
-  // a calendar app's feed and an assistant's MCP server. Each is sent on to
-  // its place under /api/v1, with its method and body (308), so neither has
-  // to be set up again. Nothing else under the old /api/ answers.
+  // Addresses that other systems keep from before the API had a version: the
+  // feed of a calendar app, and the MCP server of an assistant. Each one goes
+  // to its place under /api/v1, with its method and body (308). Thus, nobody
+  // has to set them up again. Nothing else under the old /api/ answers.
   for (const legacy of ["/api/calendar/*", "/api/mcp"]) {
     app.all(legacy, (c) => {
       const { pathname, search } = new URL(c.req.url);
@@ -225,18 +228,19 @@ export function createApp(deps: AppDeps): AppHandle {
     return c.json(openApi);
   });
 
-  // Before the protection below, so it sees the 401 that refuses a request
-  // without a token, and says where an assistant can sign in.
+  // Before the protection below. Thus, it sees the 401 that refuses a request
+  // without a token, and tells where an assistant can sign in.
   if (offersMcpSignIn(cfg)) {
     app.use("/api/v1/mcp", resourceMetadataChallenge(cfg.trustProxy));
   }
-  // Who may call each route and how often, as `OPERATIONS` declares it, and
-  // a 404 for the routes of a feature that is off (`features.ts`). Routers
+  // Who can call each route and how frequently, as `OPERATIONS` declares it,
+  // and a 404 for the routes of a feature that is off (`features.ts`). Routers
   // mount none of this themselves.
   app.use("/api/v1/*", createProtection({ authProvider, storage, cfg }));
 
-  // Provider-agnostic auth routes (/methods, /me) must be registered BEFORE
-  // the provider's own router so Hono's longest-prefix matching reaches them.
+  // Register the auth routes that do not depend on the provider (/methods, /me)
+  // BEFORE the own router of the provider. Thus, the longest-prefix match of
+  // Hono reaches them.
   app.route(
     "/api/v1/auth",
     createAuthSharedRoutes({
@@ -254,8 +258,8 @@ export function createApp(deps: AppDeps): AppHandle {
       revocations,
       mailer,
       loginAttempts,
-      // With teams off, a sign-in leaves membership as it was: no route
-      // decides this one, so it asks the registry itself.
+      // With teams off, a sign-in does not change membership. No route decides
+      // this. Thus, it asks the registry itself.
       teamSync: async (userId, groups) => {
         if (isFeatureOn(cfg, "teams")) {
           await syncOidcTeams(storage, teamShares, userId, groups);
@@ -308,9 +312,9 @@ export function createApp(deps: AppDeps): AppHandle {
       }),
     );
   }
-  // Its tools call the routes above through the app itself, so they meet
-  // every check a request from the network does. With `MCP=off` the
-  // protection answers 404 before any of it.
+  // Its tools call the routes above through the app itself. Thus, they meet all
+  // checks that a request from the network meets. With `MCP=off`, the
+  // protection answers 404 before all of it.
   app.route(
     "/api/v1/mcp",
     createMcpRoutes({
@@ -319,8 +323,8 @@ export function createApp(deps: AppDeps): AppHandle {
       forward: (request, env) => app.fetch(request, env),
     }),
   );
-  // Off, there is no dispatcher to hand the routes, so they are not mounted;
-  // the protection would answer them with the same 404 if they were.
+  // When it is off, there is no dispatcher for the routes. Thus, they are not
+  // mounted. If they were, the protection would answer them with the same 404.
   if (webhooks) {
     app.route(
       "/api/v1/webhooks",
@@ -359,7 +363,8 @@ export function createApp(deps: AppDeps): AppHandle {
     }),
   );
 
-  // Last, so every API route above answers before the client's catch-all.
+  // Last, so that all API routes above answer before the catch-all of the
+  // client.
   if (cfg.clientDir) mountClient(app, cfg.clientDir);
 
   return {

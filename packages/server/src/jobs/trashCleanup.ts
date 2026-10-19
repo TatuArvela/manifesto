@@ -8,13 +8,14 @@ import type { StorageDriver } from "#/storage/types.ts";
 const HOUR_MS = 60 * 60 * 1000;
 
 /**
- * Hard-deletes trashed notes whose trashed_at is older than
- * `TRASH_RETENTION_DAYS`. Runs once on startup, then every hour. Each owner's
- * connected clients are told, so their UI drops the row.
+ * Permanently deletes trashed notes whose trashed_at is older than
+ * `TRASH_RETENTION_DAYS`. Runs one time at startup, and then each hour. The
+ * connected clients of each owner get a message. Thus, their UI removes the
+ * row.
  *
- * A note shared with someone who put it in their own trash expires for them
- * the same way: their share is removed, and the note stays with everyone else.
- * `noteEvents` tells them and the note's other participants.
+ * A shared note that a recipient put in their own trash expires for them in the
+ * same way. Their share is removed, and the note stays with all other persons.
+ * `noteEvents` tells them and the other participants of the note.
  */
 export function startTrashCleanup(deps: {
   storage: StorageDriver;
@@ -28,7 +29,8 @@ export function startTrashCleanup(deps: {
     if (removed.length > 0) {
       logger.info("trash cleanup pruned notes", { count: removed.length });
       for (const row of removed) {
-        // Trashed, the note had already left everyone it was shared with.
+        // In the trash, the note already went away from all persons with whom
+        // it was shared.
         noteEvents.deleted(row.id, row.userId, []);
       }
     }

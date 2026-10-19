@@ -61,9 +61,10 @@ export function createPostgresMaintenanceRepo(pool: PgPool): MaintenanceRepo {
              offered_key, wrapped_key_version`,
           [cutoffIso],
         );
-        // An expired share leaves the note's members, as a removal does,
-        // and leaves the note due a new key as one does (`shares.delete`):
-        // whoever held the old one still does.
+        // An expired share leaves the members of the note, as a removal does.
+        // It also makes the note due a new key, as a removal does
+        // (`shares.delete`), because the person who had the old key still has
+        // it.
         const at = membersChangedAt();
         for (const noteId of new Set(result.rows.map((row) => row.note_id))) {
           await query(
@@ -105,7 +106,7 @@ export function createPostgresMaintenanceRepo(pool: PgPool): MaintenanceRepo {
         const next = rewrite(stored);
         if (next === null) continue;
         const where = keys.map((key, i) => `${key} = $${i + 2}`).join(" AND ");
-        // Only while the row still holds what was read.
+        // Only while the row still contains what was read.
         const result = await pool.query(
           `UPDATE ${table} SET ${column} = $1
            WHERE ${where} AND ${column} = $${keys.length + 2}`,

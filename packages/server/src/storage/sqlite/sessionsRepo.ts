@@ -57,7 +57,8 @@ export function createSqliteSessionsRepo(db: SqliteDB): SessionsRepo {
     },
 
     async deleteByUser(userId: string, exceptToken?: string): Promise<number> {
-      // `IS NOT NULL` is true for every row, so no exception removes them all.
+      // `IS NOT NULL` is true for each row. Thus, with no exception, it removes
+      // all of them.
       return deleteByUserStmt.run(userId, exceptToken ?? null).changes;
     },
 

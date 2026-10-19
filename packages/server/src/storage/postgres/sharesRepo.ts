@@ -16,7 +16,7 @@ import type {
 } from "#/storage/types.ts";
 import type { PgPool } from "./database.ts";
 
-/** See the SQLite copy: same queries, same reasons. */
+/** See the SQLite copy: the same queries, for the same reasons. */
 
 const SHARE_COLUMNS = `note_id, user_id, role, created_at, accepted_at, via_team,
   offered_key, wrapped_key_version`;
@@ -55,7 +55,7 @@ export async function inTransaction<T>(
   }
 }
 
-/** Marks the note's members as changed; see `members_changed_at`. */
+/** Marks the members of the note as changed. See `members_changed_at`. */
 async function stampMembers(
   query: PgPool["query"],
   noteId: string,

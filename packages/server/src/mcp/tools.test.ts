@@ -9,10 +9,10 @@ import { defined } from "#/test/defined.ts";
 import { MCP_TOOLS, type RestAnswer, type RestCall } from "./tools.ts";
 
 /**
- * Each tool against a stand-in for the routes, so what is checked is the
- * tool's own part: the arguments it takes, the requests it makes of them, and
- * what it hands the assistant back. That the routes answer as assumed here is
- * `routes.test.ts`, which runs the tools against the real app.
+ * Each tool against a stand-in for the routes. Thus, the test checks the own
+ * part of the tool: the arguments that it takes, the requests that it makes,
+ * and what it gives back to the assistant. `routes.test.ts` runs the tools
+ * against the real app, and checks that the routes answer as this test thinks.
  */
 
 function note(overrides: Partial<Note> = {}): Note {

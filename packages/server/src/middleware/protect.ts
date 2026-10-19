@@ -9,38 +9,45 @@ import { HttpError } from "./error.ts";
 import { perUserApiRateLimit, rateLimit } from "./rateLimit.ts";
 
 /**
- * The rate-limit buckets an operation can draw from. An `address` bucket
- * counts the caller's address and runs before authentication, so it bounds
- * what an anonymous caller can make the server do (a password verify, a
- * challenge); a `user` bucket counts the account and runs after. Operations
- * that name the same bucket share it, so moving between them gains nothing.
+ * The rate-limit buckets that an operation can use. An `address` bucket counts
+ * the address of the caller, and runs before authentication. Thus, it limits
+ * what an anonymous caller can make the server do (a password verification, a
+ * challenge). A `user` bucket counts the account, and runs after. Operations
+ * that name the same bucket share it. Thus, a move between them gives nothing.
  */
 export const BUCKETS = {
-  /** Everyday use of the API, shared by every data route. */
+  /** Usual use of the API, shared by all data routes. */
   user: { per: "user", limit: 300, windowMs: 60 * 1000 },
-  /** A grid asks for an image per card, each once per session. */
+  /** A grid asks for one image for each card, each one time in each session. */
   attachments: { per: "user", limit: 1200, windowMs: 60 * 1000 },
-  /** Each makes the server fetch a page and up to two images from somewhere
-   * else. Pasting a block of links is the heaviest ordinary use, and a note
-   * holds at most twenty. On top of `user`. */
+  /**
+   * Each one makes the server get a page and up to two images from a different
+   * place. A paste of a block of links is the heaviest usual use, and a note
+   * has a maximum of twenty. In addition to `user`.
+   */
   "link-preview": { per: "user", limit: 40, windowMs: 60 * 1000 },
-  /** Everything that verifies a password or a code: sign-in, registration,
-   * the password and the two-factor changes, reset by mail. Tight, against
-   * password spraying; the per-name budget in `auth/local/loginAttempts.ts`
-   * is the part a caller moving between addresses cannot escape. */
+  /**
+   * All routes that verify a password or a code: sign-in, registration, the
+   * password and two-factor changes, reset by mail. It is strict, against
+   * password spraying. The budget for each name in
+   * `auth/local/loginAttempts.ts` is the part that a caller who moves between
+   * addresses cannot avoid.
+   */
   "sign-in": { per: "address", limit: 10, windowMs: 15 * 60 * 1000 },
-  /** A passkey cannot be guessed at; this bounds the challenges issued. */
+  /** Nobody can guess a passkey. This limits the number of challenges. */
   "passkey-sign-in": { per: "address", limit: 60, windowMs: 15 * 60 * 1000 },
-  /** `/login` mints a pending flow and `/callback` spends discovery and a
-   * token exchange, so without this an anonymous caller sets the memory and
-   * outbound-request cost of the process. Looser than `sign-in`: there is no
-   * password to spray, a sign-in costs two requests, and single sign-on users
-   * routinely share an egress address. */
+  /**
+   * `/login` makes a pending flow, and `/callback` uses discovery and a token
+   * exchange. Without this, an anonymous caller controls the memory and the
+   * outbound requests of the process. It is less strict than `sign-in`. There
+   * is no password to spray, a sign-in uses two requests, and users of single
+   * sign-on frequently share an egress address.
+   */
   oidc: { per: "address", limit: 30, windowMs: 15 * 60 * 1000 },
-  /** Calendar apps poll, some every few minutes. */
+  /** Calendar apps poll, some each few minutes. */
   calendar: { per: "address", limit: 60, windowMs: 60 * 1000 },
   "public-links": { per: "address", limit: 120, windowMs: 60 * 1000 },
-  /** Passwords on public links, on top of `public-links`. */
+  /** Passwords on public links, in addition to `public-links`. */
   "public-link-unlock": {
     per: "address",
     limit: 10,
@@ -58,27 +65,29 @@ export type Bucket = keyof typeof BUCKETS;
 const noop = async () => {};
 
 /**
- * Routes that check their own caller, because what they take is not a
- * request with a header: `/api/v1/ws` reads its token from the WebSocket
- * subprotocol and its scope by hand (`ws/appSocket.ts`). `/api/v1/yjs` is
- * upgraded outside the app and never reaches this.
+ * Routes that check their own caller, because what they get is not a request
+ * with a header. `/api/v1/ws` reads its token from the WebSocket subprotocol,
+ * and checks its scope in its own code (`ws/appSocket.ts`). `/api/v1/yjs` is
+ * upgraded outside the app, and never reaches this.
  */
 const SELF_AUTHENTICATED = new Set(["GET /api/v1/ws"]);
 
 /**
- * Every `/api/v1/*` request's protection, from what `OPERATIONS` declares for
- * the route that will answer it: its address buckets, then who may call it
- * (nobody in particular, any credential, a session, an MCP token, an admin's
- * session), then its account buckets. Routers mount none of this themselves,
- * so a route's protection is read in one place, next to its description.
+ * The protection of each `/api/v1/*` request, from what `OPERATIONS` declares
+ * for the route that will answer it: first its address buckets, then who can
+ * call it (nobody special, any credential, a session, an MCP token, the session
+ * of an admin), then its account buckets. Routers mount none of this
+ * themselves. Thus, the protection of a route is in one place, next to its
+ * description.
  *
- * A route that matched but is not declared is refused, whatever it is:
- * forgetting to declare one closes it rather than opening it.
+ * The middleware refuses a route that matched but is not declared, whatever it
+ * is. Thus, if you forget to declare a route, it closes. It does not open.
  * `openapi.test.ts` fails on it before it ships.
  *
- * Before any of that, an operation of a feature the host turned off answers
- * the app's own 404 for a route that does not exist, so nobody, signed in or
- * not, can tell a feature that is off from one this server never had.
+ * Before all of that, an operation of a feature that the host turned off
+ * answers the own 404 of the app for a route that does not exist. Thus, nobody,
+ * signed in or not, can tell a feature that is off from a feature that this
+ * server never had.
  */
 export function createProtection(deps: {
   authProvider: AuthProvider;
@@ -108,13 +117,13 @@ export function createProtection(deps: {
   let byRoute: Map<string, Operation> | undefined;
 
   function operationFor(c: Context): Operation | null | undefined {
-    // Built on first use: `openapi.ts` reaches the validation schemas, and
-    // nothing here should depend on load order.
+    // Built on the first use. `openapi.ts` reaches the validation schemas, and
+    // nothing here must depend on the load order.
     byRoute ??= new Map(
       OPERATIONS.map((op) => [`${op.method.toUpperCase()} ${op.path}`, op]),
     );
-    // The route that will answer: not middleware (`ALL`), and not the
-    // client's catch-all, which is no API route.
+    // The route that will answer: not middleware (`ALL`), and not the catch-all
+    // of the client, which is not an API route.
     const route = c.req.matchedRoutes.findLast(
       (r) => r.method !== "ALL" && r.path.startsWith("/api/v1/"),
     );
@@ -126,7 +135,7 @@ export function createProtection(deps: {
 
   return async (c, next) => {
     const op = operationFor(c);
-    // Nothing here will answer (a 404), or the route checks for itself.
+    // Nothing here will answer (a 404), or the route checks itself.
     if (op === null) return next();
     if (op === undefined) {
       throw new HttpError(403, "This route declares no protection");

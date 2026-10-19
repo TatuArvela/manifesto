@@ -7,13 +7,13 @@ import { claimed, heldKey } from "./claimed.ts";
 /**
  * What `GET /api/v1/sync` reads, run against both drivers: which notes count as
  * changed since a time, and which ids a user can see. A driver that misses a
- * membership change leaves a recipient's device showing the wrong role, or a
- * note that is no longer theirs, until the next full reload.
+ * membership change leaves the device of a recipient with the wrong role, or
+ * with a note that is not theirs now, until the next full reload.
  */
 
 const T0 = "2026-04-01T00:00:00.000Z";
 const T1 = "2026-04-01T00:00:01.000Z";
-/** After everything seeded, and before any stamp taken from the clock. */
+/** After all seeded data, and before all stamps from the clock. */
 const SINCE = "2026-04-01T00:00:10.000Z";
 const T2 = "2026-04-01T00:00:20.000Z";
 const PAGE = { limit: 50 };
@@ -105,7 +105,7 @@ export function describeSyncContract(
       await storage.shares.setRole("shared", "alice", "view");
       expect(await changed("alice")).toEqual(["shared"]);
 
-      // After the role change's stamp, which comes from the same clock.
+      // After the stamp of the role change, which comes from the same clock.
       const later = nowIso();
       expect(
         (await storage.notes.listChanged("owner", later, PAGE)).notes,

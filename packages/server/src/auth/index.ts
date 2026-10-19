@@ -16,11 +16,11 @@ function oidcConfigOf(cfg: ServerConfig) {
 }
 
 /**
- * Both kinds of sign-in at once. Sessions are the same whichever way someone
- * signed in (`auth/session.ts`), so authentication is shared, and the two
- * routers are mounted side by side: local's `POST /login`, `/register` and
- * the password routes, OIDC's `GET /login` and `/callback`. Both define
- * `POST /logout` identically; local's, mounted first, answers it.
+ * Both types of sign-in at the same time. Sessions are the same, whatever the
+ * method of the sign-in (`auth/session.ts`). Thus, authentication is shared,
+ * and the two routers mount together: `POST /login`, `/register` and the
+ * password routes of local, and `GET /login` and `/callback` of OIDC. Both
+ * define the same `POST /logout`. The local one, mounted first, answers it.
  */
 function createCombinedAuthProvider(
   cfg: ServerConfig,

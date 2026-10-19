@@ -23,15 +23,17 @@ import { validatorHook } from "#/validation/zValidator.ts";
 import type { LoginAttempts } from "./loginAttempts.ts";
 import { mailedLinks } from "./mailedLink.ts";
 
-/** How long a link works. Shorter than a reset link: it is a way in by
- * itself, where a reset still leaves a password to choose. */
+/**
+ * How long a link works. It is shorter than a reset link, because it is a way
+ * in by itself. A reset still leaves a password to select.
+ */
 export const SIGN_IN_LINK_MINUTES = 15;
 
 /**
- * What `router.ts` checks a second factor with, shared with the password.
- * It answers with the challenge to send back, or with the factor that held
- * (null for an account that has none). A wrong answer never comes back: it
- * is counted against the account, audited and thrown as the 401.
+ * What `router.ts` uses to check a second factor, shared with the password. It
+ * answers with the challenge to send back, or with the factor that passed (null
+ * for an account that has none). A wrong answer never comes back. The code
+ * counts it against the account, audits it, and throws it as the 401.
  */
 export type SecondFactorCheck = (
   c: Context,
@@ -42,29 +44,32 @@ export type SecondFactorCheck = (
   { challenge: TwoFactorRequiredResponse } | { with: "yes" | "passkey" | null }
 >;
 
-/** No link for an account that signs in elsewhere (no password here), or
- * that holds a temporary password its owner has yet to replace. */
+/**
+ * No link for an account that signs in elsewhere (no password here), or that
+ * has a temporary password that its owner did not replace yet.
+ */
 const opensByLink = (user: User) =>
   user.passwordHash !== null && !user.mustChangePassword;
 
 /**
- * `/api/v1/auth/sign-in-link`: signing in to a local account from a link sent to
- * its address, with no password typed. Only on a server with `SMTP_URL`, and
- * switched by `MAGIC_LINKS`.
+ * `/api/v1/auth/sign-in-link`: a sign-in to a local account from a link sent to
+ * its address, with no password typed. Only on a server with `SMTP_URL`.
+ * `MAGIC_LINKS` switches it.
  *
- * Asking is `mailedLinks`, shared with reset by mail: always 204, whether or
- * not the address belongs to anyone, with the mail after the answer. No link
- * is made for an account that signs in elsewhere (no password here) or that
- * still holds a temporary password, which has to be replaced by the person
- * it was handed to before anything else opens the account.
+ * The request is `mailedLinks`, shared with reset by mail: always 204, whether
+ * the address belongs to an account or not, with the mail after the answer. The
+ * server makes no link for an account that signs in elsewhere (no password
+ * here), or that still has a temporary password. The person who got that
+ * password must replace it before anything else opens the account.
  *
- * The link stands in for the password and for nothing else: an account with
- * a second factor is asked for it, on the same per-account budget as a
- * password sign-in, and a wrong answer leaves the link good, so the challenge
- * can be answered again with the link the mail brought.
+ * The link replaces the password, and nothing else. An account with a second
+ * factor must give it, on the same budget for each account as a password
+ * sign-in. A wrong answer keeps the link good. Thus, the person can answer the
+ * challenge again with the link from the mail.
  *
- * A link does not outlive a change to what it stands in for or where it was
- * sent: `endUserSessions` and both email changes void the account's links.
+ * A link does not stay valid after a change to what it replaces, or to where it
+ * was sent. `endUserSessions` and both email changes cancel the links of the
+ * account.
  */
 export function registerSignInLinkRoutes(
   auth: Hono<{ Variables: { auth: AuthContext } }>,
@@ -109,13 +114,13 @@ export function registerSignInLinkRoutes(
         new HttpError(410, "This link has expired or was used already");
       const userId = await storage.signInLinks.find(tokenHash, nowIso());
       const user = userId ? await storage.users.findById(userId) : null;
-      // Made before the account lost its password or was handed a temporary
-      // one: the link no longer opens it.
+      // Made before the account lost its password or got a temporary password.
+      // The link does not open it now.
       if (!user || !opensByLink(user)) throw gone();
-      // The budget guards what can be guessed, which here is the second
-      // factor alone. An account without one is not held to it: anyone can
-      // run the budget out with wrong passwords, and the link is the way in
-      // that leaves its owner.
+      // The budget protects what a person can guess, which here is only the
+      // second factor. An account without one does not use the budget. All
+      // persons can use up the budget with wrong passwords, and the link is
+      // then the way in for its owner.
       const refuseIfLocked = () => {
         const wait = loginAttempts.retryAfter(user.username);
         if (wait > 0) {
@@ -123,10 +128,10 @@ export function registerSignInLinkRoutes(
           throw new HttpError(429, "Too many sign-in attempts");
         }
       };
-      // An answer to the second factor spends the link before it is looked
-      // at, atomically: of two requests holding the same link one goes on,
-      // and a link that ran out meanwhile costs no code. A wrong
-      // answer hands the link back.
+      // An answer to the second factor uses the link before the code looks at
+      // the answer, atomically. If two requests have the same link, one
+      // continues. A link that expired in the meantime costs no code. A wrong
+      // answer gives the link back.
       const answering = otp !== undefined || passkey !== undefined;
       const spend = async () => {
         if ((await storage.signInLinks.consume(tokenHash, nowIso())) === null) {
@@ -137,8 +142,8 @@ export function registerSignInLinkRoutes(
         refuseIfLocked();
         await spend();
       }
-      // A wrong answer is refused in there, with its attempt counted and
-      // audited; all that is left to do here is hand the link back.
+      // The code in there refuses a wrong answer, and counts and audits its
+      // attempt. Here, the code only gives the link back.
       const second = await deps
         .secondFactor(c, user, otp, passkey)
         .catch(async (err: unknown) => {
@@ -150,8 +155,8 @@ export function registerSignInLinkRoutes(
         return c.json(second.challenge, 403);
       }
       if (!answering) await spend();
-      // Only a second factor that held clears the count: a link by itself
-      // proves nothing about who has been guessing at the password.
+      // Only a second factor that passed clears the count. A link alone proves
+      // nothing about who guessed at the password.
       if (second.with !== null) loginAttempts.succeed(user.username);
       const session = await issueSession(storage, deps.cfg, user.id);
       audit(storage, c, {

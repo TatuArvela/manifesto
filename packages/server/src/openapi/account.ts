@@ -9,9 +9,7 @@ import {
 } from "#/validation/accountSchemas.ts";
 import { noContent, notFound, type Operation, ok } from "./operation.ts";
 
-/**
- * What an account keeps beside its notes: API tokens and webhooks.
- */
+/** What an account keeps next to its notes: API tokens and webhooks. */
 export const ACCOUNT_OPERATIONS: Operation[] = [
   {
     method: "get",

@@ -129,7 +129,7 @@ describe("a share invitation by mail", () => {
       }),
     });
     const { note } = (await created.json()) as { note: { id: string } };
-    // Sharing, removing and sharing again is how an inbox would be flooded.
+    // Share, remove and share again is how a person could fill an inbox.
     for (let i = 0; i < INVITATION_MAILS_PER_HOUR + 3; i++) {
       const shared = await request(`/api/v1/notes/${note.id}/shares`, {
         method: "POST",

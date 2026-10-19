@@ -66,7 +66,7 @@ describe("attachments", () => {
       ...(body !== undefined && { body: JSON.stringify(body) }),
     });
 
-  /** Uploads a `data:` image as `who` and answers its reference. */
+  /** Uploads a `data:` image as `who`, and answers its reference. */
   async function uploadAs(who: Account, image: string): Promise<string> {
     if (!image.startsWith("data:")) return image;
     const res = await rig.request("/api/v1/attachments", {
@@ -123,7 +123,7 @@ describe("attachments", () => {
     expect((await fetchAs(owner, defined(note.images[0]))).status).toBe(200);
     expect((await fetchAs(alice, defined(note.images[0]))).status).toBe(200);
     expect((await fetchAs(mallory, defined(note.images[0]))).status).toBe(404);
-    // The owner trashing the note takes it away from the recipient.
+    // When the owner puts the note in the trash, the recipient loses it.
     await call(owner, "PUT", `/api/v1/notes/${note.id}`, { trashed: true });
     expect((await fetchAs(alice, defined(note.images[0]))).status).toBe(404);
   });
@@ -169,7 +169,7 @@ describe("attachments", () => {
       attachmentIdOf(defined(mine.images[0])),
     );
     expect(meta?.ownerId).toBe(alice.userId);
-    // The same sealed bytes, so the key the note holds still opens them.
+    // The same sealed bytes. Thus, the key in the note still opens them.
     const theirs = await rig.storage.attachments.get(
       attachmentIdOf(defined(shared.images[0])),
     );
@@ -258,7 +258,7 @@ describe("attachments", () => {
 
     const later = "2026-09-01T00:00:00.000Z";
     const much = "2027-01-01T00:00:00.000Z";
-    // First sweep marks it; it survives until the mark is old enough.
+    // The first sweep marks it. It stays until the mark is sufficiently old.
     expect(await rig.storage.attachments.sweep(later, NOW)).toBe(0);
     expect(await rig.storage.attachments.meta(id)).not.toBeNull();
     expect(await rig.storage.attachments.sweep(much, later)).toBe(0);
@@ -394,9 +394,9 @@ describe("attachments", () => {
       const id = attachmentIdOf(defined(ref));
       const later = "2026-09-01T00:00:00.000Z";
       const much = "2027-01-01T00:00:00.000Z";
-      // Never referred to, so the first sweep marks it.
+      // No note ever referred to it. Thus, the first sweep marks it.
       await rig.storage.attachments.sweep(NOW, "2000-01-01T00:00:00.000Z");
-      // Attached again, to an editor that has not saved yet.
+      // Attached again, to an editor that did not save yet.
       await upload(owner, PNG_BYTES, "image/png");
       await rig.storage.attachments.sweep(later, NOW);
       expect(await rig.storage.attachments.sweep(much, later)).toBe(0);
@@ -424,7 +424,7 @@ describe("attachments", () => {
       expect(sent.status).toBe(201);
       const { ref } = (await sent.json()) as { ref: string };
       const id = attachmentIdOf(ref);
-      // What is stored is neither the image nor of any stated kind.
+      // The stored data is not the image, and has no stated type.
       const stored = await rig.storage.attachments.get(id);
       if (!stored) throw new Error("the upload was not stored");
       expect(stored.contentType).toBe("application/octet-stream");
@@ -432,14 +432,14 @@ describe("attachments", () => {
       expect(stored.data.includes(PNG_BYTES.subarray(0, 8))).toBe(false);
       expect(stored.wrappedKey).toMatch(/^e1\./);
 
-      // Before any note names it, its uploader can still read it back.
+      // Before a note names it, its uploader can still read it back.
       const early = await get(script, id);
       expect(early.headers.get("Content-Type")).toBe("image/png");
       expect(Buffer.from(await early.arrayBuffer()).equals(PNG_BYTES)).toBe(
         true,
       );
 
-      // A note names it, and carries its key from then on.
+      // A note names it, and contains its key from then on.
       const made = await rig.request("/api/v1/notes", {
         method: "POST",
         headers: authHeaders(script.token),
@@ -454,8 +454,8 @@ describe("attachments", () => {
       expect(Buffer.from(await read.arrayBuffer()).equals(PNG_BYTES)).toBe(
         true,
       );
-      // The key kept with the upload still opens it for its uploader,
-      // whichever note is named.
+      // The key kept with the upload still opens it for its uploader, whatever
+      // the named note.
       const other = await rig.request("/api/v1/notes", {
         method: "POST",
         headers: authHeaders(script.token),
@@ -464,7 +464,7 @@ describe("attachments", () => {
       const otherId = ((await other.json()) as { note: Note }).note.id;
       expect((await get(script, id, `?note=${otherId}`)).status).toBe(200);
 
-      // The app is still sent the sealed bytes, and opens them itself.
+      // The app still gets the sealed bytes, and opens them itself.
       const sealed = await get(owner, id);
       expect(sealed.headers.get("Content-Type")).toBe(
         "application/octet-stream",
@@ -473,7 +473,7 @@ describe("attachments", () => {
         true,
       );
 
-      // Not an image, whatever it is called; and nothing at all.
+      // Not an image, whatever its name. And no content.
       expect(
         (await upload(script, Buffer.from("<svg/>"), "image/png")).status,
       ).toBe(415);
@@ -494,7 +494,7 @@ describe("attachments", () => {
           userId: who.userId,
         };
       };
-      // Written by a token, so it is sealed under a real key.
+      // A token wrote it. Thus, it is sealed under a real key.
       const made = await call(await mint(owner), "POST", "/api/v1/notes", {
         ...baseNote,
         title: "Trip",
@@ -531,7 +531,8 @@ describe("attachments", () => {
       });
       expect(written.status).toBe(200);
       const { images } = ((await written.json()) as { note: Note }).note;
-      // The note names the owner's copy, which the key of the upload opens.
+      // The note names the copy of the owner, which the key of the upload
+      // opens.
       const copy = attachmentIdOf(defined(images[0]));
       expect(copy).not.toBe(attachmentIdOf(ref));
       expect((await rig.storage.attachments.meta(copy))?.ownerId).toBe(
@@ -550,7 +551,7 @@ describe("attachments", () => {
     });
 
     it("asks a token which note an image is in, when the image is not its own upload", async () => {
-      // Uploaded sealed by the app, so no key is kept with it.
+      // The app uploaded it sealed. Thus, no key is kept with it.
       const res = await upload(owner, PNG_BYTES, "image/png");
       const id = attachmentIdOf(((await res.json()) as { ref: string }).ref);
       const minted = await rig.request("/api/v1/tokens", {
@@ -568,8 +569,8 @@ describe("attachments", () => {
     });
 
     it("refuses an upload with no address, or with nothing in it", async () => {
-      // Sent as it is: the server cannot tell an image from anything else
-      // once it is sealed, so the address is what it asks for.
+      // Sent as it is. After it is sealed, the server cannot tell an image from
+      // other data. Thus, it asks for the address.
       const bare = (headers: Record<string, string>, body: Uint8Array) =>
         rig.rawRequest("/api/v1/attachments", {
           method: "POST",

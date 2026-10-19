@@ -77,11 +77,11 @@ describe("GET /api/v1/capabilities", () => {
     });
     expect(body.features).toMatchObject({
       sharing: false,
-      // On by its own switch, off because sharing is.
+      // On by its own switch, but off because sharing is off.
       teams: false,
       passkeys: false,
       mcp: false,
-      // Signing in to MCP needs MCP.
+      // The MCP sign-in needs MCP.
       mcpSignIn: false,
     });
     expect(body.auth.passkeys).toBe(false);

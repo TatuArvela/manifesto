@@ -1,7 +1,8 @@
 /**
- * The most a request body may hold on `/api/v1/*`, attachments aside. Nothing
- * else carries bulk (a note's images and preview images are references), so
- * this bounds what one request can make the server hold in memory. Said in
- * `/api/v1/capabilities` as well as enforced in `app.ts`, from here.
+ * The maximum content of a request body on `/api/v1/*`, other than attachments.
+ * Nothing else carries bulk data (the images and preview images of a note are
+ * references). Thus, this limits what one request can make the server keep in
+ * memory. `/api/v1/capabilities` tells it, and `app.ts` enforces it, both from
+ * here.
  */
 export const MAX_REQUEST_BYTES = 1024 * 1024;
