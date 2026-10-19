@@ -35,13 +35,15 @@ export function createPostgresVersionsRepo(pool: PgPool): VersionsRepo {
       if (taken.rows.length > 0) return false;
       await pool.query(
         `INSERT INTO note_versions
-           (id, note_id, author_id, key_version, title, content, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+           (id, note_id, author_id, key_version, format, title, content,
+            created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [
           input.id,
           input.noteId,
           input.authorId,
           input.keyVersion,
+          input.format,
           input.title,
           input.content,
           input.createdAt,

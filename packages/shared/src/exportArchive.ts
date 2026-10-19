@@ -1,4 +1,5 @@
 import type { Note, NoteVersion } from "./note.ts";
+import { currentNoteFormat } from "./noteFormat.ts";
 
 /**
  * The layout of an export archive, which both modes write: a server for an
@@ -11,6 +12,10 @@ import type { Note, NoteVersion } from "./note.ts";
  *   frontmatter the client's Markdown-folder import reads back, for any other
  *   tool to open;
  * - `versions.json`: the version history of those notes;
+ * - `manifest.json`: the format the notes and versions are in
+ *   (`noteFormat.ts`), so an import brings an older archive up to date and
+ *   refuses one from a newer version rather than misreading it. An archive
+ *   without one is from before formats were recorded, and is format 1;
  * - `preferences.json`: the settings, when the caller gives them: the
  *   account's in connected mode, this browser's in open mode. For a person to
  *   read and keep; importing an archive does not apply them.
@@ -21,6 +26,12 @@ import type { Note, NoteVersion } from "./note.ts";
 export const EXPORT_NOTES_FILE = "notes.json";
 export const EXPORT_VERSIONS_FILE = "versions.json";
 export const EXPORT_PREFERENCES_FILE = "preferences.json";
+export const EXPORT_MANIFEST_FILE = "manifest.json";
+
+/** What `manifest.json` holds. */
+export interface ExportManifest {
+  format: number;
+}
 
 export function exportArchiveFiles(
   notes: Note[],
@@ -34,7 +45,9 @@ export function exportArchiveFiles(
       name: `notes/${uniqueName(fileNameOf(note), names)}.md`,
       text: noteToMarkdownFile(note),
     }));
+  const manifest: ExportManifest = { format: currentNoteFormat() };
   return [
+    { name: EXPORT_MANIFEST_FILE, text: JSON.stringify(manifest, null, 2) },
     { name: EXPORT_NOTES_FILE, text: JSON.stringify(notes, null, 2) },
     ...markdown,
     { name: EXPORT_VERSIONS_FILE, text: JSON.stringify(versions, null, 2) },

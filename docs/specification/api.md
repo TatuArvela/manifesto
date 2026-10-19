@@ -138,12 +138,18 @@ without keys is refused the note routes with `403`. Every route above takes and 
   which is how a shared note first reaches its recipient.
 - **`reminderKey`**, on a note with a reminder, is the note key wrapped under the reader's own
   reminder key, for their calendar feed. It is the reader's own, like the reminder.
+- **`format`** is the [format](data-model.md#format) the words under the note key are in. A write
+  that carries any of them carries `format` too (`422` otherwise), and is held to the note's in the
+  statement that writes it: words in an older format than the note's are `409` with
+  `code: "note_format_newer"`, from an app that has to be reloaded, and words in a newer format
+  are taken only with every one of them (`409`, `note_format_incomplete`), since a note keeps one
+  format for all its words. An import over a note in a newer format skips it.
 - **`key`** is the note key wrapped under the reader's own notes key, and `keyVersion` says which
   note key the values are under. `previousKeys`, present once the key has been replaced, is the
   keys before it sealed under the one the note has now: what opens the versions, comments and
   edits written under them. `rekeyDue: true` tells the owner, and nobody else, that someone who
   held the key no longer holds the note.
-- **Readable**, since the server acts on them: `id`, `pinned`, `archived`, `trashed`, `trashedAt`,
+- **Readable**, since the server acts on them: `id`, `format`, `pinned`, `archived`, `trashed`, `trashedAt`,
   `position`, `reminder`, `readonly`, `source`, `sharing`, `createdAt` and `updatedAt`.
 
 A sealed value is `e1.` and the base64url of a nonce, the ciphertext and its tag. The server checks
@@ -272,7 +278,8 @@ A public link is read without an account, and none of these send a bearer token:
 
 `mode` is `"live"` or `"snapshot"`. `PublicLink` is `{ token, noteId, mode, expiresAt, hasPassword,
 maxViews, viewCount, lastViewedAt, createdAt, sealedLinkKey }`; `PublicNote` is `{ id, keyVersion,
-title, content, font, images, linkPreviews, updatedAt }`, every word of it sealed.
+format, title, content, font, images, linkPreviews, updatedAt }`, every word of it sealed, and a
+snapshot is sent with the `format` its copy was sealed in.
 
 What a link shows opens only with its **link key**, 256 random bits the owner's app makes and puts
 in the fragment of the address (`/p/<token>#k=<key>`), which no browser sends to a server. The key
@@ -453,7 +460,7 @@ Session-only, and the web client's own. See [Reminders](features/reminders.md#pu
 
 A version's `title` and `content` are sealed under the note key and bound to the version's own
 `id`, which the client chooses (`409` for one that is taken). `keyVersion` says which note key it is
-under.
+under, and `format` which [format](data-model.md#format) its words are in.
 
 See [Version History](features/version-history.md).
 
@@ -719,7 +726,7 @@ whose feature is off is refused wherever it is presented, as an unknown token is
 - `PUT /api/v1/notes/:id` accepts a partial note (only the fields being changed), and supports `If-Match: <updatedAt>` for optimistic concurrency. On a stale match the server replies `412 Precondition Failed` with the current note so the client can run a 3-way merge and retry. Note: the compare-and-swap is timestamp-based at millisecond precision, so two writes that complete within the same millisecond can both succeed (the second silently overwrites the first). For high-concurrency editing of the same note, use the Yjs collaboration socket instead.
 - List endpoints return `{ "notes": [...], "nextCursor": string | null }`
 - Single note endpoints return `{ "note": ... }`, the note [sealed](#sealed-notes)
-- Errors return `{ "error": string }`, plus a `code` where a client has to do something other than show the message (`password_change_required`, and `email_taken` to tell a taken address from a taken username)
+- Errors return `{ "error": string }`, plus a `code` where a client has to do something other than show the message (`password_change_required`, `email_taken` to tell a taken address from a taken username, and `note_format_newer` / `note_format_incomplete` for a [note's format](data-model.md#format))
 - `PUT /api/v1/auth/me`, `DELETE /api/v1/auth/me`, `POST /api/v1/tokens`, `POST /api/v1/webhooks` and the two-factor changes take the account's `password` in the body. Without it they answer `403` with `confirmation_required`, with a wrong one `403` with `password_incorrect`, and after too many wrong ones `429`. An account without a password answers `403` with `reauthentication_required` unless its session was signed in within 15 minutes; `GET /api/v1/auth/login?reauth=1` signs in again. See [Accounts](features/accounts.md#confirming-a-change-from-a-session)
 
 ### Paging the list endpoints

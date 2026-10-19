@@ -16,6 +16,7 @@ mode imports into either:
 
 | File | Holds |
 |---|---|
+| `manifest.json` | The [format](../data-model.md#format) the notes and versions are in, as `{ "format": 1 }`. An import brings an older archive up to date, and refuses one a newer version exported. An archive without one is from before formats were recorded, and is format 1. |
 | `notes.json` | Every note the account owns, the archive and trash included, in the import format above, with images inlined as `data:` URLs. Importing it restores the notes anywhere, open mode included. |
 | `notes/<title>.md` | Each note not in the trash as Markdown, with frontmatter (`title`, `tags`, `pinned`, `archived`, `created`, `updated`) that the Markdown-folder import reads back, for another tool to open. |
 | `versions.json` | The version history of those notes. |

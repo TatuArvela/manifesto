@@ -25,6 +25,8 @@ are here because breaking one fails silently, often from a file the guide is not
 - A new `Note` field goes in `SHARED_NOTE_FIELDS` or `PERSONAL_NOTE_FIELDS`, and an array field
   needs a case in `mergeNoteUpdate` (the default, client-wins, drops the other writer's items).
 - Changing a node or mark in the editor schema means raising `EDITOR_SCHEMA_VERSION`.
+- Changing what a note's words hold is a step appended to `NOTE_FORMAT_STEPS`, never an edit to a
+  released one, and a new place that keeps a note records its format beside it.
 - A reminder moves only through `advanceReminder`, `snapReminderToFuture`, `reminderAt` or
   `pickedReminder`, never by setting `time` alone.
 - A new server route is an entry in `OPERATIONS` with `auth`, `limits` and (if token-reachable)
@@ -119,6 +121,7 @@ code is enough. Read one by hand when planning a change before touching its file
 | `i18n.md` | catalogues, `t()`, plurals |
 | `routing.md` | paths, the router, Back closing sheets |
 | `version-history.md` | versions in both modes |
+| `note-format.md` | the format of a note's words, upgrading on read, refusing a newer one |
 | `editor.md` | Milkdown, the collaborative binding, lazy Yjs, schema version |
 | `auto-notes.md` | the plugin sandbox |
 | `realtime.md` | both sockets, resume, heartbeat, `If-Match` merge |

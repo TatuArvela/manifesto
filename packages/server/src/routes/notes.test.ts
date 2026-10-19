@@ -519,6 +519,7 @@ describe("notes routes", () => {
       const held = await sealedNow();
       const copy = {
         id: created.id,
+        format: 1,
         title: ciphertext("From a device behind"),
         content: ciphertext(""),
         excerpt: ciphertext(""),
@@ -703,5 +704,87 @@ describe("notes routes", () => {
       });
       expect(res.status).toBe(400);
     });
+  });
+});
+
+describe("a note's format", () => {
+  let rig: TestRig;
+  let token: string;
+  let id: string;
+
+  beforeEach(async () => {
+    rig = await bootTestApp();
+    ({ token } = await registerTestUser(rig, "alice"));
+    ({ id } = await createNote(rig, token, { title: "First" }));
+  });
+
+  afterEach(async () => {
+    await rig.close();
+  });
+
+  /** A sealed write as an app sends it, with the format it says. */
+  const put = (body: object) =>
+    rig.rawRequest(`/api/v1/notes/${id}`, {
+      method: "PUT",
+      headers: authHeaders(token),
+      body: JSON.stringify(body),
+    });
+
+  /** Every word of the note, as a write that moves it to `format` sends. */
+  const everyWord = (title: string, format: number) => ({
+    ...sealedUpdate({
+      title,
+      content: "",
+      font: NoteFont.Default,
+      images: [],
+      linkPreviews: [],
+    }),
+    format,
+  });
+
+  const formatNow = async () =>
+    (
+      (await (
+        await rig.rawRequest(`/api/v1/notes/${id}`, {
+          headers: authHeaders(token),
+        })
+      ).json()) as { note: SealedNote }
+    ).note.format;
+
+  it("refuses words that do not say their format", async () => {
+    const { format: _format, ...unsaid } = sealedUpdate({ title: "Second" });
+    expect((await put(unsaid)).status).toBe(422);
+    expect((await put({ pinned: true })).status).toBe(200);
+  });
+
+  it("refuses words older than the note's, from an app to be reloaded", async () => {
+    expect((await put(everyWord("Newer", 2))).status).toBe(200);
+    expect(await formatNow()).toBe(2);
+    for (const body of [
+      { ...sealedUpdate({ title: "Older" }), format: 1 },
+      everyWord("Older", 1),
+    ]) {
+      const res = await put(body);
+      expect(res.status).toBe(409);
+      expect(await res.json()).toMatchObject({ code: "note_format_newer" });
+    }
+  });
+
+  it("refuses a part of the words in a newer format", async () => {
+    const res = await put({ ...sealedUpdate({ title: "Part" }), format: 2 });
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ code: "note_format_incomplete" });
+    expect(await formatNow()).toBe(1);
+  });
+
+  it("skips an import over a note a newer app wrote", async () => {
+    expect((await put(everyWord("Newer", 2))).status).toBe(200);
+    const res = await rig.request("/api/v1/notes/import", {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({ notes: [{ ...baseNote, id, title: "Older" }] }),
+    });
+    expect(await res.json()).toMatchObject({ created: 0, skipped: 1 });
+    expect(await formatNow()).toBe(2);
   });
 });

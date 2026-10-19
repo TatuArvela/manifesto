@@ -373,7 +373,7 @@ one that no longer opens, so devices subscribe to reminders anew.
   holds it.
 - **Requests made with a token**, as [above](#tokens-that-carry-a-key).
 - **What the server reads**: which notes and images exist, whose they are and who they are shared
-  with, how large, when they changed, their pin, archive and trash state, which have a reminder, and,
+  with, how large, when they changed, which [format](../data-model.md#format) their words are in, their pin, archive and trash state, which have a reminder, and,
   to the running server, when it is due. A note's id is a ULID, which carries the moment it was
   created. The address of a link at the moment its preview is fetched. Usernames, names and email
   addresses, teams and who is in them, and the audit log. How many versions and comments a note has,

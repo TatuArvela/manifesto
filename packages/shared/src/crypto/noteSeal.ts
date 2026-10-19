@@ -26,6 +26,11 @@ import {
   type NoteUpdate,
   type NoteVersion,
 } from "#/note.ts";
+import {
+  currentNoteFormat,
+  isNewerNoteFormat,
+  upgradeNoteWords,
+} from "#/noteFormat.ts";
 import { utf8, wipe } from "./bytes.ts";
 import type { ImageKey } from "./imageSeal.ts";
 import {
@@ -430,6 +435,7 @@ export async function sealNewNote(
         id,
         key: await wrapNoteKey(account, id, key.version, raw),
         keyVersion: key.version,
+        format: currentNoteFormat(),
         ...(shared as SharedSealed & SealedNoteRefs),
         ...(personal as PersonalSealed),
       },
@@ -439,7 +445,12 @@ export async function sealNewNote(
   }
 }
 
-/** The changes of an update, with the words among them sealed. */
+/**
+ * The changes of an update, with the words among them sealed, and the format
+ * they are in whenever there are any. A note stored in an older format takes
+ * every word at once (`withEveryWord`): the server keeps one format for all
+ * of them, and refuses a part of them in a newer one.
+ */
 export async function sealNoteUpdate(
   account: AccountSealKeys,
   key: NoteSealKey,
@@ -458,21 +469,23 @@ export async function sealNoteUpdate(
     tags,
     ...rest
   } = changes;
+  const shared = await sealSharedFields(
+    key,
+    id,
+    {
+      ...(title !== undefined && { title }),
+      ...(content !== undefined && { content }),
+      ...(font !== undefined && { font }),
+      ...(images !== undefined && { images }),
+      ...(imageAlts !== undefined && { imageAlts }),
+      ...(linkPreviews !== undefined && { linkPreviews }),
+    },
+    imageKeys,
+  );
   return {
     ...rest,
-    ...(await sealSharedFields(
-      key,
-      id,
-      {
-        ...(title !== undefined && { title }),
-        ...(content !== undefined && { content }),
-        ...(font !== undefined && { font }),
-        ...(images !== undefined && { images }),
-        ...(imageAlts !== undefined && { imageAlts }),
-        ...(linkPreviews !== undefined && { linkPreviews }),
-      },
-      imageKeys,
-    )),
+    ...shared,
+    ...(Object.keys(shared).length > 0 && { format: currentNoteFormat() }),
     ...(await sealPersonalFields(account, id, {
       ...(color !== undefined && { color }),
       ...(tags !== undefined && { tags }),
@@ -481,9 +494,10 @@ export async function sealNoteUpdate(
 }
 
 /**
- * A sealed note as its reader sees it. `known` saves unwrapping the key again
- * when it is still the one the note is under. Null when the reader's key for
- * the note does not open, which leaves nothing of it to show.
+ * A sealed note as its reader sees it, in the current format. `known` saves
+ * unwrapping the key again when it is still the one the note is under. Null
+ * when the reader's key for the note does not open, which leaves nothing of
+ * it to show, and for a note in a format newer than this build reads.
  */
 export async function openSealedNote(
   account: AccountSealKeys,
@@ -499,10 +513,11 @@ export async function openSealedNote(
     known?.version === sealed.keyVersion
       ? known
       : await openNoteKey(account, sealed.id, sealed.keyVersion, sealed.key);
-  if (!key) return null;
+  if (!key || isNewerNoteFormat(sealed.format)) return null;
   const {
     key: _key,
     keyVersion: _keyVersion,
+    format: _format,
     previousKeys: _previousKeys,
     rekeyDue: _rekeyDue,
     reminderKey: _reminderKey,
@@ -522,7 +537,8 @@ export async function openSealedNote(
     sealed,
   );
   const personal = await openPersonalFields(account, sealed.id, sealed);
-  return { key, excerpt, imageKeys, note: { ...rest, ...shared, ...personal } };
+  const words = upgradeNoteWords(shared, sealed.format);
+  return { key, excerpt, imageKeys, note: { ...rest, ...words, ...personal } };
 }
 
 /** A version's title and text, sealed under the note key and bound to the
@@ -531,7 +547,9 @@ export async function sealVersion(
   key: NoteSealKey,
   versionId: string,
   version: Pick<NoteVersion, "title" | "content">,
-): Promise<Pick<SealedNoteVersion, "title" | "content" | "keyVersion">> {
+): Promise<
+  Pick<SealedNoteVersion, "title" | "content" | "keyVersion" | "format">
+> {
   if (version.title.length > MAX_NOTE_TITLE_LENGTH) {
     throw new NoteLimitError("title");
   }
@@ -540,6 +558,7 @@ export async function sealVersion(
   }
   return {
     keyVersion: key.version,
+    format: currentNoteFormat(),
     title: await seal(
       key.fields,
       utf8(version.title),
@@ -553,12 +572,14 @@ export async function sealVersion(
   };
 }
 
-/** Null when the version is under another key, or does not open. */
+/** The version in the current format. Null when it is under another key,
+ * does not open, or is in a format newer than this build reads. */
 export async function openVersion(
   key: NoteSealKey,
   sealed: SealedNoteVersion,
 ): Promise<NoteVersion | null> {
   if (sealed.keyVersion !== key.version) return null;
+  if (isNewerNoteFormat(sealed.format)) return null;
   const title = await unsealText(
     key.fields,
     sealed.title,
@@ -579,8 +600,7 @@ export async function openVersion(
   return {
     noteId: sealed.noteId,
     timestamp: sealed.timestamp,
-    title,
-    content,
+    ...upgradeNoteWords({ title, content }, sealed.format),
   };
 }
 

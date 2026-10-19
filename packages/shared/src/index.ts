@@ -281,7 +281,9 @@ export {
   wrapFeedKey,
   wrapTokenKeys,
 } from "./crypto/tokenSeal.ts";
+export type { ExportManifest } from "./exportArchive.ts";
 export {
+  EXPORT_MANIFEST_FILE,
   EXPORT_NOTES_FILE,
   EXPORT_PREFERENCES_FILE,
   EXPORT_VERSIONS_FILE,
@@ -346,6 +348,17 @@ export {
   SHARED_NOTE_FIELDS,
   TRASH_RETENTION_DAYS,
 } from "./note.ts";
+export type { NoteFormatStep, NoteWords } from "./noteFormat.ts";
+export {
+  changesWords,
+  currentNoteFormat,
+  isNewerNoteFormat,
+  NewerNoteFormatError,
+  NOTE_FORMAT_STEPS,
+  setNoteFormatStepsForTests,
+  upgradeNoteWords,
+  withEveryWord,
+} from "./noteFormat.ts";
 export {
   advanceReminder,
   currentTimezone,

@@ -54,6 +54,7 @@ beforeAll(async () => {
   shown = {
     id: "n1",
     keyVersion: 1,
+    format: 1,
     title: sealed.title ?? "",
     content: sealed.content ?? "",
     font: sealed.font ?? "",

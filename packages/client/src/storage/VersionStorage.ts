@@ -2,6 +2,7 @@ import {
   MAX_NOTE_VERSIONS,
   NOTE_VERSION_MAX_AGE_DAYS,
   type NoteVersion,
+  upgradeNoteWords,
 } from "@manifesto/shared";
 import { compressToUTF16, decompressFromUTF16 } from "lz-string";
 import { isQuotaError, reportQuotaRefusal } from "./quota.ts";
@@ -130,6 +131,32 @@ export function getVersions(noteId: string): NoteVersion[] {
 export function deleteVersions(noteId: string): void {
   migrateLegacy();
   localStorage.removeItem(keyFor(noteId));
+}
+
+/**
+ * Brings every note's versions from `from` up to the current format, as the
+ * open-mode store does with its notes (`LocalStorageAdapter`), which records
+ * the format for both. A list that does not read is left as it is.
+ */
+export function upgradeAllVersions(from: number): void {
+  migrateLegacy();
+  const ids: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(KEY_PREFIX)) ids.push(key.slice(KEY_PREFIX.length));
+  }
+  for (const noteId of ids) {
+    const versions = load(noteId);
+    if (versions.length === 0) continue;
+    if (
+      write(
+        noteId,
+        versions.map((v) => upgradeNoteWords(v, from)),
+      ) !== "ok"
+    ) {
+      reportQuotaRefusal();
+    }
+  }
 }
 
 /** For tests: run the legacy migration again on the next access. */

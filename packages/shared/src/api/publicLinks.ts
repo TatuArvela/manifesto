@@ -40,6 +40,9 @@ export interface PublicSnapshot {
   images: string;
   linkPreviews: string;
   refs: string[];
+  /** The format the copy's words are in. A snapshot made before formats
+   * were recorded has none, and is format 1. */
+  format?: number;
 }
 
 export interface PublicLinkCreateRequest {
@@ -76,6 +79,8 @@ export interface PublicNote {
   id: string;
   /** Which key they are under: the note's, or 1 for a snapshot's own. */
   keyVersion: number;
+  /** The format the words are in: the note's, or the snapshot's. */
+  format: number;
   title: string;
   content: string;
   font: string;

@@ -22,6 +22,7 @@ import {
   isAttachmentRef,
   MAX_NOTES_PER_IMPORT,
   mapPreviewImages,
+  NewerNoteFormatError,
   previewImages,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
@@ -48,6 +49,15 @@ export interface RestApiAdapterOptions {
    * written.
    */
   sealer?: NoteSealing | null | undefined;
+}
+
+/** The `code` of an error body, when it has one. */
+async function refusalCode(res: Response): Promise<string | undefined> {
+  try {
+    return ((await res.json()) as Partial<ErrorResponse>).code;
+  } catch {
+    return undefined;
+  }
 }
 
 /** The server's own message from an error body, or `fallback`. */
@@ -136,6 +146,7 @@ export class RestApiAdapter implements StorageAdapter {
     } catch {
       // body was not JSON; keep the fallback message
     }
+    if (data.code === "note_format_newer") throw new NewerNoteFormatError();
     throw new RequestError(res.status, errorMessage(data, fallback));
   }
 
@@ -497,11 +508,14 @@ export class RestApiAdapter implements StorageAdapter {
       // The note's key was replaced since this device last read it: sealed
       // again under the one it has now, once. Read through `open`, which is
       // what takes the key a recipient was offered; one who has none yet
-      // holds no key after it, and the write fails as it should.
+      // holds no key after it, and the write fails as it should. A newer
+      // app having saved the note is no reason to try again: reading it
+      // only marks it as one this build cannot show.
+      const newer = (await refusalCode(res.clone())) === "note_format_newer";
       const now = await this.sealedNote(id)();
       if (now) await sealing.open(now);
       else sealing.forget(id);
-      res = await send();
+      if (!newer) res = await send();
     }
     if (res.status === 412) {
       // The body is read once, for the note and for the message alike.

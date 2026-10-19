@@ -206,6 +206,7 @@ describe("version routes", () => {
         noteId: note.id,
         authorId: owner.userId,
         keyVersion: 1,
+        format: 1,
         title: ciphertext(""),
         content: ciphertext(String(i)),
         createdAt: new Date(Date.now() - (100 - i) * 1000).toISOString(),

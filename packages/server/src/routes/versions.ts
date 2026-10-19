@@ -71,6 +71,7 @@ export function registerVersionRoutes(
       noteId: id,
       authorId: userId,
       keyVersion: version.keyVersion,
+      format: version.format,
       title: version.title,
       content: version.content,
       createdAt: versionTimestamp(version.timestamp, nowIso()),

@@ -104,6 +104,8 @@ export const publicLinkCreateSchema = z
         refs: z
           .array(z.string().regex(ATTACHMENT_REF_PATTERN))
           .max(MAX_IMAGES_PER_NOTE + MAX_LINK_PREVIEWS_PER_NOTE * 2),
+        // The format the copy's words are in, as a note's.
+        format: z.number().int().min(1).max(1_000_000).exactOptional(),
       })
       .exactOptional(),
   })
