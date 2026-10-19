@@ -62,7 +62,7 @@ paths:
 The design is `docs/specification/features/encryption.md`: end to end, for every account in
 connected mode, built in the order its last section gives. Its "What is built so far" says which
 steps are in and what still reaches the server readable, and has to be kept true as each step
-lands. Until they all have, nothing here is released.
+lands. Steps 1 to 7 were released in 0.6.0; step 8, replacing the account key, is not built.
 
 ## Unlocking
 
