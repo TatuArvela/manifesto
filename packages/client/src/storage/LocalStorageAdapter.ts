@@ -1,7 +1,10 @@
 import {
+  currentNoteFormat,
   isLocalImageRef,
+  isNewerNoteFormat,
   type LinkPreview,
   mapPreviewImages,
+  NewerNoteFormatError,
   type Note,
   NoteColor,
   type NoteCreate,
@@ -9,6 +12,7 @@ import {
   type NoteUpdate,
   type NoteVersion,
   previewImages,
+  upgradeNoteWords,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
 import { dataUrlToBlob } from "#/utils/dataUrl.ts";
@@ -25,9 +29,37 @@ import type {
   NoteChanges,
   StorageAdapter,
 } from "./StorageAdapter.ts";
-import { getVersions, saveVersion } from "./VersionStorage.ts";
+import {
+  getVersions,
+  saveVersion,
+  upgradeAllVersions,
+} from "./VersionStorage.ts";
 
 const STORAGE_KEY = "manifesto:notes";
+
+/**
+ * The format the notes and their versions are kept in (`noteFormat.ts` in
+ * shared). Absent for a store from before formats were recorded, which is
+ * format 1. Every write stamps it.
+ */
+const FORMAT_KEY = "manifesto:notes:format";
+
+function storedFormat(): number {
+  const format = Number(localStorage.getItem(FORMAT_KEY) ?? "1");
+  return Number.isInteger(format) && format >= 1 ? format : 1;
+}
+
+/**
+ * The store's format, refused when a newer version of the app wrote it, so
+ * that an old tab or a cached build neither shows notes it would misread nor
+ * writes over them. Asked before every read and write, since another tab may
+ * have moved the store on since the last.
+ */
+function readableFormat(): number {
+  const format = storedFormat();
+  if (isNewerNoteFormat(format)) throw new NewerNoteFormatError(format);
+  return format;
+}
 
 /** An image no note refers to is kept this long, sparing a draft's. */
 const LOCAL_IMAGE_GRACE_MS = 24 * 60 * 60 * 1000;
@@ -84,9 +116,13 @@ function holdsInline(note: Note): boolean {
 let cached: { raw: string; notes: Note[] } | null = null;
 
 function loadNotes(): Note[] {
+  const format = readableFormat();
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return [];
-  if (cached && cached.raw === raw) return cached.notes.slice();
+  // Only what is in the current format was ever kept.
+  if (cached && cached.raw === raw && format === currentNoteFormat()) {
+    return cached.notes.slice();
+  }
   let notes: Note[];
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -102,8 +138,22 @@ function loadNotes(): Note[] {
     setAside(raw);
     return [];
   }
+  if (format < currentNoteFormat()) return upgradeStore(notes, format);
   cached = { raw, notes };
   return notes.slice();
+}
+
+/**
+ * The notes and every version kept beside them, brought from `from` up to
+ * the current format and written back, once. The versions go first: the
+ * format is stamped with the notes, and a store stamped before its versions
+ * were moved would leave them in the old format for good.
+ */
+function upgradeStore(notes: Note[], from: number): Note[] {
+  const upgraded = notes.map((note) => upgradeNoteWords(note, from));
+  upgradeAllVersions(from);
+  saveNotes(upgraded);
+  return upgraded.slice();
 }
 
 /** Where a list that would not read is kept, one key for each time. */
@@ -132,9 +182,11 @@ function hasSetAside(): boolean {
 }
 
 function saveNotes(notes: Note[]): void {
+  readableFormat();
   try {
     const raw = JSON.stringify(notes);
     localStorage.setItem(STORAGE_KEY, raw);
+    localStorage.setItem(FORMAT_KEY, String(currentNoteFormat()));
     cached = { raw, notes: notes.slice() };
   } catch (err) {
     if (isQuotaError(err)) {
@@ -172,7 +224,16 @@ export function subscribeToExternalNotes(
   const handler = (event: StorageEvent) => {
     if (event.key !== null && event.key !== STORAGE_KEY) return;
     // A null key means the whole store was cleared.
-    onChange(loadNotes());
+    let next: Note[];
+    try {
+      next = loadNotes();
+    } catch (err) {
+      // A newer tab moved the store on: this one keeps what it shows, and
+      // its next write is refused with a reason.
+      if (err instanceof NewerNoteFormatError) return;
+      throw err;
+    }
+    onChange(next);
   };
   window.addEventListener("storage", handler);
   return () => window.removeEventListener("storage", handler);
@@ -304,6 +365,7 @@ export class LocalStorageAdapter implements StorageAdapter {
   }
 
   async deleteAll(): Promise<void> {
+    readableFormat();
     localStorage.removeItem(STORAGE_KEY);
     await clearLocalImages().catch(() => {});
   }

@@ -33,6 +33,7 @@ export interface NoteRow {
   font: string;
   wrapped_key?: string;
   key_version?: number | string;
+  format?: number | string;
   previous_keys?: string;
   rekey_due?: number | string;
   reminder_key?: string;
@@ -115,6 +116,7 @@ export function rowToNote(row: NoteRow): SealedNote {
     id: row.id,
     key: sealedColumn(row.wrapped_key),
     keyVersion: Number(row.key_version ?? 1),
+    format: Number(row.format ?? 1),
     title: sealedColumn(row.title),
     content: sealedColumn(row.content),
     excerpt: sealedColumn(row.excerpt),
@@ -147,6 +149,7 @@ export function rowToNote(row: NoteRow): SealedNote {
 const FIELD_TO_COLUMN = {
   key: "wrapped_key",
   keyVersion: "key_version",
+  format: "format",
   previousKeys: "previous_keys",
   reminderKey: "reminder_key",
   title: "title",
@@ -223,6 +226,7 @@ function toColumnValue(
     case "position":
       return Number(value ?? 0);
     case "keyVersion":
+    case "format":
       return Number(value ?? 1);
     case "imageRefs":
     case "previewRefs":
@@ -230,6 +234,40 @@ function toColumnValue(
     default:
       return (value as string | null | undefined) ?? "";
   }
+}
+
+/** The words of a note one format covers; `excerpt` comes with `content`. */
+const WORD_FIELDS = [
+  "title",
+  "content",
+  "font",
+  "images",
+  "linkPreviews",
+] as const satisfies readonly UpdatableField[];
+
+/** Whether a change carries every word of a note, as a move to a newer
+ * format has to. */
+export function carriesEveryWord(changes: SealedNoteUpdate): boolean {
+  return WORD_FIELDS.every((field) => changes[field] !== undefined);
+}
+
+/**
+ * What a write's `format` holds it to, for the driver to add to its `WHERE`
+ * with its own placeholder: the note's own format, or, for a write that
+ * carries every word, that one or an older one, which the write moves up.
+ * A write in an older format than the note's is refused, so an outdated app
+ * never writes over words it would misread; so is one that moves part of
+ * a note to a newer format and leaves the rest behind. Null for a write
+ * that carries no words, which no format concerns.
+ */
+export function formatCondition(
+  changes: SealedNoteUpdate,
+): { op: "=" | "<="; value: number } | null {
+  if (changes.format === undefined) return null;
+  return {
+    op: carriesEveryWord(changes) ? "<=" : "=",
+    value: changes.format,
+  };
 }
 
 /**

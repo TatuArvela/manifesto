@@ -5,6 +5,7 @@ import {
 } from "#/storage/attachmentMapping.ts";
 import {
   decodeCursor,
+  formatCondition,
   INSERT_COLUMNS,
   noteInsertValues,
   noteUpdateColumns,
@@ -191,6 +192,11 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
         params.push(expectedKeyVersion);
         where += ` AND key_version = $${params.length}`;
       }
+      const format = formatCondition(split.shared);
+      if (format) {
+        params.push(format.value);
+        where += ` AND format ${format.op} $${params.length}`;
+      }
       const written = await client.query(
         `UPDATE notes SET ${assignments.join(", ")} ${where}`,
         params,
@@ -356,6 +362,12 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
       if (expectedKeyVersion !== undefined) {
         params.push(expectedKeyVersion);
         where += ` AND key_version = $${params.length}`;
+      }
+      // And on the format the words are in: see `formatCondition`.
+      const format = formatCondition(changes);
+      if (format) {
+        params.push(format.value);
+        where += ` AND format ${format.op} $${params.length}`;
       }
       const sql = `UPDATE notes SET ${assignments.join(", ")} ${where}`;
       const result = await pool.query(sql, params);

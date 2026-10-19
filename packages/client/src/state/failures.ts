@@ -1,3 +1,4 @@
+import { NewerNoteFormatError } from "@manifesto/shared";
 import { effect } from "@preact/signals";
 import { type MessageKey, plural, t } from "#/i18n/index.ts";
 import { quotaRefusedAt } from "#/storage/quota.ts";
@@ -20,6 +21,11 @@ export interface Batch {
   failures: number;
 }
 
+/**
+ * Reports one failed action: in `batch` when given, or as a toast of
+ * `message`. A failure because a newer version of the app saved the notes
+ * says so instead, since what helps then is a reload, not trying again.
+ */
 export function reportFailure(
   context: string,
   err: unknown,
@@ -31,7 +37,9 @@ export function reportFailure(
     batch.failures++;
     return;
   }
-  showError(t(message));
+  showError(
+    t(err instanceof NewerNoteFormatError ? "error.newerFormat" : message),
+  );
 }
 
 /**

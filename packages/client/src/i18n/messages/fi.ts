@@ -241,6 +241,11 @@ export const fi: Messages = {
     other:
       "{count} muistiinpanoa ei näytetä: niiden avaimet eivät ole saapuneet tai eivät aukea tällä laitteella.",
   },
+  "notes.newerFormat": {
+    one: "{count} muistiinpanoa ei näytetä: se on tallennettu sovelluksen uudemmalla versiolla. Lataa sivu uudelleen nähdäksesi sen.",
+    other:
+      "{count} muistiinpanoa ei näytetä: ne on tallennettu sovelluksen uudemmalla versiolla. Lataa sivu uudelleen nähdäksesi ne.",
+  },
   "editor.metadata.created": "Luotu {date}",
   "editor.metadata.edited": "Muokattu {date}",
   "editor.deleteImage": "Poista kuva",
@@ -527,6 +532,8 @@ export const fi: Messages = {
     other: "Tuotiin {count} muistiinpanoa",
   },
   "settings.data.importFailed": "Tuonti epäonnistui: virheellinen tiedosto",
+  "settings.data.importNewer":
+    "Tuonti epäonnistui: tiedosto on viety sovelluksen uudemmalla versiolla. Lataa sivu uudelleen ja yritä uudelleen.",
   "settings.data.importedSingle": "Muistiinpano tuotu",
   "settings.data.deleted": "Kaikki muistiinpanot poistettu",
   "settings.autoNotes.empty.title": "Muistiinpanot, jotka kirjoittavat itsensä",
@@ -1061,6 +1068,8 @@ export const fi: Messages = {
   // Toasts / errors
   "toast.dismiss": "Sulje",
   "error.loadFailed": "Muistiinpanojen lataus epäonnistui. Päivitä sivu.",
+  "error.newerFormat":
+    "Muistiinpanosi on tallennettu sovelluksen uudemmalla versiolla. Lataa sivu uudelleen ennen kuin teet muutoksia.",
   "error.createFailed": "Muistiinpanon luonti epäonnistui.",
   "error.saveFailed": "Muutosten tallennus epäonnistui.",
   "error.deleteFailed": "Muistiinpanon poisto epäonnistui.",
@@ -1231,6 +1240,8 @@ export const fi: Messages = {
     "Tämä linkki ei avaa muistiinpanoa. Se on ehkä vanhentunut tai mitätöity.",
   "publicLink.page.failed":
     "Muistiinpanoa ei voitu ladata. Tarkista yhteys ja yritä uudelleen.",
+  "publicLink.page.newer":
+    "Tämä muistiinpano on tallennettu sovelluksen uudemmalla versiolla. Lataa sivu uudelleen nähdäksesi sen.",
   "publicLink.page.passwordPrompt": "Tämä muistiinpano on suojattu salasanalla",
   "publicLink.page.wrongPassword": "Salasana ei ole oikein.",
   "publicLink.page.tooMany": "Liian monta yritystä. Yritä myöhemmin uudelleen.",

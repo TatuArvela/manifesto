@@ -12,13 +12,14 @@ interface VersionRow {
   id: string;
   note_id: string;
   key_version: number | string;
+  format?: number | string;
   title: string;
   content: string;
   created_at: string;
 }
 
 export const VERSION_COLUMNS =
-  "id, note_id, key_version, title, content, created_at";
+  "id, note_id, key_version, format, title, content, created_at";
 
 export function rowToVersion(row: VersionRow): SealedNoteVersion {
   return {
@@ -26,6 +27,7 @@ export function rowToVersion(row: VersionRow): SealedNoteVersion {
     noteId: row.note_id,
     timestamp: row.created_at,
     keyVersion: Number(row.key_version),
+    format: Number(row.format ?? 1),
     title: row.title,
     content: row.content,
   };
@@ -38,8 +40,10 @@ export function createSqliteVersionsRepo(db: SqliteDB): VersionsRepo {
   );
   const insertStmt = db.prepare(
     `INSERT INTO note_versions
-       (id, note_id, author_id, key_version, title, content, created_at)
-     VALUES (@id, @noteId, @authorId, @keyVersion, @title, @content, @createdAt)
+       (id, note_id, author_id, key_version, format, title, content,
+        created_at)
+     VALUES (@id, @noteId, @authorId, @keyVersion, @format, @title, @content,
+       @createdAt)
      ON CONFLICT (id) DO NOTHING`,
   );
   const expireStmt = db.prepare(

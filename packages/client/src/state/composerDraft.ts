@@ -1,3 +1,4 @@
+import { upgradeNoteWords } from "@manifesto/shared";
 import {
   dropOffline,
   keepOffline,
@@ -105,7 +106,7 @@ export async function loadDraft(): Promise<ComposerDraft | null> {
   }
   const value = record.value as Record<string, unknown>;
   restoreImageKeys(value.imageKeys);
-  const draft = keptFields(value);
+  const draft = upgradeNoteWords(keptFields(value), record.format);
   return isEmptyDraft(draft) ? null : draft;
 }
 

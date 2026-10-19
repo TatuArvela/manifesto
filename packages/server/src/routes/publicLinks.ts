@@ -71,6 +71,7 @@ function publicNoteOf(link: StoredPublicLink, live: SealedNote): PublicNote {
   return {
     id: live.id,
     keyVersion: link.snapshot ? 1 : live.keyVersion,
+    format: link.snapshot ? (link.snapshot.format ?? 1) : live.format,
     title: from.title,
     content: from.content,
     font: from.font,
