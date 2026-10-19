@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.0](https://github.com/TatuArvela/manifesto/compare/v0.6.0...v0.7.0) (2026-10-19)
+
+
+### Features
+
+* **client:** checklist niceties, a messier board, and a plainer Settings you can search ([#150](https://github.com/TatuArvela/manifesto/issues/150)) ([09b5ae3](https://github.com/TatuArvela/manifesto/commit/09b5ae320fbcc1e2255ef3eeb9d99ec033d090e2))
+
+
+### Bug Fixes
+
+* **client:** a phone's keyboard stops covering the editor and opening unasked ([#151](https://github.com/TatuArvela/manifesto/issues/151)) ([d3baf46](https://github.com/TatuArvela/manifesto/commit/d3baf46fa382fb18481f7774c24f836b01ef9c01))
+* **client:** a setting changed with two tabs open stays changed ([#149](https://github.com/TatuArvela/manifesto/issues/149)) ([2f6500f](https://github.com/TatuArvela/manifesto/commit/2f6500f913cb4a4aac7426a6797fca40fa8ca351))
+* missed daily and weekly reminders fire again, with tests and splits of the longest files ([#147](https://github.com/TatuArvela/manifesto/issues/147)) ([158a3df](https://github.com/TatuArvela/manifesto/commit/158a3df5d46bcf97ae1a4850d9320bee4ba1150f))
+
 ## [0.6.0](https://github.com/TatuArvela/manifesto/compare/v0.5.0...v0.6.0) (2026-10-17)
 
 
