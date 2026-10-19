@@ -101,7 +101,7 @@ function sameKey(given: string | undefined, expected: string): boolean {
 }
 
 /**
- * `/api/notes/:id/links`: a note's public links, managed by its owner.
+ * `/api/v1/notes/:id/links`: a note's public links, managed by its owner.
  * Registered on the notes router, behind its authentication.
  */
 export function registerPublicLinkRoutes(
@@ -208,7 +208,7 @@ export function registerPublicLinkRoutes(
 }
 
 /**
- * `/api/public/:token`: a note as a public link shows it, to anyone holding
+ * `/api/v1/public/:token`: a note as a public link shows it, to anyone holding
  * the token, with no account.
  *
  * Every way a link can fail (never made, revoked, expired, used up, its note

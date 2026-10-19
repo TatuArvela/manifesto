@@ -36,7 +36,7 @@ describe("local auth router", () => {
   });
 
   it("registers a user and returns a session token", async () => {
-    const res = await rig.request("/api/auth/register", {
+    const res = await rig.request("/api/v1/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "alice", password: "test-pass-12" }),
@@ -53,7 +53,7 @@ describe("local auth router", () => {
 
   it("rejects duplicate usernames with 409", async () => {
     await registerTestUser(rig, "alice");
-    const res = await rig.request("/api/auth/register", {
+    const res = await rig.request("/api/v1/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "ALICE", password: "test-pass-12" }),
@@ -63,7 +63,7 @@ describe("local auth router", () => {
   });
 
   it("rejects short passwords with 422", async () => {
-    const res = await rig.request("/api/auth/register", {
+    const res = await rig.request("/api/v1/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "alice", password: "x" }),
@@ -75,7 +75,7 @@ describe("local auth router", () => {
 
   it("logs in with valid credentials", async () => {
     await registerTestUser(rig, "alice", "password-1234");
-    const res = await rig.request("/api/auth/login", {
+    const res = await rig.request("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "alice", password: "password-1234" }),
@@ -87,7 +87,7 @@ describe("local auth router", () => {
 
   it("rejects invalid passwords with 401 and the same generic message", async () => {
     await registerTestUser(rig, "alice", "password-1234");
-    const res = await rig.request("/api/auth/login", {
+    const res = await rig.request("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "alice", password: "password-9999" }),
@@ -99,7 +99,7 @@ describe("local auth router", () => {
   });
 
   it("rejects unknown usernames with the same generic 401", async () => {
-    const res = await rig.request("/api/auth/login", {
+    const res = await rig.request("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "ghost", password: "password-1234" }),
@@ -121,7 +121,7 @@ describe("local auth router", () => {
       externalId: "sub-1",
       createdAt: new Date().toISOString(),
     });
-    const res = await rig.request("/api/auth/login", {
+    const res = await rig.request("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "sso-user", password: "anything-12" }),
@@ -131,27 +131,27 @@ describe("local auth router", () => {
 
   it("logs out and invalidates the session token", async () => {
     const { token } = await registerTestUser(rig, "alice");
-    const out = await rig.request("/api/auth/logout", {
+    const out = await rig.request("/api/v1/auth/logout", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     });
     expect(out.status).toBe(204);
 
-    const after = await rig.request("/api/notes", {
+    const after = await rig.request("/api/v1/notes", {
       headers: { Authorization: `Bearer ${token}` },
     });
     expect(after.status).toBe(401);
   });
 
   it("rejects logout without a token", async () => {
-    const res = await rig.request("/api/auth/logout", { method: "POST" });
+    const res = await rig.request("/api/v1/auth/logout", { method: "POST" });
     expect(res.status).toBe(401);
   });
 
   it("returns 403 from /register when REGISTRATION_ENABLED is false", async () => {
     const closedRig = await bootTestAppWith({ registrationEnabled: false });
     try {
-      const res = await closedRig.request("/api/auth/register", {
+      const res = await closedRig.request("/api/v1/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: "alice", password: "test-pass-12" }),
@@ -166,7 +166,7 @@ describe("local auth router", () => {
 
   it("tells the first account it is the admin, and no later one", async () => {
     const register = async (username: string) => {
-      const res = await rig.request("/api/auth/register", {
+      const res = await rig.request("/api/v1/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password: "test-pass-12" }),
@@ -179,7 +179,7 @@ describe("local auth router", () => {
 
   describe("changing your own password", () => {
     function change(token: string, body: unknown) {
-      return rig.request("/api/auth/password", {
+      return rig.request("/api/v1/auth/password", {
         method: "POST",
         headers: authHeaders(token),
         body: JSON.stringify(body),
@@ -187,7 +187,7 @@ describe("local auth router", () => {
     }
 
     async function signIn(password: string): Promise<Response> {
-      return rig.request("/api/auth/login", {
+      return rig.request("/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: "alice", password }),
@@ -213,7 +213,7 @@ describe("local auth router", () => {
       expect(res.status).toBe(204);
 
       const notes = (token: string) =>
-        rig.request("/api/notes", { headers: authHeaders(token) });
+        rig.request("/api/v1/notes", { headers: authHeaders(token) });
       expect((await notes(elsewhere)).status).toBe(401);
       expect((await notes(here)).status).toBe(200);
       expect((await signIn("old-password-1")).status).toBe(401);
@@ -276,7 +276,7 @@ describe("local auth router", () => {
 
   describe("what a wrong sign-in costs", () => {
     function login(username: string, password = "password-1234") {
-      return rig.request("/api/auth/login", {
+      return rig.request("/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -334,7 +334,7 @@ describe("local auth router", () => {
     // That is the attacker this counter is for: the per-IP budget is renewed
     // by moving, and `admin` is a name every local-auth server has.
     function attempt(username: string, password: string, n: number) {
-      return proxied.request("/api/auth/login", {
+      return proxied.request("/api/v1/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -382,7 +382,7 @@ describe("local auth router", () => {
         "password-1234",
       );
       const change = (currentPassword: string, n: number) =>
-        proxied.request("/api/auth/password", {
+        proxied.request("/api/v1/auth/password", {
           method: "POST",
           headers: {
             ...authHeaders(token),

@@ -24,7 +24,7 @@ describe("loadAccountActivity", () => {
     );
     expect(await loadAccountActivity("01ABC")).toEqual(page);
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      `${SERVER}/api/auth/me/activity?before=01ABC`,
+      `${SERVER}/api/v1/auth/me/activity?before=01ABC`,
     );
   });
 

@@ -37,7 +37,7 @@ Commands:
   create-admin <username>      Create a local admin account with a temporary
                                password (printed here).
   openapi                      Print the API's OpenAPI document, as the server
-                               serves it at /api/openapi.json, to generate a
+                               serves it at /api/v1/openapi.json, to generate a
                                client from. Needs no database.`;
 
 export interface CliContext {
@@ -165,7 +165,7 @@ export async function runCli(
   }
 }
 
-/** The OpenAPI document as text, the same one `/api/openapi.json` serves. */
+/** The OpenAPI document as text, the same one `/api/v1/openapi.json` serves. */
 export function openApiText(): string {
   return JSON.stringify(buildOpenApiDocument(VERSION), null, 2);
 }

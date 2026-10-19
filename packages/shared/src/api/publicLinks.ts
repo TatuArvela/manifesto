@@ -72,7 +72,7 @@ export interface PublicLinksResponse {
  * text, font, images and link previews, sealed, and nothing about who wrote
  * it, its tags, its colour or its place among the owner's notes. The page
  * opens it with the link key from its own address. Its pictures are sealed
- * too, served by `GET /api/public/:token/attachments/:id`.
+ * too, served by `GET /api/v1/public/:token/attachments/:id`.
  */
 export interface PublicNote {
   /** The note's id, which its sealed values are bound to. */
@@ -105,7 +105,7 @@ export interface PublicNoteResponse {
   access: string | null;
 }
 
-/** `GET /api/public/:token` of a link with a password, before it is given. */
+/** `GET /api/v1/public/:token` of a link with a password, before it is given. */
 export interface PublicNoteLockedResponse {
   passwordRequired: true;
 }

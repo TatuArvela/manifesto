@@ -23,7 +23,7 @@ describe("apiFetch", () => {
     const res = await apiFetch("POST", "/tokens", { name: "x" });
     expect(res?.status).toBe(204);
     const [url, init] = fetchMock.mock.calls[0] ?? [];
-    expect(url).toBe("/api/tokens");
+    expect(url).toBe("/api/v1/tokens");
     const headers = new Headers(init?.headers);
     expect(headers.get("Authorization")).toBe("Bearer tok");
     expect(headers.get("Content-Type")).toBe("application/json");

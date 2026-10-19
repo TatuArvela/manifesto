@@ -57,7 +57,7 @@ Beyond that, someone on a note sees the names of the others on it, and the names
 
 ## What a user can see about their account
 
-Settings has an **Activity** page for every signed-in user (`GET /api/auth/me/activity`): the audit
+Settings has an **Activity** page for every signed-in user (`GET /api/v1/auth/me/activity`): the audit
 log's lines where they are the actor or the target, newest first. That is their sign-ins and failed
 ones, changes to how the account is secured, shares with and by them, and every admin action on their
 account, with the admin's name. The rule is that what an admin

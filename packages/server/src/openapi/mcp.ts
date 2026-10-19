@@ -8,7 +8,7 @@ import { type Operation, ok } from "./operation.ts";
 export const MCP_OPERATIONS: Operation[] = [
   {
     method: "post",
-    path: "/api/mcp",
+    path: "/api/v1/mcp",
     tag: "MCP",
     summary:
       "Model Context Protocol for AI assistants: JSON-RPC over Streamable HTTP, stateless",
@@ -23,7 +23,7 @@ export const MCP_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/oauth/register",
+    path: "/api/v1/oauth/register",
     tag: "MCP",
     summary:
       "Register an assistant as an OAuth client (RFC 7591); a public client, answered with client_id",
@@ -38,7 +38,7 @@ export const MCP_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/oauth/token",
+    path: "/api/v1/oauth/token",
     tag: "MCP",
     summary:
       "Trade a code (with its PKCE verifier) or a refresh token for an hour's MCP token and the next refresh token; a form, as RFC 6749 has it",
@@ -52,7 +52,7 @@ export const MCP_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/oauth/client",
+    path: "/api/v1/oauth/client",
     tag: "MCP",
     summary: "The assistant a consent is about, for the consent page",
     auth: "session",
@@ -73,7 +73,7 @@ export const MCP_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/oauth/authorize",
+    path: "/api/v1/oauth/authorize",
     tag: "MCP",
     summary:
       "Let an assistant in: a code on its redirect address, to trade at the token endpoint",

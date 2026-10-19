@@ -8,14 +8,14 @@ export interface AuthCredentials {
   newPassword?: string;
 }
 
-/** `POST /api/auth/register`. */
+/** `POST /api/v1/auth/register`. */
 export interface RegisterRequest {
   username: string;
   password: string;
   email?: string;
 }
 
-/** `PUT /api/auth/me`: the signed-in user's own details. `null` clears. */
+/** `PUT /api/v1/auth/me`: the signed-in user's own details. `null` clears. */
 export interface AuthMeUpdateRequest {
   email: string | null;
 }

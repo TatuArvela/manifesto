@@ -24,7 +24,7 @@ export interface NotesResponse<N = Note> {
   /**
    * One page of notes, newest first. Attachments are **not** included: a
    * listed note carries `imageCount` and an empty `images`, and the data URLs
-   * arrive with `GET /api/notes/:id`. Sending every attachment of every note
+   * arrive with `GET /api/v1/notes/:id`. Sending every attachment of every note
    * on every load is what made a list response unbounded in the first place.
    */
   notes: N[];
@@ -33,8 +33,8 @@ export interface NotesResponse<N = Note> {
 }
 
 /**
- * One page of `GET /api/sync`: the notes that changed since a checkpoint.
- * Page through it as through `/api/notes`; `checkpoint` and `ids` come on the
+ * One page of `GET /api/v1/sync`: the notes that changed since a checkpoint.
+ * Page through it as through `/api/v1/notes`; `checkpoint` and `ids` come on the
  * last page only, and the next sync sends that checkpoint back as `since`.
  */
 export interface SyncResponse<N = Note> extends NotesResponse<N> {
@@ -52,19 +52,19 @@ export interface NoteResponse<N = Note> {
   note: N;
 }
 
-/** Notes per `POST /api/notes/import` request; a larger backup is sent in
+/** Notes per `POST /api/v1/notes/import` request; a larger backup is sent in
  * several. */
 export const MAX_NOTES_PER_IMPORT = 100;
 
 /**
- * One note of `POST /api/notes/import`: a note as created, with the `id` and
+ * One note of `POST /api/v1/notes/import`: a note as created, with the `id` and
  * `createdAt` it had where it came from. An `id` this user owns is updated in
  * place, so importing the same backup twice changes nothing; an `id` taken by
  * a note this user cannot write gets a new one.
  */
 export type NoteImport = NoteCreate & { id?: string; createdAt?: string };
 
-/** `POST /api/notes/import`. */
+/** `POST /api/v1/notes/import`. */
 export interface NotesImportRequest {
   notes: NoteImport[];
 }
@@ -89,17 +89,17 @@ export interface NotesImportResponse {
   stale?: string[];
 }
 
-/** `POST /api/attachments`: the reference to put in a note's `images`. */
+/** `POST /api/v1/attachments`: the reference to put in a note's `images`. */
 export interface AttachmentUploadResponse {
   ref: string;
 }
 
-/** The most references one `POST /api/attachments/claim` may carry: a
+/** The most references one `POST /api/v1/attachments/claim` may carry: a
  * note's images, and a thumbnail and an icon for each of its previews. */
 export const MAX_ATTACHMENTS_PER_CLAIM = 60;
 
 /**
- * `POST /api/attachments/claim`: the images a note is about to name, to be
+ * `POST /api/v1/attachments/claim`: the images a note is about to name, to be
  * made its owner's. `noteId` is the note, or absent (or not there yet) for
  * one the caller is about to make.
  */
@@ -113,13 +113,13 @@ export interface AttachmentsClaimResponse {
   refs: string[];
 }
 
-/** `GET /api/notes/:id/versions`, newest first. */
+/** `GET /api/v1/notes/:id/versions`, newest first. */
 export interface NoteVersionsResponse {
   versions: NoteVersion[];
 }
 
 /**
- * `POST /api/notes/:id/versions`. `timestamp` is for bringing a history kept
+ * `POST /api/v1/notes/:id/versions`. `timestamp` is for bringing a history kept
  * in a browser across with its own dates; the server stamps one left out.
  */
 export interface NoteVersionCreateRequest {

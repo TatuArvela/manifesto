@@ -134,7 +134,7 @@ function ipv4String(groups: Ipv6Groups): string {
  * IPv6 is keyed on its /64 rather than on the whole address. A /64 is the
  * smallest block anyone is handed, so keying the /128 gives a single client
  * with a routed prefix 2^64 buckets to rotate through and no per-address
- * limit means anything. That matters most on `/api/auth/login`, where one
+ * limit means anything. That matters most on `/api/v1/auth/login`, where one
  * cheap request buys the server a ~19 MiB argon2 verify.
  *
  * IPv4 is a host address already and is keyed whole. An IPv4 client reaching
@@ -191,7 +191,7 @@ function makeDefaultKey(
 }
 
 /**
- * Per-authenticated-user limiter for /api/notes and /api/search. The bucket
+ * Per-authenticated-user limiter for /api/v1/notes and /api/v1/search. The bucket
  * key is the userId set by `createAuthMiddleware`, so this MUST be mounted
  * AFTER auth. 300 requests/minute is generous for normal use and catches
  * runaway clients / misuse without paging legitimate users.

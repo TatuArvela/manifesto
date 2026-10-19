@@ -1,14 +1,14 @@
 /** How many browsers one account can have subscribed for push at once. */
 export const MAX_PUSH_SUBSCRIPTIONS_PER_USER = 10;
 
-/** `GET /api/push/key`: the key a browser subscribes with. */
+/** `GET /api/v1/push/key`: the key a browser subscribes with. */
 export interface PushKeyResponse {
   /** The server's push public key, base64url: `applicationServerKey`. */
   publicKey: string;
 }
 
 /**
- * `POST /api/push/subscriptions`: a browser's subscription, as
+ * `POST /api/v1/push/subscriptions`: a browser's subscription, as
  * `PushSubscription.toJSON()` gives it. `DELETE` takes the `endpoint` alone.
  */
 export interface PushSubscribeRequest {
@@ -16,7 +16,7 @@ export interface PushSubscribeRequest {
   keys: { p256dh: string; auth: string };
 }
 
-/** `DELETE /api/push/subscriptions`. */
+/** `DELETE /api/v1/push/subscriptions`. */
 export interface PushUnsubscribeRequest {
   endpoint: string;
 }

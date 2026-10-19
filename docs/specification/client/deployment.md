@@ -231,7 +231,7 @@ and the second is the one people forget:
 ```
 
 Both origins are needed. The `https://` one carries REST, and the `wss://` one
-carries `/api/ws` and `/api/yjs`; adding only the first gives you a client that
+carries `/api/v1/ws` and `/api/v1/yjs`; adding only the first gives you a client that
 signs in and then never syncs, which says very little about itself. Make the
 same edits in `404.html`, the SPA fallback copy.
 
@@ -242,7 +242,7 @@ does the same when the address is not a full URL.
 
 Two cases need no CSP edit at all.
 
-A **single-origin deployment**, where one proxy serves the bundle and `/api/*`
+A **single-origin deployment**, where one proxy serves the bundle and `/api/v1/*`
 from the same host, is already covered by the stock `connect-src 'self'`: CSP3
 extends `'self'` to the `wss://` form of the page's own host, so the sockets
 are permitted too. Leave the policy alone and set only the tag:

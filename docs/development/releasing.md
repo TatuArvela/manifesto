@@ -11,7 +11,7 @@ Manifesto uses a single shared version across all three packages (`@manifesto/cl
 
 ## Versions between releases
 
-Only the release commit is `X.Y.Z`. A build of any later commit reports the release it follows, the number of commits since, and its own short SHA, as semver build metadata: `0.1.5+14.bf5a6dd`. That is what the GitHub Pages deployment of `main` shows in Settings, and what `/api/health` answers for a server image built by hand from a branch. `packages/build-version` works this out from git history, so a CI checkout that builds needs `fetch-depth: 0`. Set `MANIFESTO_VERSION` to override it, for example as a Docker build arg, since the image's build context has no `.git`.
+Only the release commit is `X.Y.Z`. A build of any later commit reports the release it follows, the number of commits since, and its own short SHA, as semver build metadata: `0.1.5+14.bf5a6dd`. That is what the GitHub Pages deployment of `main` shows in Settings, and what `/api/v1/health` answers for a server image built by hand from a branch. `packages/build-version` works this out from git history, so a CI checkout that builds needs `fetch-depth: 0`. Set `MANIFESTO_VERSION` to override it, for example as a Docker build arg, since the image's build context has no `.git`.
 
 ## Conventional commits
 
@@ -34,7 +34,7 @@ PR titles become commit messages on squash-merge, so the PR title is what releas
 
 - [ ] `gh release view vX.Y.Z` shows the client zip attached.
 - [ ] `docker pull ghcr.io/tatuarvela/manifesto-server:X.Y.Z` works from a clean machine.
-- [ ] `curl https://<server>/api/health` reports `version: "X.Y.Z"`.
+- [ ] `curl https://<server>/api/v1/health` reports `version: "X.Y.Z"`.
 - [ ] `https://tatuarvela.github.io/manifesto/` shows the new version in Settings → About (hard-refresh past the service worker).
 
 ## Before 1.0.0

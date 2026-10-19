@@ -9,7 +9,7 @@ const both: Partial<ServerConfig> = {
     issuer: "https://idp.example",
     clientId: "manifesto",
     clientSecret: "secret",
-    redirectUri: "https://notes.example/api/auth/callback",
+    redirectUri: "https://notes.example/api/v1/auth/callback",
     postLoginRedirect: "https://notes.example/",
     scopes: ["openid"],
     groupsClaim: "groups",
@@ -33,7 +33,7 @@ describe("local and single sign-on side by side", () => {
   });
 
   it("offers both, and says how to show the password form", async () => {
-    const { auth } = await (await rig.request("/api/capabilities")).json();
+    const { auth } = await (await rig.request("/api/v1/capabilities")).json();
     expect(auth).toMatchObject({
       providers: ["local", "oidc"],
       passwordForm: "collapsed",
@@ -41,13 +41,13 @@ describe("local and single sign-on side by side", () => {
   });
 
   it("signs in with a password, and knows the account has one", async () => {
-    const register = await rig.request("/api/auth/register", {
+    const register = await rig.request("/api/v1/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "alice", password: "test-pass-12" }),
     });
     expect(register.status).toBe(201);
-    const login = await rig.request("/api/auth/login", {
+    const login = await rig.request("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "alice", password: "test-pass-12" }),
@@ -58,8 +58,8 @@ describe("local and single sign-on side by side", () => {
 
   it("mounts the single sign-on routes as well", () => {
     const routes = rig.app.routes.map((r) => `${r.method} ${r.path}`);
-    expect(routes).toContain("GET /api/auth/login");
-    expect(routes).toContain("GET /api/auth/callback");
-    expect(routes).toContain("POST /api/auth/login");
+    expect(routes).toContain("GET /api/v1/auth/login");
+    expect(routes).toContain("GET /api/v1/auth/callback");
+    expect(routes).toContain("POST /api/v1/auth/login");
   });
 });

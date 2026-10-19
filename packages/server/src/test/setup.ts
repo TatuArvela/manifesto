@@ -124,7 +124,7 @@ export async function registerTestUser(
   username = "tester",
   password = "test-pass-12",
 ): Promise<{ token: string; userId: string }> {
-  const res = await rig.request("/api/auth/register", {
+  const res = await rig.request("/api/v1/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),

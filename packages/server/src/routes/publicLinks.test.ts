@@ -71,7 +71,7 @@ describe("public links", () => {
   }
 
   async function upload(image: string): Promise<string> {
-    const res = await rig.request("/api/attachments", {
+    const res = await rig.request("/api/v1/attachments", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${owner.token}`,
@@ -84,7 +84,7 @@ describe("public links", () => {
   }
 
   async function createNote(fields: Partial<NoteCreate> = {}): Promise<Note> {
-    const res = await call(owner, "POST", "/api/notes", {
+    const res = await call(owner, "POST", "/api/v1/notes", {
       ...baseNote,
       ...fields,
     });
@@ -96,13 +96,18 @@ describe("public links", () => {
     noteId: string,
     body: Record<string, unknown> = { mode: "live" },
   ): Promise<PublicLink> {
-    const res = await call(owner, "POST", `/api/notes/${noteId}/links`, body);
+    const res = await call(
+      owner,
+      "POST",
+      `/api/v1/notes/${noteId}/links`,
+      body,
+    );
     expect(res.status).toBe(201);
     return ((await res.json()) as { link: PublicLink }).link;
   }
 
   async function visit(token: string): Promise<Response> {
-    return call(null, "GET", `/api/public/${token}`);
+    return call(null, "GET", `/api/v1/public/${token}`);
   }
 
   async function shown(token: string): Promise<PublicNoteResponse> {
@@ -115,7 +120,7 @@ describe("public links", () => {
     const note = await createNote();
     const raw = async (token: string) =>
       (await (
-        await rig.rawRequest(`/api/public/${token}`)
+        await rig.rawRequest(`/api/v1/public/${token}`)
       ).json()) as PublicNoteResponse;
 
     const live = await raw((await publish(note.id)).token);
@@ -144,7 +149,7 @@ describe("public links", () => {
       refs: [] as string[],
     };
     const post = (body: object) =>
-      rig.rawRequest(`/api/notes/${note.id}/links`, {
+      rig.rawRequest(`/api/v1/notes/${note.id}/links`, {
         method: "POST",
         headers: authHeaders(owner.token),
         body: JSON.stringify(body),
@@ -190,7 +195,7 @@ describe("public links", () => {
     expect(body.note).not.toHaveProperty("color");
     expect(body.access).toBeNull();
 
-    const list = await call(owner, "GET", `/api/notes/${note.id}/links`);
+    const list = await call(owner, "GET", `/api/v1/notes/${note.id}/links`);
     const { links } = (await list.json()) as { links: PublicLink[] };
     expect(links).toHaveLength(1);
     expect(links[0]).toMatchObject({ viewCount: 1, mode: "live" });
@@ -201,7 +206,7 @@ describe("public links", () => {
     const note = await createNote();
     const live = await publish(note.id);
     const snapshot = await publish(note.id, { mode: "snapshot" });
-    await call(owner, "PUT", `/api/notes/${note.id}`, { content: "Edited" });
+    await call(owner, "PUT", `/api/v1/notes/${note.id}`, { content: "Edited" });
 
     expect((await shown(live.token)).note.content).toBe("Edited");
     expect((await shown(snapshot.token)).note.content).toBe("Flour and water");
@@ -213,7 +218,7 @@ describe("public links", () => {
     const res = await call(
       owner,
       "DELETE",
-      `/api/notes/${note.id}/links/${link.token}`,
+      `/api/v1/notes/${note.id}/links/${link.token}`,
     );
     expect(res.status).toBe(204);
     expect((await visit(link.token)).status).toBe(404);
@@ -242,20 +247,30 @@ describe("public links", () => {
     expect(locked.status).toBe(401);
     expect(await locked.json()).toEqual({ passwordRequired: true });
 
-    const wrong = await call(null, "POST", `/api/public/${link.token}/unlock`, {
-      password: "wrong",
-    });
+    const wrong = await call(
+      null,
+      "POST",
+      `/api/v1/public/${link.token}/unlock`,
+      {
+        password: "wrong",
+      },
+    );
     expect(wrong.status).toBe(403);
 
-    const right = await call(null, "POST", `/api/public/${link.token}/unlock`, {
-      password: "sesame",
-    });
+    const right = await call(
+      null,
+      "POST",
+      `/api/v1/public/${link.token}/unlock`,
+      {
+        password: "sesame",
+      },
+    );
     expect(right.status).toBe(200);
     const body = (await right.json()) as PublicNoteResponse;
     expect(body.note.title).toBe("Recipe");
     expect(body.access).toEqual(expect.any(String));
 
-    const list = await call(owner, "GET", `/api/notes/${note.id}/links`);
+    const list = await call(owner, "GET", `/api/v1/notes/${note.id}/links`);
     const { links } = (await list.json()) as { links: PublicLink[] };
     expect(links[0]).toMatchObject({ viewCount: 1, hasPassword: true });
   });
@@ -264,22 +279,25 @@ describe("public links", () => {
     const proxied = await bootTestAppWith({ trustProxy: true });
     try {
       const account = await registerTestUser(proxied, "olivia");
-      const made = await proxied.request("/api/notes", {
+      const made = await proxied.request("/api/v1/notes", {
         method: "POST",
         headers: authHeaders(account.token),
         body: JSON.stringify(baseNote),
       });
       const { note } = (await made.json()) as { note: Note };
-      const published = await proxied.request(`/api/notes/${note.id}/links`, {
-        method: "POST",
-        headers: authHeaders(account.token),
-        body: JSON.stringify({ mode: "live", password: "sesame" }),
-      });
+      const published = await proxied.request(
+        `/api/v1/notes/${note.id}/links`,
+        {
+          method: "POST",
+          headers: authHeaders(account.token),
+          body: JSON.stringify({ mode: "live", password: "sesame" }),
+        },
+      );
       const { link } = (await published.json()) as { link: PublicLink };
       // Each from an address of its own, so only the link's count can stop
       // them, and all at once, so none has been counted when the rest ask.
       const guess = (n: number, password = "wrong") =>
-        proxied.request(`/api/public/${link.token}/unlock`, {
+        proxied.request(`/api/v1/public/${link.token}/unlock`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -309,7 +327,7 @@ describe("public links", () => {
     const picture = await call(
       null,
       "GET",
-      `/api/public/${open.token}/attachments/${id}`,
+      `/api/v1/public/${open.token}/attachments/${id}`,
     );
     expect(picture.status).toBe(200);
     expect(picture.headers.get("Content-Type")).toBe("image/png");
@@ -318,18 +336,18 @@ describe("public links", () => {
         await call(
           null,
           "GET",
-          `/api/public/${open.token}/attachments/${other}`,
+          `/api/v1/public/${open.token}/attachments/${other}`,
         )
       ).status,
     ).toBe(404);
 
     const guarded = await publish(note.id, { mode: "live", password: "pw" });
-    const path = `/api/public/${guarded.token}/attachments/${id}`;
+    const path = `/api/v1/public/${guarded.token}/attachments/${id}`;
     expect((await call(null, "GET", path)).status).toBe(404);
     const unlocked = await call(
       null,
       "POST",
-      `/api/public/${guarded.token}/unlock`,
+      `/api/v1/public/${guarded.token}/unlock`,
       { password: "pw" },
     );
     const { access } = (await unlocked.json()) as PublicNoteResponse;
@@ -349,44 +367,49 @@ describe("public links", () => {
   it("goes offline while the note is in the trash, and comes back with it", async () => {
     const note = await createNote();
     const link = await publish(note.id, { mode: "snapshot" });
-    await call(owner, "PUT", `/api/notes/${note.id}`, { trashed: true });
+    await call(owner, "PUT", `/api/v1/notes/${note.id}`, { trashed: true });
     expect((await visit(link.token)).status).toBe(404);
-    await call(owner, "PUT", `/api/notes/${note.id}`, { trashed: false });
+    await call(owner, "PUT", `/api/v1/notes/${note.id}`, { trashed: false });
     expect((await visit(link.token)).status).toBe(200);
   });
 
   it("dies with its note", async () => {
     const note = await createNote();
     const link = await publish(note.id);
-    await call(owner, "DELETE", `/api/notes/${note.id}`);
+    await call(owner, "DELETE", `/api/v1/notes/${note.id}`);
     expect((await visit(link.token)).status).toBe(404);
   });
 
   it("is the owner's alone to make", async () => {
     const note = await createNote();
     const alice = await registerTestUser(rig, "alice");
-    const stranger = await call(alice, "POST", `/api/notes/${note.id}/links`, {
-      mode: "live",
-    });
+    const stranger = await call(
+      alice,
+      "POST",
+      `/api/v1/notes/${note.id}/links`,
+      {
+        mode: "live",
+      },
+    );
     expect(stranger.status).toBe(404);
 
-    await call(owner, "POST", `/api/notes/${note.id}/shares`, {
+    await call(owner, "POST", `/api/v1/notes/${note.id}/shares`, {
       userId: alice.userId,
       role: "edit",
     });
-    await call(alice, "POST", `/api/invitations/${note.id}/accept`);
-    const editor = await call(alice, "POST", `/api/notes/${note.id}/links`, {
+    await call(alice, "POST", `/api/v1/invitations/${note.id}/accept`);
+    const editor = await call(alice, "POST", `/api/v1/notes/${note.id}/links`, {
       mode: "live",
     });
     expect(editor.status).toBe(403);
     expect(
-      (await call(alice, "GET", `/api/notes/${note.id}/links`)).status,
+      (await call(alice, "GET", `/api/v1/notes/${note.id}/links`)).status,
     ).toBe(403);
   });
 
   it("refuses a note in the trash", async () => {
     const note = await createNote({ trashed: true });
-    const res = await call(owner, "POST", `/api/notes/${note.id}/links`, {
+    const res = await call(owner, "POST", `/api/v1/notes/${note.id}/links`, {
       mode: "live",
     });
     expect(res.status).toBe(409);
@@ -395,7 +418,7 @@ describe("public links", () => {
   it("writes the audit log", async () => {
     const note = await createNote();
     const link = await publish(note.id);
-    await call(owner, "DELETE", `/api/notes/${note.id}/links/${link.token}`);
+    await call(owner, "DELETE", `/api/v1/notes/${note.id}/links/${link.token}`);
     await vi.waitFor(async () => {
       const entries = await rig.storage.audit.list({ limit: 10 });
       expect(entries.map((e) => e.action)).toEqual(
@@ -410,20 +433,20 @@ describe("public links turned off", () => {
     const rig = await bootTestAppWith({ publicLinks: false });
     try {
       const owner = await registerTestUser(rig, "olivia");
-      const created = await rig.request("/api/notes", {
+      const created = await rig.request("/api/v1/notes", {
         method: "POST",
         headers: authHeaders(owner.token),
         body: JSON.stringify(baseNote),
       });
       const { note } = (await created.json()) as { note: Note };
-      const publish = await rig.request(`/api/notes/${note.id}/links`, {
+      const publish = await rig.request(`/api/v1/notes/${note.id}/links`, {
         method: "POST",
         headers: authHeaders(owner.token),
         body: JSON.stringify({ mode: "live" }),
       });
       expect(publish.status).toBe(404);
-      expect((await rig.request("/api/public/anything")).status).toBe(404);
-      const capabilities = await rig.request("/api/capabilities");
+      expect((await rig.request("/api/v1/public/anything")).status).toBe(404);
+      const capabilities = await rig.request("/api/v1/capabilities");
       expect((await capabilities.json()).features.publicLinks).toBe(false);
     } finally {
       await rig.close();

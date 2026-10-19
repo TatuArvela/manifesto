@@ -4,7 +4,7 @@ import { type Operation, ok } from "./operation.ts";
 export const SERVER_OPERATIONS: Operation[] = [
   {
     method: "get",
-    path: "/api/health",
+    path: "/api/v1/health",
     tag: "Server",
     summary: "Liveness, and the running version",
     auth: "none",
@@ -13,7 +13,7 @@ export const SERVER_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/openapi.json",
+    path: "/api/v1/openapi.json",
     tag: "Server",
     summary: "This document",
     auth: "none",
@@ -22,7 +22,7 @@ export const SERVER_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/capabilities",
+    path: "/api/v1/capabilities",
     tag: "Server",
     summary:
       "What this server offers: its version, how to sign in, which features are on, and its limits",

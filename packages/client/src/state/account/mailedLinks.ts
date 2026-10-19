@@ -21,7 +21,7 @@ export async function requestPasswordReset(
 ): Promise<boolean> {
   if (SERVER_URL === null) return false;
   try {
-    const res = await requestWithoutSession("/api/auth/password-reset", {
+    const res = await requestWithoutSession("/api/v1/auth/password-reset", {
       body: { email, locale },
     });
     return res.ok;
@@ -38,7 +38,7 @@ export async function confirmPasswordReset(
   if (SERVER_URL === null) return "failed";
   try {
     const res = await requestWithoutSession(
-      "/api/auth/password-reset/confirm",
+      "/api/v1/auth/password-reset/confirm",
       { body: { token, newPassword } },
     );
     if (res.status === 410) return "expired";
@@ -88,7 +88,7 @@ export async function requestSignInLink(
 ): Promise<"sent" | "throttled" | "invalid" | "failed"> {
   if (SERVER_URL === null) return "failed";
   try {
-    const res = await requestWithoutSession("/api/auth/sign-in-link", {
+    const res = await requestWithoutSession("/api/v1/auth/sign-in-link", {
       body: { email, locale },
     });
     if (res.ok) return "sent";
@@ -110,7 +110,7 @@ export async function signInWithLink(
   otp?: string,
   passkey?: PasskeyAuthenticationResponse,
 ): Promise<void> {
-  const result = await authRequest("/api/auth/sign-in-link/confirm", {
+  const result = await authRequest("/api/v1/auth/sign-in-link/confirm", {
     token,
     ...(otp === undefined ? {} : { otp }),
     ...(passkey === undefined ? {} : { passkey }),

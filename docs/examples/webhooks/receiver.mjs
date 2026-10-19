@@ -85,9 +85,12 @@ export async function readNote(noteId, env = process.env) {
   if (!base || !token) return null;
   // An id is a ULID; anything else is not put into an address.
   if (!/^[0-9A-Za-z_-]{1,64}$/.test(noteId)) return null;
-  const res = await fetch(`${base.replace(/\/+$/, "")}/api/notes/${noteId}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const res = await fetch(
+    `${base.replace(/\/+$/, "")}/api/v1/notes/${noteId}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Manifesto answered ${res.status}`);
   return (await res.json()).note;

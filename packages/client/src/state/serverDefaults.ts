@@ -3,7 +3,7 @@ import { signal } from "@preact/signals";
 
 /**
  * The preferences the connected server's host chose as its defaults
- * (`defaultPrefs` in `/api/capabilities`, set by `fetchCapabilities`), with
+ * (`defaultPrefs` in `/api/v1/capabilities`, set by `fetchCapabilities`), with
  * whether someone was signed in when they arrived; null until the server has
  * said, and always in open mode. Kept apart from `prefs.ts`, which touches
  * the page as it loads, and from `auth.ts`, which tests mock, so that either

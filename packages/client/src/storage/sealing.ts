@@ -160,7 +160,7 @@ export class Sealer {
   /** What opens each image this device has met, by its reference. */
   private readonly images: ImageKeyRing;
   /** Whether a note's images have to be made its owner's before it names
-   * them (`POST /api/attachments/claim`). */
+   * them (`POST /api/v1/attachments/claim`). */
   readonly claimsImages: boolean = true;
   /** Whether a shared note's key is wrapped for the people on it. */
   readonly handsKeysOn: boolean = true;

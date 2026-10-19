@@ -42,7 +42,7 @@ describe("password reset by mail", () => {
       mailer,
     });
     request = sealingClient(async (path, init) => app.request(path, init));
-    const res = await post("/api/auth/register", {
+    const res = await post("/api/v1/auth/register", {
       username: "alice",
       password: "test-pass-12",
       email: "alice@example.com",
@@ -61,15 +61,18 @@ describe("password reset by mail", () => {
   }
 
   it("mails a link that sets a new password once and ends other sessions", async () => {
-    const before = await post("/api/auth/login", {
+    const before = await post("/api/v1/auth/login", {
       username: "alice",
       password: "test-pass-12",
     });
     const { token: oldSession } = await before.json();
 
     expect(
-      (await post("/api/auth/password-reset", { email: "ALICE@example.com" }))
-        .status,
+      (
+        await post("/api/v1/auth/password-reset", {
+          email: "ALICE@example.com",
+        })
+      ).status,
     ).toBe(204);
     await settle();
     expect(mailer.sent).toHaveLength(1);
@@ -79,18 +82,18 @@ describe("password reset by mail", () => {
 
     const confirm = { token, newPassword: "brand-new-pass" };
     expect(
-      (await post("/api/auth/password-reset/confirm", confirm)).status,
+      (await post("/api/v1/auth/password-reset/confirm", confirm)).status,
     ).toBe(204);
     expect(
-      (await post("/api/auth/password-reset/confirm", confirm)).status,
+      (await post("/api/v1/auth/password-reset/confirm", confirm)).status,
     ).toBe(410);
     expect(
-      (await request("/api/notes", { headers: authHeaders(oldSession) }))
+      (await request("/api/v1/notes", { headers: authHeaders(oldSession) }))
         .status,
     ).toBe(401);
     expect(
       (
-        await post("/api/auth/login", {
+        await post("/api/v1/auth/login", {
           username: "alice",
           password: "brand-new-pass",
         })
@@ -99,7 +102,7 @@ describe("password reset by mail", () => {
   });
 
   it("answers the same for an address nobody has, and sends nothing", async () => {
-    const res = await post("/api/auth/password-reset", {
+    const res = await post("/api/v1/auth/password-reset", {
       email: "nobody@example.com",
     });
     expect(res.status).toBe(204);
@@ -108,9 +111,9 @@ describe("password reset by mail", () => {
   });
 
   it("spaces links out, so an inbox cannot be flooded", async () => {
-    await post("/api/auth/password-reset", { email: "alice@example.com" });
+    await post("/api/v1/auth/password-reset", { email: "alice@example.com" });
     await settle();
-    await post("/api/auth/password-reset", { email: "alice@example.com" });
+    await post("/api/v1/auth/password-reset", { email: "alice@example.com" });
     await settle();
     expect(mailer.sent).toHaveLength(1);
   });
@@ -118,7 +121,7 @@ describe("password reset by mail", () => {
   it("does not make the next request wait for a mail that could not be sent", async () => {
     const send = mailer.send;
     mailer.send = async () => false;
-    await post("/api/auth/password-reset", { email: "alice@example.com" });
+    await post("/api/v1/auth/password-reset", { email: "alice@example.com" });
     await settle();
     const entries = await storage.audit.list({ limit: 20 });
     expect(
@@ -126,13 +129,13 @@ describe("password reset by mail", () => {
     ).toBe(false);
 
     mailer.send = send;
-    await post("/api/auth/password-reset", { email: "alice@example.com" });
+    await post("/api/v1/auth/password-reset", { email: "alice@example.com" });
     await settle();
     expect(mailer.sent).toHaveLength(1);
   });
 
   it("writes in the language asked for", async () => {
-    await post("/api/auth/password-reset", {
+    await post("/api/v1/auth/password-reset", {
       email: "alice@example.com",
       locale: "fi",
     });
@@ -141,7 +144,7 @@ describe("password reset by mail", () => {
   });
 
   it("voids a link when the password or the address it went to changes", async () => {
-    const signedIn = await post("/api/auth/login", {
+    const signedIn = await post("/api/v1/auth/login", {
       username: "alice",
       password: "test-pass-12",
     });
@@ -151,21 +154,21 @@ describe("password reset by mail", () => {
       // Past the cooldown between two links for one account.
       const alice = await storage.users.findByUsername("alice");
       await storage.passwordResets.deleteByUser(alice?.id ?? "");
-      await post("/api/auth/password-reset", { email: "alice@example.com" });
+      await post("/api/v1/auth/password-reset", { email: "alice@example.com" });
       await settle();
       return tokenFrom(defined(mailer.sent[0]).text);
     };
 
     const beforeChange = await ask();
     const changed = await post(
-      "/api/auth/password",
+      "/api/v1/auth/password",
       { currentPassword: "test-pass-12", newPassword: "another-pass-34" },
       authHeaders(session),
     );
     expect(changed.status).toBe(204);
     expect(
       (
-        await post("/api/auth/password-reset/confirm", {
+        await post("/api/v1/auth/password-reset/confirm", {
           token: beforeChange,
           newPassword: "attacker-pass-1",
         })
@@ -173,7 +176,7 @@ describe("password reset by mail", () => {
     ).toBe(410);
 
     const beforeMove = await ask();
-    const moved = await request("/api/auth/me", {
+    const moved = await request("/api/v1/auth/me", {
       method: "PUT",
       headers: authHeaders(session),
       body: JSON.stringify({
@@ -184,7 +187,7 @@ describe("password reset by mail", () => {
     expect(moved.status).toBe(200);
     expect(
       (
-        await post("/api/auth/password-reset/confirm", {
+        await post("/api/v1/auth/password-reset/confirm", {
           token: beforeMove,
           newPassword: "attacker-pass-1",
         })
@@ -193,7 +196,7 @@ describe("password reset by mail", () => {
   });
 
   it("refuses a made-up token", async () => {
-    const res = await post("/api/auth/password-reset/confirm", {
+    const res = await post("/api/v1/auth/password-reset/confirm", {
       token: "0".repeat(64),
       newPassword: "brand-new-pass",
     });
@@ -201,13 +204,13 @@ describe("password reset by mail", () => {
   });
 
   it("mails a share invitation to a recipient with an address", async () => {
-    const owner = await post("/api/auth/register", {
+    const owner = await post("/api/v1/auth/register", {
       username: "olivia",
       password: "test-pass-12",
     });
     const { token } = await owner.json();
     const alice = await storage.users.findByUsername("alice");
-    const created = await request("/api/notes", {
+    const created = await request("/api/v1/notes", {
       method: "POST",
       headers: authHeaders(token),
       body: JSON.stringify({
@@ -226,7 +229,7 @@ describe("password reset by mail", () => {
       }),
     });
     const { note } = await created.json();
-    await request(`/api/notes/${note.id}/shares`, {
+    await request(`/api/v1/notes/${note.id}/shares`, {
       method: "POST",
       headers: authHeaders(token),
       body: JSON.stringify({ userId: alice?.id, role: "edit" }),
@@ -250,7 +253,7 @@ describe("password reset without mail", () => {
       storage,
       authProvider: createAuthProvider(TEST_CONFIG, storage),
     });
-    const res = await app.request("/api/auth/password-reset", {
+    const res = await app.request("/api/v1/auth/password-reset", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: "a@b.c" }),

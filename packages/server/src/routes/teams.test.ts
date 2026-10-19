@@ -70,7 +70,7 @@ describe("teams as share targets", () => {
   }
 
   async function makeTeam(name: string, members: Account[]): Promise<string> {
-    const res = await call(admin, "POST", "/api/admin/teams", {
+    const res = await call(admin, "POST", "/api/v1/admin/teams", {
       name,
       memberIds: members.map((m) => m.userId),
     });
@@ -79,29 +79,29 @@ describe("teams as share targets", () => {
   }
 
   async function createNote(): Promise<Note> {
-    const res = await call(owner, "POST", "/api/notes", baseNote);
+    const res = await call(owner, "POST", "/api/v1/notes", baseNote);
     return ((await res.json()) as { note: Note }).note;
   }
 
   async function shareWithTeam(noteId: string, teamId: string, role = "edit") {
-    return call(owner, "POST", `/api/notes/${noteId}/team-shares`, {
+    return call(owner, "POST", `/api/v1/notes/${noteId}/team-shares`, {
       teamId,
       role,
     });
   }
 
   async function invitationsOf(who: Account): Promise<ShareInvitation[]> {
-    const res = await call(who, "GET", "/api/invitations");
+    const res = await call(who, "GET", "/api/v1/invitations");
     return ((await res.json()) as { invitations: ShareInvitation[] })
       .invitations;
   }
 
   async function canRead(who: Account, noteId: string): Promise<boolean> {
-    return (await call(who, "GET", `/api/notes/${noteId}`)).status === 200;
+    return (await call(who, "GET", `/api/v1/notes/${noteId}`)).status === 200;
   }
 
   async function accept(who: Account, noteId: string) {
-    const res = await call(who, "POST", `/api/invitations/${noteId}/accept`);
+    const res = await call(who, "POST", `/api/v1/invitations/${noteId}/accept`);
     expect(res.status).toBe(200);
   }
 
@@ -109,7 +109,9 @@ describe("teams as share targets", () => {
     await makeTeam("Design", [owner, alice]);
     const mine = async (who: Account) =>
       (
-        (await (await call(who, "GET", "/api/teams")).json()) as TeamsResponse
+        (await (
+          await call(who, "GET", "/api/v1/teams")
+        ).json()) as TeamsResponse
       ).teams.map((t) => t.name);
     expect(await mine(alice)).toEqual(["Design"]);
     expect(await mine(bob)).toEqual([]);
@@ -132,7 +134,7 @@ describe("teams as share targets", () => {
     expect(await invitationsOf(owner)).toEqual([]);
 
     await accept(alice, note.id);
-    const read = await call(alice, "GET", `/api/notes/${note.id}`);
+    const read = await call(alice, "GET", `/api/v1/notes/${note.id}`);
     const { note: aliceView } = (await read.json()) as { note: Note };
     expect(
       aliceView.sharing?.members.find((m) => m.id === alice.userId)?.team,
@@ -154,11 +156,11 @@ describe("teams as share targets", () => {
     const changed = await call(
       owner,
       "PUT",
-      `/api/notes/${note.id}/team-shares/${team}`,
+      `/api/v1/notes/${note.id}/team-shares/${team}`,
       { role: "view" },
     );
     expect(changed.status).toBe(200);
-    const read = await call(alice, "GET", `/api/notes/${note.id}`);
+    const read = await call(alice, "GET", `/api/v1/notes/${note.id}`);
     expect(((await read.json()) as { note: Note }).note.sharing?.role).toBe(
       "view",
     );
@@ -167,7 +169,7 @@ describe("teams as share targets", () => {
     const removed = await call(
       owner,
       "DELETE",
-      `/api/notes/${note.id}/team-shares/${team}`,
+      `/api/v1/notes/${note.id}/team-shares/${team}`,
     );
     expect(removed.status).toBe(204);
     expect(await canRead(alice, note.id)).toBe(false);
@@ -178,7 +180,7 @@ describe("teams as share targets", () => {
     const team = await makeTeam("Design", [owner, alice, bob]);
     const note = await createNote();
     // Bob has it directly, before the team share.
-    await call(owner, "POST", `/api/notes/${note.id}/shares`, {
+    await call(owner, "POST", `/api/v1/notes/${note.id}/shares`, {
       userId: bob.userId,
       role: "view",
     });
@@ -186,13 +188,18 @@ describe("teams as share targets", () => {
     expect((await invitationsOf(bob))[0]?.role).toBe("view");
 
     // Alice had it through the team, and is then given it directly.
-    const direct = await call(owner, "POST", `/api/notes/${note.id}/shares`, {
-      userId: alice.userId,
-      role: "edit",
-    });
+    const direct = await call(
+      owner,
+      "POST",
+      `/api/v1/notes/${note.id}/shares`,
+      {
+        userId: alice.userId,
+        role: "edit",
+      },
+    );
     expect(direct.status).toBe(201);
 
-    await call(owner, "DELETE", `/api/notes/${note.id}/team-shares/${team}`);
+    await call(owner, "DELETE", `/api/v1/notes/${note.id}/team-shares/${team}`);
     expect((await invitationsOf(alice))[0]?.noteId).toBe(note.id);
     expect((await invitationsOf(alice))[0]?.team).toBeUndefined();
     expect((await invitationsOf(bob))[0]?.noteId).toBe(note.id);
@@ -206,8 +213,12 @@ describe("teams as share targets", () => {
     await shareWithTeam(note.id, second, "view");
     await accept(alice, note.id);
 
-    await call(owner, "DELETE", `/api/notes/${note.id}/team-shares/${first}`);
-    const read = await call(alice, "GET", `/api/notes/${note.id}`);
+    await call(
+      owner,
+      "DELETE",
+      `/api/v1/notes/${note.id}/team-shares/${first}`,
+    );
+    const read = await call(alice, "GET", `/api/v1/notes/${note.id}`);
     expect(read.status).toBe(200);
     const { note: view } = (await read.json()) as { note: Note };
     expect(view.sharing?.role).toBe("view");
@@ -222,7 +233,7 @@ describe("teams as share targets", () => {
     await shareWithTeam(note.id, team);
     await accept(alice, note.id);
 
-    const update = await call(admin, "PUT", `/api/admin/teams/${team}`, {
+    const update = await call(admin, "PUT", `/api/v1/admin/teams/${team}`, {
       memberIds: [owner.userId, bob.userId],
     });
     expect(update.status).toBe(200);
@@ -234,25 +245,25 @@ describe("teams as share targets", () => {
     const team = await makeTeam("Design", [owner]);
     const note = await createNote();
     await shareWithTeam(note.id, team);
-    await call(owner, "PUT", `/api/notes/${note.id}`, { trashed: true });
+    await call(owner, "PUT", `/api/v1/notes/${note.id}`, { trashed: true });
 
-    await call(admin, "PUT", `/api/admin/teams/${team}`, {
+    await call(admin, "PUT", `/api/v1/admin/teams/${team}`, {
       memberIds: [owner.userId, alice.userId],
     });
     expect(await invitationsOf(alice)).toEqual([]);
 
-    await call(owner, "PUT", `/api/notes/${note.id}`, { trashed: false });
+    await call(owner, "PUT", `/api/v1/notes/${note.id}`, { trashed: false });
     expect((await invitationsOf(alice))[0]?.noteId).toBe(note.id);
   });
 
   it("records who was put in a team, who was taken out, and a rename", async () => {
     const team = await makeTeam("Design", [alice]);
-    await call(admin, "PUT", `/api/admin/teams/${team}`, {
+    await call(admin, "PUT", `/api/v1/admin/teams/${team}`, {
       name: "Studio",
       memberIds: [bob.userId],
     });
     // Nothing changes, so nothing is recorded.
-    await call(admin, "PUT", `/api/admin/teams/${team}`, {
+    await call(admin, "PUT", `/api/v1/admin/teams/${team}`, {
       name: "Studio",
       memberIds: [bob.userId],
     });
@@ -289,12 +300,12 @@ describe("teams as share targets", () => {
   });
 
   it("leaves nothing behind when a member it names does not exist", async () => {
-    const missing = await call(admin, "POST", "/api/admin/teams", {
+    const missing = await call(admin, "POST", "/api/v1/admin/teams", {
       name: "Design",
       memberIds: [alice.userId, "01J00000000000000000000000"],
     });
     expect(missing.status).toBe(404);
-    const listed = await call(admin, "GET", "/api/admin/teams");
+    const listed = await call(admin, "GET", "/api/v1/admin/teams");
     expect(((await listed.json()) as { teams: unknown[] }).teams).toEqual([]);
     await makeTeam("Design", [alice]);
   });
@@ -305,7 +316,7 @@ describe("teams as share targets", () => {
     await shareWithTeam(note.id, team);
     await accept(alice, note.id);
     expect(
-      (await call(admin, "DELETE", `/api/admin/teams/${team}`)).status,
+      (await call(admin, "DELETE", `/api/v1/admin/teams/${team}`)).status,
     ).toBe(204);
     expect(await canRead(alice, note.id)).toBe(false);
   });
@@ -327,7 +338,7 @@ describe("teams as share targets", () => {
       expect(await invitationsOf(alice)).toHaveLength(1);
 
       expect(
-        (await call(admin, "DELETE", `/api/admin/teams/${team}`)).status,
+        (await call(admin, "DELETE", `/api/v1/admin/teams/${team}`)).status,
       ).toBe(204);
       expect(await invitationsOf(alice)).toEqual([]);
       expect(await rig.storage.shares.listByTeam(team)).toEqual([]);
@@ -376,10 +387,10 @@ describe("teams as share targets", () => {
   });
 
   it("is managed by admins only", async () => {
-    const res = await call(alice, "GET", "/api/admin/teams");
+    const res = await call(alice, "GET", "/api/v1/admin/teams");
     expect(res.status).toBe(403);
     await makeTeam("Design", []);
-    const clash = await call(admin, "POST", "/api/admin/teams", {
+    const clash = await call(admin, "POST", "/api/v1/admin/teams", {
       name: "Design",
     });
     expect(clash.status).toBe(409);
@@ -425,7 +436,7 @@ describe("teams as share targets", () => {
     it("refuses an admin's edit of a team the provider owns", async () => {
       await syncOidcTeams(rig.storage, service(), alice.userId, ["eng"]);
       const eng = await rig.storage.teams.findByName("oidc", "eng");
-      const res = await call(admin, "PUT", `/api/admin/teams/${eng?.id}`, {
+      const res = await call(admin, "PUT", `/api/v1/admin/teams/${eng?.id}`, {
         memberIds: [],
       });
       expect(res.status).toBe(409);

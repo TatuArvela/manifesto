@@ -129,7 +129,7 @@ for any new flow that makes a key someone has to hold.
   401 like the offline copies do and open again at the next unlock; signing out deletes them. A
   replaced account key would leave them unopenable, so step 8 has to seal them again.
 - **A device holds keys only while signed in.** `storage/deviceKeys.ts` keeps them in IndexedDB
-  with the day the session ends at the latest (`sessionEndsAt` from `GET /api/auth/keys`), and
+  with the day the session ends at the latest (`sessionEndsAt` from `GET /api/v1/auth/keys`), and
   `checkAccountKeys` removes a copy that is another account's or past that day.
 
 ## A note on the wire
@@ -165,7 +165,7 @@ from every note it opens and every upload it makes, and are sealed back into the
 reference. A note that names an image the device has no key for is refused, not sent without one.
 
 A sealed note cannot have a reference rewritten under it, so the old copy-on-write in `claimImages`
-is two steps: the client asks `POST /api/attachments/claim` for the owner's own reference before it
+is two steps: the client asks `POST /api/v1/attachments/claim` for the owner's own reference before it
 seals (`RestApiAdapter.claim`, `adoptImages`), and the write then refuses any reference that is not
 the owner's (`claimImages`). A new path that puts an image in a note goes through `withUploads`, or
 it will meet that refusal on a shared note. A token's write does the first step on the server
@@ -210,7 +210,7 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   `sealer.peek()?.open(...)` before `receiveNote`.
 - **Whose key it is.** Nothing wraps to, or checks a signature against, a key straight from
   `publicKeysOf`: `offerKeyTo` and `adoptOfferedKey` go through `trustedKeysOf`, which takes the
-  first key seen for an account, remembers it (`/api/auth/keys/seen`, sealed with `sealSeenKeys`
+  first key seen for an account, remembers it (`/api/v1/auth/keys/seen`, sealed with `sealSeenKeys`
   and bound to whose it is) and answers null for a different one later, naming the account in
   `changedKeys`. Only `trustKeys` (`state/sharing.ts`, the People dialog's button) replaces a
   remembered key, and then retries what waited on it. A key counts as remembered only once the
@@ -223,7 +223,7 @@ recipient's own copy under their notes key (`wrapped_key` at `wrapped_key_versio
   from its recipient's trash) and `publicLinks.delete` (a live link), so no route has to remember.
   A new statement that deletes from `note_shares` has to do the same. Only the owner is sent `rekeyDue`; `Sealer.open` gathers those ids in `due`, and an
   effect in `state/sharing.ts` calls `replaceNoteKey` (`shareKeys.ts`), which sends
-  `PUT /api/notes/:id/key`. `Sealer.rekey` moves the shared fields with `resealSharedFields`,
+  `PUT /api/v1/notes/:id/key`. `Sealer.rekey` moves the shared fields with `resealSharedFields`,
   which refuses a note any field of which does not open, so a key is never replaced over words
   this device could not read. A server with public links switched off answers 404 for the note's
   links, which `replaceNoteKey` takes as none: the key is replaced all the same. The keys before
@@ -281,7 +281,7 @@ name of its own (`LOCAL_COPY_PREFIX`, `manifesto:yjs-sealed:`), apart from the r
 browser kept before sealing, which `createYjsSession` deletes (`deleteReadableNoteCopies`). A change
 to what the wire document holds needs a new name the same way, never the old one reused.
 
-The server's `/api/yjs` code did not change and must not start reading the document: nothing in it
+The server's `/api/v1/yjs` code did not change and must not start reading the document: nothing in it
 is readable. Passing `key: null` to `createYjsSession` syncs the document as it is, and exists only
 for tests that hand sealing through.
 

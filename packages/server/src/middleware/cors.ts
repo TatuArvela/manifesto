@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import type { ServerConfig } from "#/config.ts";
 
 /**
- * What an assistant calls to sign in to `/api/mcp`, some from a web page (the
+ * What an assistant calls to sign in to `/api/v1/mcp`, some from a web page (the
  * MCP Inspector, a browser-based agent). None of it carries a credential the
  * browser would add on its own, so any page may call it: the metadata, and
  * the endpoints a public client registers and trades codes at.
@@ -11,8 +11,8 @@ import type { ServerConfig } from "#/config.ts";
 function isOpenToAnyOrigin(path: string): boolean {
   return (
     path.startsWith("/.well-known/oauth-") ||
-    path === "/api/oauth/register" ||
-    path === "/api/oauth/token"
+    path === "/api/v1/oauth/register" ||
+    path === "/api/v1/oauth/token"
   );
 }
 

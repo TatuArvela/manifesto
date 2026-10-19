@@ -17,7 +17,7 @@ import { noContent, notFound, type Operation, ok } from "./operation.ts";
 export const SHARING_OPERATIONS: Operation[] = [
   {
     method: "post",
-    path: "/api/notes/:id/shares",
+    path: "/api/v1/notes/:id/shares",
     tag: "Sharing",
     summary: "Invite an account to the note (owner)",
     auth: "any",
@@ -29,7 +29,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "put",
-    path: "/api/notes/:id/shares/:userId",
+    path: "/api/v1/notes/:id/shares/:userId",
     tag: "Sharing",
     summary: "Change someone's role (owner)",
     auth: "any",
@@ -41,7 +41,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "put",
-    path: "/api/notes/:id/shares/:userId/key",
+    path: "/api/v1/notes/:id/shares/:userId/key",
     tag: "Sharing",
     summary:
       "Hand someone on the note its key, wrapped to their public key and signed (anyone who holds it)",
@@ -53,7 +53,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "put",
-    path: "/api/notes/:id/held-key",
+    path: "/api/v1/notes/:id/held-key",
     tag: "Sharing",
     summary:
       "Keep the note's replaced key under your own notes key (a recipient)",
@@ -64,7 +64,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/users/:id/keys",
+    path: "/api/v1/users/:id/keys",
     tag: "Sharing",
     summary: "An account's public keys, to wrap a note key to",
     auth: "session",
@@ -76,7 +76,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "delete",
-    path: "/api/notes/:id/shares/:userId",
+    path: "/api/v1/notes/:id/shares/:userId",
     tag: "Sharing",
     summary: "Remove someone, or leave the note yourself",
     auth: "any",
@@ -86,7 +86,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/teams",
+    path: "/api/v1/teams",
     tag: "Sharing",
     summary: "The teams the user is in, to share notes with",
     auth: "any",
@@ -97,7 +97,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/notes/:id/team-shares",
+    path: "/api/v1/notes/:id/team-shares",
     tag: "Sharing",
     summary: "The teams the note is shared with (owner)",
     auth: "any",
@@ -107,7 +107,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/notes/:id/team-shares",
+    path: "/api/v1/notes/:id/team-shares",
     tag: "Sharing",
     summary:
       "Share the note with a team the owner is in, inviting its members (owner)",
@@ -123,7 +123,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "put",
-    path: "/api/notes/:id/team-shares/:teamId",
+    path: "/api/v1/notes/:id/team-shares/:teamId",
     tag: "Sharing",
     summary: "Change the role a team has, and its members' with it (owner)",
     auth: "any",
@@ -135,7 +135,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "delete",
-    path: "/api/notes/:id/team-shares/:teamId",
+    path: "/api/v1/notes/:id/team-shares/:teamId",
     tag: "Sharing",
     summary: "Stop sharing the note with a team (owner)",
     auth: "any",
@@ -145,7 +145,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/notes/:id/links",
+    path: "/api/v1/notes/:id/links",
     tag: "Sharing",
     summary: "The note's public links, with their view counts (owner)",
     auth: "any",
@@ -156,7 +156,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/notes/:id/links",
+    path: "/api/v1/notes/:id/links",
     tag: "Sharing",
     summary:
       "Publish the note by a revocable public link, live or as a snapshot (owner)",
@@ -172,7 +172,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "delete",
-    path: "/api/notes/:id/links/:token",
+    path: "/api/v1/notes/:id/links/:token",
     tag: "Sharing",
     summary: "Revoke a public link (owner)",
     auth: "any",
@@ -183,7 +183,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/public/:token",
+    path: "/api/v1/public/:token",
     tag: "Sharing",
     summary:
       "A note by public link, counting a view; 401 with passwordRequired when it has a password",
@@ -201,7 +201,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/public/:token/unlock",
+    path: "/api/v1/public/:token/unlock",
     tag: "Sharing",
     summary: "A note by public link with a password, counting a view",
     auth: "none",
@@ -216,7 +216,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/public/:token/attachments/:id",
+    path: "/api/v1/public/:token/attachments/:id",
     tag: "Sharing",
     summary:
       "A picture the linked note shows; send X-Link-Access for a link with a password",
@@ -227,7 +227,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/invitations",
+    path: "/api/v1/invitations",
     tag: "Sharing",
     summary: "Notes offered to the user",
     auth: "any",
@@ -238,7 +238,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/invitations/:noteId/accept",
+    path: "/api/v1/invitations/:noteId/accept",
     tag: "Sharing",
     summary:
       "Accept an invitation, keeping the note's key under your own notes key",
@@ -251,7 +251,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/invitations/:noteId/decline",
+    path: "/api/v1/invitations/:noteId/decline",
     tag: "Sharing",
     summary: "Decline an invitation",
     auth: "any",
@@ -262,7 +262,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/users",
+    path: "/api/v1/users",
     tag: "Sharing",
     summary: "Find accounts to share with",
     auth: "any",
@@ -274,7 +274,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/notes/:id/comments",
+    path: "/api/v1/notes/:id/comments",
     tag: "Sharing",
     summary: "The comments beside a note, oldest first",
     auth: "any",
@@ -284,7 +284,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/notes/:id/comments",
+    path: "/api/v1/notes/:id/comments",
     tag: "Sharing",
     summary: "Comment on a note (anyone who can see it)",
     auth: "any",
@@ -299,7 +299,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "put",
-    path: "/api/notes/:id/comments/:commentId",
+    path: "/api/v1/notes/:id/comments/:commentId",
     tag: "Sharing",
     summary: "Change a comment (its author)",
     auth: "any",
@@ -311,7 +311,7 @@ export const SHARING_OPERATIONS: Operation[] = [
   },
   {
     method: "delete",
-    path: "/api/notes/:id/comments/:commentId",
+    path: "/api/v1/notes/:id/comments/:commentId",
     tag: "Sharing",
     summary: "Delete a comment (its author, or the note's owner)",
     auth: "any",

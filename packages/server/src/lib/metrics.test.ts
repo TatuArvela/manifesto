@@ -31,7 +31,7 @@ describe("metrics", () => {
     await off.close();
 
     const on = await bootTestAppWith({ metricsToken: "scrape-me" });
-    await on.request("/api/health");
+    await on.request("/api/v1/health");
     expect((await on.request("/metrics")).status).toBe(404);
     expect(
       (
@@ -66,7 +66,7 @@ describe("metrics", () => {
   it("serves the separate port without a token, or with one when set", async () => {
     const open = createMetricsApp({ metricsToken: null }, "1.0.0");
     expect((await open.request("/metrics")).status).toBe(200);
-    expect((await open.request("/api/health")).status).toBe(404);
+    expect((await open.request("/api/v1/health")).status).toBe(404);
 
     const guarded = createMetricsApp({ metricsToken: "t" }, "1.0.0");
     expect((await guarded.request("/metrics")).status).toBe(404);

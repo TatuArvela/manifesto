@@ -123,7 +123,7 @@ export class RestApiAdapter implements StorageAdapter {
 
   /** A note as the server holds it, for a key this device has not opened. */
   private readonly sealedNote = (id: string) => async () => {
-    const res = await fetch(`${this.baseUrl}/api/notes/${id}`, {
+    const res = await fetch(`${this.baseUrl}/api/v1/notes/${id}`, {
       headers: this.headers(),
     });
     if (res.status === 404) return null;
@@ -183,7 +183,10 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   async getAll(): Promise<Note[]> {
-    const notes = await this.drainPages("/api/notes", "Failed to fetch notes");
+    const notes = await this.drainPages(
+      "/api/v1/notes",
+      "Failed to fetch notes",
+    );
     this.sealer?.markComplete();
     return notes;
   }
@@ -192,7 +195,7 @@ export class RestApiAdapter implements StorageAdapter {
    * Every page of one sync. The checkpoint and the ids come on the last page,
    * and the checkpoint is fixed by the server when the first was asked for.
    *
-   * A server from before `/api/sync` answers 404, which is read as keeping no
+   * A server from before `/api/v1/sync` answers 404, which is read as keeping no
    * record of change: the caller lists everything, as it did then.
    */
   async changesSince(since: string | null): Promise<NoteChanges | null> {
@@ -204,9 +207,12 @@ export class RestApiAdapter implements StorageAdapter {
       if (since !== null) query.set("since", since);
       if (cursor !== null) query.set("cursor", cursor);
       const search = query.size > 0 ? `?${query}` : "";
-      const res: Response = await fetch(`${this.baseUrl}/api/sync${search}`, {
-        headers: this.headers(),
-      });
+      const res: Response = await fetch(
+        `${this.baseUrl}/api/v1/sync${search}`,
+        {
+          headers: this.headers(),
+        },
+      );
       if (res.status === 404 && cursor === null) return null;
       if (!res.ok) await this.fail(res, "Failed to sync notes");
       const data = (await res.json()) as SyncResponse<SealedNote>;
@@ -234,7 +240,7 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   async listVersions(noteId: string): Promise<NoteVersion[]> {
-    const res = await fetch(`${this.baseUrl}/api/notes/${noteId}/versions`, {
+    const res = await fetch(`${this.baseUrl}/api/v1/notes/${noteId}/versions`, {
       headers: this.headers(),
     });
     if (!res.ok) await this.fail(res, "Failed to fetch versions");
@@ -257,7 +263,7 @@ export class RestApiAdapter implements StorageAdapter {
       version,
       this.sealedNote(noteId),
     );
-    const res = await fetch(`${this.baseUrl}/api/notes/${noteId}/versions`, {
+    const res = await fetch(`${this.baseUrl}/api/v1/notes/${noteId}/versions`, {
       method: "POST",
       headers: this.headers(),
       body: JSON.stringify(sealed),
@@ -267,7 +273,7 @@ export class RestApiAdapter implements StorageAdapter {
 
   async loadImage(ref: string): Promise<Blob> {
     const res = await fetch(
-      `${this.baseUrl}/api/attachments/${attachmentIdOf(ref)}`,
+      `${this.baseUrl}/api/v1/attachments/${attachmentIdOf(ref)}`,
       { headers: { Authorization: `Bearer ${this.token}` } },
     );
     if (!res.ok) await this.fail(res, "Failed to fetch attachment");
@@ -323,7 +329,7 @@ export class RestApiAdapter implements StorageAdapter {
         return;
       }
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", `${this.baseUrl}/api/attachments`);
+      xhr.open("POST", `${this.baseUrl}/api/v1/attachments`);
       xhr.setRequestHeader("Authorization", `Bearer ${this.token}`);
       for (const [name, value] of Object.entries(headers)) {
         xhr.setRequestHeader(name, value);
@@ -374,7 +380,7 @@ export class RestApiAdapter implements StorageAdapter {
       ...(noteId !== undefined && { noteId }),
       refs: asked,
     };
-    const res = await fetch(`${this.baseUrl}/api/attachments/claim`, {
+    const res = await fetch(`${this.baseUrl}/api/v1/attachments/claim`, {
       method: "POST",
       headers: this.headers(),
       body: JSON.stringify(body),
@@ -465,7 +471,7 @@ export class RestApiAdapter implements StorageAdapter {
       options.id ?? ulid(),
       await this.withUploads(note),
     );
-    const res = await fetch(`${this.baseUrl}/api/notes`, {
+    const res = await fetch(`${this.baseUrl}/api/v1/notes`, {
       method: "POST",
       headers: this.headers(),
       body: JSON.stringify(sealed),
@@ -490,7 +496,7 @@ export class RestApiAdapter implements StorageAdapter {
     const sealing = this.sealing();
     const withUploads = await this.withUploads(changes, id);
     const send = async () =>
-      fetch(`${this.baseUrl}/api/notes/${id}`, {
+      fetch(`${this.baseUrl}/api/v1/notes/${id}`, {
         method: "PUT",
         headers,
         body: JSON.stringify(
@@ -528,7 +534,7 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   async delete(id: string): Promise<void> {
-    const res = await fetch(`${this.baseUrl}/api/notes/${id}`, {
+    const res = await fetch(`${this.baseUrl}/api/v1/notes/${id}`, {
       method: "DELETE",
       headers: this.headers(),
     });
@@ -539,7 +545,7 @@ export class RestApiAdapter implements StorageAdapter {
   async deleteAll(): Promise<void> {
     // The server deletes the notes this user owns; the ones shared with them
     // are someone else's.
-    const res = await fetch(`${this.baseUrl}/api/notes`, {
+    const res = await fetch(`${this.baseUrl}/api/v1/notes`, {
       method: "DELETE",
       headers: this.headers(),
     });
@@ -569,7 +575,7 @@ export class RestApiAdapter implements StorageAdapter {
       const body = { notes: chunk };
       chunk = [];
       chunkBytes = 0;
-      const res = await fetch(`${this.baseUrl}/api/notes/import`, {
+      const res = await fetch(`${this.baseUrl}/api/v1/notes/import`, {
         method: "POST",
         headers: this.headers(),
         body: JSON.stringify(body),
@@ -644,7 +650,7 @@ export class RestApiAdapter implements StorageAdapter {
 
   async fetchLinkPreview(url: string): Promise<LinkPreview | null> {
     const res = await fetch(
-      `${this.baseUrl}/api/link-preview?url=${encodeURIComponent(url)}`,
+      `${this.baseUrl}/api/v1/link-preview?url=${encodeURIComponent(url)}`,
       { headers: this.headers() },
     );
     // Previews turned off on this server: the plain card is the answer.

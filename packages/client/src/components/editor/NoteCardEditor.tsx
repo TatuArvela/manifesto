@@ -43,7 +43,7 @@ import { NoteEditor } from "./NoteEditor.tsx";
 /**
  * How long a changed row waits before it is judged to have come from outside
  * the document. Another tab's save reaches this one twice, as a broadcast
- * over `/api/ws` and as its claim over `/api/yjs`, and nothing orders the two
+ * over `/api/v1/ws` and as its claim over `/api/v1/yjs`, and nothing orders the two
  * sockets; judged before the claim arrives, that save would look like an
  * outside write and be written in over whatever was typed since.
  */

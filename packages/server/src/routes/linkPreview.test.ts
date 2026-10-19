@@ -58,9 +58,9 @@ afterEach(async () => {
 });
 
 const query = (url: string) =>
-  `/api/link-preview?url=${encodeURIComponent(url)}`;
+  `/api/v1/link-preview?url=${encodeURIComponent(url)}`;
 
-describe("GET /api/link-preview", () => {
+describe("GET /api/v1/link-preview", () => {
   it("returns what the fetcher found for the URL", async () => {
     const fetcher = vi.fn<LinkPreviewFetcher>(async () => PREVIEW);
     const app = await boot(fetcher);
@@ -100,7 +100,7 @@ describe("GET /api/link-preview", () => {
     const app = await boot(fetcher);
     const { token } = await registerTestUser(app);
     for (const path of [
-      "/api/link-preview",
+      "/api/v1/link-preview",
       query("javascript:alert(1)"),
       query("file:///etc/passwd"),
       query(`https://example.com/${"a".repeat(2100)}`),
@@ -156,12 +156,12 @@ describe("note link previews", () => {
       reminder: null,
     });
     const post = (image: string) =>
-      app.request("/api/notes", {
+      app.request("/api/v1/notes", {
         method: "POST",
         headers: authHeaders(token),
         body: JSON.stringify(note(image)),
       });
-    const upload = await app.request("/api/attachments", {
+    const upload = await app.request("/api/v1/attachments", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -177,7 +177,7 @@ describe("note link previews", () => {
     // The cards are sealed, so what the server holds a thumbnail to is the
     // reference sent beside them.
     const withRefs = (previewRefs: string[]) =>
-      app.rawRequest("/api/notes", {
+      app.rawRequest("/api/v1/notes", {
         method: "POST",
         headers: authHeaders(token),
         body: JSON.stringify({

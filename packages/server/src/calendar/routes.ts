@@ -14,7 +14,7 @@ import type { StorageDriver } from "#/storage/types.ts";
 import { type CalendarNote, remindersCalendar } from "./ics.ts";
 
 /**
- * `GET /api/calendar/<token>.ics`: a user's reminders, for a calendar app to
+ * `GET /api/v1/calendar/<token>.ics`: a user's reminders, for a calendar app to
  * subscribe to. A calendar app sends no header, so the secret is the address:
  * a `calendar` token (`mfc_`), minted in Settings, which opens this feed and
  * nothing else, and is listed, revocable and audited with the other tokens.

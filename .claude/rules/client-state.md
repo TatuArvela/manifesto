@@ -58,19 +58,19 @@ State lives in `packages/client/src/state/` using @preact/signals:
 - **`prefs.ts`**: User preferences persisted to `localStorage` key `manifesto:prefs` with debounced `effect()`.
   What each may hold and how a stored value is read back (`PREF_PARSERS`, `DEVICE_PREFS`) is `prefParsers.ts`.
   In connected mode `prefsSync.ts` also keeps every preference outside `DEVICE_PREFS` on the server
-  (`/api/auth/me/prefs`, `prefs:updated`), so a new preference follows the account unless it is
+  (`/api/v1/auth/me/prefs`, `prefs:updated`), so a new preference follows the account unless it is
   added there. Whatever arrives from the server goes through `PREF_PARSERS` like a hand-edited blob,
   and `adoptAccountPrefs` saves it itself, since the save effect skips a change from elsewhere.
   While signed in, another tab's blob (the `storage` event) is taken for the device's preferences
   alone (`setAccountPrefsFromServer`): every tab hears the account's on its own socket, and a tab
   saves whenever it adopts the server's copy, so taking the blob whole let an echo heard late in
   one tab put back a value just changed in another.
-  The host's defaults (`DEFAULT_PREFS`, `defaultPrefs` in `/api/capabilities`) are held in
+  The host's defaults (`DEFAULT_PREFS`, `defaultPrefs` in `/api/v1/capabilities`) are held in
   `serverDefaults.ts`, a module with no side effects and no imports of state, so `auth.ts` and
   `prefsSync.ts` both set it without loading each other or `prefs.ts`. `prefsSync.ts` gives one
-  to each key the account lacks at sign-in (asking `/api/capabilities` itself if the answer has
+  to each key the account lacks at sign-in (asking `/api/v1/capabilities` itself if the answer has
   not arrived), and `prefs.ts` applies them all on a first visit.
 - **`router.ts`**: Two-way sync between `activeView`/`activeTag` and `location.pathname` (see
   `routing.md`). `initRouter()` is called once from `App` on mount (`useAppServices`). The URL *fragment* is a
   separate channel used by share links and the OIDC callback, not by the router.
-- **`account/auth.ts`**: Server-mode auth: `authToken` / `currentUser` signals persisted to `localStorage` key `manifesto:auth`. `login` / `register` POST to `/api/auth/*`. `LoginScreen` reads `/api/capabilities` (`fetchCapabilities`, which also fills `serverFeatures`) on mount and renders either the local form or a single "Continue with SSO" button (linking to `${SERVER_URL}/api/auth/login`) depending on the active provider. Requests made with no session go out through `requestWithoutSession` there, which is how `mailedLinks.ts` (the reset and sign-in links) and `oidcSignIn.ts` reach the server without a `fetch` of their own. After an OIDC callback the server redirects to the client with `#token=...`; `consumeOidcRedirect()` (`oidcSignIn.ts`) runs once on `App` mount, fetches `/api/auth/me`, populates the signals, and strips the fragment from the URL. It takes the token only where `takeOidcFlow()` (`oidcFlow.ts`) finds the mark this tab left on its way out, so every link to `oidcLoginUrl` / `oidcReauthUrl` carries `onClick={beginOidcSignIn}` (and `onAuxClick`); a new one without it starts a sign-in whose return is ignored. Taken on sight, a `#token=` in a link would sign its reader in to the sender's account.
+- **`account/auth.ts`**: Server-mode auth: `authToken` / `currentUser` signals persisted to `localStorage` key `manifesto:auth`. `login` / `register` POST to `/api/v1/auth/*`. `LoginScreen` reads `/api/v1/capabilities` (`fetchCapabilities`, which also fills `serverFeatures`) on mount and renders either the local form or a single "Continue with SSO" button (linking to `${SERVER_URL}/api/v1/auth/login`) depending on the active provider. Requests made with no session go out through `requestWithoutSession` there, which is how `mailedLinks.ts` (the reset and sign-in links) and `oidcSignIn.ts` reach the server without a `fetch` of their own. After an OIDC callback the server redirects to the client with `#token=...`; `consumeOidcRedirect()` (`oidcSignIn.ts`) runs once on `App` mount, fetches `/api/v1/auth/me`, populates the signals, and strips the fragment from the URL. It takes the token only where `takeOidcFlow()` (`oidcFlow.ts`) finds the mark this tab left on its way out, so every link to `oidcLoginUrl` / `oidcReauthUrl` carries `onClick={beginOidcSignIn}` (and `onAuxClick`); a new one without it starts a sign-in whose return is ignored. Taken on sight, a `#token=` in a link would sign its reader in to the sender's account.

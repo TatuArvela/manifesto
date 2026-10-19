@@ -48,7 +48,7 @@ class NoteServer {
         status,
         headers: { "Content-Type": "application/json" },
       });
-    if (url.pathname === "/api/notes" && method === "POST") {
+    if (url.pathname === "/api/v1/notes" && method === "POST") {
       const sent = JSON.parse(String(init.body)) as Note;
       if (this.notes.has(sent.id)) return json({ error: "taken" }, 409);
       const now = new Date().toISOString();
@@ -61,7 +61,7 @@ class NoteServer {
       this.notes.set(note.id, note);
       return json({ note }, 201);
     }
-    const one = /^\/api\/notes\/([^/]+)$/.exec(url.pathname);
+    const one = /^\/api\/v1\/notes\/([^/]+)$/.exec(url.pathname);
     if (one && method === "GET") {
       const note = this.notes.get(one[1] ?? "");
       return note ? json({ note }) : json({ error: "Not found" }, 404);
@@ -70,7 +70,7 @@ class NoteServer {
   };
 
   posts(): number {
-    return this.requests.filter((r) => r === "POST /api/notes").length;
+    return this.requests.filter((r) => r === "POST /api/v1/notes").length;
   }
 }
 
@@ -213,7 +213,7 @@ describe("queueNote", () => {
   it("does not make a note twice when the answer to it was lost", async () => {
     reach = async (input, init) => {
       const res = await server.fetch(input, init);
-      if (String(input).endsWith("/api/notes") && init?.method === "POST") {
+      if (String(input).endsWith("/api/v1/notes") && init?.method === "POST") {
         throw new TypeError("the answer never came");
       }
       return res;
@@ -232,7 +232,7 @@ describe("queueNote", () => {
 
   it("keeps a note the server refuses, and does not send it again", async () => {
     reach = async (input, init) =>
-      String(input).endsWith("/api/notes") && init?.method === "POST"
+      String(input).endsWith("/api/v1/notes") && init?.method === "POST"
         ? new Response(JSON.stringify({ error: "nope" }), { status: 422 })
         : server.fetch(input, init);
     await queueNote({ title: "Too much" });

@@ -49,7 +49,7 @@ describe("MCP endpoint", () => {
   });
 
   async function mint(body: object, as: string = session) {
-    const res = await rig.request("/api/tokens", {
+    const res = await rig.request("/api/v1/tokens", {
       method: "POST",
       headers: authHeaders(as),
       body: JSON.stringify({ password: "test-pass-12", ...body }),
@@ -72,7 +72,7 @@ describe("MCP endpoint", () => {
     ).secret;
 
   function post(token: string | null, body: unknown, headers = {}) {
-    return rig.request("/api/mcp", {
+    return rig.request("/api/v1/mcp", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -142,7 +142,7 @@ describe("MCP endpoint", () => {
       expect(note.status).toBe(202);
       expect(await note.text()).toBe("");
       for (const method of ["GET", "DELETE"]) {
-        const res = await rig.request("/api/mcp", {
+        const res = await rig.request("/api/v1/mcp", {
           method,
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -213,12 +213,12 @@ describe("MCP endpoint", () => {
       expect((await post(await mintMcp(), ping)).status).toBe(200);
     });
 
-    it("keeps an MCP token to /api/mcp", async () => {
+    it("keeps an MCP token to /api/v1/mcp", async () => {
       const token = await mintMcp();
       for (const [method, path] of [
-        ["GET", "/api/notes"],
-        ["GET", "/api/auth/me"],
-        ["GET", "/api/tokens"],
+        ["GET", "/api/v1/notes"],
+        ["GET", "/api/v1/auth/me"],
+        ["GET", "/api/v1/tokens"],
       ] as const) {
         const res = await rig.request(path, {
           method,
@@ -246,7 +246,7 @@ describe("MCP endpoint", () => {
 
     it("stops working once revoked", async () => {
       const { secret, token } = await mint({ name: "assistant", kind: "mcp" });
-      await rig.request(`/api/tokens/${token.id}`, {
+      await rig.request(`/api/v1/tokens/${token.id}`, {
         method: "DELETE",
         headers: authHeaders(session),
       });
@@ -256,7 +256,7 @@ describe("MCP endpoint", () => {
     });
 
     it("gives an MCP token the note scopes and nothing more", async () => {
-      const res = await rig.request("/api/tokens", {
+      const res = await rig.request("/api/v1/tokens", {
         method: "POST",
         headers: authHeaders(session),
         body: JSON.stringify({
@@ -334,7 +334,7 @@ describe("MCP endpoint", () => {
       const position = async (id: string) =>
         (
           (await (
-            await rig.request(`/api/notes/${id}`, {
+            await rig.request(`/api/v1/notes/${id}`, {
               headers: authHeaders(session),
             })
           ).json()) as { note: Note }
@@ -406,7 +406,7 @@ describe("MCP endpoint", () => {
         "create_note",
         { title: "Plan", content: "shared" },
       );
-      await rig.request(`/api/notes/${note.id}/shares`, {
+      await rig.request(`/api/v1/notes/${note.id}/shares`, {
         method: "POST",
         headers: authHeaders(olivia.token),
         body: JSON.stringify({ userId: bob.userId, role: "view" }),
@@ -415,13 +415,13 @@ describe("MCP endpoint", () => {
       // which is what his token then opens the note with.
       const sealed = (
         (await (
-          await rig.rawRequest(`/api/notes/${note.id}`, {
+          await rig.rawRequest(`/api/v1/notes/${note.id}`, {
             headers: authHeaders(olivia.token),
           })
         ).json()) as { note: SealedNote }
       ).note;
       const accepted = await rig.rawRequest(
-        `/api/invitations/${note.id}/accept`,
+        `/api/v1/invitations/${note.id}/accept`,
         {
           method: "POST",
           headers: authHeaders(bob.token),
@@ -458,13 +458,13 @@ describe("MCP turned off", () => {
   });
 
   it("has no endpoint, mints no MCP token, and says so", async () => {
-    const endpoint = await rig.request("/api/mcp", {
+    const endpoint = await rig.request("/api/v1/mcp", {
       method: "POST",
       headers: authHeaders(session),
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }),
     });
     expect(endpoint.status).toBe(404);
-    const mint = await rig.request("/api/tokens", {
+    const mint = await rig.request("/api/v1/tokens", {
       method: "POST",
       headers: authHeaders(session),
       body: JSON.stringify({
@@ -475,7 +475,7 @@ describe("MCP turned off", () => {
     });
     expect(mint.status).toBe(403);
     const { features } = (await (
-      await rig.request("/api/capabilities")
+      await rig.request("/api/v1/capabilities")
     ).json()) as CapabilitiesResponse;
     expect(features.mcp).toBe(false);
   });

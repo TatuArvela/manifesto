@@ -68,7 +68,10 @@ describe("sync route", () => {
   }
 
   async function create(title: string, who = owner): Promise<Note> {
-    const res = await call(who, "POST", "/api/notes", { ...baseNote, title });
+    const res = await call(who, "POST", "/api/v1/notes", {
+      ...baseNote,
+      title,
+    });
     expect(res.status).toBe(201);
     return ((await res.json()) as { note: Note }).note;
   }
@@ -80,7 +83,7 @@ describe("sync route", () => {
     const res = await call(
       who,
       "GET",
-      `/api/sync?${new URLSearchParams(query)}`,
+      `/api/v1/sync?${new URLSearchParams(query)}`,
     );
     expect(res.status).toBe(200);
     return (await res.json()) as SyncResponse;
@@ -117,7 +120,9 @@ describe("sync route", () => {
     expect(first.ids.sort()).toEqual([edited.id, kept.id].sort());
 
     later();
-    await call(owner, "PUT", `/api/notes/${edited.id}`, { title: "edited!" });
+    await call(owner, "PUT", `/api/v1/notes/${edited.id}`, {
+      title: "edited!",
+    });
     await create("new");
 
     const second = await sync(owner, first.checkpoint);
@@ -142,9 +147,9 @@ describe("sync route", () => {
     const { checkpoint } = await sync(owner);
 
     later();
-    expect((await call(owner, "DELETE", `/api/notes/${gone.id}`)).status).toBe(
-      204,
-    );
+    expect(
+      (await call(owner, "DELETE", `/api/v1/notes/${gone.id}`)).status,
+    ).toBe(204);
     const next = await sync(owner, checkpoint);
     expect(next.notes).toEqual([]);
     expect(next.ids).toEqual([stays.id]);
@@ -175,7 +180,7 @@ describe("sync route", () => {
 
   describe("shared notes", () => {
     async function invite(noteId: string, role = "edit") {
-      const res = await call(owner, "POST", `/api/notes/${noteId}/shares`, {
+      const res = await call(owner, "POST", `/api/v1/notes/${noteId}/shares`, {
         userId: alice.userId,
         role,
       });
@@ -188,7 +193,7 @@ describe("sync route", () => {
       const { checkpoint } = await sync(alice);
 
       later();
-      await call(alice, "POST", `/api/invitations/${note.id}/accept`);
+      await call(alice, "POST", `/api/v1/invitations/${note.id}/accept`);
       const next = await sync(alice, checkpoint);
       expect(next.titles).toEqual(["old"]);
       expect(next.ids).toEqual([note.id]);
@@ -197,14 +202,19 @@ describe("sync route", () => {
     it("tells everyone on a note when its members change", async () => {
       const note = await create("shared");
       await invite(note.id);
-      await call(alice, "POST", `/api/invitations/${note.id}/accept`);
+      await call(alice, "POST", `/api/v1/invitations/${note.id}/accept`);
       const ownerCheckpoint = (await sync(owner)).checkpoint;
       const aliceCheckpoint = (await sync(alice)).checkpoint;
 
       later();
-      await call(owner, "PUT", `/api/notes/${note.id}/shares/${alice.userId}`, {
-        role: "view",
-      });
+      await call(
+        owner,
+        "PUT",
+        `/api/v1/notes/${note.id}/shares/${alice.userId}`,
+        {
+          role: "view",
+        },
+      );
       const alicesView = await sync(alice, aliceCheckpoint);
       expect(alicesView.notes[0]?.sharing?.role).toBe("view");
       // The note's concurrency token is left alone.
@@ -215,7 +225,7 @@ describe("sync route", () => {
       await call(
         owner,
         "DELETE",
-        `/api/notes/${note.id}/shares/${alice.userId}`,
+        `/api/v1/notes/${note.id}/shares/${alice.userId}`,
       );
       const ownersView = await sync(owner, ownerCheckpoint2);
       expect(ownersView.titles).toEqual(["shared"]);
@@ -226,11 +236,11 @@ describe("sync route", () => {
     it("takes a note the owner trashes away from its recipients", async () => {
       const note = await create("shared");
       await invite(note.id);
-      await call(alice, "POST", `/api/invitations/${note.id}/accept`);
+      await call(alice, "POST", `/api/v1/invitations/${note.id}/accept`);
       const { checkpoint } = await sync(alice);
 
       later();
-      await call(owner, "PUT", `/api/notes/${note.id}`, { trashed: true });
+      await call(owner, "PUT", `/api/v1/notes/${note.id}`, { trashed: true });
       const next = await sync(alice, checkpoint);
       expect(next.notes).toEqual([]);
       expect(next.ids).toEqual([]);
@@ -243,7 +253,9 @@ describe("sync route", () => {
       `since=${Buffer.from("2026-01-01").toString("base64url")}`,
       "cursor=nonsense",
     ]) {
-      expect((await call(owner, "GET", `/api/sync?${query}`)).status).toBe(400);
+      expect((await call(owner, "GET", `/api/v1/sync?${query}`)).status).toBe(
+        400,
+      );
     }
   });
 });

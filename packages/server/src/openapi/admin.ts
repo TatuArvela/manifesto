@@ -13,7 +13,7 @@ import { noContent, notFound, type Operation, ok } from "./operation.ts";
 export const ADMIN_OPERATIONS: Operation[] = [
   {
     method: "get",
-    path: "/api/admin/teams",
+    path: "/api/v1/admin/teams",
     tag: "Admin",
     summary: "Every team, with its members",
     auth: "admin",
@@ -23,7 +23,7 @@ export const ADMIN_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/admin/teams",
+    path: "/api/v1/admin/teams",
     tag: "Admin",
     summary: "Make a team, optionally with members",
     auth: "admin",
@@ -37,7 +37,7 @@ export const ADMIN_OPERATIONS: Operation[] = [
   },
   {
     method: "put",
-    path: "/api/admin/teams/:id",
+    path: "/api/v1/admin/teams/:id",
     tag: "Admin",
     summary:
       "Rename a team or set its members; a team from the identity provider is refused",
@@ -49,7 +49,7 @@ export const ADMIN_OPERATIONS: Operation[] = [
   },
   {
     method: "delete",
-    path: "/api/admin/teams/:id",
+    path: "/api/v1/admin/teams/:id",
     tag: "Admin",
     summary: "Remove a team, and the notes that came through it",
     auth: "admin",
@@ -59,7 +59,7 @@ export const ADMIN_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/admin/users",
+    path: "/api/v1/admin/users",
     tag: "Admin",
     summary: "Every account",
     auth: "admin",
@@ -68,7 +68,7 @@ export const ADMIN_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/admin/update",
+    path: "/api/v1/admin/update",
     tag: "Admin",
     summary: "The running version, and the newest release if the check is on",
     auth: "admin",
@@ -77,7 +77,7 @@ export const ADMIN_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/admin/overview",
+    path: "/api/v1/admin/overview",
     tag: "Admin",
     summary: "What the server holds, and how its background jobs last ran",
     auth: "admin",
@@ -86,7 +86,7 @@ export const ADMIN_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/admin/checks",
+    path: "/api/v1/admin/checks",
     tag: "Admin",
     summary:
       "What the setup checks read: APP_URL, what the proxy does to X-Forwarded-For, backups and mail",
@@ -96,7 +96,7 @@ export const ADMIN_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/admin/checks/mail",
+    path: "/api/v1/admin/checks/mail",
     tag: "Admin",
     summary: "Send a test message to the admin's own email address",
     auth: "admin",
@@ -111,7 +111,7 @@ export const ADMIN_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/admin/audit",
+    path: "/api/v1/admin/audit",
     tag: "Admin",
     summary: "The audit log, newest first",
     auth: "admin",
@@ -126,7 +126,7 @@ export const ADMIN_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/admin/users",
+    path: "/api/v1/admin/users",
     tag: "Admin",
     summary: "Create an account with a temporary password",
     auth: "admin",
@@ -141,7 +141,7 @@ export const ADMIN_OPERATIONS: Operation[] = [
   },
   {
     method: "put",
-    path: "/api/admin/users/:id",
+    path: "/api/v1/admin/users/:id",
     tag: "Admin",
     summary: "Grant or take admin, or set an email address",
     auth: "admin",
@@ -151,7 +151,7 @@ export const ADMIN_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/admin/users/:id/password",
+    path: "/api/v1/admin/users/:id/password",
     tag: "Admin",
     summary: "Issue a temporary password; the user's sessions end",
     auth: "admin",
@@ -160,7 +160,7 @@ export const ADMIN_OPERATIONS: Operation[] = [
   },
   {
     method: "delete",
-    path: "/api/admin/users/:id",
+    path: "/api/v1/admin/users/:id",
     tag: "Admin",
     summary: "Delete an account and its notes",
     auth: "admin",

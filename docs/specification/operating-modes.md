@@ -50,8 +50,8 @@ The client is built with `VITE_MANIFESTO_SERVER=<url>` and talks to a Manifesto 
 
 - Notes are stored server-side via the configured [storage driver](#storage-drivers).
 - Users authenticate via the configured [auth provider](#auth-providers); login is mandatory.
-- Writes go through the REST API; the server fans out `note:*` events over the `/api/ws` WebSocket so other devices update live.
-- Per-note collaborative editing runs over a Hocuspocus + Yjs channel at `/api/yjs`, which multiplexes every note over one socket by document name.
+- Writes go through the REST API; the server fans out `note:*` events over the `/api/v1/ws` WebSocket so other devices update live.
+- Per-note collaborative editing runs over a Hocuspocus + Yjs channel at `/api/v1/yjs`, which multiplexes every note over one socket by document name.
 - Tags and manual ordering are scoped per-user.
 - Most [preferences](features/preferences.md) follow the account; a few that suit one screen or one
   browser stay on the device.
@@ -111,10 +111,10 @@ See [Server Overview](server/index.md#storage-drivers) for details.
 
 Both providers expose the same `AuthProvider` interface. Only the login step differs; once a session token is minted, every authenticated request is identical.
 
-- **`local`** *(default)*: username + argon2id password, sessions stored server-side. Mounts `POST /api/auth/{register,login,logout}`.
-- **`oidc`**: OAuth 2.0 Authorization Code Flow with PKCE against any OpenID Connect IdP (Authentik, Keycloak, Google, Auth0, Okta, …). Mounts `GET /api/auth/login` (302 to IdP), `GET /api/auth/callback`, `POST /api/auth/logout`. Users are JIT-provisioned by `(provider, sub)`.
+- **`local`** *(default)*: username + argon2id password, sessions stored server-side. Mounts `POST /api/v1/auth/{register,login,logout}`.
+- **`oidc`**: OAuth 2.0 Authorization Code Flow with PKCE against any OpenID Connect IdP (Authentik, Keycloak, Google, Auth0, Okta, …). Mounts `GET /api/v1/auth/login` (302 to IdP), `GET /api/v1/auth/callback`, `POST /api/v1/auth/logout`. Users are JIT-provisioned by `(provider, sub)`.
 
-The client decides which login UI to render by reading the public `GET /api/capabilities` on mount (`auth.providers`), so a single client build works against either provider.
+The client decides which login UI to render by reading the public `GET /api/v1/capabilities` on mount (`auth.providers`), so a single client build works against either provider.
 
 See [Server Overview](server/index.md#authentication-providers) for details.
 

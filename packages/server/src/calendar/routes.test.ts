@@ -44,7 +44,7 @@ describe("the reminder feed", () => {
     const olivia = await registerTestUser(rig, "olivia");
     session = olivia.token;
     userId = olivia.userId;
-    await rig.request("/api/notes", {
+    await rig.request("/api/v1/notes", {
       method: "POST",
       headers: authHeaders(session),
       body: JSON.stringify(baseNote),
@@ -56,7 +56,7 @@ describe("the reminder feed", () => {
   });
 
   async function mint(kind: string) {
-    const res = await rig.request("/api/tokens", {
+    const res = await rig.request("/api/v1/tokens", {
       method: "POST",
       headers: authHeaders(session),
       body: JSON.stringify({
@@ -75,7 +75,7 @@ describe("the reminder feed", () => {
     expect(secret.startsWith("mfc_")).toBe(true);
     expect(token).toMatchObject({ kind: "calendar", scopes: [] });
     const feed = async () => {
-      const res = await rig.request(`/api/calendar/${secret}.ics`);
+      const res = await rig.request(`/api/v1/calendar/${secret}.ics`);
       expect(res.status).toBe(200);
       expect(res.headers.get("Content-Type")).toContain("text/calendar");
       return res.text();
@@ -83,7 +83,7 @@ describe("the reminder feed", () => {
 
     // A note sealed with the account's real keys, as a token writes one.
     const api = await mint("api");
-    const made = await rig.request("/api/notes", {
+    const made = await rig.request("/api/v1/notes", {
       method: "POST",
       headers: authHeaders(api.secret),
       body: JSON.stringify({ ...baseNote, title: "Checkup" }),
@@ -93,7 +93,7 @@ describe("the reminder feed", () => {
     const sealed = async () =>
       (
         (await (
-          await rig.rawRequest(`/api/notes/${id}`, {
+          await rig.rawRequest(`/api/v1/notes/${id}`, {
             headers: authHeaders(session),
           })
         ).json()) as { note: SealedNote }
@@ -108,7 +108,7 @@ describe("the reminder feed", () => {
 
     // The app leaves the note's key under the reminder key.
     const put = (body: object) =>
-      rig.rawRequest(`/api/notes/${id}`, {
+      rig.rawRequest(`/api/v1/notes/${id}`, {
         method: "PUT",
         headers: authHeaders(session),
         body: JSON.stringify(body),
@@ -132,28 +132,30 @@ describe("the reminder feed", () => {
     const api = await mint("api");
 
     // Not a bearer token anywhere.
-    const asBearer = await rig.request("/api/notes", {
+    const asBearer = await rig.request("/api/v1/notes", {
       headers: authHeaders(calendar.secret),
     });
     expect(asBearer.status).toBe(401);
     // An API token's secret is not a feed address.
-    expect((await rig.request(`/api/calendar/${api.secret}.ics`)).status).toBe(
-      404,
-    );
-    expect((await rig.request(`/api/calendar/${calendar.secret}`)).status).toBe(
-      404,
-    );
-    expect((await rig.request("/api/calendar/mfc_made-up.ics")).status).toBe(
+    expect(
+      (await rig.request(`/api/v1/calendar/${api.secret}.ics`)).status,
+    ).toBe(404);
+    expect(
+      (await rig.request(`/api/v1/calendar/${calendar.secret}`)).status,
+    ).toBe(404);
+    expect((await rig.request("/api/v1/calendar/mfc_made-up.ics")).status).toBe(
       404,
     );
   });
 
   it("stops when the token is revoked", async () => {
     const { secret, token } = await mint("calendar");
-    await rig.request(`/api/tokens/${token.id}`, {
+    await rig.request(`/api/v1/tokens/${token.id}`, {
       method: "DELETE",
       headers: authHeaders(session),
     });
-    expect((await rig.request(`/api/calendar/${secret}.ics`)).status).toBe(404);
+    expect((await rig.request(`/api/v1/calendar/${secret}.ics`)).status).toBe(
+      404,
+    );
   });
 });

@@ -81,7 +81,7 @@ describe("sharing notes between accounts", () => {
   }
 
   async function createNote(overrides: Partial<NoteCreate> = {}) {
-    const res = await call(owner, "POST", "/api/notes", {
+    const res = await call(owner, "POST", "/api/v1/notes", {
       ...baseNote,
       ...overrides,
     });
@@ -90,7 +90,7 @@ describe("sharing notes between accounts", () => {
   }
 
   async function invite(noteId: string, who: Account, role = "edit") {
-    return call(owner, "POST", `/api/notes/${noteId}/shares`, {
+    return call(owner, "POST", `/api/v1/notes/${noteId}/shares`, {
       userId: who.userId,
       role,
     });
@@ -98,13 +98,13 @@ describe("sharing notes between accounts", () => {
 
   async function shareAccepted(noteId: string, who: Account, role = "edit") {
     expect((await invite(noteId, who, role)).status).toBe(201);
-    const res = await call(who, "POST", `/api/invitations/${noteId}/accept`);
+    const res = await call(who, "POST", `/api/v1/invitations/${noteId}/accept`);
     expect(res.status).toBe(200);
     return ((await res.json()) as { note: Note }).note;
   }
 
   async function noteAs(who: Account, id: string): Promise<Response> {
-    return call(who, "GET", `/api/notes/${id}`);
+    return call(who, "GET", `/api/v1/notes/${id}`);
   }
 
   function eventsFor(userId: string) {
@@ -129,7 +129,7 @@ describe("sharing notes between accounts", () => {
 
     expect((await noteAs(alice, note.id)).status).toBe(404);
     const invitations = (await (
-      await call(alice, "GET", "/api/invitations")
+      await call(alice, "GET", "/api/v1/invitations")
     ).json()) as InvitationsResponse;
     expect(invitations.invitations).toMatchObject([
       {
@@ -143,7 +143,7 @@ describe("sharing notes between accounts", () => {
     const accepted = await call(
       alice,
       "POST",
-      `/api/invitations/${note.id}/accept`,
+      `/api/v1/invitations/${note.id}/accept`,
     );
     expect(accepted.status).toBe(200);
     const { note: aliceView } = (await accepted.json()) as { note: Note };
@@ -152,7 +152,9 @@ describe("sharing notes between accounts", () => {
       tags: [],
       sharing: { role: "edit", owner: { id: owner.userId } },
     });
-    const listed = (await (await call(alice, "GET", "/api/notes")).json()) as {
+    const listed = (await (
+      await call(alice, "GET", "/api/v1/notes")
+    ).json()) as {
       notes: Note[];
     };
     expect(listed.notes.map((n) => n.id)).toEqual([note.id]);
@@ -162,7 +164,8 @@ describe("sharing notes between accounts", () => {
       note: { sharing: { members: [{ accepted: true }] } },
     });
     expect(
-      (await call(alice, "POST", `/api/invitations/${note.id}/accept`)).status,
+      (await call(alice, "POST", `/api/v1/invitations/${note.id}/accept`))
+        .status,
     ).toBe(404);
   });
 
@@ -173,7 +176,7 @@ describe("sharing notes between accounts", () => {
     const byRecipient = await call(
       alice,
       "POST",
-      `/api/notes/${note.id}/shares`,
+      `/api/v1/notes/${note.id}/shares`,
       {
         userId: bob.userId,
         role: "view",
@@ -185,7 +188,7 @@ describe("sharing notes between accounts", () => {
         await call(
           alice,
           "PUT",
-          `/api/notes/${note.id}/shares/${alice.userId}`,
+          `/api/v1/notes/${note.id}/shares/${alice.userId}`,
           {
             role: "edit",
           },
@@ -194,7 +197,7 @@ describe("sharing notes between accounts", () => {
     ).toBe(403);
     expect(
       (
-        await call(bob, "POST", `/api/notes/${note.id}/shares`, {
+        await call(bob, "POST", `/api/v1/notes/${note.id}/shares`, {
           userId: bob.userId,
           role: "edit",
         })
@@ -206,7 +209,7 @@ describe("sharing notes between accounts", () => {
     const note = await createNote();
     expect(
       (
-        await call(owner, "POST", `/api/notes/${note.id}/shares`, {
+        await call(owner, "POST", `/api/v1/notes/${note.id}/shares`, {
           userId: owner.userId,
           role: "edit",
         })
@@ -214,7 +217,7 @@ describe("sharing notes between accounts", () => {
     ).toBe(422);
     expect(
       (
-        await call(owner, "POST", `/api/notes/${note.id}/shares`, {
+        await call(owner, "POST", `/api/v1/notes/${note.id}/shares`, {
           userId: "01NOBODY000000000000000000",
           role: "edit",
         })
@@ -222,7 +225,7 @@ describe("sharing notes between accounts", () => {
     ).toBe(404);
     expect(
       (
-        await call(owner, "POST", `/api/notes/${note.id}/shares`, {
+        await call(owner, "POST", `/api/v1/notes/${note.id}/shares`, {
           userId: alice.userId,
           role: "admin",
         })
@@ -241,7 +244,7 @@ describe("sharing notes between accounts", () => {
     const note = await createNote();
     await shareAccepted(note.id, alice);
 
-    const res = await call(alice, "PUT", `/api/notes/${note.id}`, {
+    const res = await call(alice, "PUT", `/api/v1/notes/${note.id}`, {
       title: "Shopping",
       tags: ["errands"],
       color: NoteColor.Blue,
@@ -279,11 +282,11 @@ describe("sharing notes between accounts", () => {
     expect(view.sharing?.role).toBe("view");
 
     expect(
-      (await call(alice, "PUT", `/api/notes/${note.id}`, { content: "no" }))
+      (await call(alice, "PUT", `/api/v1/notes/${note.id}`, { content: "no" }))
         .status,
     ).toBe(403);
     expect(
-      (await call(alice, "PUT", `/api/notes/${note.id}`, { archived: true }))
+      (await call(alice, "PUT", `/api/v1/notes/${note.id}`, { archived: true }))
         .status,
     ).toBe(200);
   });
@@ -293,7 +296,7 @@ describe("sharing notes between accounts", () => {
     await shareAccepted(note.id, alice);
     events.length = 0;
 
-    const trashed = await call(alice, "PUT", `/api/notes/${note.id}`, {
+    const trashed = await call(alice, "PUT", `/api/v1/notes/${note.id}`, {
       trashed: true,
     });
     expect(trashed.status).toBe(200);
@@ -309,9 +312,9 @@ describe("sharing notes between accounts", () => {
       false,
     );
 
-    expect((await call(alice, "DELETE", `/api/notes/${note.id}`)).status).toBe(
-      204,
-    );
+    expect(
+      (await call(alice, "DELETE", `/api/v1/notes/${note.id}`)).status,
+    ).toBe(204);
     expect(eventsFor(alice.userId).at(-1)).toEqual({
       type: "note:deleted",
       id: note.id,
@@ -329,7 +332,7 @@ describe("sharing notes between accounts", () => {
     const note = await createNote();
     await shareAccepted(note.id, alice);
     expect(
-      (await call(alice, "PUT", `/api/notes/${note.id}`, { readonly: true }))
+      (await call(alice, "PUT", `/api/v1/notes/${note.id}`, { readonly: true }))
         .status,
     ).toBe(403);
   });
@@ -337,8 +340,8 @@ describe("sharing notes between accounts", () => {
   it("answers a stale recipient write with 412 and the recipient's copy", async () => {
     const note = await createNote();
     await shareAccepted(note.id, alice);
-    await call(owner, "PUT", `/api/notes/${note.id}`, { title: "Newer" });
-    const res = await rig.request(`/api/notes/${note.id}`, {
+    await call(owner, "PUT", `/api/v1/notes/${note.id}`, { title: "Newer" });
+    const res = await rig.request(`/api/v1/notes/${note.id}`, {
       method: "PUT",
       headers: { ...authHeaders(alice.token), "If-Match": note.updatedAt },
       body: JSON.stringify({ pinned: true }),
@@ -351,14 +354,14 @@ describe("sharing notes between accounts", () => {
   it("hides a trashed note from recipients until it is restored", async () => {
     const note = await createNote();
     await shareAccepted(note.id, alice);
-    await call(owner, "PUT", `/api/notes/${note.id}`, { trashed: true });
+    await call(owner, "PUT", `/api/v1/notes/${note.id}`, { trashed: true });
     expect(eventsFor(alice.userId).at(-1)).toEqual({
       type: "note:deleted",
       id: note.id,
     });
     expect((await noteAs(alice, note.id)).status).toBe(404);
 
-    await call(owner, "PUT", `/api/notes/${note.id}`, { trashed: false });
+    await call(owner, "PUT", `/api/v1/notes/${note.id}`, { trashed: false });
     expect(eventsFor(alice.userId).at(-1)).toMatchObject({
       type: "note:updated",
       note: { id: note.id },
@@ -373,7 +376,7 @@ describe("sharing notes between accounts", () => {
     const changed = await call(
       owner,
       "PUT",
-      `/api/notes/${note.id}/shares/${alice.userId}`,
+      `/api/v1/notes/${note.id}/shares/${alice.userId}`,
       { role: "view" },
     );
     expect(changed.status).toBe(200);
@@ -385,7 +388,7 @@ describe("sharing notes between accounts", () => {
     const removed = await call(
       owner,
       "DELETE",
-      `/api/notes/${note.id}/shares/${alice.userId}`,
+      `/api/v1/notes/${note.id}/shares/${alice.userId}`,
     );
     expect(removed.status).toBe(204);
     expect(eventsFor(alice.userId)).toContainEqual({
@@ -405,7 +408,7 @@ describe("sharing notes between accounts", () => {
         await call(
           owner,
           "PUT",
-          `/api/notes/${note.id}/shares/${alice.userId}`,
+          `/api/v1/notes/${note.id}/shares/${alice.userId}`,
           {
             role: "edit",
           },
@@ -424,7 +427,7 @@ describe("sharing notes between accounts", () => {
         await call(
           alice,
           "DELETE",
-          `/api/notes/${note.id}/shares/${alice.userId}`,
+          `/api/v1/notes/${note.id}/shares/${alice.userId}`,
         )
       ).status,
     ).toBe(204);
@@ -432,10 +435,12 @@ describe("sharing notes between accounts", () => {
 
     // Declining is for invitations, not a way to leave a note.
     expect(
-      (await call(alice, "POST", `/api/invitations/${note.id}/decline`)).status,
+      (await call(alice, "POST", `/api/v1/invitations/${note.id}/decline`))
+        .status,
     ).toBe(404);
     expect(
-      (await call(bob, "POST", `/api/invitations/${note.id}/decline`)).status,
+      (await call(bob, "POST", `/api/v1/invitations/${note.id}/decline`))
+        .status,
     ).toBe(204);
     expect(eventsFor(bob.userId).at(-1)).toEqual({
       type: "invitation:removed",
@@ -443,7 +448,7 @@ describe("sharing notes between accounts", () => {
     });
     expect(
       (
-        (await call(bob, "GET", "/api/invitations").then((r) =>
+        (await call(bob, "GET", "/api/v1/invitations").then((r) =>
           r.json(),
         )) as InvitationsResponse
       ).invitations,
@@ -454,9 +459,9 @@ describe("sharing notes between accounts", () => {
     const note = await createNote();
     await shareAccepted(note.id, alice);
     await invite(note.id, bob);
-    expect((await call(owner, "DELETE", `/api/notes/${note.id}`)).status).toBe(
-      204,
-    );
+    expect(
+      (await call(owner, "DELETE", `/api/v1/notes/${note.id}`)).status,
+    ).toBe(204);
     expect(eventsFor(alice.userId).at(-1)).toEqual({
       type: "note:deleted",
       id: note.id,
@@ -506,20 +511,20 @@ describe("handing a shared note's key on", () => {
   });
 
   async function note(): Promise<Note> {
-    const res = await call(owner, "POST", "/api/notes", baseNote);
+    const res = await call(owner, "POST", "/api/v1/notes", baseNote);
     return ((await res.json()) as { note: Note }).note;
   }
 
   const invitationOf = async (who: { token: string }) =>
     (
       (await (
-        await call(who, "GET", "/api/invitations")
+        await call(who, "GET", "/api/v1/invitations")
       ).json()) as InvitationsResponse
     ).invitations[0];
 
   it("takes the key with the invitation, when the owner's client could wrap it", async () => {
     const { id } = await note();
-    const res = await call(owner, "POST", `/api/notes/${id}/shares`, {
+    const res = await call(owner, "POST", `/api/v1/notes/${id}/shares`, {
       userId: alice.userId,
       role: "edit",
       key: offer(owner.userId),
@@ -529,7 +534,7 @@ describe("handing a shared note's key on", () => {
     // Signed by someone else, or for another key, it is not the owner's to
     // send.
     for (const key of [offer(bob.userId), offer(owner.userId, 2)]) {
-      const bad = await call(owner, "POST", `/api/notes/${id}/shares`, {
+      const bad = await call(owner, "POST", `/api/v1/notes/${id}/shares`, {
         userId: bob.userId,
         role: "edit",
         key,
@@ -540,11 +545,11 @@ describe("handing a shared note's key on", () => {
 
   it("lets anyone who holds the note wrap its key for someone still waiting", async () => {
     const { id } = await note();
-    await call(owner, "POST", `/api/notes/${id}/shares`, {
+    await call(owner, "POST", `/api/v1/notes/${id}/shares`, {
       userId: alice.userId,
       role: "view",
     });
-    await call(owner, "POST", `/api/notes/${id}/shares`, {
+    await call(owner, "POST", `/api/v1/notes/${id}/shares`, {
       userId: bob.userId,
       role: "view",
     });
@@ -553,12 +558,12 @@ describe("handing a shared note's key on", () => {
       call(
         who,
         "PUT",
-        `/api/notes/${id}/shares/${bob.userId}/key`,
+        `/api/v1/notes/${id}/shares/${bob.userId}/key`,
         offer(signer),
       );
     // Someone who has not accepted holds no key to wrap.
     expect((await put(alice)).status).toBe(404);
-    await call(alice, "POST", `/api/invitations/${id}/accept`);
+    await call(alice, "POST", `/api/v1/invitations/${id}/accept`);
     expect((await put(alice, owner.userId)).status).toBe(422);
     expect((await put(alice)).status).toBe(204);
     expect((await invitationOf(bob))?.offered?.signer).toBe(alice.userId);
@@ -569,19 +574,19 @@ describe("handing a shared note's key on", () => {
     expect((await put(owner)).status).toBe(204);
     expect((await invitationOf(bob))?.offered?.signer).toBe(owner.userId);
     // Nobody is waiting any more, as everyone on the note can see.
-    const seen = await call(owner, "GET", `/api/notes/${id}`);
+    const seen = await call(owner, "GET", `/api/v1/notes/${id}`);
     const { note: ownerView } = (await seen.json()) as { note: Note };
     expect(ownerView.sharing?.members.some((m) => m.waitingForKey)).toBe(false);
   });
 
   it("refuses an invitation's acceptance under another key, and a readable one", async () => {
     const { id } = await note();
-    await call(owner, "POST", `/api/notes/${id}/shares`, {
+    await call(owner, "POST", `/api/v1/notes/${id}/shares`, {
       userId: alice.userId,
       role: "edit",
     });
     const accept = (body: object) =>
-      rig.rawRequest(`/api/invitations/${id}/accept`, {
+      rig.rawRequest(`/api/v1/invitations/${id}/accept`, {
         method: "POST",
         headers: authHeaders(alice.token),
         body: JSON.stringify(body),
@@ -595,7 +600,7 @@ describe("handing a shared note's key on", () => {
   const sealedAs = async (who: { token: string }, id: string) =>
     (
       (await (
-        await rig.rawRequest(`/api/notes/${id}`, {
+        await rig.rawRequest(`/api/v1/notes/${id}`, {
           headers: authHeaders(who.token),
         })
       ).json()) as { note: SealedNote }
@@ -624,7 +629,7 @@ describe("handing a shared note's key on", () => {
   ) => {
     const read =
       ifMatch === undefined ? (await sealedAs(who, id)).updatedAt : ifMatch;
-    return rig.rawRequest(`/api/notes/${id}/key`, {
+    return rig.rawRequest(`/api/v1/notes/${id}/key`, {
       method: "PUT",
       headers: {
         ...authHeaders(who.token),
@@ -637,40 +642,40 @@ describe("handing a shared note's key on", () => {
   it("is due a new key once someone who held it is gone, which only the owner is told", async () => {
     const { id } = await note();
     for (const who of [alice, bob]) {
-      await call(owner, "POST", `/api/notes/${id}/shares`, {
+      await call(owner, "POST", `/api/v1/notes/${id}/shares`, {
         userId: who.userId,
         role: "edit",
       });
     }
     // Bob was never handed a key: his going gives nothing away.
-    await call(owner, "DELETE", `/api/notes/${id}/shares/${bob.userId}`);
+    await call(owner, "DELETE", `/api/v1/notes/${id}/shares/${bob.userId}`);
     expect((await sealedAs(owner, id)).rekeyDue).toBeUndefined();
 
-    await call(alice, "POST", `/api/invitations/${id}/accept`);
-    await call(owner, "POST", `/api/notes/${id}/shares`, {
+    await call(alice, "POST", `/api/v1/invitations/${id}/accept`);
+    await call(owner, "POST", `/api/v1/notes/${id}/shares`, {
       userId: bob.userId,
       role: "edit",
     });
-    await call(bob, "POST", `/api/invitations/${id}/accept`);
+    await call(bob, "POST", `/api/v1/invitations/${id}/accept`);
     // Alice leaves, holding the key.
-    await call(alice, "DELETE", `/api/notes/${id}`);
+    await call(alice, "DELETE", `/api/v1/notes/${id}`);
     expect((await sealedAs(owner, id)).rekeyDue).toBe(true);
     expect((await sealedAs(bob, id)).rekeyDue).toBeUndefined();
   });
 
   it("moves the whole note to a new key at once, and leaves everyone else waiting for it", async () => {
     const { id } = await note();
-    await call(owner, "POST", `/api/notes/${id}/shares`, {
+    await call(owner, "POST", `/api/v1/notes/${id}/shares`, {
       userId: alice.userId,
       role: "edit",
     });
-    await call(owner, "POST", `/api/notes/${id}/shares`, {
+    await call(owner, "POST", `/api/v1/notes/${id}/shares`, {
       userId: bob.userId,
       role: "edit",
     });
-    await call(alice, "POST", `/api/invitations/${id}/accept`);
-    await call(bob, "POST", `/api/invitations/${id}/accept`);
-    await call(owner, "DELETE", `/api/notes/${id}/shares/${alice.userId}`);
+    await call(alice, "POST", `/api/v1/invitations/${id}/accept`);
+    await call(bob, "POST", `/api/v1/invitations/${id}/accept`);
+    await call(owner, "DELETE", `/api/v1/notes/${id}/shares/${alice.userId}`);
 
     // Not a recipient's to do, not to a version it is not next at, and not
     // with anything readable in it.
@@ -686,7 +691,7 @@ describe("handing a shared note's key on", () => {
     // the owner's app was sealing, is not in what it sends.
     expect((await rekey(owner, id, rekeyed(2), null)).status).toBe(428);
     const read = (await sealedAs(owner, id)).updatedAt;
-    const edit = await rig.rawRequest(`/api/notes/${id}`, {
+    const edit = await rig.rawRequest(`/api/v1/notes/${id}`, {
       method: "PUT",
       headers: authHeaders(bob.token),
       body: JSON.stringify({
@@ -721,7 +726,7 @@ describe("handing a shared note's key on", () => {
     const behind = await sealedAs(bob, id);
     expect(behind).toMatchObject({ keyVersion: 2, key: "" });
     expect(behind.offered).toBeUndefined();
-    const stale = await rig.rawRequest(`/api/notes/${id}`, {
+    const stale = await rig.rawRequest(`/api/v1/notes/${id}`, {
       method: "PUT",
       headers: authHeaders(bob.token),
       body: JSON.stringify({
@@ -738,13 +743,13 @@ describe("handing a shared note's key on", () => {
         await call(
           owner,
           "PUT",
-          `/api/notes/${id}/shares/${bob.userId}/key`,
+          `/api/v1/notes/${id}/shares/${bob.userId}/key`,
           offer(owner.userId, 2),
         )
       ).status,
     ).toBe(204);
     expect((await sealedAs(bob, id)).offered).toEqual(offer(owner.userId, 2));
-    const kept = await rig.rawRequest(`/api/notes/${id}/held-key`, {
+    const kept = await rig.rawRequest(`/api/v1/notes/${id}/held-key`, {
       method: "PUT",
       headers: authHeaders(bob.token),
       body: JSON.stringify({
@@ -757,7 +762,7 @@ describe("handing a shared note's key on", () => {
       key: ciphertext("bob's copy of key 2"),
       previousKeys: ciphertext("the keys before"),
     });
-    const fresh = await rig.rawRequest(`/api/notes/${id}`, {
+    const fresh = await rig.rawRequest(`/api/v1/notes/${id}`, {
       method: "PUT",
       headers: authHeaders(bob.token),
       body: JSON.stringify({
@@ -774,16 +779,16 @@ describe("handing a shared note's key on", () => {
     const publish = async (mode: string) =>
       (
         (await (
-          await call(owner, "POST", `/api/notes/${id}/links`, { mode })
+          await call(owner, "POST", `/api/v1/notes/${id}/links`, { mode })
         ).json()) as { link: PublicLink }
       ).link.token;
     const copy = await publish("snapshot");
     const gone = await publish("live");
     const stays = await publish("live");
 
-    await call(owner, "DELETE", `/api/notes/${id}/links/${copy}`);
+    await call(owner, "DELETE", `/api/v1/notes/${id}/links/${copy}`);
     expect((await sealedAs(owner, id)).rekeyDue).toBeUndefined();
-    await call(owner, "DELETE", `/api/notes/${id}/links/${gone}`);
+    await call(owner, "DELETE", `/api/v1/notes/${id}/links/${gone}`);
     expect((await sealedAs(owner, id)).rekeyDue).toBe(true);
 
     const done = await rekey(
@@ -797,7 +802,7 @@ describe("handing a shared note's key on", () => {
     );
     expect(done.status).toBe(200);
     const shown = (await (
-      await rig.rawRequest(`/api/public/${stays}`)
+      await rig.rawRequest(`/api/v1/public/${stays}`)
     ).json()) as PublicNoteResponse;
     expect(shown.wrappedKey).toBe(ciphertext("key 2, for the link"));
     expect(shown.note.keyVersion).toBe(2);
@@ -807,12 +812,12 @@ describe("handing a shared note's key on", () => {
     const seen = async (who: { token: string }) =>
       (
         (await (
-          await call(who, "GET", "/api/auth/keys/seen")
+          await call(who, "GET", "/api/v1/auth/keys/seen")
         ).json()) as SeenKeysResponse
       ).seen;
     expect(await seen(owner)).toEqual({});
     const put = (sealed: string) =>
-      call(owner, "PUT", `/api/auth/keys/seen/${alice.userId}`, { sealed });
+      call(owner, "PUT", `/api/v1/auth/keys/seen/${alice.userId}`, { sealed });
     expect((await put("their keys, readable")).status).toBe(422);
     expect((await put(ciphertext("first sight"))).status).toBe(204);
     expect((await put(ciphertext("agreed to since"))).status).toBe(204);
@@ -824,13 +829,17 @@ describe("handing a shared note's key on", () => {
   });
 
   it("gives out an account's public keys once it has them", async () => {
-    const before = await call(owner, "GET", `/api/users/${alice.userId}/keys`);
+    const before = await call(
+      owner,
+      "GET",
+      `/api/v1/users/${alice.userId}/keys`,
+    );
     expect(before.status).toBe(404);
     const publicKeys = {
       exchange: `B${"x".repeat(86)}`,
       signing: `B${"y".repeat(86)}`,
     };
-    const setup = await call(alice, "PUT", "/api/auth/keys", {
+    const setup = await call(alice, "PUT", "/api/v1/auth/keys", {
       wrappedBySecret: ciphertext("a"),
       wrappedByRecovery: ciphertext("b"),
       recoveryVerifier: "v".repeat(43),
@@ -841,7 +850,7 @@ describe("handing a shared note's key on", () => {
       },
     });
     expect(setup.status).toBe(204);
-    const res = await call(owner, "GET", `/api/users/${alice.userId}/keys`);
+    const res = await call(owner, "GET", `/api/v1/users/${alice.userId}/keys`);
     expect(await res.json()).toEqual({
       userId: alice.userId,
       version: 1,
@@ -856,7 +865,7 @@ describe("finding people to share with", () => {
     const me = await registerTestUser(rig, "olivia");
     await registerTestUser(rig, "alice");
     const bob = await registerTestUser(rig, "bob");
-    await rig.request("/api/auth/me", {
+    await rig.request("/api/v1/auth/me", {
       method: "PUT",
       headers: authHeaders(bob.token),
       body: JSON.stringify({
@@ -867,7 +876,7 @@ describe("finding people to share with", () => {
     const find = async (q: string) =>
       (
         (await (
-          await rig.request(`/api/users?q=${encodeURIComponent(q)}`, {
+          await rig.request(`/api/v1/users?q=${encodeURIComponent(q)}`, {
             headers: authHeaders(me.token),
           })
         ).json()) as UserLookupResponse
@@ -894,7 +903,9 @@ describe("finding people to share with", () => {
     const byEmail = await find("robert@example.com");
     expect(byEmail).toMatchObject([{ username: "bob" }]);
     expect(byEmail[0]).not.toHaveProperty("email");
-    const { features } = await (await rig.request("/api/capabilities")).json();
+    const { features } = await (
+      await rig.request("/api/v1/capabilities")
+    ).json();
     expect(features.userLookup).toBe("exact");
     await rig.close();
   });
@@ -908,7 +919,7 @@ describe("finding people to share with", () => {
   it("names an account once when its username and its address both match", async () => {
     const { rig, find } = await setup("exact");
     const carol = await registerTestUser(rig, "carol@example.com");
-    const set = await rig.request("/api/auth/me", {
+    const set = await rig.request("/api/v1/auth/me", {
       method: "PUT",
       headers: authHeaders(carol.token),
       body: JSON.stringify({
@@ -942,7 +953,7 @@ describe("email addresses on accounts", () => {
   });
 
   function register(username: string, email?: string) {
-    return rig.request("/api/auth/register", {
+    return rig.request("/api/v1/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password: "password-1234", email }),
@@ -970,7 +981,7 @@ describe("email addresses on accounts", () => {
     await register("alice", "alice@example.com");
     const bob = await registerTestUser(rig, "bob");
     const put = (email: string | null) =>
-      rig.request("/api/auth/me", {
+      rig.request("/api/v1/auth/me", {
         method: "PUT",
         headers: authHeaders(bob.token),
         body: JSON.stringify({ email, password: "test-pass-12" }),
@@ -992,7 +1003,7 @@ describe("email addresses on accounts", () => {
 
   it("lets an admin give an account an address", async () => {
     const admin = await registerTestUser(rig, "admin");
-    const created = await rig.request("/api/admin/users", {
+    const created = await rig.request("/api/v1/admin/users", {
       method: "POST",
       headers: authHeaders(admin.token),
       body: JSON.stringify({ username: "erin", email: "erin@example.com" }),
@@ -1001,14 +1012,14 @@ describe("email addresses on accounts", () => {
     const { user } = (await created.json()) as AdminTemporaryPasswordResponse;
     expect(user.email).toBe("erin@example.com");
 
-    const dup = await rig.request("/api/admin/users", {
+    const dup = await rig.request("/api/v1/admin/users", {
       method: "POST",
       headers: authHeaders(admin.token),
       body: JSON.stringify({ username: "frank", email: "ERIN@example.com" }),
     });
     expect(dup.status).toBe(409);
 
-    const changed = await rig.request(`/api/admin/users/${user.id}`, {
+    const changed = await rig.request(`/api/v1/admin/users/${user.id}`, {
       method: "PUT",
       headers: authHeaders(admin.token),
       body: JSON.stringify({ email: "erin@work.example" }),
@@ -1019,7 +1030,7 @@ describe("email addresses on accounts", () => {
       isAdmin: false,
     });
 
-    const nothing = await rig.request(`/api/admin/users/${user.id}`, {
+    const nothing = await rig.request(`/api/v1/admin/users/${user.id}`, {
       method: "PUT",
       headers: authHeaders(admin.token),
       body: JSON.stringify({}),
@@ -1036,23 +1047,23 @@ describe("email addresses on accounts", () => {
       events.push({ userId, event }),
     );
 
-    const created = await rig.request("/api/notes", {
+    const created = await rig.request("/api/v1/notes", {
       method: "POST",
       headers: authHeaders(owner.token),
       body: JSON.stringify(baseNote),
     });
     const { note } = (await created.json()) as { note: Note };
-    await rig.request(`/api/notes/${note.id}/shares`, {
+    await rig.request(`/api/v1/notes/${note.id}/shares`, {
       method: "POST",
       headers: authHeaders(owner.token),
       body: JSON.stringify({ userId: alice.userId, role: "edit" }),
     });
-    await rig.request(`/api/invitations/${note.id}/accept`, {
+    await rig.request(`/api/v1/invitations/${note.id}/accept`, {
       method: "POST",
       headers: authHeaders(alice.token),
     });
 
-    const res = await rig.request(`/api/admin/users/${owner.userId}`, {
+    const res = await rig.request(`/api/v1/admin/users/${owner.userId}`, {
       method: "DELETE",
       headers: authHeaders(admin.token),
     });

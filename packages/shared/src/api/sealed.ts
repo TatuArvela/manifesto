@@ -59,7 +59,7 @@ export interface SealedNote
   previousKeys?: string;
   /**
    * For the owner: someone who held the key no longer holds the note, so
-   * the owner's app is to give it a new one (`PUT /api/notes/:id/key`).
+   * the owner's app is to give it a new one (`PUT /api/v1/notes/:id/key`).
    */
   rekeyDue?: true;
   // Under the note key, the same for everyone on the note.
@@ -112,7 +112,7 @@ export type SealedNoteUpdate = Partial<
 >;
 
 /**
- * `PUT /api/notes/:id/key` from the owner's app: the note under a new key.
+ * `PUT /api/v1/notes/:id/key` from the owner's app: the note under a new key.
  * Everything everyone on the note shares is sealed again, the key comes
  * wrapped for the owner, and the keys before it sealed under it. `keyVersion`
  * is one more than the note's. Each live public link named gets the new key
@@ -174,7 +174,7 @@ export interface SealedNoteVersion {
   content: string;
 }
 
-/** `POST /api/notes/:id/versions` from the app. */
+/** `POST /api/v1/notes/:id/versions` from the app. */
 export interface SealedNoteVersionCreateRequest {
   id: string;
   keyVersion: number;
@@ -188,12 +188,12 @@ export interface SealedNoteVersionCreateRequest {
  * under the account's personal key. */
 export type SealedAccountPrefs = Record<string, string>;
 
-/** `PATCH /api/auth/me/prefs`: the keys to set, `null` removing one. */
+/** `PATCH /api/v1/auth/me/prefs`: the keys to set, `null` removing one. */
 export interface SealedAccountPrefsUpdate {
   prefs: Record<string, string | null>;
 }
 
-/** `GET /api/auth/me/prefs`, and the answer to a `PATCH`. */
+/** `GET /api/v1/auth/me/prefs`, and the answer to a `PATCH`. */
 export interface SealedAccountPrefsResponse {
   prefs: SealedAccountPrefs;
 }

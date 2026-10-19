@@ -65,7 +65,7 @@ describe("version routes", () => {
   const versions = async (who: Account) =>
     (
       (await (
-        await call(who, "GET", `/api/notes/${note.id}/versions`)
+        await call(who, "GET", `/api/v1/notes/${note.id}/versions`)
       ).json()) as NoteVersionsResponse
     ).versions;
 
@@ -74,13 +74,13 @@ describe("version routes", () => {
     owner = await registerTestUser(rig, "olivia");
     viewer = await registerTestUser(rig, "victor");
     stranger = await registerTestUser(rig, "sam");
-    const res = await call(owner, "POST", "/api/notes", baseNote);
+    const res = await call(owner, "POST", "/api/v1/notes", baseNote);
     note = ((await res.json()) as { note: Note }).note;
-    await call(owner, "POST", `/api/notes/${note.id}/shares`, {
+    await call(owner, "POST", `/api/v1/notes/${note.id}/shares`, {
       userId: viewer.userId,
       role: "view",
     });
-    await call(viewer, "POST", `/api/invitations/${note.id}/accept`);
+    await call(viewer, "POST", `/api/v1/invitations/${note.id}/accept`);
   });
 
   afterEach(async () => {
@@ -89,10 +89,15 @@ describe("version routes", () => {
 
   it("keeps a history everyone holding the note reads, newest first", async () => {
     for (const content of ["v1", "v2"]) {
-      const res = await call(owner, "POST", `/api/notes/${note.id}/versions`, {
-        title: "Plan",
-        content,
-      });
+      const res = await call(
+        owner,
+        "POST",
+        `/api/v1/notes/${note.id}/versions`,
+        {
+          title: "Plan",
+          content,
+        },
+      );
       expect(res.status).toBe(201);
     }
     expect((await versions(owner)).map((v) => v.content)).toEqual(["v2", "v1"]);
@@ -103,25 +108,30 @@ describe("version routes", () => {
   });
 
   it("lets only those who can edit add to it", async () => {
-    const res = await call(viewer, "POST", `/api/notes/${note.id}/versions`, {
-      title: "",
-      content: "sneaky",
-    });
+    const res = await call(
+      viewer,
+      "POST",
+      `/api/v1/notes/${note.id}/versions`,
+      {
+        title: "",
+        content: "sneaky",
+      },
+    );
     expect(res.status).toBe(403);
     const unknown = await call(
       stranger,
       "POST",
-      `/api/notes/${note.id}/versions`,
+      `/api/v1/notes/${note.id}/versions`,
       { title: "", content: "x" },
     );
     expect(unknown.status).toBe(404);
     expect(
-      (await call(stranger, "GET", `/api/notes/${note.id}/versions`)).status,
+      (await call(stranger, "GET", `/api/v1/notes/${note.id}/versions`)).status,
     ).toBe(404);
   });
 
   it("opens for a token what was written before the note's key was replaced", async () => {
-    const minted = await call(owner, "POST", "/api/tokens", {
+    const minted = await call(owner, "POST", "/api/v1/tokens", {
       password: "test-pass-12",
       name: "script",
     });
@@ -130,14 +140,17 @@ describe("version routes", () => {
       token: defined(((await minted.json()) as ApiTokenCreatedResponse).secret),
     };
     // Written by the token, so under keys the server really opens with.
-    const made = await call(script, "POST", "/api/notes", baseNote);
+    const made = await call(script, "POST", "/api/v1/notes", baseNote);
     const id = ((await made.json()) as { note: Note }).note.id;
     const add = (content: string) =>
-      call(script, "POST", `/api/notes/${id}/versions`, { title: "", content });
+      call(script, "POST", `/api/v1/notes/${id}/versions`, {
+        title: "",
+        content,
+      });
     expect((await add("before")).status).toBe(201);
 
     // The owner's app replaces the key, as `Sealer.rekey` does.
-    const read = await rig.rawRequest(`/api/notes/${id}`, {
+    const read = await rig.rawRequest(`/api/v1/notes/${id}`, {
       headers: authHeaders(owner.token),
     });
     const sealed = ((await read.json()) as { note: SealedNote }).note;
@@ -158,7 +171,7 @@ describe("version routes", () => {
       sealed,
     );
     expect(fields).not.toBeNull();
-    const rekeyed = await rig.rawRequest(`/api/notes/${id}/key`, {
+    const rekeyed = await rig.rawRequest(`/api/v1/notes/${id}/key`, {
       method: "PUT",
       headers: { ...authHeaders(owner.token), "If-Match": sealed.updatedAt },
       body: JSON.stringify({
@@ -171,14 +184,14 @@ describe("version routes", () => {
     expect(rekeyed.status).toBe(200);
     expect((await add("after")).status).toBe(201);
 
-    const res = await call(script, "GET", `/api/notes/${id}/versions`);
+    const res = await call(script, "GET", `/api/v1/notes/${id}/versions`);
     const history = ((await res.json()) as NoteVersionsResponse).versions;
     expect(history.map((v) => v.content)).toEqual(["after", "before"]);
   });
 
   it("keeps a brought-across version's own date", async () => {
     const then = new Date(Date.now() - 86_400_000).toISOString();
-    await call(owner, "POST", `/api/notes/${note.id}/versions`, {
+    await call(owner, "POST", `/api/v1/notes/${note.id}/versions`, {
       title: "",
       content: "old",
       timestamp: then,
@@ -205,11 +218,11 @@ describe("version routes", () => {
   });
 
   it("goes with the note", async () => {
-    await call(owner, "POST", `/api/notes/${note.id}/versions`, {
+    await call(owner, "POST", `/api/v1/notes/${note.id}/versions`, {
       title: "",
       content: "x",
     });
-    await call(owner, "DELETE", `/api/notes/${note.id}`);
+    await call(owner, "DELETE", `/api/v1/notes/${note.id}`);
     expect(await rig.storage.versions.list(note.id)).toEqual([]);
   });
 });

@@ -156,7 +156,7 @@ describe("ApiTokensSettings", () => {
           `textarea[aria-label="${t("tokens.mcpCommand")}"]`,
         )?.value,
       ).toMatch(
-        /^claude mcp add --transport http \S+ \S*\/api\/mcp --header "Authorization: Bearer mfm_abcdef-the-secret"$/,
+        /^claude mcp add --transport http \S+ \S*\/api\/v1\/mcp --header "Authorization: Bearer mfm_abcdef-the-secret"$/,
       ),
     );
     expect(sent).toMatchObject({
@@ -220,7 +220,7 @@ describe("ApiTokensSettings", () => {
         host.querySelector<HTMLInputElement>(
           `input[aria-label="${t("tokens.calendarUrl")}"]`,
         )?.value,
-      ).toMatch(/\/api\/calendar\/mfc_abcdef-the-secret\.ics$/),
+      ).toMatch(/\/api\/v1\/calendar\/mfc_abcdef-the-secret\.ics$/),
     );
     expect(sent).toMatchObject({ name: "Phone", kind: "calendar" });
     const subscribe = [...host.querySelectorAll("a")].find(
@@ -392,6 +392,8 @@ describe("ApiTokensSettings", () => {
     const link = [...host.querySelectorAll("a")].find(
       (a) => a.textContent === t("confirm.signInAgainLink"),
     );
-    expect(link?.getAttribute("href")).toMatch(/\/api\/auth\/login\?reauth=1$/);
+    expect(link?.getAttribute("href")).toMatch(
+      /\/api\/v1\/auth\/login\?reauth=1$/,
+    );
   });
 });

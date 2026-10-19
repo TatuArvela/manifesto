@@ -41,7 +41,7 @@ interface NotesDeps {
   noteEvents: NoteEvents;
   accessChanges: AccessChanges;
   /** Optional per-user limiter, mounted after auth. Defined in app.ts so
-   * it shares state with /api/search rather than maintaining a per-router
+   * it shares state with /api/v1/search rather than maintaining a per-router
    * bucket map. */
   mail?: { mailer: Mailer; appUrl: string } | null;
   /** For the public link routes, which hash passwords and may be off. */

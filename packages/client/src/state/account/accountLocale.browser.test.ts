@@ -50,7 +50,7 @@ describe("reporting the app's language", () => {
       string,
       RequestInit,
     ];
-    expect(url).toBe("https://notes.example/api/auth/me/locale");
+    expect(url).toBe("https://notes.example/api/v1/auth/me/locale");
     expect(init.method).toBe("PUT");
     expect(JSON.parse(init.body as string)).toEqual({ locale: "fi" });
   });

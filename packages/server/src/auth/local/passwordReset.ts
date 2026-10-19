@@ -23,7 +23,7 @@ import { mailedLinks } from "./mailedLink.ts";
 export const RESET_LINK_MINUTES = 30;
 
 /**
- * `/api/auth/password-reset`: a link by mail, for a local account whose
+ * `/api/v1/auth/password-reset`: a link by mail, for a local account whose
  * owner has forgotten the password. Only on a server with `SMTP_URL`; without
  * it an admin's temporary password is the way back in.
  *

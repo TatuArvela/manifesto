@@ -37,7 +37,7 @@ export const DEFAULT_SERVER_FEATURES: ServerFeatures = {
 };
 
 /**
- * The server's features, from `GET /api/capabilities` (`fetchCapabilities`).
+ * The server's features, from `GET /api/v1/capabilities` (`fetchCapabilities`).
  * Read through `serverFeature`, and only where the server is in play: open
  * mode has none of these and never asks.
  */

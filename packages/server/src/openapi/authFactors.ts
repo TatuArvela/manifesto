@@ -10,7 +10,7 @@ import { noContent, notFound, type Operation, ok } from "./operation.ts";
 export const AUTH_FACTOR_OPERATIONS: Operation[] = [
   {
     method: "get",
-    path: "/api/auth/two-factor",
+    path: "/api/v1/auth/two-factor",
     tag: "Auth",
     summary: "Whether two-factor sign-in is on, and with what",
     auth: "session",
@@ -20,7 +20,7 @@ export const AUTH_FACTOR_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/two-factor/setup",
+    path: "/api/v1/auth/two-factor/setup",
     tag: "Auth",
     summary: "Start turning two-factor on: a new authenticator secret",
     auth: "session",
@@ -32,7 +32,7 @@ export const AUTH_FACTOR_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/two-factor/enable",
+    path: "/api/v1/auth/two-factor/enable",
     tag: "Auth",
     summary: "Confirm with a code, which turns two-factor on",
     auth: "session",
@@ -44,7 +44,7 @@ export const AUTH_FACTOR_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/two-factor/disable",
+    path: "/api/v1/auth/two-factor/disable",
     tag: "Auth",
     summary: "Turn two-factor off",
     auth: "session",
@@ -55,7 +55,7 @@ export const AUTH_FACTOR_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/auth/passkeys",
+    path: "/api/v1/auth/passkeys",
     tag: "Auth",
     summary: "The account's passkeys, without their keys",
     auth: "session",
@@ -65,7 +65,7 @@ export const AUTH_FACTOR_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/passkeys/options",
+    path: "/api/v1/auth/passkeys/options",
     tag: "Auth",
     summary:
       "Start adding a passkey, with the password: options for navigator.credentials.create()",
@@ -78,7 +78,7 @@ export const AUTH_FACTOR_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/passkeys",
+    path: "/api/v1/auth/passkeys",
     tag: "Auth",
     summary: "Add the passkey the browser made",
     auth: "session",
@@ -92,7 +92,7 @@ export const AUTH_FACTOR_OPERATIONS: Operation[] = [
   },
   {
     method: "delete",
-    path: "/api/auth/passkeys/:id",
+    path: "/api/v1/auth/passkeys/:id",
     tag: "Auth",
     summary: "Remove a passkey, with the password",
     auth: "session",
@@ -103,7 +103,7 @@ export const AUTH_FACTOR_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/passkey/options",
+    path: "/api/v1/auth/passkey/options",
     tag: "Auth",
     summary:
       "A challenge to sign in with a passkey alone, for navigator.credentials.get()",
@@ -115,7 +115,7 @@ export const AUTH_FACTOR_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/passkey/login",
+    path: "/api/v1/auth/passkey/login",
     tag: "Auth",
     summary: "Sign in with a passkey's answer to that challenge",
     auth: "none",

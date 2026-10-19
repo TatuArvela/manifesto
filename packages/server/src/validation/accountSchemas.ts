@@ -117,13 +117,13 @@ export const loginSchema = authCredentialsSchema.extend({
   passkey: passkeyAuthenticationSchema.exactOptional(),
 });
 
-/** `POST /api/auth/passkeys`. */
+/** `POST /api/v1/auth/passkeys`. */
 export const passkeyAddSchema = z.object({
   name: z.string().trim().max(100).exactOptional(),
   response: passkeyRegistrationSchema,
 });
 
-/** `POST /api/auth/passkey/login`. */
+/** `POST /api/v1/auth/passkey/login`. */
 export const passkeyLoginSchema = z.object({
   response: passkeyAuthenticationSchema,
 });
@@ -149,7 +149,7 @@ const recoveryKeyWrap = {
   recoveryVerifier,
 };
 
-/** `PUT /api/auth/keys`. */
+/** `PUT /api/v1/auth/keys`. */
 export const accountKeysSetupSchema = z.object({
   ...recoveryKeyWrap,
   wrappedBySecret: wrappedKey,
@@ -157,39 +157,39 @@ export const accountKeysSetupSchema = z.object({
   wrappedPrivateKeys: z.object({ exchange: wrappedKey, signing: wrappedKey }),
 });
 
-/** `POST /api/auth/keys/secret`. */
+/** `POST /api/v1/auth/keys/secret`. */
 export const secretKeyReplaceSchema = z.object({
   password: confirmationPassword,
   wrappedBySecret: wrappedKey,
 });
 
-/** `POST /api/auth/keys/recovery`. */
+/** `POST /api/v1/auth/keys/recovery`. */
 export const recoveryKeyReplaceSchema = z.object({
   password: confirmationPassword,
   ...recoveryKeyWrap,
 });
 
-/** `POST /api/auth/keys/confirm` and `DELETE /api/auth/keys`. */
+/** `POST /api/v1/auth/keys/confirm` and `DELETE /api/v1/auth/keys`. */
 export const keysConfirmSchema = z.object({
   password: confirmationPassword,
 });
 
-/** `POST /api/auth/keys/recover`. */
+/** `POST /api/v1/auth/keys/recover`. */
 export const recoveryOpenSchema = z.object({ verifier: recoveryVerifier });
 
-/** `POST /api/auth/keys/recover/complete`. */
+/** `POST /api/v1/auth/keys/recover/complete`. */
 export const recoveryCompleteSchema = z.object({
   verifier: recoveryVerifier,
   wrappedBySecret: wrappedKey,
   ...recoveryKeyWrap,
 });
 
-/** `POST /api/auth/recovery`. */
+/** `POST /api/v1/auth/recovery`. */
 export const recoverySignInOpenSchema = recoveryOpenSchema.extend({
   username: usernameSchema,
 });
 
-/** `POST /api/auth/recovery/complete`. */
+/** `POST /api/v1/auth/recovery/complete`. */
 export const recoverySignInCompleteSchema = recoveryCompleteSchema.extend({
   username: usernameSchema,
   newPassword: passwordSchema,
@@ -217,7 +217,7 @@ export const adminUpdateUserSchema = z
   });
 
 /**
- * `POST /api/push/subscriptions`: what `PushSubscription.toJSON()` gives. The
+ * `POST /api/v1/push/subscriptions`: what `PushSubscription.toJSON()` gives. The
  * endpoint is the browser's push service, always over TLS; where it may point
  * is checked when a message is sent, against the resolved address.
  */
@@ -233,24 +233,24 @@ export const pushSubscribeSchema = z.object({
   }),
 });
 
-/** `DELETE /api/push/subscriptions`. */
+/** `DELETE /api/v1/push/subscriptions`. */
 export const pushUnsubscribeSchema = z.object({
   endpoint: z.string().min(1).max(2048),
 });
 
-/** `POST /api/auth/password-reset`. `locale` picks the mail's language. */
+/** `POST /api/v1/auth/password-reset`. `locale` picks the mail's language. */
 export const passwordResetRequestSchema = z.object({
   email: emailSchema,
   locale: z.string().max(10).exactOptional(),
 });
 
-/** `POST /api/auth/sign-in-link`. `locale` picks the mail's language. */
+/** `POST /api/v1/auth/sign-in-link`. `locale` picks the mail's language. */
 export const signInLinkRequestSchema = z.object({
   email: emailSchema,
   locale: z.string().max(10).exactOptional(),
 });
 
-/** `POST /api/auth/sign-in-link/confirm`: the link's token, and on a second
+/** `POST /api/v1/auth/sign-in-link/confirm`: the link's token, and on a second
  * attempt the second factor the first one was asked for. */
 export const signInLinkConfirmSchema = z.object({
   token: z.string().min(1).max(200),
@@ -258,7 +258,7 @@ export const signInLinkConfirmSchema = z.object({
   passkey: passkeyAuthenticationSchema.exactOptional(),
 });
 
-/** `POST /api/auth/password-reset/confirm`. */
+/** `POST /api/v1/auth/password-reset/confirm`. */
 export const passwordResetConfirmSchema = z.object({
   token: z.string().min(1).max(200),
   newPassword: passwordSchema,

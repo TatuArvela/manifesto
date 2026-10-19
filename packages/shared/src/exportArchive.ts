@@ -3,7 +3,7 @@ import { currentNoteFormat } from "./noteFormat.ts";
 
 /**
  * The layout of an export archive, which both modes write: a server for an
- * account (`GET /api/export`) and a browser in open mode. Written in one place
+ * account (`GET /api/v1/export`) and a browser in open mode. Written in one place
  * so the two stay the same zip, and an archive from either imports anywhere.
  *
  * - `notes.json`: every note, the trash and archive included, in the client's

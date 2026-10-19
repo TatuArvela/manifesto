@@ -27,7 +27,7 @@ describe("a share invitation by mail", () => {
   const settle = () => new Promise((r) => setTimeout(r, 20));
 
   async function register(username: string) {
-    const res = await request("/api/auth/register", {
+    const res = await request("/api/v1/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -42,7 +42,7 @@ describe("a share invitation by mail", () => {
   }
 
   const setLocale = (token: string, locale: unknown) =>
-    request("/api/auth/me/locale", {
+    request("/api/v1/auth/me/locale", {
       method: "PUT",
       headers: authHeaders(token),
       body: JSON.stringify({ locale }),
@@ -68,14 +68,14 @@ describe("a share invitation by mail", () => {
     const olivia = await register("olivia");
     const bob = await register("bob");
     expect((await setLocale(bob.token, "fi")).status).toBe(204);
-    const me = await request("/api/auth/me", {
+    const me = await request("/api/v1/auth/me", {
       headers: authHeaders(bob.token),
     });
     expect(
       ((await me.json()) as { user: { locale: string } }).user.locale,
     ).toBe("fi");
 
-    const created = await request("/api/notes", {
+    const created = await request("/api/v1/notes", {
       method: "POST",
       headers: { ...authHeaders(olivia.token), "Accept-Language": "en" },
       body: JSON.stringify({
@@ -95,7 +95,7 @@ describe("a share invitation by mail", () => {
       }),
     });
     const { note } = (await created.json()) as { note: { id: string } };
-    const shared = await request(`/api/notes/${note.id}/shares`, {
+    const shared = await request(`/api/v1/notes/${note.id}/shares`, {
       method: "POST",
       headers: { ...authHeaders(olivia.token), "Accept-Language": "en" },
       body: JSON.stringify({ userId: bob.userId, role: "edit" }),
@@ -110,7 +110,7 @@ describe("a share invitation by mail", () => {
   it("stops mailing one person after a few invitations, and still invites them", async () => {
     const olivia = await register("olivia");
     const bob = await register("bob");
-    const created = await request("/api/notes", {
+    const created = await request("/api/v1/notes", {
       method: "POST",
       headers: authHeaders(olivia.token),
       body: JSON.stringify({
@@ -131,14 +131,14 @@ describe("a share invitation by mail", () => {
     const { note } = (await created.json()) as { note: { id: string } };
     // Sharing, removing and sharing again is how an inbox would be flooded.
     for (let i = 0; i < INVITATION_MAILS_PER_HOUR + 3; i++) {
-      const shared = await request(`/api/notes/${note.id}/shares`, {
+      const shared = await request(`/api/v1/notes/${note.id}/shares`, {
         method: "POST",
         headers: authHeaders(olivia.token),
         body: JSON.stringify({ userId: bob.userId, role: "view" }),
       });
       expect(shared.status).toBe(201);
       const removed = await request(
-        `/api/notes/${note.id}/shares/${bob.userId}`,
+        `/api/v1/notes/${note.id}/shares/${bob.userId}`,
         { method: "DELETE", headers: authHeaders(olivia.token) },
       );
       expect(removed.status).toBe(204);

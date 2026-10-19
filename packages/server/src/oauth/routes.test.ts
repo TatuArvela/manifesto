@@ -38,7 +38,7 @@ function pkce() {
   return { verifier, challenge };
 }
 
-describe("OAuth for /api/mcp", () => {
+describe("OAuth for /api/v1/mcp", () => {
   let rig: TestRig;
   let session: string;
   let userId: string;
@@ -57,7 +57,7 @@ describe("OAuth for /api/mcp", () => {
   });
 
   async function register(body: object = {}) {
-    return rig.request("/api/oauth/register", {
+    return rig.request("/api/v1/oauth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -79,7 +79,7 @@ describe("OAuth for /api/mcp", () => {
     challenge: string,
     overrides: object = {},
   ) {
-    return rig.request("/api/oauth/authorize", {
+    return rig.request("/api/v1/oauth/authorize", {
       method: "POST",
       headers: authHeaders(session),
       body: JSON.stringify({
@@ -105,7 +105,7 @@ describe("OAuth for /api/mcp", () => {
   }
 
   function token(fields: Record<string, string>) {
-    return rig.request("/api/oauth/token", {
+    return rig.request("/api/v1/oauth/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams(fields).toString(),
@@ -121,14 +121,14 @@ describe("OAuth for /api/mcp", () => {
       code_verifier: verifier,
       client_id: clientId,
       redirect_uri: REDIRECT,
-      resource: "https://notes.example/api/mcp",
+      resource: "https://notes.example/api/v1/mcp",
     });
     expect(res.status).toBe(200);
     return (await res.json()) as TokenAnswer;
   }
 
   function mcp(bearer: string) {
-    return rig.request("/api/mcp", {
+    return rig.request("/api/v1/mcp", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -138,23 +138,23 @@ describe("OAuth for /api/mcp", () => {
     });
   }
 
-  it("says where to sign in, from a 401 at /api/mcp onwards", async () => {
-    const refused = await rig.request("/api/mcp", {
+  it("says where to sign in, from a 401 at /api/v1/mcp onwards", async () => {
+    const refused = await rig.request("/api/v1/mcp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "{}",
     });
     expect(refused.status).toBe(401);
     expect(refused.headers.get("WWW-Authenticate")).toBe(
-      'Bearer resource_metadata="http://localhost/.well-known/oauth-protected-resource/api/mcp"',
+      'Bearer resource_metadata="http://localhost/.well-known/oauth-protected-resource/api/v1/mcp"',
     );
 
     const resource = await rig.request(
-      "/.well-known/oauth-protected-resource/api/mcp",
+      "/.well-known/oauth-protected-resource/api/v1/mcp",
     );
     expect(resource.headers.get("Access-Control-Allow-Origin")).toBe("*");
     expect(await resource.json()).toMatchObject({
-      resource: "http://localhost/api/mcp",
+      resource: "http://localhost/api/v1/mcp",
       authorization_servers: ["http://localhost"],
     });
 
@@ -164,8 +164,8 @@ describe("OAuth for /api/mcp", () => {
     expect(server).toMatchObject({
       issuer: "http://localhost",
       authorization_endpoint: "https://notes.example/oauth/authorize",
-      token_endpoint: "http://localhost/api/oauth/token",
-      registration_endpoint: "http://localhost/api/oauth/register",
+      token_endpoint: "http://localhost/api/v1/oauth/token",
+      registration_endpoint: "http://localhost/api/v1/oauth/register",
       code_challenge_methods_supported: ["S256"],
       client_id_metadata_document_supported: true,
     });
@@ -191,12 +191,12 @@ describe("OAuth for /api/mcp", () => {
 
   it("tells the client it can sign in", async () => {
     const methods = (await (
-      await rig.request("/api/capabilities")
+      await rig.request("/api/v1/capabilities")
     ).json()) as CapabilitiesResponse;
     expect(methods.features.mcpSignIn).toBe(true);
   });
 
-  it("signs an assistant in, lets it reach /api/mcp, and refreshes it", async () => {
+  it("signs an assistant in, lets it reach /api/v1/mcp, and refreshes it", async () => {
     const clientId = await registeredClient();
     const first = await signIn(clientId);
     expect(first).toMatchObject({
@@ -209,14 +209,14 @@ describe("OAuth for /api/mcp", () => {
     expect((await mcp(first.access_token)).status).toBe(200);
     // The refresh token opens nothing.
     expect((await mcp(first.refresh_token)).status).toBe(401);
-    // Nor does the access token anywhere but /api/mcp.
-    const rest = await rig.request("/api/notes", {
+    // Nor does the access token anywhere but /api/v1/mcp.
+    const rest = await rig.request("/api/v1/notes", {
       headers: authHeaders(first.access_token),
     });
     expect(rest.status).toBe(403);
 
     const listed = (await (
-      await rig.request("/api/tokens", { headers: authHeaders(session) })
+      await rig.request("/api/v1/tokens", { headers: authHeaders(session) })
     ).json()) as ApiTokensResponse;
     expect(listed.tokens).toMatchObject([
       { name: "Claude Code", kind: "mcp", oauthClientId: clientId },
@@ -264,7 +264,7 @@ describe("OAuth for /api/mcp", () => {
     const first = (await traded.json()) as TokenAnswer;
 
     const tool = async (bearer: string, name: string, args: object) => {
-      const res = await rig.request("/api/mcp", {
+      const res = await rig.request("/api/v1/mcp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -369,9 +369,9 @@ describe("OAuth for /api/mcp", () => {
     const clientId = await registeredClient();
     const first = await signIn(clientId);
     const listed = (await (
-      await rig.request("/api/tokens", { headers: authHeaders(session) })
+      await rig.request("/api/v1/tokens", { headers: authHeaders(session) })
     ).json()) as ApiTokensResponse;
-    await rig.request(`/api/tokens/${defined(listed.tokens[0]).id}`, {
+    await rig.request(`/api/v1/tokens/${defined(listed.tokens[0]).id}`, {
       method: "DELETE",
       headers: authHeaders(session),
     });
@@ -425,7 +425,7 @@ describe("OAuth for /api/mcp", () => {
     expect((await redeem()).status).toBe(400);
   });
 
-  it("refuses a code for a resource other than /api/mcp", async () => {
+  it("refuses a code for a resource other than /api/v1/mcp", async () => {
     const clientId = await registeredClient();
     const { verifier, challenge } = pkce();
     const code = await codeFor(clientId, challenge);
@@ -434,7 +434,7 @@ describe("OAuth for /api/mcp", () => {
       code,
       code_verifier: verifier,
       client_id: clientId,
-      resource: "https://notes.example/api/notes",
+      resource: "https://notes.example/api/v1/notes",
     });
     expect((await res.json()).error).toBe("invalid_target");
   });
@@ -476,7 +476,7 @@ describe("OAuth for /api/mcp", () => {
     const clientId = await registeredClient();
     const query = (redirect: string, scope = "notes:read") =>
       rig.request(
-        `/api/oauth/client?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirect)}&scope=${encodeURIComponent(scope)}`,
+        `/api/v1/oauth/client?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirect)}&scope=${encodeURIComponent(scope)}`,
         { headers: authHeaders(session) },
       );
     const info = (await (await query(REDIRECT)).json()) as OAuthClientInfo;
@@ -529,7 +529,7 @@ describe("OAuth for /api/mcp", () => {
     expect(
       (await bare.request("/.well-known/oauth-authorization-server")).status,
     ).toBe(404);
-    const refused = await bare.request("/api/mcp", {
+    const refused = await bare.request("/api/v1/mcp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "{}",
@@ -570,7 +570,7 @@ describe("OAuth clients identified by a metadata document", () => {
     });
     const lookup = () =>
       app.request(
-        `/api/oauth/client?client_id=${encodeURIComponent(CLIENT_ID)}&redirect_uri=${encodeURIComponent(REDIRECT)}`,
+        `/api/v1/oauth/client?client_id=${encodeURIComponent(CLIENT_ID)}&redirect_uri=${encodeURIComponent(REDIRECT)}`,
         { headers: authHeaders(token) },
       );
     const info = (await (await lookup()).json()) as OAuthClientInfo;
@@ -591,7 +591,7 @@ describe("OAuth clients identified by a metadata document", () => {
       redirect_uris: [REDIRECT],
     });
     const res = await app.request(
-      `/api/oauth/client?client_id=${encodeURIComponent(CLIENT_ID)}&redirect_uri=${encodeURIComponent(REDIRECT)}`,
+      `/api/v1/oauth/client?client_id=${encodeURIComponent(CLIENT_ID)}&redirect_uri=${encodeURIComponent(REDIRECT)}`,
       { headers: authHeaders(token) },
     );
     expect(res.status).toBe(400);

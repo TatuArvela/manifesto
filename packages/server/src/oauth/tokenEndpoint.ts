@@ -40,7 +40,7 @@ interface TokenEndpointDeps {
 }
 
 /**
- * `POST /api/oauth/token`, the assistant's, with no session: a code from a
+ * `POST /api/v1/oauth/token`, the assistant's, with no session: a code from a
  * consent traded for a grant (PKCE-checked), or a refresh token traded for
  * the next pair. A refresh token used a second time has been copied, and
  * ends the grant.
@@ -293,7 +293,7 @@ export function createTokenEndpoint(deps: TokenEndpointDeps) {
         c,
         400,
         "invalid_target",
-        "A grant here reaches /api/mcp and nothing else",
+        "A grant here reaches /api/v1/mcp and nothing else",
       );
     }
     const grantType = field("grant_type");

@@ -74,7 +74,7 @@ services:
       OIDC_ISSUER: https://idp.acme.internal
       OIDC_CLIENT_ID: corporate-notes
       OIDC_CLIENT_SECRET: ...
-      OIDC_REDIRECT_URI: https://notes-api.acme.internal/api/auth/callback
+      OIDC_REDIRECT_URI: https://notes-api.acme.internal/api/v1/auth/callback
       OIDC_POST_LOGIN_REDIRECT: https://notes.acme.internal
 volumes: { notes-data: }
 ```
@@ -117,7 +117,7 @@ for nginx, Caddy, Netlify and Vercel.
 ### 5. Verify
 
 ```bash
-curl -s https://notes-api.acme.internal/api/health          # server up, version
+curl -s https://notes-api.acme.internal/api/v1/health          # server up, version
 curl -s https://notes.acme.internal/ | grep -o '<title>.*'  # Corporate Notes
 curl -s https://notes.acme.internal/manifest.webmanifest    # name + description
 ```

@@ -27,7 +27,7 @@ import {
  * Single endpoint for every note. Hocuspocus multiplexes documents over one
  * socket by name, so the note id travels in the protocol rather than the path.
  */
-export const YJS_PATH = "/api/yjs";
+export const YJS_PATH = "/api/v1/yjs";
 
 /** As much of a connection's socket as closing it takes. */
 interface WebSocketLike {
@@ -104,7 +104,7 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
       }
 
       const identity = await authProvider.authenticate(token);
-      // An MCP token is for `/api/mcp` alone, and joining a note is writing it.
+      // An MCP token is for `/api/v1/mcp` alone, and joining a note is writing it.
       if (
         !identity ||
         identity.via === "mcp-token" ||
@@ -231,8 +231,8 @@ export function attachYjsSocket(opts: AttachOptions): YjsSocket {
   });
 
   // Capture and replace existing upgrade listeners so that WS requests targeting
-  // `/api/yjs` go to Hocuspocus while everything else (including the
-  // application JSON socket at /api/ws) continues to flow through the listeners
+  // `/api/v1/yjs` go to Hocuspocus while everything else (including the
+  // application JSON socket at /api/v1/ws) continues to flow through the listeners
   // already registered (e.g. by `@hono/node-ws`).
   const previousListeners = httpServer.listeners("upgrade").slice() as Array<
     (req: IncomingMessage, socket: Duplex, head: Buffer) => void

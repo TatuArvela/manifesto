@@ -59,20 +59,23 @@ describe("emptyAccount", () => {
     });
 
   async function create(who: Account, title: string): Promise<Note> {
-    const res = await call(who, "POST", "/api/notes", { ...baseNote, title });
+    const res = await call(who, "POST", "/api/v1/notes", {
+      ...baseNote,
+      title,
+    });
     return ((await res.json()) as { note: Note }).note;
   }
 
   async function share(note: Note, from: Account, to: Account, accept = true) {
-    await call(from, "POST", `/api/notes/${note.id}/shares`, {
+    await call(from, "POST", `/api/v1/notes/${note.id}/shares`, {
       userId: to.userId,
       role: "edit",
     });
-    if (accept) await call(to, "POST", `/api/invitations/${note.id}/accept`);
+    if (accept) await call(to, "POST", `/api/v1/invitations/${note.id}/accept`);
   }
 
   async function idsOf(who: Account): Promise<string[]> {
-    const res = await call(who, "GET", "/api/notes");
+    const res = await call(who, "GET", "/api/v1/notes");
     return ((await res.json()) as { notes: Note[] }).notes.map((n) => n.id);
   }
 
@@ -114,33 +117,33 @@ describe("emptyAccount", () => {
 
     expect(await idsOf(bob)).toEqual([]);
     expect((await idsOf(alice)).sort()).toEqual([shared.id, offered.id].sort());
-    const invitations = await call(bob, "GET", "/api/invitations");
+    const invitations = await call(bob, "GET", "/api/v1/invitations");
     expect(await invitations.json()).toEqual({ invitations: [] });
     // The owner sees that nobody holds either note any more.
-    const res = await call(alice, "GET", `/api/notes/${shared.id}`);
+    const res = await call(alice, "GET", `/api/v1/notes/${shared.id}`);
     expect(((await res.json()) as { note: Note }).note.sharing).toBeUndefined();
   });
 
   it("gives up a note its owner has in the trash, which no listing shows", async () => {
     const shared = await create(alice, "Alice's");
     await share(shared, alice, bob);
-    await call(alice, "PUT", `/api/notes/${shared.id}`, { trashed: true });
+    await call(alice, "PUT", `/api/v1/notes/${shared.id}`, { trashed: true });
     expect(await idsOf(bob)).toEqual([]);
 
     await empty();
 
     // Restored, it would have come back under a key the account has lost.
     expect(await rig.storage.shares.listByRecipient(bob.userId)).toEqual([]);
-    await call(alice, "PUT", `/api/notes/${shared.id}`, { trashed: false });
+    await call(alice, "PUT", `/api/v1/notes/${shared.id}`, { trashed: false });
     expect(await idsOf(bob)).toEqual([]);
   });
 
   it("removes its preferences", async () => {
-    await call(bob, "PATCH", "/api/auth/me/prefs", {
+    await call(bob, "PATCH", "/api/v1/auth/me/prefs", {
       prefs: { hiddenTags: ["work"] },
     });
     await empty();
-    const res = await call(bob, "GET", "/api/auth/me/prefs");
+    const res = await call(bob, "GET", "/api/v1/auth/me/prefs");
     expect(await res.json()).toEqual({ prefs: {} });
   });
 });

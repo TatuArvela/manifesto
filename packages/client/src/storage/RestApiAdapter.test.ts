@@ -69,7 +69,7 @@ describe("RestApiAdapter", () => {
       fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
       await trimmed.getAll();
       expect(fetchMock.mock.calls[0]?.[0]).toBe(
-        "https://api.example.com/api/notes",
+        "https://api.example.com/api/v1/notes",
       );
     });
 
@@ -79,14 +79,14 @@ describe("RestApiAdapter", () => {
       const sameOrigin = new RestApiAdapter("", "t", { sealer: plainSealing });
       fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
       await sameOrigin.getAll();
-      expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/notes");
+      expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/notes");
     });
 
     it("leaves a base URL without a trailing slash unchanged", async () => {
       fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
       await adapter.getAll();
       expect(fetchMock.mock.calls[0]?.[0]).toBe(
-        "https://api.example.com/api/notes",
+        "https://api.example.com/api/v1/notes",
       );
     });
   });
@@ -130,8 +130,8 @@ describe("RestApiAdapter", () => {
         checkpoint: "k2",
       });
       expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
-        "https://api.example.com/api/sync?since=k1",
-        "https://api.example.com/api/sync?since=k1&cursor=c1",
+        "https://api.example.com/api/v1/sync?since=k1",
+        "https://api.example.com/api/v1/sync?since=k1&cursor=c1",
       ]);
     });
 
@@ -141,7 +141,7 @@ describe("RestApiAdapter", () => {
       );
       await adapter.changesSince(null);
       expect(fetchMock.mock.calls[0]?.[0]).toBe(
-        "https://api.example.com/api/sync",
+        "https://api.example.com/api/v1/sync",
       );
     });
 
@@ -190,7 +190,7 @@ describe("RestApiAdapter", () => {
       const result = await adapter.get("X");
       expect(result).toEqual(note);
       expect(fetchMock.mock.calls[0]?.[0]).toBe(
-        "https://api.example.com/api/notes/X",
+        "https://api.example.com/api/v1/notes/X",
       );
     });
 
@@ -272,14 +272,14 @@ describe("RestApiAdapter", () => {
   });
 
   describe("update", () => {
-    it("PUTs the changes to /api/notes/:id", async () => {
+    it("PUTs the changes to /api/v1/notes/:id", async () => {
       const updated = makeNote({ id: "X", title: "Renamed" });
       fetchMock.mockResolvedValueOnce(jsonResponse({ note: updated }));
 
       const result = await adapter.update("X", { title: "Renamed" });
       expect(result).toEqual(updated);
       expect(fetchMock.mock.calls[0]?.[0]).toBe(
-        "https://api.example.com/api/notes/X",
+        "https://api.example.com/api/v1/notes/X",
       );
       const init = lastCallInit(fetchMock);
       expect(init.method).toBe("PUT");
@@ -319,12 +319,12 @@ describe("RestApiAdapter", () => {
   });
 
   describe("delete", () => {
-    it("sends DELETE to /api/notes/:id", async () => {
+    it("sends DELETE to /api/v1/notes/:id", async () => {
       fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
 
       await adapter.delete("X");
       expect(fetchMock.mock.calls[0]?.[0]).toBe(
-        "https://api.example.com/api/notes/X",
+        "https://api.example.com/api/v1/notes/X",
       );
       expect(lastCallInit(fetchMock).method).toBe("DELETE");
     });
@@ -345,7 +345,7 @@ describe("RestApiAdapter", () => {
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(fetchMock.mock.calls[0]?.[0]).toBe(
-        "https://api.example.com/api/notes",
+        "https://api.example.com/api/v1/notes",
       );
       expect(lastCallInit(fetchMock).method).toBe("DELETE");
     });
@@ -369,7 +369,7 @@ describe("RestApiAdapter", () => {
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(fetchMock.mock.calls[0]?.[0]).toBe(
-        "https://api.example.com/api/notes/import",
+        "https://api.example.com/api/v1/notes/import",
       );
       const body = JSON.parse(lastCallInit(fetchMock).body as string) as {
         notes: Record<string, unknown>[];
@@ -535,10 +535,10 @@ describe("RestApiAdapter", () => {
 
       expect((await adapter.getAll()).map((n) => n.id)).toEqual(["a", "b"]);
       expect(fetchMock.mock.calls[0]?.[0]).toBe(
-        "https://api.example.com/api/notes",
+        "https://api.example.com/api/v1/notes",
       );
       expect(fetchMock.mock.calls[1]?.[0]).toBe(
-        "https://api.example.com/api/notes?cursor=cur-1",
+        "https://api.example.com/api/v1/notes?cursor=cur-1",
       );
     });
 
@@ -569,7 +569,7 @@ describe("RestApiAdapter", () => {
       );
       expect(await adapter.loadImages("a")).toEqual([png]);
       expect(fetchMock.mock.calls[0]?.[0]).toBe(
-        "https://api.example.com/api/notes/a",
+        "https://api.example.com/api/v1/notes/a",
       );
     });
 
@@ -590,7 +590,7 @@ describe("RestApiAdapter", () => {
 
       expect(await adapter.fetchLinkPreview(preview.url)).toEqual(preview);
       expect(fetchMock.mock.calls[0]?.[0]).toBe(
-        "https://api.example.com/api/link-preview?url=https%3A%2F%2Fexample.com%2Fa%3Fb%3Dc%26d",
+        "https://api.example.com/api/v1/link-preview?url=https%3A%2F%2Fexample.com%2Fa%3Fb%3Dc%26d",
       );
       const headers = lastCallInit(fetchMock).headers as Record<string, string>;
       expect(headers.Authorization).toBe("Bearer token-abc");
@@ -690,7 +690,7 @@ describe("image uploads", () => {
       { onProgress: (p) => progress.push(p) },
     );
     expect(ref).toBe("attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV");
-    expect(sent[0]?.url).toBe("https://notes.example/api/attachments");
+    expect(sent[0]?.url).toBe("https://notes.example/api/v1/attachments");
     expect(sent[0]?.headers).toMatchObject({
       Authorization: "Bearer t",
       "Content-Type": "image/png",

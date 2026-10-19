@@ -21,7 +21,7 @@ describe("CORS", () => {
   function preflight(
     method: string,
     headers: string,
-    path = "/api/notes/some-id",
+    path = "/api/v1/notes/some-id",
   ) {
     return rig.request(path, {
       method: "OPTIONS",
@@ -51,7 +51,7 @@ describe("CORS", () => {
     const res = await preflight(
       "POST",
       "authorization,content-type,x-attachment-address",
-      "/api/attachments",
+      "/api/v1/attachments",
     );
     const allowed = (res.headers.get("Access-Control-Allow-Headers") ?? "")
       .toLowerCase()
@@ -61,7 +61,7 @@ describe("CORS", () => {
   });
 
   it("gives an origin it does not know nothing", async () => {
-    const res = await rig.request("/api/notes/some-id", {
+    const res = await rig.request("/api/v1/notes/some-id", {
       method: "OPTIONS",
       headers: {
         Origin: "https://elsewhere.example",

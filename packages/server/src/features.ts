@@ -35,7 +35,7 @@ export interface FeatureSpec {
  *   an absent one;
  * - what no route decides (a credential, a socket, a background job) asks
  *   `isFeatureOn` itself;
- * - `GET /api/capabilities` reports every one, and the client hides what is
+ * - `GET /api/v1/capabilities` reports every one, and the client hides what is
  *   off.
  *
  * Turning a feature off never takes away the way out of it: removing a share,
@@ -85,7 +85,7 @@ export const FEATURES: Record<ServerFeature, FeatureSpec> = {
     env: "MCP",
     default: "on",
     description:
-      "The MCP endpoint for AI assistants, `/api/mcp`, with its tokens and sign-in by OAuth. Off, the endpoint and the sign-in are gone and MCP tokens already made are refused.",
+      "The MCP endpoint for AI assistants, `/api/v1/mcp`, with its tokens and sign-in by OAuth. Off, the endpoint and the sign-in are gone and MCP tokens already made are refused.",
   },
   webhooks: {
     env: "WEBHOOKS",
@@ -152,7 +152,7 @@ export function isFeatureOn(
   );
 }
 
-/** Every feature and whether it is on, as `GET /api/capabilities` says. */
+/** Every feature and whether it is on, as `GET /api/v1/capabilities` says. */
 export function featureStates(
   cfg: Pick<ServerConfig, ToggleFeature | "webhooks">,
 ): Record<ServerFeature, boolean> {

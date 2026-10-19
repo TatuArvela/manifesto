@@ -46,7 +46,7 @@ type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
 export const INVITATION_MAILS_PER_HOUR = 5;
 
 /**
- * `/api/notes/:id/shares`: who a note is shared with, managed by its owner.
+ * `/api/v1/notes/:id/shares`: who a note is shared with, managed by its owner.
  *
  * Registered on the notes router, behind its authentication and rate limit.
  * Only the owner invites, changes a role or removes someone; anyone holding
@@ -331,7 +331,7 @@ interface InvitationRoutesDeps {
   accessChanges: AccessChanges;
 }
 
-/** `/api/invitations`: notes offered to the signed-in user. */
+/** `/api/v1/invitations`: notes offered to the signed-in user. */
 export function createInvitationRoutes(deps: InvitationRoutesDeps) {
   const { storage, noteEvents, accessChanges } = deps;
   const invitations: AuthedApp = new Hono();

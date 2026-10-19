@@ -127,7 +127,7 @@ describe("SettingsDialog account pages", () => {
         expect(headings()).toContain(t("twoFactor.title")),
       );
       expect(fetchMock).toHaveBeenCalledWith(
-        "https://notes.example/api/auth/two-factor",
+        "https://notes.example/api/v1/auth/two-factor",
         expect.anything(),
       );
     } finally {

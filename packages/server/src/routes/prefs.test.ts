@@ -22,7 +22,7 @@ describe("account preferences", () => {
   });
 
   const patch = (token: string, prefs: unknown) =>
-    rig.request("/api/auth/me/prefs", {
+    rig.request("/api/v1/auth/me/prefs", {
       method: "PATCH",
       headers: authHeaders(token),
       body: JSON.stringify({ prefs }),
@@ -34,7 +34,7 @@ describe("account preferences", () => {
       theme: "dark",
     });
     expect(res.status).toBe(200);
-    const got = await rig.request("/api/auth/me/prefs", {
+    const got = await rig.request("/api/v1/auth/me/prefs", {
       headers: authHeaders(alice.token),
     });
     expect(await got.json()).toEqual({
@@ -56,7 +56,7 @@ describe("account preferences", () => {
         },
       ],
     ]);
-    const bobs = await rig.request("/api/auth/me/prefs", {
+    const bobs = await rig.request("/api/v1/auth/me/prefs", {
       headers: authHeaders(bob.token),
     });
     expect(await bobs.json()).toEqual({ prefs: {} });
@@ -74,7 +74,7 @@ describe("account preferences", () => {
     );
     expect(big.status).toBe(413);
     // Readable where a sealed value belongs.
-    const readable = await rig.rawRequest("/api/auth/me/prefs", {
+    const readable = await rig.rawRequest("/api/v1/auth/me/prefs", {
       method: "PATCH",
       headers: authHeaders(alice.token),
       body: JSON.stringify({ prefs: { theme: "dark" } }),
@@ -83,7 +83,7 @@ describe("account preferences", () => {
   });
 
   it("wants a signed-in user", async () => {
-    const res = await rig.request("/api/auth/me/prefs");
+    const res = await rig.request("/api/v1/auth/me/prefs");
     expect(res.status).toBe(401);
   });
 });

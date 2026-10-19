@@ -27,7 +27,7 @@ type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
 type Ctx = Context<{ Variables: { auth: AuthContext } }>;
 
 /**
- * `/api/notes/:id/comments`: what the people on a note say beside it. A
+ * `/api/v1/notes/:id/comments`: what the people on a note say beside it. A
  * comment is never part of the note's text, its versions or its `updatedAt`.
  *
  * Registered on the notes router. Everyone who can see the note reads the

@@ -85,7 +85,7 @@ beforeEach(() => {
   // requests it is about.
   vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
-    if (url.endsWith("/api/teams")) {
+    if (url.endsWith("/api/v1/teams")) {
       return Promise.resolve(json({ teams }));
     }
     if (url.endsWith("/team-shares") && (init?.method ?? "GET") === "GET") {
@@ -144,7 +144,7 @@ describe("the share dialog", () => {
     await vi.waitFor(() => {
       expect(dialog().textContent).toContain("alice@example.com");
     });
-    expect(fetchMock.mock.calls[0]?.[0]).toBe(`${SERVER}/api/users?q=ali`);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`${SERVER}/api/v1/users?q=ali`);
 
     const select = dialog().querySelector("select") as HTMLSelectElement;
     select.value = "view";
@@ -286,7 +286,7 @@ describe("sharing with a team", () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
     const [url, init] = fetchMock.mock.calls[0] ?? [];
-    expect(String(url)).toBe(`${SERVER}/api/notes/n1/team-shares`);
+    expect(String(url)).toBe(`${SERVER}/api/v1/notes/n1/team-shares`);
     expect(JSON.parse(String(init?.body))).toEqual({
       teamId: "t1",
       role: "edit",

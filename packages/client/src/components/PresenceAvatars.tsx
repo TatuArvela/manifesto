@@ -8,7 +8,7 @@ function initials(name: string): string {
 
 /**
  * Stack of small colored dots showing other users (or other tabs of the
- * same user) currently viewing the note. Pulled from the /api/ws presence
+ * same user) currently viewing the note. Pulled from the /api/v1/ws presence
  * channel, so it shows users who are NOT the local connection.
  */
 export function PresenceAvatars({ noteId }: { noteId: string }) {

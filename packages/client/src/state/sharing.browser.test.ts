@@ -169,7 +169,7 @@ describe("invitations", () => {
 
     expect(await acceptInvitation("n1")).toBe(true);
     const [url, init] = fetchMock.mock.calls[0] ?? [];
-    expect(url).toBe(`${SERVER}/api/invitations/n1/accept`);
+    expect(url).toBe(`${SERVER}/api/v1/invitations/n1/accept`);
     expect(init?.method).toBe("POST");
     expect(JSON.parse(String(init?.body))).toMatchObject({ keyVersion: 1 });
     expect(invitations.value).toEqual([]);
@@ -195,7 +195,7 @@ describe("invitations", () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
     expect(await declineInvitation("n1")).toBe(true);
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      `${SERVER}/api/invitations/n1/decline`,
+      `${SERVER}/api/v1/invitations/n1/decline`,
     );
     expect(invitations.value).toEqual([]);
   });
@@ -208,7 +208,7 @@ describe("sharing a note", () => {
 
     fetchMock.mockResolvedValueOnce(json({ users: [] }));
     expect(await findUsers("zed")).toEqual([]);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe(`${SERVER}/api/users?q=zed`);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`${SERVER}/api/v1/users?q=zed`);
 
     fetchMock.mockRejectedValueOnce(new TypeError("offline"));
     expect(await findUsers("zed")).toBeNull();
@@ -219,7 +219,7 @@ describe("sharing a note", () => {
     storageConnection.value = { serverUrl: "", token: "tok" };
     fetchMock.mockResolvedValueOnce(json({ users: [] }));
     expect(await findUsers("zed")).toEqual([]);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/users?q=zed");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/users?q=zed");
   });
 
   it("invites someone and takes the server's copy of the note", async () => {
@@ -229,7 +229,7 @@ describe("sharing a note", () => {
 
     expect(await shareNote("n1", "u-alice", "view")).toBe(true);
     const [url, init] = fetchMock.mock.calls[0] ?? [];
-    expect(url).toBe(`${SERVER}/api/notes/n1/shares`);
+    expect(url).toBe(`${SERVER}/api/v1/notes/n1/shares`);
     expect(JSON.parse(String(init?.body))).toEqual({
       userId: "u-alice",
       role: "view",
@@ -257,7 +257,7 @@ describe("sharing a note", () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
     expect(await leaveNote("n1", "u-alice")).toBe(true);
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      `${SERVER}/api/notes/n1/shares/u-alice`,
+      `${SERVER}/api/v1/notes/n1/shares/u-alice`,
     );
     expect(notes.value).toEqual([]);
     expect(editingNoteId.value).toBeNull();

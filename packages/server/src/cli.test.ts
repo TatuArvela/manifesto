@@ -83,7 +83,7 @@ describe("admin CLI", () => {
       paths: Record<string, { get?: { operationId: string } }>;
     };
     expect(doc.openapi).toBe("3.1.0");
-    expect(doc.paths["/api/notes"]?.get?.operationId).toBe("getNotes");
+    expect(doc.paths["/api/v1/notes"]?.get?.operationId).toBe("getNotes");
     expect(USAGE).toContain("openapi");
   });
 

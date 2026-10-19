@@ -268,7 +268,7 @@ read ([Attachments](attachments.md)).
 ### Link previews
 
 The client already asks the server for a page's title, description and image
-(`GET /api/link-preview`) and writes the card into the note itself, so nothing about the flow changes.
+(`GET /api/v1/link-preview`) and writes the card into the note itself, so nothing about the flow changes.
 The card is stored encrypted like the rest of the note. What remains is that the server sees the
 address at the moment it fetches it. It stores nothing, so a copy of the database shows no links, but
 an operator who logged those requests would see them. A preference turns previews off for an account
@@ -309,7 +309,7 @@ token may carry a key: [API tokens](accounts.md#personal-api-tokens), [MCP](mcp.
   server unwraps the token's keys in memory, decrypts what the request reads, encrypts what it
   writes, and keeps nothing.
 - **What works because of it**: the REST API answers a token with readable notes as today,
-  `GET /api/search` scans the account's notes in memory, the hosted MCP endpoint keeps all its tools,
+  `GET /api/v1/search` scans the account's notes in memory, the hosted MCP endpoint keeps all its tools,
   and the calendar feed names each event by its note.
 - **Signing an assistant in through the browser** wraps the key on the consent page, which runs in
   the unlocked app, and the secret travels in the code and in the tokens made from it. At each
@@ -328,7 +328,7 @@ token may carry a key: [API tokens](accounts.md#personal-api-tokens), [MCP](mcp.
   one.
 
 The app's own session never sends a key, so the app searches in memory as it does today
-([Search](search.md)) and `GET /api/search` answers tokens only.
+([Search](search.md)) and `GET /api/v1/search` answers tokens only.
 
 ### Webhooks
 
@@ -499,7 +499,7 @@ things are built narrower than the sections above describe; each is said where i
 - **An API or MCP token made in Settings** carries the notes key and the personal key, wrapped
   under a key derived from its secret, which the app makes and the server never sees until the
   token is used. For a request that presents it the server opens and seals notes in memory: notes,
-  versions, comments, sync, import and `GET /api/search` work as before, and so do the MCP tools.
+  versions, comments, sync, import and `GET /api/v1/search` work as before, and so do the MCP tools.
   Webhooks carry no content.
 - **A calendar feed's address** is made in the app like any token that carries a key, and carries
   the reminder key alone. A note with a reminder has its key wrapped under its reader's reminder

@@ -43,7 +43,7 @@ What an image may be, checked by the client before storing and by the server on 
 | Media type | `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `image/avif`; taken from an upload's leading bytes |
 | Per-image size | 5 MiB (`MAX_IMAGE_SOURCE_BYTES`), after the client has shrunk it: photos are kept at 2560 pixels on the long edge |
 | Images per note | 20 |
-| Whole request | 1 MiB on `/api/notes`, since a note carries references; one upload may be up to the per-image size |
+| Whole request | 1 MiB on `/api/v1/notes`, since a note carries references; one upload may be up to the per-image size |
 
 `image/svg+xml` is **excluded on purpose.** SVG is a document format that happens to have an image media type: it can carry script, so admitting it would let a note ship executable markup into any surface that renders an attachment by URL.
 
@@ -58,7 +58,7 @@ with it, and a drawing made over an image takes that image's), and in a sealed n
 image's entry in the sealed list, so it is never written apart from the list.
 
 A card fetches only the images it shows: a note carries references, and the bytes of each
-come from `GET /api/attachments/:id`.
+come from `GET /api/v1/attachments/:id`.
 
 ### On the server
 

@@ -11,7 +11,7 @@ interface LinkPreviewDeps {
 }
 
 /**
- * `/api/link-preview`. With `LINK_PREVIEWS=off` the protection answers 404
+ * `/api/v1/link-preview`. With `LINK_PREVIEWS=off` the protection answers 404
  * before this is reached, so the server never fetches anything.
  */
 export function createLinkPreviewRoutes(deps: LinkPreviewDeps) {

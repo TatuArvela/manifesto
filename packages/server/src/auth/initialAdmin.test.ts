@@ -16,7 +16,7 @@ function signIn(
   rig: TestRig,
   body: { username: string; password: string; newPassword?: string },
 ): Promise<Response> {
-  return rig.request("/api/auth/login", {
+  return rig.request("/api/v1/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -62,7 +62,7 @@ describe("ensureInitialAdmin", () => {
   it("means the first account to register is no longer the admin", async () => {
     await ensureInitialAdmin(rig.storage, rig.cfg);
     const { token } = await registerTestUser(rig, "early-bird");
-    const me = await rig.request("/api/auth/me", {
+    const me = await rig.request("/api/v1/auth/me", {
       headers: authHeaders(token),
     });
     expect(

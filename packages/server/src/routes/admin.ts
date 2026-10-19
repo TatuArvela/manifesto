@@ -82,7 +82,7 @@ function refuseGuarded(result: AdminGuardedResult): void {
 }
 
 /**
- * `/api/admin`: account management for admins.
+ * `/api/v1/admin`: account management for admins.
  *
  * Whether the caller is an admin is read from storage on every request
  * (`middleware/protect.ts`, from `auth: "admin"`) rather than carried in the

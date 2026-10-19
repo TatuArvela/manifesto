@@ -47,13 +47,13 @@ added there. Open mode has no account and keeps everything on the device.
 
 ## How they move
 
-- **Signing in** reads the account's copy (`GET /api/auth/me/prefs`). For every key it has, the
+- **Signing in** reads the account's copy (`GET /api/v1/auth/me/prefs`). For every key it has, the
   account's value replaces this device's; for every key it lacks, the server's default for it is taken
   if the host set one ([below](#defaults-from-the-server)), and this device's own value if not, and
   sent. So an account with nothing stored starts from the host's defaults and the settings of the
   first device that signs in, and a device signing in later takes the account's.
 - **A change here** is sent a moment later as a patch of just the keys it touched
-  (`PATCH /api/auth/me/prefs`). Two devices changing different settings at once keep both.
+  (`PATCH /api/v1/auth/me/prefs`). Two devices changing different settings at once keep both.
 - **A change elsewhere** arrives on the app socket as `prefs:updated`, with the whole copy, and is
   adopted at once. The socket reconnecting reads the copy again, for what changed while it was away.
 - **A change here not yet sent wins** over one that arrives, including the copy read at sign-in, since
@@ -71,7 +71,7 @@ wrote cannot break an older one, and an older client ignores a key it does not k
 
 A host can choose the preferences new accounts start from with `DEFAULT_PREFS`
 ([Deployment](../server/deployment.md#environment-variables)): one JSON object, keyed by the names
-below, which `/api/capabilities` hands to every client as `defaultPrefs`. The server checks only that it
+below, which `/api/v1/capabilities` hands to every client as `defaultPrefs`. The server checks only that it
 is a JSON object within `MAX_ACCOUNT_PREFS_BYTES`; the client reads each value through its parser, as
 it reads the account's, so one it does not recognise falls back to the client's own default.
 

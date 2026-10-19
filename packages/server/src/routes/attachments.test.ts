@@ -69,7 +69,7 @@ describe("attachments", () => {
   /** Uploads a `data:` image as `who` and answers its reference. */
   async function uploadAs(who: Account, image: string): Promise<string> {
     if (!image.startsWith("data:")) return image;
-    const res = await rig.request("/api/attachments", {
+    const res = await rig.request("/api/v1/attachments", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${who.token}`,
@@ -84,7 +84,7 @@ describe("attachments", () => {
   async function create(who: Account, images: string[]): Promise<Note> {
     const refs = [];
     for (const image of images) refs.push(await uploadAs(who, image));
-    const res = await call(who, "POST", "/api/notes", {
+    const res = await call(who, "POST", "/api/v1/notes", {
       ...baseNote,
       images: refs,
     });
@@ -93,15 +93,15 @@ describe("attachments", () => {
   }
 
   async function share(noteId: string, who: Account, role = "edit") {
-    await call(owner, "POST", `/api/notes/${noteId}/shares`, {
+    await call(owner, "POST", `/api/v1/notes/${noteId}/shares`, {
       userId: who.userId,
       role,
     });
-    await call(who, "POST", `/api/invitations/${noteId}/accept`);
+    await call(who, "POST", `/api/v1/invitations/${noteId}/accept`);
   }
 
   const fetchAs = (who: Account, ref: string) =>
-    call(who, "GET", `/api/attachments/${attachmentIdOf(defined(ref))}`);
+    call(who, "GET", `/api/v1/attachments/${attachmentIdOf(defined(ref))}`);
 
   it("stores the same image once per owner", async () => {
     const a = await create(owner, [PNG]);
@@ -109,7 +109,7 @@ describe("attachments", () => {
     expect(b.images[0]).toBe(a.images[0]);
     expect(b.images[1]).not.toBe(a.images[0]);
     // The same bytes sent again, as a stale tab would, change nothing.
-    const res = await call(owner, "PUT", `/api/notes/${a.id}`, {
+    const res = await call(owner, "PUT", `/api/v1/notes/${a.id}`, {
       images: [await uploadAs(owner, PNG)],
     });
     expect(((await res.json()) as { note: Note }).note.images).toEqual(
@@ -124,14 +124,14 @@ describe("attachments", () => {
     expect((await fetchAs(alice, defined(note.images[0]))).status).toBe(200);
     expect((await fetchAs(mallory, defined(note.images[0]))).status).toBe(404);
     // The owner trashing the note takes it away from the recipient.
-    await call(owner, "PUT", `/api/notes/${note.id}`, { trashed: true });
+    await call(owner, "PUT", `/api/v1/notes/${note.id}`, { trashed: true });
     expect((await fetchAs(alice, defined(note.images[0]))).status).toBe(404);
   });
 
   it("stores an editor's image under the note's owner", async () => {
     const note = await create(owner, []);
     await share(note.id, alice);
-    const res = await call(alice, "PUT", `/api/notes/${note.id}`, {
+    const res = await call(alice, "PUT", `/api/v1/notes/${note.id}`, {
       images: [await uploadAs(alice, GIF)],
     });
     const [ref] = ((await res.json()) as { note: Note }).note.images;
@@ -144,12 +144,12 @@ describe("attachments", () => {
   it("refuses a viewer's images, and images for a note it cannot see", async () => {
     const note = await create(owner, [PNG]);
     await share(note.id, alice, "view");
-    const byViewer = await call(alice, "PUT", `/api/notes/${note.id}`, {
+    const byViewer = await call(alice, "PUT", `/api/v1/notes/${note.id}`, {
       images: [await uploadAs(alice, GIF)],
       pinned: true,
     });
     expect(byViewer.status).toBe(403);
-    const byStranger = await call(mallory, "PUT", `/api/notes/${note.id}`, {
+    const byStranger = await call(mallory, "PUT", `/api/v1/notes/${note.id}`, {
       images: [await uploadAs(mallory, GIF)],
     });
     expect(byStranger.status).toBe(404);
@@ -181,7 +181,7 @@ describe("attachments", () => {
 
   describe("claiming before a note names an image", () => {
     const claim = (who: Account, body: object) =>
-      call(who, "POST", "/api/attachments/claim", body);
+      call(who, "POST", "/api/v1/attachments/claim", body);
     const refsOf = async (res: Response) =>
       ((await res.json()) as { refs: string[] }).refs;
 
@@ -228,7 +228,7 @@ describe("attachments", () => {
     it("leaves a note naming someone else's image to be refused when written", async () => {
       const theirs = await uploadAs(owner, PNG);
       // Around the claim, as a client that skipped it would.
-      const res = await rig.rawRequest("/api/notes", {
+      const res = await rig.rawRequest("/api/v1/notes", {
         method: "POST",
         headers: authHeaders(mallory.token),
         body: JSON.stringify(sealedCreate({ ...baseNote, images: [theirs] })),
@@ -239,12 +239,12 @@ describe("attachments", () => {
 
   it("refuses a reference the writer cannot read", async () => {
     const theirs = await create(owner, [PNG]);
-    const res = await call(mallory, "POST", "/api/notes", {
+    const res = await call(mallory, "POST", "/api/v1/notes", {
       ...baseNote,
       images: [theirs.images[0]],
     });
     expect(res.status).toBe(422);
-    const unknown = await call(mallory, "POST", "/api/notes", {
+    const unknown = await call(mallory, "POST", "/api/v1/notes", {
       ...baseNote,
       images: ["attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV"],
     });
@@ -254,7 +254,7 @@ describe("attachments", () => {
   it("sweeps an image once nothing has referred to it for the grace period", async () => {
     const note = await create(owner, [PNG]);
     const id = attachmentIdOf(defined(note.images[0]));
-    await call(owner, "PUT", `/api/notes/${note.id}`, { images: [] });
+    await call(owner, "PUT", `/api/v1/notes/${note.id}`, { images: [] });
 
     const later = "2026-09-01T00:00:00.000Z";
     const much = "2027-01-01T00:00:00.000Z";
@@ -269,9 +269,9 @@ describe("attachments", () => {
   it("clears the mark when a note refers to it again", async () => {
     const note = await create(owner, [PNG]);
     const ref = note.images[0];
-    await call(owner, "PUT", `/api/notes/${note.id}`, { images: [] });
+    await call(owner, "PUT", `/api/v1/notes/${note.id}`, { images: [] });
     await rig.storage.attachments.sweep(NOW, "2000-01-01T00:00:00.000Z");
-    await call(owner, "PUT", `/api/notes/${note.id}`, { images: [ref] });
+    await call(owner, "PUT", `/api/v1/notes/${note.id}`, { images: [ref] });
     await rig.storage.attachments.sweep(NOW, "2000-01-01T00:00:00.000Z");
     expect(await rig.storage.attachments.sweep(NOW, "2999-01-01")).toBe(0);
   });
@@ -289,7 +289,7 @@ describe("attachments", () => {
       const note = await create(owner, []);
       await share(note.id, alice);
       await share(note.id, mallory, "view");
-      const res = await call(alice, "PUT", `/api/notes/${note.id}`, {
+      const res = await call(alice, "PUT", `/api/v1/notes/${note.id}`, {
         linkPreviews: [preview(await uploadAs(alice, GIF))],
       });
       expect(res.status).toBe(200);
@@ -305,7 +305,7 @@ describe("attachments", () => {
 
     it("keeps a thumbnail through the sweep while a preview holds it", async () => {
       const ref = await uploadAs(owner, PNG);
-      const res = await call(owner, "POST", "/api/notes", {
+      const res = await call(owner, "POST", "/api/v1/notes", {
         ...baseNote,
         linkPreviews: [preview(ref)],
       });
@@ -314,7 +314,9 @@ describe("attachments", () => {
       const much = "2027-01-01T00:00:00.000Z";
       await rig.storage.attachments.sweep(NOW, NOW);
       expect(await rig.storage.attachments.sweep(much, much)).toBe(0);
-      await call(owner, "PUT", `/api/notes/${note.id}`, { linkPreviews: [] });
+      await call(owner, "PUT", `/api/v1/notes/${note.id}`, {
+        linkPreviews: [],
+      });
       await rig.storage.attachments.sweep(NOW, NOW);
       expect(await rig.storage.attachments.sweep(much, much)).toBe(1);
       expect(await rig.storage.attachments.meta(id)).toBeNull();
@@ -322,7 +324,7 @@ describe("attachments", () => {
 
     it("refuses a thumbnail the writer cannot read", async () => {
       const theirs = await create(owner, [PNG]);
-      const res = await call(mallory, "POST", "/api/notes", {
+      const res = await call(mallory, "POST", "/api/v1/notes", {
         ...baseNote,
         linkPreviews: [preview(defined(theirs.images[0]))],
       });
@@ -331,7 +333,7 @@ describe("attachments", () => {
 
     it("does not serve an attachment a shared preview only names in its title", async () => {
       const secret = await create(owner, [PNG]);
-      const shared = await call(owner, "POST", "/api/notes", {
+      const shared = await call(owner, "POST", "/api/v1/notes", {
         ...baseNote,
         linkPreviews: [
           preview(await uploadAs(owner, GIF), `see ${secret.images[0]}`),
@@ -351,7 +353,7 @@ describe("attachments", () => {
       "base64",
     );
     const upload = (who: Account, body: Uint8Array, type: string) =>
-      rig.request("/api/attachments", {
+      rig.request("/api/v1/attachments", {
         method: "POST",
         headers: { Authorization: `Bearer ${who.token}`, "Content-Type": type },
         body: body as BodyInit,
@@ -374,7 +376,7 @@ describe("attachments", () => {
       const { ref } = (await res.json()) as { ref: string };
       // As the server answers, before the app opens the image.
       const served = await rig.rawRequest(
-        `/api/attachments/${ref.slice("attachment:".length)}`,
+        `/api/v1/attachments/${ref.slice("attachment:".length)}`,
         { headers: { Authorization: `Bearer ${owner.token}` } },
       );
       expect(served.headers.get("Content-Type")).toBe(
@@ -402,7 +404,7 @@ describe("attachments", () => {
     });
 
     it("lets a token that carries keys attach an image and read it back, sealed at rest", async () => {
-      const minted = await rig.request("/api/tokens", {
+      const minted = await rig.request("/api/v1/tokens", {
         method: "POST",
         headers: authHeaders(owner.token),
         body: JSON.stringify({ name: "Script", password: "test-pass-12" }),
@@ -413,7 +415,7 @@ describe("attachments", () => {
         userId: owner.userId,
       };
       const get = (who: Account, id: string, query = "") =>
-        rig.rawRequest(`/api/attachments/${id}${query}`, {
+        rig.rawRequest(`/api/v1/attachments/${id}${query}`, {
           headers: authHeaders(who.token),
         });
 
@@ -438,7 +440,7 @@ describe("attachments", () => {
       );
 
       // A note names it, and carries its key from then on.
-      const made = await rig.request("/api/notes", {
+      const made = await rig.request("/api/v1/notes", {
         method: "POST",
         headers: authHeaders(script.token),
         body: JSON.stringify({ ...baseNote, title: "Receipt", images: [ref] }),
@@ -454,7 +456,7 @@ describe("attachments", () => {
       );
       // The key kept with the upload still opens it for its uploader,
       // whichever note is named.
-      const other = await rig.request("/api/notes", {
+      const other = await rig.request("/api/v1/notes", {
         method: "POST",
         headers: authHeaders(script.token),
         body: JSON.stringify(baseNote),
@@ -482,7 +484,7 @@ describe("attachments", () => {
 
     it("lets an editor's token add its own upload to a note shared with it", async () => {
       const mint = async (who: Account): Promise<Account> => {
-        const minted = await rig.request("/api/tokens", {
+        const minted = await rig.request("/api/v1/tokens", {
           method: "POST",
           headers: authHeaders(who.token),
           body: JSON.stringify({ name: "Script", password: "test-pass-12" }),
@@ -493,35 +495,38 @@ describe("attachments", () => {
         };
       };
       // Written by a token, so it is sealed under a real key.
-      const made = await call(await mint(owner), "POST", "/api/notes", {
+      const made = await call(await mint(owner), "POST", "/api/v1/notes", {
         ...baseNote,
         title: "Trip",
       });
       const { id } = ((await made.json()) as { note: Note }).note;
-      await call(owner, "POST", `/api/notes/${id}/shares`, {
+      await call(owner, "POST", `/api/v1/notes/${id}/shares`, {
         userId: alice.userId,
         role: "edit",
       });
       const sealed = (
         (await (
-          await rig.rawRequest(`/api/notes/${id}`, {
+          await rig.rawRequest(`/api/v1/notes/${id}`, {
             headers: authHeaders(owner.token),
           })
         ).json()) as { note: SealedNote }
       ).note;
-      const accepted = await rig.rawRequest(`/api/invitations/${id}/accept`, {
-        method: "POST",
-        headers: authHeaders(alice.token),
-        body: JSON.stringify(
-          await heldKeyOf(sealed, owner.userId, alice.userId),
-        ),
-      });
+      const accepted = await rig.rawRequest(
+        `/api/v1/invitations/${id}/accept`,
+        {
+          method: "POST",
+          headers: authHeaders(alice.token),
+          body: JSON.stringify(
+            await heldKeyOf(sealed, owner.userId, alice.userId),
+          ),
+        },
+      );
       expect(accepted.status).toBe(200);
 
       const script = await mint(alice);
       const sent = await upload(script, PNG_BYTES, "image/png");
       const { ref } = (await sent.json()) as { ref: string };
-      const written = await call(script, "PUT", `/api/notes/${id}`, {
+      const written = await call(script, "PUT", `/api/v1/notes/${id}`, {
         images: [ref],
       });
       expect(written.status).toBe(200);
@@ -532,9 +537,12 @@ describe("attachments", () => {
       expect((await rig.storage.attachments.meta(copy))?.ownerId).toBe(
         owner.userId,
       );
-      const read = await rig.rawRequest(`/api/attachments/${copy}?note=${id}`, {
-        headers: authHeaders(script.token),
-      });
+      const read = await rig.rawRequest(
+        `/api/v1/attachments/${copy}?note=${id}`,
+        {
+          headers: authHeaders(script.token),
+        },
+      );
       expect(read.status).toBe(200);
       expect(Buffer.from(await read.arrayBuffer()).equals(PNG_BYTES)).toBe(
         true,
@@ -545,14 +553,14 @@ describe("attachments", () => {
       // Uploaded sealed by the app, so no key is kept with it.
       const res = await upload(owner, PNG_BYTES, "image/png");
       const id = attachmentIdOf(((await res.json()) as { ref: string }).ref);
-      const minted = await rig.request("/api/tokens", {
+      const minted = await rig.request("/api/v1/tokens", {
         method: "POST",
         headers: authHeaders(owner.token),
         body: JSON.stringify({ name: "Script", password: "test-pass-12" }),
       });
       const secret = ((await minted.json()) as { secret: string }).secret;
       const get = (query: string) =>
-        rig.rawRequest(`/api/attachments/${id}${query}`, {
+        rig.rawRequest(`/api/v1/attachments/${id}${query}`, {
           headers: authHeaders(secret),
         });
       expect((await get("")).status).toBe(400);
@@ -563,7 +571,7 @@ describe("attachments", () => {
       // Sent as it is: the server cannot tell an image from anything else
       // once it is sealed, so the address is what it asks for.
       const bare = (headers: Record<string, string>, body: Uint8Array) =>
-        rig.rawRequest("/api/attachments", {
+        rig.rawRequest("/api/v1/attachments", {
           method: "POST",
           headers: { Authorization: `Bearer ${owner.token}`, ...headers },
           body: body as BodyInit,

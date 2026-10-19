@@ -42,7 +42,7 @@ const OIDC_CONFIG: OidcConfig = {
   issuer: "https://idp.example.com",
   clientId: "manifesto-client",
   clientSecret: "secret",
-  redirectUri: "https://server.example.com/api/auth/callback",
+  redirectUri: "https://server.example.com/api/v1/auth/callback",
   postLoginRedirect: "https://app.example.com/auth-callback",
   scopes: ["openid", "profile", "email"],
   groupsClaim: "groups",
@@ -166,7 +166,7 @@ describe("oidc auth router", () => {
   });
 
   it("redirects /login to the IdP authorization endpoint with PKCE + state", async () => {
-    const res = await rig.request("/api/auth/login");
+    const res = await rig.request("/api/v1/auth/login");
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toMatch(
       /^https:\/\/idp\.example\.com\/authorize\?/,
@@ -185,7 +185,7 @@ describe("oidc auth router", () => {
   });
 
   it("asks the IdP to sign the user in again when an action needs a recent sign-in", async () => {
-    await rig.request("/api/auth/login?reauth=1");
+    await rig.request("/api/v1/auth/login?reauth=1");
     const built = oidcModule.buildAuthorizationUrl.mock.calls.at(-1)?.[1] as
       | Record<string, string>
       | undefined;
@@ -193,7 +193,7 @@ describe("oidc auth router", () => {
   });
 
   it("on callback, JIT-creates the user and redirects to the post-login URL with a session token in the fragment", async () => {
-    await rig.request("/api/auth/login");
+    await rig.request("/api/v1/auth/login");
 
     oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
       makeTokenResponse(
@@ -206,7 +206,7 @@ describe("oidc auth router", () => {
     );
 
     const callback = await rig.request(
-      "/api/auth/callback?code=auth-code&state=test-state-token",
+      "/api/v1/auth/callback?code=auth-code&state=test-state-token",
     );
     expect(callback.status).toBe(302);
     const location = callback.headers.get("location");
@@ -225,15 +225,15 @@ describe("oidc auth router", () => {
     expect(stored?.displayName).toBe("Alice Example");
     expect(stored?.passwordHash).toBeNull();
 
-    // Bearer token works against /api/notes.
-    const me = await rig.request("/api/notes", {
+    // Bearer token works against /api/v1/notes.
+    const me = await rig.request("/api/v1/notes", {
       headers: { Authorization: `Bearer ${token}` },
     });
     expect(me.status).toBe(200);
   });
 
   it("re-uses the existing user on subsequent callbacks for the same IdP subject", async () => {
-    await rig.request("/api/auth/login");
+    await rig.request("/api/v1/auth/login");
     oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
       makeTokenResponse(
         makeIdToken({
@@ -244,7 +244,7 @@ describe("oidc auth router", () => {
       ),
     );
     const first = await rig.request(
-      "/api/auth/callback?code=c1&state=test-state-token",
+      "/api/v1/auth/callback?code=c1&state=test-state-token",
     );
     expect(first.status).toBe(302);
     const firstUser = await rig.storage.users.findByExternalId(
@@ -255,7 +255,7 @@ describe("oidc auth router", () => {
 
     // Second login round-trip with a fresh state.
     oidcModule.randomState.mockReturnValueOnce("second-state-token");
-    await rig.request("/api/auth/login");
+    await rig.request("/api/v1/auth/login");
     oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
       makeTokenResponse(
         makeIdToken({
@@ -266,7 +266,7 @@ describe("oidc auth router", () => {
       ),
     );
     const second = await rig.request(
-      "/api/auth/callback?code=c2&state=second-state-token",
+      "/api/v1/auth/callback?code=c2&state=second-state-token",
     );
     expect(second.status).toBe(302);
 
@@ -281,7 +281,7 @@ describe("oidc auth router", () => {
     // Cookie and query agree, so this gets past the browser binding; what
     // the server has forgotten is the flow itself.
     const res = await rig.request(
-      "/api/auth/callback?code=foo&state=never-issued",
+      "/api/v1/auth/callback?code=foo&state=never-issued",
       { headers: { cookie: "manifesto_oidc_flow=never-issued" } },
     );
     expect(res.status).toBe(400);
@@ -291,19 +291,19 @@ describe("oidc auth router", () => {
   });
 
   it("binds the flow to the browser that started it", async () => {
-    const login = await rig.request("/api/auth/login");
+    const login = await rig.request("/api/v1/auth/login");
     const cookie = login.headers.getSetCookie().join("; ");
     expect(cookie).toContain("manifesto_oidc_flow=test-state-token");
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("SameSite=Lax");
     expect(cookie).toContain("Secure"); // redirectUri is https in this rig
-    expect(cookie).toContain("Path=/api/auth");
+    expect(cookie).toContain("Path=/api/v1/auth");
 
     // The attacker holds a valid, unspent state, but the victim's browser
     // has no cookie for it, so the callback must not mint them a session on
     // the attacker's IdP account.
     const victim = await rig.strangerRequest(
-      "/api/auth/callback?code=auth-code&state=test-state-token",
+      "/api/v1/auth/callback?code=auth-code&state=test-state-token",
     );
     expect(victim.status).toBe(400);
     expect(oidcModule.authorizationCodeGrant).not.toHaveBeenCalled();
@@ -314,27 +314,27 @@ describe("oidc auth router", () => {
       makeTokenResponse(makeIdToken({ sub: "still-valid" })),
     );
     const owner = await rig.request(
-      "/api/auth/callback?code=auth-code&state=test-state-token",
+      "/api/v1/auth/callback?code=auth-code&state=test-state-token",
     );
     expect(owner.status).toBe(302);
   });
 
   it("clears the flow cookie once a callback has been spent", async () => {
-    await rig.request("/api/auth/login");
+    await rig.request("/api/v1/auth/login");
     expect(rig.cookies.get("manifesto_oidc_flow")).toBe("test-state-token");
 
     oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
       makeTokenResponse(makeIdToken({ sub: "spent-flow" })),
     );
     const first = await rig.request(
-      "/api/auth/callback?code=c&state=test-state-token",
+      "/api/v1/auth/callback?code=c&state=test-state-token",
     );
     expect(first.status).toBe(302);
     expect(rig.cookies.has("manifesto_oidc_flow")).toBe(false);
 
     // Replaying the same callback URL in the same browser gets nothing.
     const replay = await rig.request(
-      "/api/auth/callback?code=c&state=test-state-token",
+      "/api/v1/auth/callback?code=c&state=test-state-token",
     );
     expect(replay.status).toBe(400);
   });
@@ -342,32 +342,32 @@ describe("oidc auth router", () => {
   it("throttles the unauthenticated login and callback endpoints per IP", async () => {
     // 30 requests / 15 minutes, shared across both endpoints.
     for (let i = 0; i < 30; i += 1) {
-      const res = await rig.request("/api/auth/login");
+      const res = await rig.request("/api/v1/auth/login");
       expect(res.status).toBe(302);
     }
-    const throttled = await rig.request("/api/auth/login");
+    const throttled = await rig.request("/api/v1/auth/login");
     expect(throttled.status).toBe(429);
     expect(throttled.headers.get("Retry-After")).toBeTruthy();
 
     const callback = await rig.request(
-      "/api/auth/callback?code=c&state=test-state-token",
+      "/api/v1/auth/callback?code=c&state=test-state-token",
     );
     expect(callback.status).toBe(429);
   });
 
   it("rejects callbacks when token exchange fails", async () => {
-    await rig.request("/api/auth/login");
+    await rig.request("/api/v1/auth/login");
     oidcModule.authorizationCodeGrant.mockRejectedValueOnce(
       new Error("invalid_grant"),
     );
     const res = await rig.request(
-      "/api/auth/callback?code=bad&state=test-state-token",
+      "/api/v1/auth/callback?code=bad&state=test-state-token",
     );
     expect(res.status).toBe(401);
   });
 
   it("falls back to email local-part, then sub, when preferred_username is absent", async () => {
-    await rig.request("/api/auth/login");
+    await rig.request("/api/v1/auth/login");
     oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
       makeTokenResponse(
         makeIdToken({
@@ -377,7 +377,7 @@ describe("oidc auth router", () => {
         }),
       ),
     );
-    await rig.request("/api/auth/callback?code=foo&state=test-state-token");
+    await rig.request("/api/v1/auth/callback?code=foo&state=test-state-token");
     const carol = await rig.storage.users.findByExternalId(
       "oidc:https://idp.example.com",
       "no-preferred",
@@ -392,11 +392,13 @@ describe("oidc auth router", () => {
     async function signInWith(claims: Record<string, unknown>) {
       const state = `email-state-${++flow}`;
       oidcModule.randomState.mockReturnValueOnce(state);
-      await rig.request("/api/auth/login");
+      await rig.request("/api/v1/auth/login");
       oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
         makeTokenResponse(makeIdToken(claims as Partial<openid.IDToken>)),
       );
-      const res = await rig.request(`/api/auth/callback?code=c&state=${state}`);
+      const res = await rig.request(
+        `/api/v1/auth/callback?code=c&state=${state}`,
+      );
       expect(res.status).toBe(302);
       return rig.storage.users.findByExternalId(
         "oidc:https://idp.example.com",
@@ -477,7 +479,7 @@ describe("oidc auth router", () => {
   });
 
   it("logout invalidates the session token", async () => {
-    await rig.request("/api/auth/login");
+    await rig.request("/api/v1/auth/login");
     oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
       makeTokenResponse(
         makeIdToken({
@@ -488,7 +490,7 @@ describe("oidc auth router", () => {
       ),
     );
     const cb = await rig.request(
-      "/api/auth/callback?code=c&state=test-state-token",
+      "/api/v1/auth/callback?code=c&state=test-state-token",
     );
     const fragment = new URLSearchParams(
       new URL(cb.headers.get("location") ?? "").hash.replace(/^#/, ""),
@@ -496,13 +498,13 @@ describe("oidc auth router", () => {
     const token = fragment.get("token") ?? "";
     expect(token).not.toBe("");
 
-    const out = await rig.request("/api/auth/logout", {
+    const out = await rig.request("/api/v1/auth/logout", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     });
     expect(out.status).toBe(204);
 
-    const after = await rig.request("/api/notes", {
+    const after = await rig.request("/api/v1/notes", {
       headers: { Authorization: `Bearer ${token}` },
     });
     expect(after.status).toBe(401);
@@ -527,12 +529,12 @@ describe("oidc groups and registration", () => {
 
   /** One sign-in round trip; the fragment the client would receive. */
   async function signIn(claims: Record<string, unknown>) {
-    await rig.request("/api/auth/login");
+    await rig.request("/api/v1/auth/login");
     oidcModule.authorizationCodeGrant.mockResolvedValueOnce(
       makeTokenResponse(makeIdToken(claims as Partial<openid.IDToken>)),
     );
     const res = await rig.request(
-      "/api/auth/callback?code=c&state=test-state-token",
+      "/api/v1/auth/callback?code=c&state=test-state-token",
     );
     expect(res.status).toBe(302);
     const dest = new URL(res.headers.get("location") ?? "");

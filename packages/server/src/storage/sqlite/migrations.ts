@@ -304,7 +304,7 @@ CREATE TABLE user_prefs (
 
 /**
  * What a personal token is for: `api` for scripts, `mcp` for an AI
- * assistant, which only `/api/mcp` accepts. `read_only` narrows an MCP token
+ * assistant, which only `/api/v1/mcp` accepts. `read_only` narrows an MCP token
  * to the tools that read. Every token minted before this is a script's.
  */
 const API_TOKEN_KIND = `
@@ -327,7 +327,7 @@ UPDATE api_tokens SET scopes = '["notes:read"]' WHERE read_only = 1;
  * When a note's members last changed: someone invited, accepted, given another
  * role or removed. That changes `sharing` for everyone on the note without
  * touching `updated_at`, which is the note's concurrency token and must not
- * move for it, so `GET /api/sync` reads this beside it. Null until the first
+ * move for it, so `GET /api/v1/sync` reads this beside it. Null until the first
  * change after this migration.
  */
 const NOTE_MEMBERS_CHANGED = `
@@ -393,7 +393,7 @@ ALTER TABLE note_shares ADD COLUMN via_team TEXT;
 `;
 
 /**
- * Assistants signing in to `/api/mcp` by OAuth. A grant is an `mcp` row of
+ * Assistants signing in to `/api/v1/mcp` by OAuth. A grant is an `mcp` row of
  * `api_tokens`, so it is listed, revoked and ended with the user's sessions
  * like any token: `token_hash` is its current access token, which lapses at
  * `access_expires_at`, and `refresh_hash` the refresh token that replaces

@@ -49,7 +49,7 @@ const FLOW_TTL_MS = 10 * 60 * 1000; // 10 minutes
  * that covers that navigation and nothing else.
  */
 const FLOW_COOKIE = "manifesto_oidc_flow";
-const FLOW_COOKIE_PATH = "/api/auth";
+const FLOW_COOKIE_PATH = "/api/v1/auth";
 
 /** Insertions between sweeps of expired pending flows. */
 const SWEEP_EVERY = 256;

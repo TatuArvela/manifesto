@@ -40,8 +40,8 @@ describe("serving the client", () => {
   });
 
   it("leaves the API to itself", async () => {
-    expect((await rig.request("/api/health")).status).toBe(200);
-    const unknown = await rig.request("/api/nope");
+    expect((await rig.request("/api/v1/health")).status).toBe(200);
+    const unknown = await rig.request("/api/v1/nope");
     expect(unknown.status).toBe(404);
     expect(await unknown.text()).not.toContain("<p>app</p>");
     expect((await rig.request("/missing.png")).status).toBe(404);

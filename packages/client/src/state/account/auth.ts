@@ -332,7 +332,7 @@ export async function login(
   otp?: string,
   passkey?: PasskeyAuthenticationResponse,
 ): Promise<void> {
-  const result = await authRequest("/api/auth/login", {
+  const result = await authRequest("/api/v1/auth/login", {
     username,
     password,
     ...(newPassword === undefined ? {} : { newPassword }),
@@ -353,7 +353,7 @@ export async function signInWithPasskey(): Promise<
 > {
   if (SERVER_URL === null) return "failed";
   try {
-    const started = await fetch(`${SERVER_URL}/api/auth/passkey/options`, {
+    const started = await fetch(`${SERVER_URL}/api/v1/auth/passkey/options`, {
       method: "POST",
     });
     if (!started.ok) return "failed";
@@ -361,7 +361,7 @@ export async function signInWithPasskey(): Promise<
     const answer = await getPasskey(options);
     if (answer === "cancelled") return "cancelled";
     if (typeof answer === "string") return "failed";
-    const res = await fetch(`${SERVER_URL}/api/auth/passkey/login`, {
+    const res = await fetch(`${SERVER_URL}/api/v1/auth/passkey/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ response: answer }),
@@ -395,7 +395,7 @@ export async function changePassword(
   const token = authToken.value;
   if (SERVER_URL === null || !token) return "failed";
   try {
-    const res = await fetch(`${SERVER_URL}/api/auth/password`, {
+    const res = await fetch(`${SERVER_URL}/api/v1/auth/password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -425,7 +425,7 @@ export async function refreshCurrentUser(): Promise<void> {
   const token = authToken.value;
   if (SERVER_URL === null || !token) return;
   try {
-    const res = await fetch(`${SERVER_URL}/api/auth/me`, {
+    const res = await fetch(`${SERVER_URL}/api/v1/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.status === 401) {
@@ -446,7 +446,7 @@ export async function register(
   password: string,
   email?: string,
 ): Promise<void> {
-  const result = await authRequest("/api/auth/register", {
+  const result = await authRequest("/api/v1/auth/register", {
     username,
     password,
     ...(email ? { email } : {}),
@@ -461,7 +461,7 @@ export async function logout(): Promise<void> {
   currentUser.value = null;
   if (!token || SERVER_URL === null) return;
   try {
-    await fetch(`${SERVER_URL}/api/auth/logout`, {
+    await fetch(`${SERVER_URL}/api/v1/auth/logout`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -488,7 +488,7 @@ export async function updateEmail(
   const token = authToken.value;
   if (SERVER_URL === null || !token) return "failed";
   try {
-    const res = await fetch(`${SERVER_URL}/api/auth/me`, {
+    const res = await fetch(`${SERVER_URL}/api/v1/auth/me`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -526,7 +526,7 @@ export async function requestAccountDeletion(
   const token = authToken.value;
   if (SERVER_URL === null || !token) return "failed";
   try {
-    const res = await fetch(`${SERVER_URL}/api/auth/me`, {
+    const res = await fetch(`${SERVER_URL}/api/v1/auth/me`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -590,7 +590,7 @@ export const passwordFormCollapsed = signal(false);
 export async function fetchCapabilities(): Promise<CapabilitiesResponse | null> {
   if (SERVER_URL === null) return null;
   try {
-    const res = await fetch(`${SERVER_URL}/api/capabilities`);
+    const res = await fetch(`${SERVER_URL}/api/v1/capabilities`);
     if (!res.ok) return null;
     const capabilities = (await res.json()) as CapabilitiesResponse;
     const { auth, features } = capabilities;
@@ -616,7 +616,7 @@ export type RecoveryAnswer<T> =
 
 /**
  * One of the two steps of signing in with the recovery key and the username
- * (`/api/auth/recovery`, `/api/auth/recovery/complete`), with nobody signed
+ * (`/api/v1/auth/recovery`, `/api/v1/auth/recovery/complete`), with nobody signed
  * in. `accountKeys.ts` does the work with the keys; the requests live here,
  * where the others without a session do. Never rejects.
  */
@@ -627,7 +627,7 @@ export async function recoveryRequest<T>(
   if (SERVER_URL === null) return { kind: "failed" };
   const path = step === "open" ? "/recovery" : "/recovery/complete";
   try {
-    const res = await fetch(`${SERVER_URL}/api/auth${path}`, {
+    const res = await fetch(`${SERVER_URL}/api/v1/auth${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

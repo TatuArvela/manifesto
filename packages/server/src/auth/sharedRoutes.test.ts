@@ -12,9 +12,9 @@ describe("auth shared routes", () => {
     await rig.close();
   });
 
-  it("GET /api/auth/me returns the current user for a valid token", async () => {
+  it("GET /api/v1/auth/me returns the current user for a valid token", async () => {
     const { token, userId } = await registerTestUser(rig, "alice");
-    const res = await rig.request("/api/auth/me", {
+    const res = await rig.request("/api/v1/auth/me", {
       headers: { Authorization: `Bearer ${token}` },
     });
     expect(res.status).toBe(200);
@@ -26,13 +26,13 @@ describe("auth shared routes", () => {
     expect(body.user.displayName).toBe("alice");
   });
 
-  it("GET /api/auth/me returns 401 without a bearer token", async () => {
-    const res = await rig.request("/api/auth/me");
+  it("GET /api/v1/auth/me returns 401 without a bearer token", async () => {
+    const res = await rig.request("/api/v1/auth/me");
     expect(res.status).toBe(401);
   });
 
-  it("GET /api/auth/me returns 401 with a bogus bearer token", async () => {
-    const res = await rig.request("/api/auth/me", {
+  it("GET /api/v1/auth/me returns 401 with a bogus bearer token", async () => {
+    const res = await rig.request("/api/v1/auth/me", {
       headers: { Authorization: "Bearer not-a-real-token" },
     });
     expect(res.status).toBe(401);

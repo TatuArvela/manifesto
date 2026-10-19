@@ -26,7 +26,7 @@ const conflict = (description: string) => ({
 export const KEY_OPERATIONS: Operation[] = [
   {
     method: "get",
-    path: "/api/auth/keys",
+    path: "/api/v1/auth/keys",
     tag: "Auth",
     summary:
       "The account's wrapped keys, null before it is set up, and when this session ends at the latest",
@@ -36,7 +36,7 @@ export const KEY_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/auth/keys/seen",
+    path: "/api/v1/auth/keys/seen",
     tag: "Auth",
     summary:
       "The public keys this account has seen of others, each sealed under its own key",
@@ -46,7 +46,7 @@ export const KEY_OPERATIONS: Operation[] = [
   },
   {
     method: "put",
-    path: "/api/auth/keys/seen/:userId",
+    path: "/api/v1/auth/keys/seen/:userId",
     tag: "Auth",
     summary: "Remember someone's public keys, sealed under this account's key",
     auth: "session",
@@ -59,7 +59,7 @@ export const KEY_OPERATIONS: Operation[] = [
   },
   {
     method: "put",
-    path: "/api/auth/keys",
+    path: "/api/v1/auth/keys",
     tag: "Auth",
     summary: "Store the account's first keys, made in the browser",
     auth: "session",
@@ -69,7 +69,7 @@ export const KEY_OPERATIONS: Operation[] = [
   },
   {
     method: "delete",
-    path: "/api/auth/keys",
+    path: "/api/v1/auth/keys",
     tag: "Auth",
     summary:
       "Start the account again with no keys, with the password: for when the secret key and the recovery key are both lost",
@@ -80,7 +80,7 @@ export const KEY_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/keys/confirm",
+    path: "/api/v1/auth/keys/confirm",
     tag: "Auth",
     summary: "Check the password before the client shows the secret key",
     auth: "session",
@@ -90,7 +90,7 @@ export const KEY_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/keys/secret",
+    path: "/api/v1/auth/keys/secret",
     tag: "Auth",
     summary:
       "Put a new secret key in place, with the password; ends the account's other sessions",
@@ -101,7 +101,7 @@ export const KEY_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/keys/recovery",
+    path: "/api/v1/auth/keys/recovery",
     tag: "Auth",
     summary: "Put a new recovery key in place, with the password",
     auth: "session",
@@ -111,7 +111,7 @@ export const KEY_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/keys/recover",
+    path: "/api/v1/auth/keys/recover",
     tag: "Auth",
     summary:
       "Use the recovery key while signed in: answers the account key as it wraps it",
@@ -122,7 +122,7 @@ export const KEY_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/keys/recover/complete",
+    path: "/api/v1/auth/keys/recover/complete",
     tag: "Auth",
     summary:
       "Finish using the recovery key: a new secret key and recovery key in place of the old; ends the account's other sessions and tokens",
@@ -137,7 +137,7 @@ export const KEY_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/recovery",
+    path: "/api/v1/auth/recovery",
     tag: "Auth",
     summary:
       "Start signing in with the recovery key and the username: answers the account key as it wraps it",
@@ -152,7 +152,7 @@ export const KEY_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/recovery/complete",
+    path: "/api/v1/auth/recovery/complete",
     tag: "Auth",
     summary:
       "Finish signing in with the recovery key: a new password, secret key and recovery key; ends every other session and token",

@@ -5,7 +5,7 @@ import type { ShareInvitation } from "./sharing.ts";
 // --- WebSocket events (server → client) ---
 
 /**
- * How often the server sends `heartbeat` on `/api/ws`. A socket that dies
+ * How often the server sends `heartbeat` on `/api/v1/ws`. A socket that dies
  * without a close stays open to both ends, so silence longer than a couple of
  * these is how each side learns it is talking to nobody.
  */
@@ -13,7 +13,7 @@ export const APP_SOCKET_HEARTBEAT_MS = 30_000;
 
 /**
  * The version of the document shape the editor writes into a note's shared
- * Y.Doc on `/api/yjs`. Raise it whenever a node or mark is added, removed or
+ * Y.Doc on `/api/v1/yjs`. Raise it whenever a node or mark is added, removed or
  * changes its attributes: an editor that meets a node it has no schema for
  * drops it, and `ySyncPlugin` then writes the loss back to everyone.
  *
@@ -24,7 +24,7 @@ export const APP_SOCKET_HEARTBEAT_MS = 30_000;
  */
 export const EDITOR_SCHEMA_VERSION = 1;
 
-/** The refusal reason `/api/yjs` gives an editor older than the server's. */
+/** The refusal reason `/api/v1/yjs` gives an editor older than the server's. */
 export const EDITOR_OUTDATED_REASON = "editor-outdated";
 
 export interface PresenceUser {

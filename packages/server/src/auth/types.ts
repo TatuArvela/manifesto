@@ -9,7 +9,7 @@ import type { SessionRevocations } from "./revocations.ts";
  * personal API token, or an MCP token. Anything that changes how an account
  * is secured (passwords, tokens, admin actions) asks for a session, so a
  * token handed to a script cannot be used to take over the account it belongs
- * to. An MCP token is narrower still: only `/api/mcp` takes it, and the REST
+ * to. An MCP token is narrower still: only `/api/v1/mcp` takes it, and the REST
  * calls its tools make in-process (see `createAuthMiddleware`).
  */
 export type CredentialKind = "session" | "api-token" | "mcp-token";

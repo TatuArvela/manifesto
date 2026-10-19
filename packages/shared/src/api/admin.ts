@@ -1,7 +1,7 @@
 import type { ShareUser } from "#/note.ts";
 import type { AuthProviderName } from "./auth.ts";
 
-/** `GET /api/admin/overview`: what the server holds, and how its
+/** `GET /api/v1/admin/overview`: what the server holds, and how its
  * background jobs are doing. */
 export interface AdminOverviewResponse {
   version: string;
@@ -41,7 +41,7 @@ export interface AdminOverviewResponse {
   }[];
 }
 
-/** `GET /api/admin/update`. */
+/** `GET /api/v1/admin/update`. */
 export interface AdminUpdateResponse {
   version: string;
   update: AdminOverviewResponse["update"];
@@ -95,7 +95,7 @@ export interface AdminTemporaryPasswordResponse {
 
 /**
  * What the admin overview sends as `X-Forwarded-For` on `GET
- * /api/admin/checks`, to see what the proxy in front does with it: a
+ * /api/v1/admin/checks`, to see what the proxy in front does with it: a
  * documentation address (RFC 5737), which no real client has.
  */
 export const PROXY_PROBE_ADDRESS = "203.0.113.77";
@@ -107,7 +107,7 @@ export const PROXY_PROBE_ADDRESS = "203.0.113.77";
  */
 export type ProxyFinding = "untouched" | "overwritten" | "appended" | "removed";
 
-/** `GET /api/admin/checks`: the facts the overview's setup checks read. */
+/** `GET /api/v1/admin/checks`: the facts the overview's setup checks read. */
 export interface AdminChecksResponse {
   /** `APP_URL`, for the client to compare with the address it is on. */
   appUrl: string | null;
@@ -126,7 +126,7 @@ export interface AdminChecksResponse {
   } | null;
 }
 
-/** `POST /api/admin/checks/mail`: whether the test message went. */
+/** `POST /api/v1/admin/checks/mail`: whether the test message went. */
 export interface AdminTestMailResponse {
   sent: boolean;
 }

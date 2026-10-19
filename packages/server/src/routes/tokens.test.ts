@@ -48,7 +48,7 @@ describe("API tokens", () => {
     });
 
   async function mint(body: object = { name: "script" }) {
-    const res = await call(session, "POST", "/api/tokens", {
+    const res = await call(session, "POST", "/api/v1/tokens", {
       password: "test-pass-12",
       ...body,
     });
@@ -62,30 +62,34 @@ describe("API tokens", () => {
     expect(secret.startsWith("mfp_")).toBe(true);
     expect(secret.startsWith(token.prefix)).toBe(true);
     expect(token.scopes).toEqual(["notes:read", "notes:write"]);
-    expect((await call(secret, "GET", "/api/notes")).status).toBe(200);
-    expect((await call(secret, "POST", "/api/notes", NOTE)).status).toBe(201);
-    expect((await call(secret, "GET", "/api/auth/me")).status).toBe(403);
-    expect((await call(secret, "GET", "/api/invitations")).status).toBe(403);
+    expect((await call(secret, "GET", "/api/v1/notes")).status).toBe(200);
+    expect((await call(secret, "POST", "/api/v1/notes", NOTE)).status).toBe(
+      201,
+    );
+    expect((await call(secret, "GET", "/api/v1/auth/me")).status).toBe(403);
+    expect((await call(secret, "GET", "/api/v1/invitations")).status).toBe(403);
   });
 
   it("reaches what its scopes name, a write scope including its read", async () => {
     const reader = (await mint({ name: "r", scopes: ["notes:read"] })).secret;
-    expect((await call(reader, "GET", "/api/notes")).status).toBe(200);
-    expect((await call(reader, "GET", "/api/search?q=x")).status).toBe(200);
-    expect((await call(reader, "POST", "/api/notes", NOTE)).status).toBe(403);
+    expect((await call(reader, "GET", "/api/v1/notes")).status).toBe(200);
+    expect((await call(reader, "GET", "/api/v1/search?q=x")).status).toBe(200);
+    expect((await call(reader, "POST", "/api/v1/notes", NOTE)).status).toBe(
+      403,
+    );
 
     const account = (await mint({ name: "a", scopes: ["account:write"] }))
       .secret;
-    expect((await call(account, "GET", "/api/auth/me")).status).toBe(200);
+    expect((await call(account, "GET", "/api/v1/auth/me")).status).toBe(200);
     expect(
-      (await call(account, "PUT", "/api/auth/me/locale", { locale: "fi" }))
+      (await call(account, "PUT", "/api/v1/auth/me/locale", { locale: "fi" }))
         .status,
     ).toBe(204);
-    expect((await call(account, "GET", "/api/notes")).status).toBe(403);
+    expect((await call(account, "GET", "/api/v1/notes")).status).toBe(403);
 
     const sharer = (await mint({ name: "s", scopes: ["sharing"] })).secret;
-    expect((await call(sharer, "GET", "/api/invitations")).status).toBe(200);
-    expect((await call(sharer, "GET", "/api/notes")).status).toBe(403);
+    expect((await call(sharer, "GET", "/api/v1/invitations")).status).toBe(200);
+    expect((await call(sharer, "GET", "/api/v1/notes")).status).toBe(403);
   });
 
   it("lists each token's scopes in one order, each once", async () => {
@@ -93,7 +97,7 @@ describe("API tokens", () => {
       name: "all",
       scopes: ["sharing", "notes:read", "sharing", "account:read"],
     });
-    const res = await call(session, "GET", "/api/tokens");
+    const res = await call(session, "GET", "/api/v1/tokens");
     const { tokens } = (await res.json()) as ApiTokensResponse;
     expect(tokens[0]?.scopes).toEqual([
       "notes:read",
@@ -104,7 +108,7 @@ describe("API tokens", () => {
 
   it("refuses a scope it does not know, and a token with none", async () => {
     for (const scopes of [["notes:delete"], []]) {
-      const res = await call(session, "POST", "/api/tokens", {
+      const res = await call(session, "POST", "/api/v1/tokens", {
         name: "odd",
         scopes,
       });
@@ -114,8 +118,8 @@ describe("API tokens", () => {
 
   it("lists tokens without their secrets, with when each was last used", async () => {
     const { secret } = await mint();
-    await call(secret, "GET", "/api/notes");
-    const res = await call(session, "GET", "/api/tokens");
+    await call(secret, "GET", "/api/v1/notes");
+    const res = await call(session, "GET", "/api/v1/tokens");
     const { tokens } = (await res.json()) as ApiTokensResponse;
     expect(tokens).toHaveLength(1);
     expect(JSON.stringify(tokens)).not.toContain(secret);
@@ -124,35 +128,35 @@ describe("API tokens", () => {
 
   it("keeps a token away from the account's own security", async () => {
     const { secret } = await mint();
-    expect((await call(secret, "GET", "/api/tokens")).status).toBe(403);
+    expect((await call(secret, "GET", "/api/v1/tokens")).status).toBe(403);
     expect(
-      (await call(secret, "POST", "/api/tokens", { name: "more" })).status,
+      (await call(secret, "POST", "/api/v1/tokens", { name: "more" })).status,
     ).toBe(403);
     expect(
       (
-        await call(secret, "POST", "/api/auth/password", {
+        await call(secret, "POST", "/api/v1/auth/password", {
           currentPassword: "test-pass-12",
           newPassword: "another-pass-34",
         })
       ).status,
     ).toBe(403);
     expect(
-      (await call(secret, "PUT", "/api/auth/me", { email: "a@b.c" })).status,
+      (await call(secret, "PUT", "/api/v1/auth/me", { email: "a@b.c" })).status,
     ).toBe(403);
     // Alice is the first account, and so an admin.
-    expect((await call(secret, "GET", "/api/admin/users")).status).toBe(403);
+    expect((await call(secret, "GET", "/api/v1/admin/users")).status).toBe(403);
   });
 
   it("stops working once revoked, and only its owner can revoke it", async () => {
     const { secret, token } = await mint();
     const { token: bob } = await registerTestUser(rig, "bob");
-    expect((await call(bob, "DELETE", `/api/tokens/${token.id}`)).status).toBe(
-      404,
-    );
     expect(
-      (await call(session, "DELETE", `/api/tokens/${token.id}`)).status,
+      (await call(bob, "DELETE", `/api/v1/tokens/${token.id}`)).status,
+    ).toBe(404);
+    expect(
+      (await call(session, "DELETE", `/api/v1/tokens/${token.id}`)).status,
     ).toBe(204);
-    expect((await call(secret, "GET", "/api/notes")).status).toBe(401);
+    expect((await call(secret, "GET", "/api/v1/notes")).status).toBe(401);
   });
 
   it("stops working when it expires, and the sweep removes it", async () => {
@@ -172,7 +176,7 @@ describe("API tokens", () => {
       accessExpiresAt: null,
       tokenHash: hashToken("mfp_old-secret"),
     });
-    expect((await call("mfp_old-secret", "GET", "/api/notes")).status).toBe(
+    expect((await call("mfp_old-secret", "GET", "/api/v1/notes")).status).toBe(
       401,
     );
     expect(
@@ -182,18 +186,18 @@ describe("API tokens", () => {
 
   it("ends with the password, since whoever knew it could have minted one", async () => {
     const { secret } = await mint();
-    const res = await call(session, "POST", "/api/auth/password", {
+    const res = await call(session, "POST", "/api/v1/auth/password", {
       currentPassword: "test-pass-12",
       newPassword: "another-pass-34",
     });
     expect(res.status).toBe(204);
-    expect((await call(secret, "GET", "/api/notes")).status).toBe(401);
-    expect((await call(session, "GET", "/api/notes")).status).toBe(200);
+    expect((await call(secret, "GET", "/api/v1/notes")).status).toBe(401);
+    expect((await call(session, "GET", "/api/v1/notes")).status).toBe(200);
   });
 
   it("refuses a nameless token", async () => {
     expect(
-      (await call(session, "POST", "/api/tokens", { name: " " })).status,
+      (await call(session, "POST", "/api/v1/tokens", { name: " " })).status,
     ).toBe(422);
   });
 });

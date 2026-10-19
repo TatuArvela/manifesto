@@ -54,19 +54,19 @@ export interface Operation {
 /**
  * The operations anything other than this server's own web client relies on,
  * which the compatibility policy in `api.md` covers: whatever a token can
- * call (a scope names it, `/api/mcp` included), and these, which programs
+ * call (a scope names it, `/api/v1/mcp` included), and these, which programs
  * call with no credential. Everything else is the client's own surface.
  */
 const PUBLIC_WITHOUT_CREDENTIAL = new Set([
-  "/api/health",
-  "/api/capabilities",
-  "/api/openapi.json",
-  "/api/calendar/:file",
-  "/api/public/:token",
-  "/api/public/:token/unlock",
-  "/api/public/:token/attachments/:id",
-  "/api/oauth/register",
-  "/api/oauth/token",
+  "/api/v1/health",
+  "/api/v1/capabilities",
+  "/api/v1/openapi.json",
+  "/api/v1/calendar/:file",
+  "/api/v1/public/:token",
+  "/api/v1/public/:token/unlock",
+  "/api/v1/public/:token/attachments/:id",
+  "/api/v1/oauth/register",
+  "/api/v1/oauth/token",
 ]);
 
 export function isPublicSurface(op: Operation): boolean {

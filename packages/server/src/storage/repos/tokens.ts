@@ -67,7 +67,7 @@ export interface ApiTokensRepo {
   deleteExpired(nowIso: string): Promise<number>;
 }
 
-/** An OAuth client that registered itself (`POST /api/oauth/register`). */
+/** An OAuth client that registered itself (`POST /api/v1/oauth/register`). */
 export interface StoredOAuthClient {
   id: string;
   name: string;

@@ -76,9 +76,9 @@ const copy = async (text: string) => {
   }
 };
 
-const mcpUrl = () => `${SERVER_ORIGIN ?? ""}/api/mcp`;
+const mcpUrl = () => `${SERVER_ORIGIN ?? ""}/api/v1/mcp`;
 const calendarUrl = (token: string) =>
-  `${SERVER_ORIGIN ?? ""}/api/calendar/${token}.ics`;
+  `${SERVER_ORIGIN ?? ""}/api/v1/calendar/${token}.ics`;
 
 /** How the list names what a token may reach. */
 function accessLabel(token: ApiToken): string {

@@ -20,8 +20,8 @@ the storage adapter (`state/versions.ts`), so the editor does not know which mod
 ### Connected mode
 
 - `note_versions` in either driver, pruned per note as versions are added, and deleted with the note.
-- `GET /api/notes/:id/versions` lists them newest first to anyone who can read the note;
-  `POST /api/notes/:id/versions` (`{ title, content, timestamp? }`) adds one, for the owner and editors
+- `GET /api/v1/notes/:id/versions` lists them newest first to anyone who can read the note;
+  `POST /api/v1/notes/:id/versions` (`{ title, content, timestamp? }`) adds one, for the owner and editors
   only. A viewer's editor never has changes to save, so it never asks.
 - `timestamp` is for history brought across from a browser and is kept only when it is a real moment in
   the past and inside the 90 days; otherwise the server stamps the time it received it.

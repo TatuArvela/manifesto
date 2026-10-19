@@ -20,7 +20,7 @@ import {
 import { validatorHook } from "#/validation/zValidator.ts";
 
 /**
- * `/api/push`: a browser subscribing to this account's reminders as push
+ * `/api/v1/push`: a browser subscribing to this account's reminders as push
  * messages. Session-only, like everything that decides where an account's
  * notes are sent: a subscription receives the title and first words of every
  * note whose reminder comes due.

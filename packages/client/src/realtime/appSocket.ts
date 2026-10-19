@@ -344,7 +344,7 @@ function connect(token: string) {
   // A new socket has not been heard from, and owes nothing to what the last
   // one heard.
   hearsHeartbeats = false;
-  const ws = new WebSocket(`${WS_ORIGIN}/api/ws`, [SUBPROTOCOL, token]);
+  const ws = new WebSocket(`${WS_ORIGIN}/api/v1/ws`, [SUBPROTOCOL, token]);
   socket = ws;
 
   ws.onopen = () => {

@@ -2,7 +2,7 @@ import type { ErrorResponse } from "@manifesto/shared";
 import { storageConnection } from "./index.ts";
 
 /**
- * Signed-in requests to the server's `/api`, for the account-level modules
+ * Signed-in requests to the server's `/api/v1`, for the account-level modules
  * (admin, sharing, tokens, webhooks, two-factor) that are not note storage.
  * A 401 answer ends the session through the connection's `onUnauthorized`.
  */
@@ -31,7 +31,7 @@ export async function apiFetch(
   // `=== null`, not falsiness: a same-origin deployment's base is "".
   if (serverUrl === null || !token) return null;
   try {
-    const res = await fetch(`${serverUrl}/api${path}`, {
+    const res = await fetch(`${serverUrl}/api/v1${path}`, {
       method,
       headers: {
         ...headers,

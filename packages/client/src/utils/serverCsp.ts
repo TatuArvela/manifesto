@@ -35,8 +35,8 @@ function splitOrigin(origin: string): Origin | null {
 
 /**
  * The origins a client must be allowed to connect to in order to talk to
- * `serverUrl`: the HTTP one for REST, and the `ws(s)` one for `/api/ws` and
- * `/api/yjs`. Empty when the server is this page's own origin and `'self'`
+ * `serverUrl`: the HTTP one for REST, and the `ws(s)` one for `/api/v1/ws` and
+ * `/api/v1/yjs`. Empty when the server is this page's own origin and `'self'`
  * already covers it. Null when the value is not a server address at all.
  */
 export function requiredConnectOrigins(serverUrl: string): string[] | null {

@@ -46,7 +46,7 @@ interface OAuthDeps {
 }
 
 /**
- * `/api/oauth`: an OAuth 2.1 authorization server for `/api/mcp` and nothing
+ * `/api/v1/oauth`: an OAuth 2.1 authorization server for `/api/v1/mcp` and nothing
  * else. A grant is an `mcp` API token with a refresh token beside it, so it
  * is listed in Settings, revoked there, and ended with the user's sessions
  * like any token; its access token (`mfm_`) lasts an hour and each refresh

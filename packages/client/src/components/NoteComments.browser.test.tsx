@@ -94,7 +94,7 @@ function json(body: unknown, status = 200): Response {
 }
 
 const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
-  const path = String(input).replace(`${SERVER}/api`, "");
+  const path = String(input).replace(`${SERVER}/api/v1`, "");
   const method = init?.method ?? "GET";
   const body = init?.body ? JSON.parse(String(init.body)) : undefined;
   requests.push({ method, path, body });

@@ -126,7 +126,7 @@ describe("a note's format, connected", () => {
     expect(held.format).toBe(2);
     // Only the one refused write went out after the newer one.
     expect(
-      server.requests.filter((r) => r === `PUT /api/notes/${created.id}`),
+      server.requests.filter((r) => r === `PUT /api/v1/notes/${created.id}`),
     ).toHaveLength(2);
   });
 });
