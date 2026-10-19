@@ -7,10 +7,10 @@ remove the note permanently.
 
 - When you delete a note, the app sets `trashed: true` and records `trashedAt` (see
   [Data Model](../data-model.md)).
-- The card becomes a crumpled ball and moves away. The same animation plays when you delete a note
-  permanently from the Trash. A restored card moves up and out of the Trash view, with a glow. No
-  animation plays for a card that stays in the current view after the change. An example is a
-  search that includes both places.
+- The card becomes smaller to its centre until it is gone. The same animation plays when you delete
+  a note permanently from the Trash. A restored card moves up and out of the Trash view, with a
+  glow. No animation plays for a card that stays in the current view after the change. An example
+  is a search that includes both places.
 - To see the trashed notes, open the Trash view in the sidebar.
 - The Trash view shows when each note went to the trash.
 - You can restore a trashed note to its previous state (active or archived).
