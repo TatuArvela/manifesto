@@ -16,13 +16,13 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@hocuspocus/provider": "^4.7.0",
+    "@hocuspocus/provider": "^4.7.1",
     "@manifesto/shared": "workspace:*",
-    "@milkdown/kit": "^7.22.2",
+    "@milkdown/kit": "^7.22.3",
     "@preact/signals": "^2.11.3",
     "clsx": "^2.1.1",
-    "dompurify": "^3.4.16",
-    "lucide-preact": "^1.53.0",
+    "dompurify": "^3.4.17",
+    "lucide-preact": "^1.55.0",
     "lz-string": "^1.5.0",
     "mdast-util-to-markdown": "^2.2.0",
     "preact": "^11.0.1",
