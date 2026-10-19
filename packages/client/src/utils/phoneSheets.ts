@@ -49,6 +49,7 @@ export function openSheet(el: HTMLElement): () => void {
   const sheet: Sheet = { el, scrollY: 0 };
   sheets.push(sheet);
   el.dataset.sheet = "flow";
+  if (sheets.length === 1) document.addEventListener("focusin", keepFocusClear);
   document.documentElement.classList.add("sheet-open");
   window.scrollTo(0, 0);
   paintPage(el);
@@ -63,6 +64,7 @@ function closeSheet(sheet: Sheet) {
   delete sheet.el.dataset.sheet;
   const top = sheets[sheets.length - 1];
   if (!top) {
+    document.removeEventListener("focusin", keepFocusClear);
     document.documentElement.classList.remove("sheet-open");
     stopPainting?.();
     return;
@@ -75,6 +77,41 @@ function closeSheet(sheet: Sheet) {
 }
 
 let stopPainting: (() => void) | null = null;
+
+/**
+ * Scrolls a control the keyboard has reached out from under a phone sheet's
+ * sticky bars (`.note-sheet-top`, `.note-sheet-bottom`), which the browser
+ * counts as on screen and so does not scroll for (WCAG 2.4.11). Only a
+ * keyboard's focus, so a tap never moves the page under the finger, and never
+ * the editor's text, whose box is the whole note: the caret is iOS's to keep
+ * in view. A frame later, after any scroll of the browser's own.
+ */
+function keepFocusClear(event: FocusEvent) {
+  const target = event.target;
+  const sheet = sheets[sheets.length - 1]?.el;
+  if (
+    !isPhoneLayout() ||
+    !(target instanceof HTMLElement) ||
+    !sheet?.contains(target) ||
+    target.isContentEditable ||
+    target.closest(".note-sheet-top, .note-sheet-bottom")
+  ) {
+    return;
+  }
+  requestAnimationFrame(() => {
+    if (!target.matches(":focus-visible")) return;
+    const box = target.getBoundingClientRect();
+    const top =
+      sheet.querySelector(".note-sheet-top")?.getBoundingClientRect().bottom ??
+      0;
+    const bottom =
+      sheet.querySelector(".note-sheet-bottom")?.getBoundingClientRect().top ??
+      window.innerHeight;
+    if (box.height > bottom - top) return;
+    if (box.top < top) window.scrollBy(0, box.top - top);
+    else if (box.bottom > bottom) window.scrollBy(0, box.bottom - bottom);
+  });
+}
 
 /**
  * Gives the page's own background the colour of the note in `sheet`, as

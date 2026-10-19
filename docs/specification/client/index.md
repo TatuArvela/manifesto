@@ -247,3 +247,6 @@ are in [Accessibility](../accessibility.md). In the client that comes down to:
   meant to look done or past is struck through or set apart, never paled with opacity.
 - Targets of at least 24 by 24 px (WCAG 2.5.8). A control drawn smaller (the select circle, a
   card's checkbox, a reminder's clear) reaches the size with an unseen margin around it.
+- Focus is never left under a bar: the board scrolls a card clear of the phone's top bar
+  (`scroll-padding-top`), and a phone sheet scrolls a control the keyboard reaches out from under
+  its sticky bars (`keepFocusClear` in `utils/phoneSheets.ts`).

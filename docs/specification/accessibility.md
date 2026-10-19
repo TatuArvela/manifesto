@@ -33,6 +33,8 @@ client's own conventions (one focus ring, named layers, the Escape stack) are in
   animations preference says otherwise.
 - **Pointer targets**: controls are at least 24 by 24 px, or as large to press when drawn smaller
   (WCAG 2.2, 2.5.8), apart from the exceptions below.
+- **Focus in view**: a control reached with the keyboard is never left hidden under the phone's top
+  bar or an open note's sticky bars (WCAG 2.2, 2.4.11).
 - **Time**: apart from what security needs (a sign-in link or code that expires, a session that ends),
   nothing the app asks of a person has a time limit. An error message stays until it is
   dismissed, and a success message does not leave while it is pointed at or focused.
@@ -55,13 +57,16 @@ These are open, and a deployment that publishes a statement should list them:
 - **Not yet tested with assistive technology.** The app has been reviewed against WCAG 2.1 AA from its
   code, and its browser tests check names, roles and focus, but it has not been tested end to end with
   screen readers (NVDA, JAWS, VoiceOver, TalkBack) or with speech input.
-- **WCAG 2.2 not yet assessed.** Its new criteria, target size (2.5.8) and focus not obscured (2.4.11)
-  among them, have not been checked. Dragging (2.5.7) has its alternative above.
+- **WCAG 2.2 checked from the code, not formally assessed.** Target size (2.5.8), focus not obscured
+  (2.4.11) and dragging (2.5.7) have been gone through; the rest of 2.2's new criteria have not.
+  The aim stays 2.1 AA, which is what EN 301 549 asks for.
 - **A checklist row's gutter in the editor.** On a screen with a mouse, the drag handle (about 14 by
   24 px) and the delete button (about 17 px) beside each item are smaller than 24 px, and too close
   to the checkbox to grow without moving the text. On a touch screen they are full size. An item's
   text can be deleted from the keyboard, but the only way to move an item other than dragging it is
   to cut its line and paste it elsewhere: there is no key for it (WCAG 2.5.7).
+- **A toast can cover a focused control.** A message shows in a corner and may sit over whatever
+  has focus there. It can be dismissed, and a success message goes by itself.
 - **Placeholders are not measured.** The hint in an empty field is drawn paler than text, and may be
   under 4.5:1.
 - **Auto-notes are their plugin's.** A card an auto-note plugin draws is accessible only as far as the
