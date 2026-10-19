@@ -2,6 +2,7 @@ import {
   type AccountSealKeys,
   attachmentIdOf,
   carriedImageAlts,
+  currentNoteFormat,
   type ImageKey,
   isAttachmentRef,
   mapPreviewImages,
@@ -27,6 +28,7 @@ import {
   sealVersion,
   unwrapImageKey,
   wipe,
+  withEveryWord,
 } from "@manifesto/shared";
 import type { Context } from "hono";
 import type { z } from "zod";
@@ -285,6 +287,12 @@ async function sealedChanges(
   // uploaded brings the key kept with it; any other has none here, and
   // sealing refuses it.
   const imageKeys = await uploadedKeys(keys, storage, plain, opened.imageKeys);
+  // A note stored in an older format moves to this one with all its words
+  // at once, the ones not changed as they were opened.
+  const whole =
+    current.format < currentNoteFormat()
+      ? withEveryWord(opened.note, described)
+      : described;
   // On a note shared with the token's account they become the owner's
   // first. A viewer's are left as they are, for the route to refuse.
   const access = await storage.notes.access(id, keys.userId);
@@ -293,10 +301,10 @@ async function sealedChanges(
       ? await ownedByOwner(
           storage,
           { ownerId: access.ownerId, writerId: keys.userId },
-          described,
+          whole,
           imageKeys,
         )
-      : described;
+      : whole;
   const sealed = await sealing(() =>
     sealNoteUpdate(keys, opened.key, id, changes, imageKeys),
   );
@@ -343,6 +351,7 @@ export async function importBody(
         id,
         key: current?.key ?? "",
         keyVersion: current?.keyVersion ?? 1,
+        format: changes?.format ?? current?.format ?? currentNoteFormat(),
         ...stamp,
       } as SealedImportItem);
       continue;

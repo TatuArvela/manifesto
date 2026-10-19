@@ -5,6 +5,7 @@ import {
 } from "#/storage/attachmentMapping.ts";
 import {
   decodeCursor,
+  formatCondition,
   INSERT_COLUMNS,
   noteInsertValues,
   noteUpdateColumns,
@@ -264,6 +265,11 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
         where += ` AND key_version = ?`;
         params.push(expectedKeyVersion);
       }
+      const format = formatCondition(split.shared);
+      if (format) {
+        where += ` AND format ${format.op} ?`;
+        params.push(format.value);
+      }
       const assignments = [...note.columns, "updated_at"].map(
         (column) => `${column} = ?`,
       );
@@ -383,6 +389,12 @@ export function createSqliteNotesRepo(db: SqliteDB): NotesRepo {
       if (expectedKeyVersion !== undefined) {
         where += ` AND key_version = ?`;
         params.push(expectedKeyVersion);
+      }
+      // And on the format the words are in: see `formatCondition`.
+      const format = formatCondition(changes);
+      if (format) {
+        where += ` AND format ${format.op} ?`;
+        params.push(format.value);
       }
       const sql = `UPDATE notes SET ${assignments.join(", ")} ${where}`;
       const info = db.prepare(sql).run(params);

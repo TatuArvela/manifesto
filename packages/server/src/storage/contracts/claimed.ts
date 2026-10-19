@@ -64,8 +64,13 @@ export const heldKey = { key: ciphertext("held key"), keyVersion: 1 };
 export function sealedUpdate(changes: NoteUpdate): SealedNoteUpdate {
   const { title, content, font, images, linkPreviews, color, tags, ...rest } =
     changes;
+  const words = [title, content, font, images, linkPreviews].some(
+    (word) => word !== undefined,
+  );
   return {
     ...rest,
+    // Words come with the format they are in, as the app's do.
+    ...(words && { format: 1 }),
     ...(title !== undefined && { title: ciphertext(title) }),
     ...(content !== undefined && {
       content: ciphertext(content),
@@ -100,6 +105,7 @@ export function sealedCreate(
     id,
     key: ciphertext(`key of ${id}`),
     keyVersion: 1,
+    format: 1,
   };
 }
 
@@ -142,6 +148,7 @@ export function opened(note: SealedNote): Note {
   const {
     key: _key,
     keyVersion: _keyVersion,
+    format: _format,
     excerpt: _excerpt,
     ...rest
   } = note;

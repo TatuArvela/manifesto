@@ -3,9 +3,11 @@ import {
   type Note,
   NoteColor,
   NoteFont,
+  type NoteVersion,
   noteToMarkdownFile,
+  setNoteFormatStepsForTests,
 } from "@manifesto/shared";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { defined } from "#/test/defined.ts";
 import { buildZip } from "#/test/zipTestSupport.ts";
 import { importFiles } from "./importExport.ts";
@@ -116,13 +118,15 @@ describe("exportArchiveFiles", () => {
       [],
     );
     expect(files.map((f) => f.name)).toEqual([
+      "manifest.json",
       "notes.json",
       "notes/Kept.md",
       "notes/Shelved.md",
       "versions.json",
     ]);
+    expect(JSON.parse(defined(files[0]).text)).toEqual({ format: 1 });
     // The trash still travels whole in notes.json.
-    expect(JSON.parse(defined(files[0]).text)).toHaveLength(3);
+    expect(JSON.parse(defined(files[1]).text)).toHaveLength(3);
   });
 
   it("names files safely and never lets two notes share one", () => {
@@ -161,6 +165,7 @@ describe("exportArchiveFiles", () => {
 
   it("adds preferences only when given", () => {
     expect(exportArchiveFiles([], []).map((f) => f.name)).toEqual([
+      "manifest.json",
       "notes.json",
       "versions.json",
     ]);
@@ -201,7 +206,12 @@ describe("exportArchiveFiles", () => {
         },
       },
     );
-    expect(summary).toEqual({ singleCount: 0, bulkCount: 2, failedCount: 0 });
+    expect(summary).toEqual({
+      singleCount: 0,
+      bulkCount: 2,
+      failedCount: 0,
+      newerCount: 0,
+    });
     expect(bulks[0]?.map((n) => [n.title, n.color, n.trashed])).toEqual([
       ["One", NoteColor.Blue, false],
       ["Two", NoteColor.Default, true],
@@ -238,5 +248,75 @@ describe("exportArchiveFiles", () => {
       { title: "Groceries", content: "Body", tags: ["home"], pinned: true },
       { title: "Ideas", content: "- one\n- two", tags: [], pinned: false },
     ]);
+  });
+});
+
+describe("an export's format", () => {
+  // Format 2 while a test runs: every title in capitals.
+  const shout = (words: { title?: string }) =>
+    words.title === undefined ? {} : { title: words.title.toUpperCase() };
+
+  afterEach(() => setNoteFormatStepsForTests(null));
+
+  /** Imports an archive of `notes` and `versions`, as this build reads it. */
+  async function imported(files: { name: string; text: string }[]) {
+    const zip = await buildZip(
+      Object.fromEntries(files.map((f) => [f.name, f.text])),
+    );
+    const bulks: Note[][] = [];
+    const histories: NoteVersion[][] = [];
+    const summary = await importFiles(
+      [new File([zip as BlobPart], "export.zip")],
+      {
+        createNote: async () => null,
+        importBulk: async (notes) => {
+          bulks.push(notes);
+          return true;
+        },
+        importVersions: async (versions) => {
+          histories.push(versions);
+        },
+      },
+    );
+    return { summary, notes: bulks.flat(), versions: histories.flat() };
+  }
+
+  const history: NoteVersion[] = [
+    {
+      noteId: "01J8Z3Q4R5S6T7V8W9X0Y1Z2AB",
+      timestamp: "2026-01-01T09:00:00.000Z",
+      title: "Earlier",
+      content: "Body",
+    },
+  ];
+
+  it("brings an older archive's notes and versions up to date", async () => {
+    const files = exportArchiveFiles([note()], history);
+    setNoteFormatStepsForTests([shout]);
+    const { notes, versions } = await imported(files);
+    expect(notes.map((n) => n.title)).toEqual(["PLAN"]);
+    expect(versions.map((v) => v.title)).toEqual(["EARLIER"]);
+  });
+
+  it("reads an archive from before formats as format 1", async () => {
+    const files = exportArchiveFiles([note()], []).filter(
+      (f) => f.name !== "manifest.json",
+    );
+    setNoteFormatStepsForTests([shout]);
+    const { notes } = await imported(files);
+    expect(notes.map((n) => n.title)).toEqual(["PLAN"]);
+  });
+
+  it("refuses an archive from a newer version rather than misread it", async () => {
+    setNoteFormatStepsForTests([shout]);
+    const files = exportArchiveFiles([note()], history);
+    setNoteFormatStepsForTests(null);
+    const { summary, notes } = await imported(files);
+    expect(notes).toEqual([]);
+    expect(summary).toMatchObject({
+      bulkCount: 0,
+      failedCount: 1,
+      newerCount: 1,
+    });
   });
 });

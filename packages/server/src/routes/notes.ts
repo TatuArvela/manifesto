@@ -13,6 +13,7 @@ import { HttpError } from "#/middleware/error.ts";
 import type { AccessChanges } from "#/sharing/accessChanges.ts";
 import type { NoteEvents } from "#/sharing/noteEvents.ts";
 import type { TeamShares } from "#/sharing/teamShares.ts";
+import { carriesEveryWord } from "#/storage/noteMapping.ts";
 import {
   NoteAccessError,
   type StorageDriver,
@@ -63,6 +64,33 @@ function trashStamp(
 ): { trashedAt?: string | null } {
   if (trashed === undefined) return {};
   return { trashedAt: trashed ? now : null };
+}
+
+/**
+ * Why a write held to the note's format (`formatCondition`) stored nothing,
+ * when that was the reason: words older than the note's, from an app that
+ * has to be reloaded, or a part of the words moved to a newer format.
+ */
+function formatRefusal(
+  changes: StoredNoteUpdate,
+  stored: number,
+): HttpError | null {
+  if (changes.format === undefined) return null;
+  if (changes.format < stored) {
+    return new HttpError(
+      409,
+      "The note was saved by a newer version of the app; reload to edit it",
+      "note_format_newer",
+    );
+  }
+  if (changes.format > stored && !carriesEveryWord(changes)) {
+    return new HttpError(
+      409,
+      "A note moves to a newer format with all of its words at once",
+      "note_format_incomplete",
+    );
+  }
+  return null;
 }
 
 export function createNotesRoutes(deps: NotesDeps) {
@@ -189,6 +217,11 @@ export function createNotesRoutes(deps: NotesDeps) {
         const held = await deps.storage.notes.getById(id, userId);
         if (!held || held.key !== key || held.keyVersion !== keyVersion) {
           stale.push(id);
+          continue;
+        }
+        // Written since by a newer app, whose words this copy would undo.
+        if (held.format > fields.format) {
+          result.skipped++;
           continue;
         }
       }
@@ -332,6 +365,8 @@ export function createNotesRoutes(deps: NotesDeps) {
       if (keyVersion !== undefined && current.keyVersion !== keyVersion) {
         throw new HttpError(409, "The note is under another key now");
       }
+      const refused = formatRefusal(changes, current.format);
+      if (refused) throw refused;
       if (ifMatch !== undefined && current.updatedAt !== ifMatch) {
         // 412 carries the current note so the client can run a 3-way
         // merge and retry without re-fetching.

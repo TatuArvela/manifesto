@@ -1,5 +1,12 @@
 import type { Note, NoteCreate, NoteVersion } from "@manifesto/shared";
-import { EXPORT_NOTES_FILE, EXPORT_VERSIONS_FILE } from "@manifesto/shared";
+import {
+  currentNoteFormat,
+  EXPORT_MANIFEST_FILE,
+  EXPORT_NOTES_FILE,
+  EXPORT_VERSIONS_FILE,
+  NewerNoteFormatError,
+  upgradeNoteWords,
+} from "@manifesto/shared";
 import {
   type ImportResult,
   isNoteVersion,
@@ -77,6 +84,8 @@ export interface ImportSummary {
   singleCount: number;
   bulkCount: number;
   failedCount: number;
+  /** Archives refused for coming from a newer version of the app. */
+  newerCount: number;
 }
 
 interface ImportHandlers {
@@ -109,7 +118,9 @@ function parseJsonOrNull(text: string): unknown {
  * `notes.json` holds every note whole (ids, colors, images, the trash) and its
  * Markdown files are the same notes stripped down for other tools, so when it
  * is there it is the import, with `versions.json` beside it, and the rest of
- * the archive is not read.
+ * the archive is not read. Its `manifest.json` says the format the notes are
+ * in: an older one is brought up to date, and one newer than this build
+ * reads refuses the archive (`NewerNoteFormatError`) rather than misread it.
  */
 async function notesFromZip(
   file: File,
@@ -138,15 +149,24 @@ async function notesFromZip(
       !data.some((item) => !isValidNoteShape(item))
     ) {
       const dir = exportedNotes.name.slice(0, -EXPORT_NOTES_FILE.length);
+      const format = await archiveFormat(
+        byDirAndName.get(dir + EXPORT_MANIFEST_FILE),
+        read,
+      );
+      if (format > currentNoteFormat()) throw new NewerNoteFormatError(format);
       const history = byDirAndName.get(dir + EXPORT_VERSIONS_FILE);
       const versions = history
         ? parseJsonOrNull(textDecoder.decode(await read(history)))
         : null;
       return {
         notes: data.map((item: Record<string, unknown>) =>
-          normalizeImportedNote(item),
+          upgradeNoteWords(normalizeImportedNote(item), format),
         ),
-        versions: Array.isArray(versions) ? versions.filter(isNoteVersion) : [],
+        versions: Array.isArray(versions)
+          ? versions
+              .filter(isNoteVersion)
+              .map((version) => upgradeNoteWords(version, format))
+          : [],
       };
     }
   }
@@ -196,6 +216,26 @@ async function notesFromZip(
 }
 
 /**
+ * The format an export's notes are in, from its manifest: 1 for an archive
+ * from before formats were recorded, which has none, and for one that does
+ * not say.
+ */
+async function archiveFormat(
+  manifest: ZipEntry | undefined,
+  read: (entry: ZipEntry) => Promise<Uint8Array>,
+): Promise<number> {
+  if (!manifest) return 1;
+  const data = parseJsonOrNull(textDecoder.decode(await read(manifest)));
+  const format =
+    typeof data === "object" && data !== null
+      ? (data as { format?: unknown }).format
+      : undefined;
+  return typeof format === "number" && Number.isInteger(format) && format >= 1
+    ? format
+    : 1;
+}
+
+/**
  * Process one or more files: each file becomes either a new single note
  * (markdown / single-note JSON) or a bulk merge (JSON array, archive). Keep
  * notes picked from an unpacked Takeout folder are gathered into one merge,
@@ -209,6 +249,7 @@ export async function importFiles(
     singleCount: 0,
     bulkCount: 0,
     failedCount: 0,
+    newerCount: 0,
   };
   const all = [...files];
   const images = new Map<string, File>();
@@ -286,8 +327,9 @@ export async function importFiles(
       } else {
         await bulk(result.notes);
       }
-    } catch {
+    } catch (err) {
       summary.failedCount++;
+      if (err instanceof NewerNoteFormatError) summary.newerCount++;
     }
   }
   if (keepNotes.length > 0) await bulk(keepNotes);

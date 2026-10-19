@@ -134,7 +134,13 @@ export function DataSettings() {
           : plural("settings.data.importedCount", summary.singleCount),
       );
     } else {
-      setDataStatus(t("settings.data.importFailed"));
+      setDataStatus(
+        t(
+          summary.newerCount > 0
+            ? "settings.data.importNewer"
+            : "settings.data.importFailed",
+        ),
+      );
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
