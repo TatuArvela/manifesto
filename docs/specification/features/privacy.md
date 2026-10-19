@@ -1,9 +1,9 @@
 # Privacy
 
 Who can read what someone writes in Manifesto, and what they can find out when they do. The short
-version: in open mode nobody but the person at the device; in connected mode the operator of the
-server can, admins cannot from inside the app unless the server is set up to let them, and anything an
-admin does to an account shows on that account's own Activity page.
+version: in open mode nobody but the person at the device; in connected mode the people a note is
+shared with, and neither the operator nor the admins, since notes are sealed in the browser before
+they reach the server. Anything an admin does to an account shows on that account's own Activity page.
 
 This page describes the software. A deployment's operator decides the rest (who is an admin, where the
 database and its backups live, which settings are on), so a user of someone else's server trusts that
@@ -17,11 +17,11 @@ operator, not only the code.
 | **Connected, own server** | Its operator, which is the user. |
 | **Connected, someone else's server** | The people a note is [shared with](sharing-with-people.md). The operator and the admins hold what the browser sealed and no key that opens it. |
 
-Notes are being moved to end-to-end encryption: [Encryption](encryption.md) has the design, and
-says which parts are built. Everything a person writes in a note (its title, text, tags, colour,
-images, the shared document it is edited in, its versions and comments) is sealed in the browser
-before it reaches the server. That is built but not yet released; until a release carries it,
-anyone who needs notes the server cannot read should use open mode, or run their own server.
+Everything a person writes in a note (its title, text, tags, colour, images, the shared document it
+is edited in, its versions and comments) is sealed in the browser before it reaches the server.
+[Encryption](encryption.md) has the design, what is built, and what it does not protect: chiefly an
+operator who changes the client the server hands out, and a request made with a token, which the
+server opens in memory.
 
 ## What an admin can see
 
@@ -60,7 +60,7 @@ Beyond that, someone on a note sees the names of the others on it, and the names
 Settings has an **Activity** page for every signed-in user (`GET /api/auth/me/activity`): the audit
 log's lines where they are the actor or the target, newest first. That is their sign-ins and failed
 ones, changes to how the account is secured, shares with and by them, and every admin action on their
-account, a download of their notes included, with the admin's name. The rule is that what an admin
+account, with the admin's name. The rule is that what an admin
 can see about someone, that person can see too.
 
 - **Addresses** are shown for what the user did themselves and for failed sign-ins on their account,
@@ -73,14 +73,17 @@ can see about someone, that person can see too.
 
 ## What the operator holds
 
-Everything the server stores is readable by whoever runs it:
+Everything the server stores is in the hands of whoever runs it. Some of it is sealed, and the
+operator holds it without a key; the rest is readable:
 
-- **Notes**, their [version history](version-history.md), [attachments](attachments.md) and the
-  shared document state of [collaborative editing](collaborative-editing.md).
+- **Notes**, their [version history](version-history.md), [attachments](attachments.md), comments
+  and the shared document state of [collaborative editing](collaborative-editing.md): sealed. What
+  the server reads about them (which exist, whose they are, who they are shared with, how large,
+  when they changed, their pin, archive and trash state, and when a reminder is due) is listed in
+  [Encryption](encryption.md#what-it-does-not-protect).
 - **Accounts**: usernames, display names, email addresses, the language each client is set to, and
   password hashes (argon2). Sessions and API tokens are stored as hashes.
-- **Preferences** that follow the account ([Preferences](preferences.md)), which include the names
-  of tags hidden from the board.
+- **Preferences** that follow the account ([Preferences](preferences.md)): sealed, like notes.
 - **The audit log**, with client addresses. A failed sign-in names the account it was for only when
   the name tried belongs to one: a name that matched no account is not kept, since it is often a
   password typed into the wrong field.
@@ -126,7 +129,9 @@ and the features that reach third parties, below.
 
 The server's own log carries method, path, status and timing, never a request body or a query string,
 so what someone searches for is not logged. Encryption at rest is whatever the operator's disk or
-database provides.
+database provides; on top of it, notes are sealed by the browser and a few values the server
+reads by itself (reminder times, webhook and authenticator secrets, push keys) by the [server
+key](encryption.md#the-server-key).
 
 ## What reaches third parties
 

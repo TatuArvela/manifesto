@@ -1,11 +1,11 @@
 # Encryption
 
-**Status: planned before 1.0.0, design chosen, being built.** Steps 1 to 7 of
+**Status: released in 0.6.0, one step left before 1.0.0.** Steps 1 to 7 of
 [the order of building](#order-of-building) are in place: every account has its keys and is unlocked
 with its secret key, and everything a person writes in a note (its title, text, tags, colour, images,
 shared document, versions and comments) is sealed in the browser. Step 8, replacing the account key,
 is not, and [what is built so far](#what-is-built-so-far) says where the build is narrower than the
-design. None of it is released yet. This page says what protects notes now and the design chosen:
+design. This page says what protects notes and how:
 [end-to-end encryption for every account](#the-design-end-to-end-for-every-account) in connected
 mode. Notes are encrypted in the browser before they reach the server, and the server stores them
 without a key that opens them.
@@ -13,19 +13,19 @@ without a key that opens them.
 Where security and convenience pull apart, security wins. [What it costs](#what-it-costs) lists what
 is given up for it.
 
-## What is protected today
+## What protects notes
 
+- **In connected mode**: the notes themselves are sealed in the browser, as the rest of this page
+  describes. The server stores them, and its database and backups hold them, without a key that
+  opens them. What it can still read is listed under [What it does not
+  protect](#what-it-does-not-protect).
 - **In transit**: connected mode is meant to be served over HTTPS; the client refuses nothing, but every
   deployment guide puts TLS in front of the server (see [Server Deployment](../server/deployment.md)).
-- **At rest on the server**: whatever the operator's disk, volume or managed database provides. A
-  self-hoster who runs the server on an encrypted volume gets encryption at rest without Manifesto
-  knowing.
+  Sealing does not replace it: TLS also covers the session, the secret key typed at sign-in, and what
+  the server reads.
 - **At rest in open mode**: `localStorage` is as private as the browser profile and the device it is on.
 
-The server operator can read every note on their server. For a self-hosted instance that is the user
-themselves; for an organisation's deployment it is the organisation. Admins, as distinct from the
-operator, cannot read notes from inside the app unless the server allows it; [Privacy](privacy.md) has
-the details.
+[Privacy](privacy.md) says who can read what, and what admins see.
 
 ## The design: end to end, for every account
 
@@ -448,9 +448,8 @@ Steps 2 to 7 are released together: a server half way would hold notes its own f
 
 ### What is built so far
 
-Steps 1 to 7 are built. Step 8, replacing the account key, is not, and a few things are built
-narrower than the sections above describe; each is said where it applies below. Nothing of the
-app's own screens has been run in a browser yet, so none of this is released:
+Steps 1 to 7 are built and released in 0.6.0. Step 8, replacing the account key, is not, and a few
+things are built narrower than the sections above describe; each is said where it applies below:
 
 - **Sealed in the browser**: a note's title, text, excerpt, font, link previews and list of images
   under its note key, its tags and colour under the reader's personal key, its versions, and the

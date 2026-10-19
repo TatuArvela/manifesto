@@ -105,5 +105,4 @@ not shown then.
   `Referer` leaves the page.
 
 A link's token is 128 random bits, kept as it is so the owner can copy the link again. Making and
-revoking a link are written to the [audit log](accounts.md). Links that can edit are not offered;
-see the note in `TODO.md`.
+revoking a link are written to the [audit log](accounts.md). Links that can edit are not offered.

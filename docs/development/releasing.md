@@ -27,7 +27,7 @@ PR titles become commit messages on squash-merge, so the PR title is what releas
 ## What ships per release
 
 - **Client zip**: `manifesto-client-vX.Y.Z.zip` attached to the GitHub Release. Open-mode build with base path `/`. Drop on any static host. It carries the default product name; rebranding it needs no rebuild; see [Rebranding](../specification/client/deployment.md#rebranding).
-- **Server image**: `ghcr.io/tatuarvela/manifesto-server:X.Y.Z` and `:latest`, multi-arch (`linux/amd64`, `linux/arm64`).
+- **Server image**: `ghcr.io/tatuarvela/manifesto-server:X.Y.Z` and `:latest`, multi-arch (`linux/amd64`, `linux/arm64`), signed with cosign (keyless, by digest), with an SBOM and SLSA provenance attached. Verifying them is in [Server Deployment](../specification/server/deployment.md).
 - **GitHub Release**: notes auto-generated from the PR titles since the previous tag.
 
 ## Post-release checklist
@@ -37,21 +37,19 @@ PR titles become commit messages on squash-merge, so the PR title is what releas
 - [ ] `curl https://<server>/api/health` reports `version: "X.Y.Z"`.
 - [ ] `https://tatuarvela.github.io/manifesto/` shows the new version in Settings → About (hard-refresh past the service worker).
 
-### One-time on first release (v0.1.0)
+## Before 1.0.0
 
-- [ ] Remove the `release-as: "0.1.0"` line from `release-please-config.json` in a follow-up PR. Otherwise every release PR will keep proposing 0.1.0.
-- [ ] Mark the GHCR package public at `https://github.com/users/TatuArvela/packages/container/manifesto-server/settings`. New GHCR packages are private by default.
+From 1.0.0 the public API is under the compatibility policy in [API](../specification/api.md#compatibility), and stored notes have to keep opening across releases. Still to do before then:
 
-## Deferred (not in v0.1.0)
+- **API versioning**: the public surface under a versioned path, so a later breaking change can live beside the old one.
+- **Data versioning**: a version on stored notes, and a migration layer in the client for both modes. Server migrations are already versioned (`storage/migrations.ts`).
+- **Replacing the account key**: step 8 of [Encryption](../specification/features/encryption.md#order-of-building).
 
-The following surfaces are intentionally not stabilised yet and will need their own work before a 1.0:
+## Not planned
 
-- `/api/v1/` path versioning + a documented breaking-change policy
-- `schemaVersion` on the `Note` type and a client-side migration layer
-- Versioned server migrations (currently idempotent `CREATE TABLE IF NOT EXISTS`)
+Considered and left out for now; each can come after 1.0.0, since none changes a contract:
+
 - Per-package independent versions
-- A connected-mode prebuilt client bundle
-- Cosign signatures, SBOM, SLSA provenance
-- Docker Hub mirror
-- Server tarball for non-Docker self-hosters
-- PR-title commitlint enforcement
+- A prebuilt client bundle for connected mode
+- A Docker Hub mirror
+- A server tarball for self-hosters without Docker
