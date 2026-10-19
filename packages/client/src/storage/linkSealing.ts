@@ -1,5 +1,6 @@
 import {
   type AccountSealKeys,
+  currentNoteFormat,
   type ImageKeys,
   type Note,
   newLinkKey,
@@ -97,6 +98,7 @@ export async function sealPublicLink(
         images: sealed.images ?? "",
         linkPreviews: sealed.linkPreviews ?? "",
         refs: [...(sealed.imageRefs ?? []), ...(sealed.previewRefs ?? [])],
+        format: currentNoteFormat(),
       },
     },
   };

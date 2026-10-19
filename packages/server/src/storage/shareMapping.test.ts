@@ -26,6 +26,7 @@ const WHERE: Record<
   keyof Required<SealedNoteUpdate>,
   "shared" | "personal" | "owner"
 > = {
+  format: "shared",
   title: "shared",
   content: "shared",
   excerpt: "shared",
@@ -55,6 +56,7 @@ const WHERE: Record<
 const sample: Required<SealedNoteUpdate> = {
   key: ciphertext("key"),
   keyVersion: 2,
+  format: 1,
   title: ciphertext("t"),
   content: ciphertext("c"),
   excerpt: ciphertext("c"),

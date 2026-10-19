@@ -255,6 +255,7 @@ export interface VersionsRepo {
     noteId: string;
     authorId: string;
     keyVersion: number;
+    format: number;
     title: string;
     content: string;
     createdAt: string;

@@ -5,6 +5,7 @@ import { describeAdminContract } from "#/storage/contracts/adminContract.ts";
 import { describeAttachmentsContract } from "#/storage/contracts/attachmentsContract.ts";
 import { claimed, claimedUpdate, opened } from "#/storage/contracts/claimed.ts";
 import { describeCommentsContract } from "#/storage/contracts/commentsContract.ts";
+import { describeNoteFormatContract } from "#/storage/contracts/noteFormatContract.ts";
 import { describeOAuthContract } from "#/storage/contracts/oauthContract.ts";
 import { describePasskeysContract } from "#/storage/contracts/passkeysContract.ts";
 import { describePrefsContract } from "#/storage/contracts/prefsContract.ts";
@@ -37,6 +38,7 @@ describePasskeysContract("postgres (pg-mem)", bootStorage);
 describeAccountKeysContract("postgres (pg-mem)", bootStorage);
 describeCommentsContract("postgres (pg-mem)", bootStorage);
 describePushContract("postgres (pg-mem)", bootStorage);
+describeNoteFormatContract("postgres (pg-mem)", bootStorage);
 describePrefsContract("postgres (pg-mem)", bootStorage, { locks: false });
 
 describe("postgres: audit log", () => {
@@ -326,6 +328,7 @@ describe("postgres: versions", () => {
         noteId: "n1",
         authorId: "u1",
         keyVersion: 1,
+        format: 1,
         title: "",
         content: String(i),
         createdAt: new Date(Date.now() - (100 - i) * 1000).toISOString(),

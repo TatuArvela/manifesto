@@ -69,6 +69,32 @@ this form: the browser seals `title`, `content`, `font`, `images`, `linkPreviews
 (a title's 500 characters, 50 tags) are kept by the client that seals a note, and applied again by
 the client that opens one.
 
+### Format
+
+What a note's words hold (the text, the image entries, the link previews) can change from one
+release to the next, so every place a note is kept records the **format** it was written in: a
+number, 1 for every note from before formats were recorded, raised by one with each change
+(`currentNoteFormat()` in `packages/shared/src/noteFormat.ts`). The app only ever holds a note in
+the current format:
+
+- **Reading** a note kept in an older format brings its words up to date with the steps in
+  `NOTE_FORMAT_STEPS`, one per format, in order. Reading changes nothing where the note is kept.
+- **Writing** stamps the current format. A sealed note keeps one format for all its words, so a
+  write that changes any word of a note kept in an older format sends every word, the ones it did
+  not change as they were read and brought up to date.
+- **A newer format** than the build reads is never shown as if understood, and never written over:
+  an older tab or a cached build has to be reloaded first.
+
+| Where | Records the format in | Newer than this build |
+|---|---|---|
+| Open mode | `manifesto:notes:format`, for the notes and their versions together; brought up to date once, as a whole | Neither read nor written; every action says to reload |
+| Connected mode | `format` on each sealed note, version and public link snapshot, readable ([API](api.md#sealed-notes)) | Left off the board, which says how many and to reload; the server refuses a write in an older format (`409`, `note_format_newer`) |
+| An export | `manifest.json` in the zip ([Export and Import](features/export-import.md#export)) | The import is refused |
+| Notes not stored yet | Each record of the composer's draft and the unsent notes on the device | Left where they are, for the newer build |
+
+A format describes the words only. Colour, tags and the rest are held to their checks when a note is
+opened, and the shared document a note is edited in has its own version (`EDITOR_SCHEMA_VERSION`).
+
 ### Identifiers
 
 Notes use [ULID](https://github.com/ulid/spec) (Universally Unique Lexicographically Sortable Identifier) for the `id` field.

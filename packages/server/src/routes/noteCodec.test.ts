@@ -4,6 +4,7 @@ import {
   NoteColor,
   NoteFont,
   type SealedNote,
+  setNoteFormatStepsForTests,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { nowIso } from "#/lib/time.ts";
@@ -283,6 +284,7 @@ describe("noteCodec", () => {
         noteId: note.id,
         authorId: userId,
         keyVersion: version.keyVersion,
+        format: version.format,
         title: version.title,
         content: version.content,
         createdAt: nowIso(),
@@ -308,6 +310,87 @@ describe("noteCodec", () => {
       expect(await refusal(() => noteRing(keys, rig.storage, "missing"))).toBe(
         404,
       );
+    });
+  });
+
+  describe("a note's format", () => {
+    // A step that writes every title in capitals: format 2, as this build
+    // knows it while the test runs.
+    const shout = (words: { title?: string }) =>
+      words.title === undefined ? {} : { title: words.title.toUpperCase() };
+
+    afterEach(() => setNoteFormatStepsForTests(null));
+
+    it("reads a note in an older format brought up to date", async () => {
+      const note = await stored();
+      expect(note.format).toBe(1);
+      setNoteFormatStepsForTests([shout]);
+      expect(await noteOut(keys, note)).toMatchObject({
+        title: "GROCERIES",
+        content: "Milk and eggs",
+      });
+    });
+
+    it("moves an older note with every word when one changes, and leaves a pin alone", async () => {
+      const note = await stored();
+      setNoteFormatStepsForTests([shout]);
+      const pin = await updateBody(
+        token({ pinned: true }),
+        keys,
+        rig.storage,
+        note.id,
+      );
+      expect(pin).not.toHaveProperty("format");
+      expect(pin).not.toHaveProperty("title");
+
+      const changes = await updateBody(
+        token({ content: "Bread" }),
+        keys,
+        rig.storage,
+        note.id,
+      );
+      expect(changes).toMatchObject({ format: 2 });
+      for (const word of ["title", "font", "images", "linkPreviews"]) {
+        expect(changes).toHaveProperty(word);
+      }
+      const written = await rig.storage.notes.update(
+        note.id,
+        userId,
+        changes as Parameters<typeof rig.storage.notes.update>[2],
+        nowIso(),
+      );
+      if (!written) throw new Error("The update was not written");
+      expect(written.format).toBe(2);
+      expect(await noteOut(keys, written)).toMatchObject({
+        title: "GROCERIES",
+        content: "Bread",
+      });
+    });
+
+    it("leaves out a note in a format newer than it reads", async () => {
+      setNoteFormatStepsForTests([shout, shout]);
+      const newer = await stored({ title: "From later" });
+      expect(newer.format).toBe(3);
+      setNoteFormatStepsForTests(null);
+      const older = await stored();
+      expect(await noteOut(keys, newer)).toBeNull();
+      expect(await notesOut(keys, [newer, older])).toHaveLength(1);
+    });
+
+    it("reads a version in an older format brought up to date", async () => {
+      const note = await stored();
+      const version = await versionBody(
+        token({ title: "Before", content: "it changed" }),
+        keys,
+        note,
+      );
+      if (!version) throw new Error("No version was sealed");
+      expect(version.format).toBe(1);
+      setNoteFormatStepsForTests([shout]);
+      const [read] = await versionsOut(keys, note, [
+        { ...version, noteId: note.id, timestamp: nowIso() },
+      ]);
+      expect(read).toMatchObject({ title: "BEFORE", content: "it changed" });
     });
   });
 });

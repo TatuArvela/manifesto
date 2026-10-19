@@ -524,6 +524,17 @@ const ATTACHMENT_KEYS = `
 ALTER TABLE attachments ADD COLUMN wrapped_key TEXT;
 `;
 
+/**
+ * The format a note's words are in (`noteFormat.ts` in shared), for the note
+ * and for each of its versions. Readable, since a client has to know before
+ * opening a note whether it can read it, and the server holds a write to it.
+ * Every note stored so far is format 1.
+ */
+const NOTE_FORMAT = `
+ALTER TABLE notes ADD COLUMN format INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE note_versions ADD COLUMN format INTEGER NOT NULL DEFAULT 1;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -565,6 +576,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0035-reminder-keys", sql: REMINDER_KEYS },
   { id: "0036-oauth-keys", sql: OAUTH_KEYS },
   { id: "0037-attachment-keys", sql: ATTACHMENT_KEYS },
+  { id: "0038-note-format", sql: NOTE_FORMAT },
 ];
 
 /**

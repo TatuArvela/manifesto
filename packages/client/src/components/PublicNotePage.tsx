@@ -59,7 +59,9 @@ export function PublicNotePage({ token }: { token: string }) {
             {t(
               result.kind === "gone"
                 ? "publicLink.page.gone"
-                : "publicLink.page.failed",
+                : result.kind === "newer"
+                  ? "publicLink.page.newer"
+                  : "publicLink.page.failed",
             )}
           </p>
         )}

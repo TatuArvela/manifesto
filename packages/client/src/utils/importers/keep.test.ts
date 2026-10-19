@@ -144,7 +144,12 @@ describe("importFiles with Takeout", () => {
       [new File([zip as BlobPart], "takeout.zip", { type: "application/zip" })],
       handlers,
     );
-    expect(summary).toEqual({ singleCount: 0, bulkCount: 2, failedCount: 0 });
+    expect(summary).toEqual({
+      singleCount: 0,
+      bulkCount: 2,
+      failedCount: 0,
+      newerCount: 0,
+    });
     expect(bulks[0]?.map((n) => n.title).sort()).toEqual(["", "Shopping"]);
     expect(bulks[0]?.find((n) => n.title === "Shopping")?.images).toHaveLength(
       1,
@@ -161,7 +166,12 @@ describe("importFiles with Takeout", () => {
       ],
       handlers,
     );
-    expect(summary).toEqual({ singleCount: 0, bulkCount: 2, failedCount: 0 });
+    expect(summary).toEqual({
+      singleCount: 0,
+      bulkCount: 2,
+      failedCount: 0,
+      newerCount: 0,
+    });
     expect(bulks).toHaveLength(1);
     expect(bulks[0]?.[0]?.images).toHaveLength(1);
   });
@@ -195,7 +205,12 @@ describe("importFiles with Takeout", () => {
       [new File([zip as BlobPart], "notes.zip", { type: "application/zip" })],
       handlers,
     );
-    expect(summary).toEqual({ singleCount: 0, bulkCount: 1, failedCount: 0 });
+    expect(summary).toEqual({
+      singleCount: 0,
+      bulkCount: 1,
+      failedCount: 0,
+      newerCount: 0,
+    });
     expect(bulks[0]?.[0]).toMatchObject({
       id: "01HACCOUNT",
       color: NoteColor.Blue,
