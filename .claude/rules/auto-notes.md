@@ -8,36 +8,47 @@ paths:
 
 # Auto-notes Plugin Sandbox
 
-Auto-notes run user-supplied JavaScript, so it executes at three removes from the app and each
-remove is load-bearing:
+Auto-notes run JavaScript that the user supplies. Thus, the code runs at three levels of isolation
+from the app. Each level is necessary:
 
-- `public/autonotes-sandbox.html` is loaded via `iframe.src` with `sandbox="allow-scripts"` and no
-  `allow-same-origin`: an opaque origin, so no host storage, cookies or DOM. It can't be `srcdoc`:
-  those inherit our `script-src 'self'`, while a frame from a real URL carries its own CSP.
-- Inside the frame, the plugin runs in a blob `Worker` (hence `worker-src blob:` in that CSP). This
-  is what makes the 2s timeout in `autoNotes/sandbox.ts` enforceable: a plugin that never returns
-  occupies only the worker's thread. An engine that refuses a worker at an opaque origin gets a
-  fallback to frame-thread execution, reported in `init-ok` and warned about by the host.
-- The frame returns `JSON.stringify({ value })` and validates nothing; `autoNotes/results.ts`
-  decides what is a note. Keep it that way, because a plugin that subverts the frame passes the frame's
-  own checks.
+- `public/autonotes-sandbox.html` loads through `iframe.src` with `sandbox="allow-scripts"` and no
+  `allow-same-origin`. This gives an opaque origin, with no access to host storage, cookies or DOM.
+  It cannot be `srcdoc`, because a `srcdoc` frame gets our `script-src 'self'`. A frame from a real
+  URL has its own CSP.
+- Inside the frame, the plugin runs in a blob `Worker` (thus `worker-src blob:` in that CSP). This
+  makes the 2s timeout in `autoNotes/sandbox.ts` possible: a plugin that never returns uses only the
+  thread of the worker. If an engine does not allow a worker at an opaque origin, the plugin runs on
+  the thread of the frame. `init-ok` reports this, and the host shows a warning.
+- The frame returns `JSON.stringify({ value })` and validates nothing. `autoNotes/results.ts`
+  decides what is a note. Do not change this. A plugin that takes control of the frame also passes
+  the checks of the frame.
 
-A plugin can read notes, and the rule that makes that safe is that it has no way out but its cards.
-It asks with `// @reads <tags>` in its header (`parse.ts`), reads a tag only while the source asks and
-the user has allowed it (`grantedReads` in `registry.ts`), and gets `ctx.notes`, a frozen copy built by
-`notesFor` in `state/autoNotes.ts` from the user's own notes (handed to `initAutoNotes`, since
-`notesStore` imports this module). A tag covers the tags nested under it (`isTagWithin`). Four things
-keep what it reads in:
+A plugin can read notes. This is safe because the plugin has no output other than its cards.
 
-- The frame's CSP and the worker: no connection, no navigation. `runPlugin` refuses to hand notes to a
-  plugin running on the frame's own thread, where it could navigate the frame.
-- A run handed notes gets a sandbox of its own, destroyed when it ends. The worker is otherwise shared,
-  and a plugin can leave what it read on `self`, or patch `__run` to catch the next plugin's notes.
-- `drawnWithoutImages` / `withoutImages` (`utils/stripImages.ts`), which every place that renders a
-  generated note's content must apply. It is the second layer behind the page's `img-src 'self'`,
-  which a deployment may loosen. The answer comes from the run that made the card (`reading` on the
-  rendered note) as well as from the plugin now, so Stop does not bring the images back.
-- `noteMenuItems` offers no Duplicate for such a card: the copy would be an ordinary note.
+- It asks for notes with `// @reads <tags>` in its header (`parse.ts`).
+- It reads a tag only while the source asks for it and the user allows it (`grantedReads` in
+  `registry.ts`).
+- It gets `ctx.notes`, a frozen copy of the notes of the user. `notesFor` in `state/autoNotes.ts`
+  makes the copy. The notes go to `initAutoNotes`, because `notesStore` imports this module.
+- A tag includes the tags nested under it (`isTagWithin`).
 
-A new renderer of auto-note content, a new way to turn a generated note into an ordinary one, or a new
-field on a generated note that fetches (an image, a link preview), reopens the way out.
+Four things keep the notes that a plugin reads inside the sandbox:
+
+- The CSP of the frame, and the worker: no connection and no navigation. `runPlugin` does not give
+  notes to a plugin that runs on the thread of the frame, because that plugin can navigate the
+  frame.
+- A run that gets notes gets its own sandbox. The app destroys this sandbox when the run ends.
+  Other runs share the worker. In a shared worker, a plugin can keep the notes on `self`, or change
+  `__run` to catch the notes of the next plugin.
+- `drawnWithoutImages` and `withoutImages` (`utils/stripImages.ts`). Each place that renders the
+  content of a generated note must apply them. They are the second layer behind the
+  `img-src 'self'` of the page, because a deployment can make that rule less strict. The decision
+  comes from the run that made the card (`reading` on the rendered note), and also from the current
+  plugin. Thus, Stop does not show the images again.
+- `noteMenuItems` does not show Duplicate for such a card, because the copy is an ordinary note.
+
+Be careful with these changes, because each one opens a way out again:
+
+- A new renderer of auto-note content.
+- A new way to change a generated note into an ordinary note.
+- A new field on a generated note that fetches data (an image, a link preview).

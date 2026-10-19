@@ -14,46 +14,83 @@ paths:
 
 # API Contract
 
-`packages/shared/src/api.ts` declares the wire types (one module per area in `src/api/`, all re-exported from
-it) and `docs/specification/api.md` is the source of truth.
-`GET /api/v1/openapi.json` is generated from `src/openapi.ts`, whose request bodies are the validation
-schemas (`validation/`, one file per area: `accountSchemas.ts`, `noteSchemas.ts`, `sharingSchemas.ts`,
-`accessSchemas.ts`, built from the pieces in `fields.ts`); a new route must be added to `OPERATIONS` there (through its area's list in `src/openapi/`),
-or `openapi.test.ts` fails.
+`packages/shared/src/api.ts` declares the wire types. Each area has one module in `src/api/`, and
+`api.ts` exports all of them again. `docs/specification/api.md` is the source of truth.
 
-The document is meant to be generated from (`node dist/cli.js openapi` prints it with no database). A
-response of the public surface is described with `exact` in `openapi.ts`, every property required unless
-named optional, and `openapi.conformance.test.ts` checks the server's real answers against it; add the
-call there when a public operation gains a response shape. `exact` leaves the schema open, since the
-policy allows additions, so it is the test's `undeclared` that catches a field the document lacks, not
-the schema. A request schema that refers to itself comes
-out of zod with `$defs`, which `embeddable` lifts into the components so no reference dangles.
+## The OpenAPI document
 
-`OPERATIONS` is also every route's protection, and nothing else is: each declares `auth` (`none`,
-`any`, `session`, `admin`, `mcp`) and its rate-limit `limits` (`BUCKETS` in `middleware/protect.ts`,
-required, `[]` for none), and one middleware on `/api/v1/*` (`createProtection`) applies them from the
-route Hono matched. Routers mount no auth or rate limit of their own, and a matched route nobody
-declared is refused. `/api/v1/ws` checks its own caller in the handshake (`SELF_AUTHENTICATED`).
-`middleware/protect.test.ts` walks the list against the running app, and pins what secures an account
-to a session.
+`GET /api/v1/openapi.json` comes from `src/openapi.ts`. Its request bodies are the validation
+schemas in `validation/`, with one file for each area: `accountSchemas.ts`, `noteSchemas.ts`,
+`sharingSchemas.ts` and `accessSchemas.ts`. These use the parts in `fields.ts`. Add each new route
+to `OPERATIONS` (through the list of its area in `src/openapi/`). If you do not,
+`openapi.test.ts` fails.
 
-What a host can switch off is one registry, `FEATURES` in `features.ts` (its env var, default and
-what it requires; `SERVER_FEATURES` in shared names them). An operation of one says so as `feature`
-in `OPERATIONS`, and `createProtection` answers it with the app's own 404 before anything else, so an
-off feature looks absent; never add an `if (!cfg.x) throw 404` to a route. What no route decides (a
-token's kind, a socket, a job, OIDC team sync) asks `isFeatureOn`, which also applies requirements.
-The ways out of a feature (removing a share, a passkey, two-factor, a token) carry no `feature` and
-stay open. `/api/v1/capabilities` reports the registry and the client reads it through
-`serverFeature()` (`state/serverFeatures.ts`); a new feature is an entry in both lists, its tags,
-and a line in the deployment doc's "Turning features off", which `features.test.ts` checks.
+Clients can generate code from the document. `node dist/cli.js openapi` prints it without a
+database.
 
-The public surface (whatever a token can reach, the credential-free routes in `isPublicSurface`,
-webhook payloads, MCP tools) will be under the compatibility policy in `api.md` from 1.0.0: additions
-any time, removals and changes of meaning only after a deprecation (`deprecated` on the operation) of at
-least two minor releases. Before 1.0.0 every contract may change, with a release note. The session-only
-routes are the web client's own and may change with it either way.
+- `openapi.ts` describes each response of the public surface with `exact`. Each property is
+  required, unless it has the name optional.
+- `openapi.conformance.test.ts` compares the real responses of the server with the document. When a
+  public operation gets a response shape, add the call to that test.
+- `exact` keeps the schema open, because the policy permits additions. Thus, the `undeclared` of the
+  test finds a field that the document does not have. The schema does not.
+- When a request schema refers to itself, zod gives `$defs`. `embeddable` moves these into the
+  components, so that no reference is broken.
 
-- REST: `/api/v1/notes` (with `/api/v1/notes/:id/shares`), `/api/v1/search`, `/api/v1/invitations`, `/api/v1/users`, `/api/v1/auth/*` (auth routes are owned by the active auth provider)
-- WebSockets: `/api/v1/ws` (application events, presence) and `/api/v1/yjs` (Hocuspocus collaboration: one socket for every note, the note id is the document name). `/api/v1/ws` authenticates via `Sec-WebSocket-Protocol`; `/api/v1/yjs` authenticates in the Hocuspocus `Auth` message and authorizes the right to edit the joined document (owner or `edit` recipient) in `onAuthenticate`.
-- All timestamps are ISO 8601 UTC strings
-- Note schema: see `docs/specification/data-model.md`
+## Protection
+
+`OPERATIONS` is also the protection of each route, and nothing else is. Each entry declares:
+
+- `auth`: `none`, `any`, `session`, `admin` or `mcp`.
+- `limits`: its rate limits (`BUCKETS` in `middleware/protect.ts`). This is required. Use `[]` for
+  no limit.
+
+One middleware on `/api/v1/*` (`createProtection`) applies them from the route that Hono matched.
+Routers do not mount their own auth or rate limit. The middleware refuses a matched route that no
+entry declares. `/api/v1/ws` checks its caller in the handshake (`SELF_AUTHENTICATED`).
+`middleware/protect.test.ts` compares the list with the running app. It also makes sure that the
+routes that secure an account need a session.
+
+## Features
+
+One registry, `FEATURES` in `features.ts`, lists what a host can switch off. Each entry has its env
+var, its default and its requirements. `SERVER_FEATURES` in shared gives the names.
+
+- An operation of a feature declares it as `feature` in `OPERATIONS`. `createProtection` sends the
+  usual 404 of the app before all other checks. Thus, a feature that is off looks absent. Never add
+  `if (!cfg.x) throw 404` to a route.
+- Code that no route controls (the kind of a token, a socket, a job, OIDC team sync) calls
+  `isFeatureOn`. That function also applies the requirements.
+- The ways to leave a feature (to remove a share, a passkey, two-factor, a token) have no `feature`.
+  They always stay open.
+- `/api/v1/capabilities` reports the registry. The client reads it through `serverFeature()`
+  (`state/serverFeatures.ts`).
+- A new feature needs an entry in both lists, its tags, and a line in "Turning features off" in the
+  deployment document. `features.test.ts` checks this.
+
+## Compatibility
+
+From 1.0.0, the compatibility policy in `api.md` applies to the public surface. The public surface
+is all that a token can reach, the routes without credentials in `isPublicSurface`, the webhook
+payloads and the MCP tools.
+
+- Additions are permitted at all times.
+- A removal or a change of meaning needs a deprecation first (`deprecated` on the operation). The
+  deprecation must stay for a minimum of two minor releases.
+- Before 1.0.0, all contracts can change, with a release note.
+- The routes that only a session can use belong to the web client. They can change with it at all
+  times.
+
+## Endpoints
+
+- REST: `/api/v1/notes` (with `/api/v1/notes/:id/shares`), `/api/v1/search`,
+  `/api/v1/invitations`, `/api/v1/users`, `/api/v1/auth/*`. The active auth provider owns the auth
+  routes.
+- WebSockets:
+  - `/api/v1/ws`: application events and presence. It authenticates through
+    `Sec-WebSocket-Protocol`.
+  - `/api/v1/yjs`: Hocuspocus collaboration. One socket serves all notes, and the note id is the
+    document name. It authenticates in the Hocuspocus `Auth` message. In `onAuthenticate`, it
+    checks the right to edit the joined document (the owner or an `edit` recipient).
+- All timestamps are ISO 8601 UTC strings.
+- For the note schema, see `docs/specification/data-model.md`.

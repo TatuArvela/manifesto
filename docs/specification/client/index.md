@@ -1,6 +1,8 @@
 # Client
 
-The Manifesto client is a static single-page application built with Preact and TypeScript. It is local-first: all features work offline against `localStorage`, and a server is only needed for multi-device sync.
+The Manifesto client is a static single-page application, built with Preact and TypeScript. It is
+local-first: all features work offline with `localStorage`. You need a server only for sync between
+devices.
 
 ## Tech Stack
 
@@ -22,17 +24,19 @@ The Manifesto client is a static single-page application built with Preact and T
 
 ### Why Preact
 
-- React-compatible API: React developers can contribute immediately
-- ~3 KB runtime, for fast loads, especially for self-hosted and PWA use
-- First-party Signals library eliminates the need for external state management
-- Sufficient for a notes app, with no need for React's concurrent features
+- Its API is compatible with React. Thus, React developers can contribute immediately.
+- Its runtime is approximately 3 KB. Thus, it loads quickly, especially for self-hosted use and PWA
+  use.
+- Its own Signals library removes the need for external state management.
+- It is sufficient for a notes app. The app does not need the concurrent features of React.
 
 ### Why Tailwind v4
 
-- Utility classes directly in markup for rapid development
-- CSS-first configuration via `@theme` in `styles/setup.css` (imported by `styles.css`), no `tailwind.config.ts`
-- Built-in dark mode via the `dark:` variant
-- Production purge: only ships CSS that's actually used
+- Utility classes go directly in the markup. This makes development fast.
+- The configuration is in CSS, through `@theme` in `styles/setup.css` (which `styles.css` imports).
+  There is no `tailwind.config.ts`.
+- Dark mode is built in, through the `dark:` variant.
+- The production build purges unused CSS. It contains only the CSS that the app uses.
 
 ## Source Layout
 
@@ -104,149 +108,270 @@ Shared primitives: `Dropdown`, `Popover`, `Tooltip`, `ToggleSwitch`.
 
 ### State Management
 
-State lives in `packages/client/src/state/` and is reactive via `@preact/signals`.
+The state is in `packages/client/src/state/`. It is reactive through `@preact/signals`.
 
-- **`notesStore.ts`**: the `notes` signal and everything that talks to storage about it (`loadNotes`, `createNote`, `updateNote`, `deleteNote`, `importNotes`, `ensureImages`, `expireTrash`). Every copy of a note storage sends back comes in through `receiveNote` / `receiveNoteList`, and a note leaves through `forgetNote`.
-- **`actions.ts`**: the user-level actions built on the store: trash, archive, restore and pin with their exit animations, tags, bulk operations on the selection, `reorderNotes`, checklist toggling.
-- **`views.ts`**: what the current view shows: `filteredNotes`, `sortedNotes`, `pinnedNotes` / `unpinnedNotes`, `allTags`, `tagCounts`, `canReorder`.
-- **`selection.ts`**, **`ordering.ts`** (pure position arithmetic), **`exportNotes.ts`**, and **`failures.ts`** (`reportFailure` and `asBatch`, how actions report without rejecting).
-- **`ui.ts`**: transient UI state: `activeView`, `activeTag`, `editingNoteId`, `searchQuery`, `selectMode`, `selectedNotes`, `showSettings`, plus the toast queue (`toasts`, `showError`, `showSuccess`, `dismissToast`, `holdToasts`): an error stays until dismissed, a success leaves after five seconds unless the stack is pointed at or focused.
-- **`prefs.ts`**: user preferences persisted to `localStorage` under `manifesto:prefs` via a debounced `effect()`. Covers `viewMode`, `noteSize`, `noteScale`, `sortMode`, `theme`, `lightHue`, `darkHue`, `defaultNoteColor`, `defaultNoteFont`, `noteQuips`, `formattingToolbar`, `stickyTopBar`, `defaultEditMode`, `noteCorners`, `animations`, `boardColor`, `boardCustomColor`, `boardGradient`, `boardGradientCustomColor`, `boardGradientDirection`, `boardTexture`, `boardInk`, `boardInkColor`, `boardTextureOpacity`, `boardUsePicture`, `boardImageStamp`, `inlineCalculations`, `decimalSeparator`, and `locale`. The ones not in `DEVICE_PREFS` follow the account in connected mode through
-  `prefsSync.ts`, which reads the server's copy at sign-in and on reconnect, sends each change here as a
-  patch, and adopts `prefs:updated` from the app socket ([Preferences](../features/preferences.md)).
-  Also owns the presentation side of those: toggling the `dark` class on `<html>` (and listening for system preference changes), the `notes-rounded` and `no-motion` classes, the `data-light-hue` and `data-dark-hue` attributes the stylesheet derives each theme's neutral ramp from (the light one tints `--color-white` too), and the `data-board-color` / `data-board-gradient` / `data-board-gradient-direction` / `data-board-texture` / `data-board-ink` attributes (plus `--board-custom`, `--board-gradient-custom`, `--board-ink-picked`, `--board-texture-opacity`, and the SVG patterns `utils/boardTextures.ts` draws once at load as masks) that compose the board. The custom colours are accepted only as six-digit hex colours, since they are written into CSS custom properties.
-- **`board.ts`**: the board picture. It lives in IndexedDB (`storage/boardImage.ts`), not in the preferences, so `boardImageStamp` changing is how another tab learns to load it again.
-- **`sharing.ts`**: notes shared between accounts in connected mode. Holds the `invitations` signal and `shareDialog` (which note's people are on screen), and the actions that invite, change a role, remove, leave, accept and decline. Like `admin.ts` it maps failures to catalogue messages by status. `updateNote` in `notesStore.ts` asks the same question the server will, before sending: a viewer's change to the note itself, or a recipient's to what only the owner decides, is refused with a sentence rather than a `403`. A viewer's note opens in `NoteReadonlyView`, whose boxes cannot be ticked, and never joins `/api/v1/yjs`.
-- **`reminderScheduler.ts`**: timer loop that fires `reminder:open-note` events when a reminder is due.
-- **`router.ts`**: two-way sync between `activeView` / `activeTag` and the URL hash (see [Routing](#routing)).
-- **`index.ts`**: barrel export of the public state API.
+- **`notesStore.ts`**: the `notes` signal, and all code that sends it to the storage (`loadNotes`,
+  `createNote`, `updateNote`, `deleteNote`, `importNotes`, `ensureImages`, `expireTrash`). Each copy
+  of a note that the storage sends back comes in through `receiveNote` / `receiveNoteList`. A note
+  goes out through `forgetNote`.
+- **`actions.ts`**: the user-level actions on the store: trash, archive, restore and pin with their
+  exit animations, tags, bulk operations on the selection, `reorderNotes`, and checklist toggles.
+- **`views.ts`**: what the current view shows: `filteredNotes`, `sortedNotes`, `pinnedNotes` /
+  `unpinnedNotes`, `allTags`, `tagCounts`, `canReorder`.
+- **`selection.ts`**, **`ordering.ts`** (pure position arithmetic), **`exportNotes.ts`**, and
+  **`failures.ts`** (`reportFailure` and `asBatch`: how actions report without a rejection).
+- **`ui.ts`**: temporary UI state: `activeView`, `activeTag`, `editingNoteId`, `searchQuery`,
+  `selectMode`, `selectedNotes`, `showSettings`. It also has the toast queue (`toasts`, `showError`,
+  `showSuccess`, `dismissToast`, `holdToasts`). An error stays until you dismiss it. A success goes
+  away after five seconds, unless the pointer is on the stack or the stack has focus.
+- **`prefs.ts`**: user preferences, kept in `localStorage` under `manifesto:prefs` through a debounced
+  `effect()`. It contains `viewMode`, `noteSize`, `noteScale`, `sortMode`, `theme`, `lightHue`,
+  `darkHue`, `defaultNoteColor`, `defaultNoteFont`, `noteQuips`, `formattingToolbar`, `stickyTopBar`,
+  `defaultEditMode`, `noteCorners`, `animations`, `boardColor`, `boardCustomColor`, `boardGradient`,
+  `boardGradientCustomColor`, `boardGradientDirection`, `boardTexture`, `boardInk`, `boardInkColor`,
+  `boardTextureOpacity`, `boardUsePicture`, `boardImageStamp`, `inlineCalculations`,
+  `decimalSeparator`, and `locale`.
+  - In connected mode, the preferences that are not in `DEVICE_PREFS` go with the account through
+    `prefsSync.ts`. It reads the copy of the server at sign-in and on reconnect, sends each change
+    from here as a patch, and adopts `prefs:updated` from the app socket
+    ([Preferences](../features/preferences.md)).
+  - It also controls how those preferences show. It toggles the `dark` class on `<html>`, and listens
+    for changes of the system preference. It sets the `notes-rounded` and `no-motion` classes. It sets
+    the `data-light-hue` and `data-dark-hue` attributes, from which the stylesheet makes the neutral
+    ramp of each theme (the light one also tints `--color-white`).
+  - It sets the attributes that make the board: `data-board-color`, `data-board-gradient`,
+    `data-board-gradient-direction`, `data-board-texture` and `data-board-ink`. It also sets
+    `--board-custom`, `--board-gradient-custom`, `--board-ink-picked`, `--board-texture-opacity`,
+    and the SVG patterns that `utils/boardTextures.ts` draws one time at load, as masks.
+  - The custom colors must be six-digit hex colors, because the app writes them into CSS custom
+    properties.
+- **`board.ts`**: the board picture. It is in IndexedDB (`storage/boardImage.ts`), not in the
+  preferences. A change of `boardImageStamp` tells a different tab to load it again.
+- **`sharing.ts`**: notes shared between accounts in connected mode.
+  - It contains the `invitations` signal and `shareDialog` (the note whose people show on the
+    screen), and the actions to invite, change a role, remove, leave, accept and decline.
+  - As `admin.ts` does, it changes failures into catalogue messages by status.
+  - Before `updateNote` in `notesStore.ts` sends a change, it asks the same question as the server.
+    It refuses a change to the note itself by a viewer, or a change by a recipient to a field that
+    only the owner controls. It shows a sentence, not a `403`.
+  - The note of a viewer opens in `NoteReadonlyView`, whose boxes you cannot tick. It never joins
+    `/api/v1/yjs`.
+- **`reminderScheduler.ts`**: a timer loop that fires `reminder:open-note` events when a reminder is
+  due.
+- **`router.ts`**: keeps `activeView` / `activeTag` and the URL path the same, in both directions
+  (see [Routing](#routing)).
+- **`index.ts`**: the barrel export of the public state API.
 
 ### Storage Adapters
 
-The client talks to persistence through a `StorageAdapter` interface (`storage/StorageAdapter.ts`) declaring `getAll`, `get`, `create`, `update`, `delete`, `deleteAll`, `importAll`, `loadImages`, and the image, version and link-preview methods.
+The client uses a `StorageAdapter` interface (`storage/StorageAdapter.ts`) for persistence. It
+declares `getAll`, `get`, `create`, `update`, `delete`, `deleteAll`, `importAll`, `loadImages`, and
+the image, version and link-preview methods.
 
-- **`LocalStorageAdapter`** (default): stores notes as JSON in `localStorage` under `manifesto:notes`. Generates ULIDs, fills in defaults for newer fields (font, images, link previews, reminder) when reading legacy records. ~5–10 MB limit, single device.
-- **`RestApiAdapter`**: speaks to a Manifesto server over the REST API. `getAll` follows `nextCursor` until the server stops offering one, so the caller still receives every note: paging bounds a single response, and the app keeps the whole list in memory because tag counts, filtering and search are computed over it.
+- **`LocalStorageAdapter`** (default): stores notes as JSON in `localStorage` under
+  `manifesto:notes`. It makes ULIDs. When it reads old records, it adds defaults for newer fields
+  (font, images, link previews, reminder). The limit is approximately 5–10 MB, on one device.
+- **`RestApiAdapter`**: connects to a Manifesto server over the REST API. `getAll` follows
+  `nextCursor` until the server stops to send one. Thus, the caller still gets all notes. Paging sets
+  a limit on one response. The app keeps the full list in memory, because it calculates tag counts,
+  filters and search from it.
 
-`loadImages` is the seam for attachments, which a server listing leaves out (see
-[API](../api.md#attachments-are-not-in-a-listing)). `ensureImages(id)` in
-`state/notesStore.ts` is what callers use: it fetches once per note, folds the
-result into the `notes` signal, and shares one request between concurrent
-askers. `hooks/useNoteImages.ts` hangs that call off an `IntersectionObserver`,
-so a grid downloads the pictures of the cards a reader scrolls past rather than
-of every note they own. In open mode nothing was ever separated, so it resolves
-without a round trip.
+`loadImages` is the seam for attachments, which a server listing does not include (see
+[API](../api.md#attachments-are-not-in-a-listing)). Callers use `ensureImages(id)` in
+`state/notesStore.ts`. It gets the images one time for each note, adds the result to the `notes`
+signal, and shares one request between callers that ask at the same time.
+`hooks/useNoteImages.ts` calls it from an `IntersectionObserver`. Thus, a grid downloads the
+pictures of the cards that a reader scrolls past, not of all notes. In open mode, nothing was ever
+separate. Thus, it resolves without a round trip.
 
-Which adapter is live is decided by `currentStorage` in `storage/index.ts`, a
-computed over the `storageConnection` signal that `state/account/auth.ts` writes: a
-server URL plus a token selects `RestApiAdapter`, anything else selects
-`LocalStorageAdapter`. The connection is pushed in rather than read out so that
-storage, which sits underneath the session, does not import the session's state
-(see [Deployment](deployment.md)).
+`currentStorage` in `storage/index.ts` decides which adapter is live. It is a computed over the
+`storageConnection` signal, which `state/account/auth.ts` writes. A server URL and a token select
+`RestApiAdapter`. All other values select `LocalStorageAdapter`. The session pushes the connection
+in, and storage does not read it out. Thus, the storage, which is below the session, does not import
+the state of the session (see [Deployment](deployment.md)).
 
 ### Editor
 
-Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark + GFM presets, plus the `history`, `clipboard`, and `listener` plugins. The editor is instantiated in `hooks/useMilkdownEditor.ts` and rendered by `components/editor/MilkdownEditor.tsx`. Undo/redo flows through Milkdown's history plugin (`callCommand(undoCommand)` / `redoCommand`); there is no separate undo/redo hook.
+Markdown editing uses **Milkdown** (`@milkdown/kit`) with the CommonMark and GFM presets, and the
+`history`, `clipboard` and `listener` plugins. `hooks/useMilkdownEditor.ts` makes the editor, and
+`components/editor/MilkdownEditor.tsx` renders it. Undo and redo go through the history plugin of
+Milkdown (`callCommand(undoCommand)` / `redoCommand`). There is no separate undo/redo hook.
 
-Custom ProseMirror behavior lives in `packages/client/src/extensions/`:
+Custom ProseMirror behavior is in `packages/client/src/extensions/`:
 
-- **`manifestoInlineMarks`**: adds underline / subscript / superscript marks that round-trip through markdown as `<u>`/`<sub>`/`<sup>` tags.
-- **`taskItemDraggable`**: drag-and-drop reordering and indent/outdent for checklist items (the drag itself in `taskItemDrag.ts`, where a drop lands in `taskItemDropTarget.ts`, list structure in `taskListStructure.ts`).
-- **`richFormatting`**: which formats the selection has and applying one, for the formatting toolbar; `utils/rawFormatting.ts` does the same for raw mode's textarea.
+- **`manifestoInlineMarks`**: adds underline, subscript and superscript marks. In markdown, they are
+  `<u>`/`<sub>`/`<sup>` tags.
+- **`taskItemDraggable`**: drag-and-drop reorder, and indent/outdent, for checklist items. The drag
+  is in `taskItemDrag.ts`. `taskItemDropTarget.ts` calculates where a drop goes. The list structure is
+  in `taskListStructure.ts`.
+- **`richFormatting`**: finds which formats the selection has, and applies a format, for the
+  formatting toolbar. `utils/rawFormatting.ts` does the same for the textarea of raw mode.
 
-Read-only previews (inside `NoteCard` and shared-note dialogs) are rendered by `utils/remarkRenderer.ts`, a `unified` pipeline of `remark-parse` → `remark-gfm` → `remark-breaks` → `remark-rehype` → `rehype-stringify`, with output sanitized via DOMPurify before being inserted.
+`utils/remarkRenderer.ts` renders the read-only previews (inside `NoteCard` and the shared-note
+dialogs). It is a `unified` pipeline: `remark-parse` → `remark-gfm` → `remark-breaks` →
+`remark-rehype` → `rehype-stringify`. DOMPurify sanitizes the output before the app inserts it.
 
-`MilkdownEditor` reads the markdown back out via `getMarkdown()` and post-processes it (`normalizeMarkdown` in `utils/editorMarkdown.ts`: `unescapeBrackets`, `collapseListSpread`) to keep round-trips stable with the preview renderer.
+`MilkdownEditor` reads the markdown back through `getMarkdown()`. Then it changes the result
+(`normalizeMarkdown` in `utils/editorMarkdown.ts`: `unescapeBrackets`, `collapseListSpread`). This
+keeps round trips stable with the preview renderer.
 
 ### Version History
 
-Notes have persistent version history stored LZ-String compressed in `localStorage` under `manifesto:versions`. Versions are saved automatically when the editor closes with changes (capturing the pre-edit state). Capped at 50 per note, pruned after 90 days. Storage: `storage/VersionStorage.ts`. UI: `components/VersionHistory.tsx`, accessed via the kebab menu in the note editor.
+Notes have a persistent version history, compressed with LZ-String, in `localStorage` under
+`manifesto:versions`. The app saves a version automatically when the editor closes with changes. The
+version holds the state from before the edit. The maximum is 50 for each note, and the app prunes
+versions after 90 days. Storage: `storage/VersionStorage.ts`. UI: `components/VersionHistory.tsx`.
+Open it from the kebab menu in the note editor.
 
 ### Auto-notes plugin sandbox
 
-Auto-notes are generated by user-supplied JavaScript, so the code runs at three removes from the app. See [Auto-notes](../features/auto-notes.md) for the plugin contract, limits and data model.
+JavaScript that the user supplies makes the auto-notes. Thus, the code runs at three levels of
+isolation from the app. See [Auto-notes](../features/auto-notes.md) for the plugin contract, the
+limits and the data model.
 
-- **An opaque origin.** `public/autonotes-sandbox.html` is loaded through `iframe.src` with `sandbox="allow-scripts"` and no `allow-same-origin`, so it reaches no host storage, cookies or DOM. It cannot be a `srcdoc` iframe: those inherit the parent's CSP, and the app pins `script-src 'self'`, whereas a frame loaded from a real URL carries its own policy: `default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; worker-src blob:; connect-src 'none'`.
-- **A worker thread.** Inside that frame the plugin runs in a blob `Worker`, which inherits the frame's origin and CSP. This is what makes the host's 2s timeout enforceable: a plugin that never returns occupies only the worker's thread, so the host timer still fires, and tearing the frame down terminates the worker with it. Where an engine refuses a worker at an opaque origin, the frame falls back to running plugins on its own thread and says so in the `init-ok` message; the host logs a warning, because on that path a `while (true)` hangs the tab.
-- **Validation on the host side.** The frame returns `JSON.stringify({ value })` of whatever the plugin's exported functions returned, and `autoNotes/results.ts` decides what is a note. Nothing inside the frame validates its own output, since a plugin that has subverted the frame would pass its own checks. Colour and font are checked against `NoteColor` / `NoteFont` because they index `noteColorMap` and `noteFontFamilies`, where an unrecognized string throws while a card renders; a bad optional field is dropped rather than failing the run, and the note count per run is capped.
+- **An opaque origin.** `public/autonotes-sandbox.html` loads through `iframe.src` with
+  `sandbox="allow-scripts"` and no `allow-same-origin`. Thus, it cannot reach host storage, cookies or
+  DOM. It cannot be a `srcdoc` iframe, because such a frame gets the CSP of the parent, and the app
+  pins `script-src 'self'`. A frame from a real URL has its own policy: `default-src 'none';
+  script-src 'unsafe-inline' 'unsafe-eval'; worker-src blob:; connect-src 'none'`.
+- **A worker thread.** Inside that frame, the plugin runs in a blob `Worker`, which gets the origin
+  and the CSP of the frame. This makes the 2s timeout of the host possible. A plugin that never
+  returns uses only the thread of the worker. Thus, the timer of the host still fires, and the removal
+  of the frame also stops the worker. If an engine does not permit a worker at an opaque origin, the
+  frame runs plugins on its own thread, and tells this in the `init-ok` message. The host logs a
+  warning, because on that path a `while (true)` stops the tab.
+- **Validation on the host side.** The frame returns `JSON.stringify({ value })` of the return value
+  of the exported functions of the plugin. `autoNotes/results.ts` decides what is a note. No code in
+  the frame validates its own output, because a plugin that took control of the frame also passes its
+  checks. The host checks the color and the font against `NoteColor` / `NoteFont`, because they are
+  keys of `noteColorMap` and `noteFontFamilies`. An unknown string there throws while a card renders.
+  The host removes a bad optional field, and does not fail the run. The number of notes for each run
+  has a limit.
 
-`autoNotes/sandbox.ts` owns the frame's lifecycle and the timeout, `stdlib.ts` builds the prelude the worker is seeded with (each stdlib function is shipped as source via `Function.prototype.toString`), and a plugin failure surfaces as `lastError` on the plugin plus a visible ⚠ note.
+`autoNotes/sandbox.ts` controls the lifecycle of the frame and the timeout. `stdlib.ts` builds the
+prelude of the worker (each stdlib function goes as source through `Function.prototype.toString`). A
+plugin failure shows as `lastError` on the plugin, and as a visible ⚠ note.
 
 ### Reminders
 
-Each note has an optional `reminder` timestamp set via `ReminderPicker`. `state/reminderScheduler.ts` subscribes to the `notes` signal and uses timers to fire at the scheduled time; when one fires it shows `ReminderBanner` and dispatches a `reminder:open-note` window event that `App` listens for (`useNoteFromReminder`) to open the relevant note.
+Each note has an optional `reminder` timestamp, which you set through `ReminderPicker`.
+`state/reminderScheduler.ts` subscribes to the `notes` signal, and uses timers to fire at the
+scheduled time. When a reminder fires, it shows `ReminderBanner` and sends a `reminder:open-note`
+window event. `App` listens for this event (`useNoteFromReminder`), and opens the note.
 
 ### Routing
 
-View navigation is backed by `location.pathname` so views are bookmarkable and the browser's back / forward buttons work. `state/router.ts` keeps `activeView` and `activeTag` in sync with the URL, base-prefixed with Vite's `BASE_URL` (`/` in dev, `/manifesto/` on GitHub Pages):
+`location.pathname` controls the navigation between views. Thus, you can bookmark views, and the
+back and forward buttons of the browser work. `state/router.ts` keeps `activeView` and `activeTag`
+the same as the URL. The URL has the prefix from the `BASE_URL` of Vite (`/` in dev, `/manifesto/` on
+GitHub Pages):
 
 | Path (under base)          | View                   |
 |----------------------------|------------------------|
 | `/`                        | Notes (active)         |
 | `/tags`                    | Tags: all             |
-| `/tags/<tag>`              | Tags: filtered by tag; a nested tag is a path (`/tags/work/clients`), each part encoded |
+| `/tags/<tag>`              | Tags: filtered by tag. A nested tag is a path (`/tags/work/clients`), with each part encoded |
 | `/reminders`               | Reminders              |
 | `/archived`                | Archive                |
 | `/trash`                   | Trash                  |
 
-`initRouter()` is called once from `App` on mount (`useAppServices`). It hydrates the signals from the current URL, then installs a signals → URL effect (`history.pushState`) and a `popstate` → signals listener. Share hashes (`#share=…`) ride on top of the path and are consumed separately by `SharedNoteDialog`.
+`App` calls `initRouter()` one time when it mounts (`useAppServices`). It fills the signals from the
+current URL. Then it installs an effect from the signals to the URL (`history.pushState`), and a
+`popstate` listener from the URL to the signals. Share hashes (`#share=…`) are on top of the path.
+`SharedNoteDialog` reads them separately.
 
-Because GitHub Pages is a static host, deep-link refreshes would return 404. The `githubPagesSpaFallback` plugin in `vite.config.ts` copies the built `index.html` to `404.html` after each build. GitHub Pages serves that for any unknown path, so the SPA loads and the router picks up `location.pathname`.
+GitHub Pages is a static host. Thus, a refresh of a deep link gives a 404. The
+`githubPagesSpaFallback` plugin in `vite.config.ts` copies the built `index.html` to `404.html` after
+each build. GitHub Pages serves that file for all unknown paths. Thus, the SPA loads, and the router
+reads `location.pathname`.
 
 ### Sharing
 
-`utils/shareLink.ts` encodes a note payload into a compact URL hash (`#share=…`) using LZ-String compression. When `App` mounts it checks `window.location.hash` and, if a share payload is present, shows `SharedNoteDialog` with a preview and the option to import it as a new note.
+`utils/shareLink.ts` encodes a note payload into a compact URL hash (`#share=…`), with LZ-String
+compression. When `App` mounts, it checks `window.location.hash`. If a share payload is present, it
+shows `SharedNoteDialog` with a preview, and the option to import it as a new note.
 
 ### Import / Export
 
-`utils/importExport.ts` (with `importedNote.ts` for turning file contents into notes, and `noteDownload.ts` for saving one) handles backup roundtrips (the export zip, and the JSON earlier versions wrote) and per-note drops (Markdown, plain text, image files). `App` registers window-level `dragenter`/`dragover`/`dragleave`/`drop` handlers so files can be dropped anywhere on the window; dropped imports become new notes (or a bulk import for JSON backups).
+`utils/importExport.ts` handles backups (the export zip, and the JSON that earlier versions wrote) and
+drops of single notes (Markdown, plain text, image files). `importedNote.ts` changes file contents
+into notes, and `noteDownload.ts` saves one note. `App` registers window-level
+`dragenter`/`dragover`/`dragleave`/`drop` handlers. Thus, you can drop files anywhere on the window.
+Dropped imports become new notes (or a bulk import for JSON backups).
 
 ### Internationalization
 
-Translations live in `i18n/messages/`, currently `en` (default) and `fi`. `SUPPORTED_LOCALES` is declared in `i18n/locales.ts`. The active locale is the `locale` preference signal; `t(key, vars?)` and `plural(key, n)` read that signal, so all call sites re-render automatically when the user changes language. Missing keys fall back to the default locale, then to the key itself (with a dev-mode warning). Initial locale is detected from the browser via `detectBrowserLocale()` unless the user has an explicit preference saved.
+The translations are in `i18n/messages/`. Now there are `en` (default) and `fi`.
+`i18n/locales.ts` declares `SUPPORTED_LOCALES`. The active locale is the `locale` preference signal.
+`t(key, vars?)` and `plural(key, n)` read that signal. Thus, all callers render again automatically
+when the user changes the language. If a key is missing, the app uses the default locale, and then
+the key itself (with a warning in dev mode). `detectBrowserLocale()` gets the first locale from the
+browser, unless the user saved a preference.
 
 ### Component Patterns
 
-- **NoteEditor** is fully prop-driven (title, content, color, font, callbacks). Parent components (`NoteCardEditor`, `NoteInput`) own the state.
-- **NoteCardEditor** wraps NoteEditor for editing existing notes and manages auto-save (500 ms debounce) and version history. Undo/redo is delegated to Milkdown.
-- **Dropdown** is the generic popover pattern (used for color picker, font picker, kebab menu) with `open`/`onClose`/`trigger`/`children` props. `Popover` is the lower-level positioning primitive it's built on.
+- **NoteEditor** gets all of its data from props (title, content, color, font, callbacks). The
+  parent components (`NoteCardEditor`, `NoteInput`) own the state.
+- **NoteCardEditor** wraps NoteEditor to edit existing notes. It controls the auto-save (500 ms
+  debounce) and the version history. Milkdown does the undo and redo.
+- **Dropdown** is the generic popover pattern (for the color picker, the font picker, the kebab
+  menu). Its props are `open`/`onClose`/`trigger`/`children`. It uses `Popover`, the lower-level
+  positioning primitive.
 
 ## Theming
 
 ### Note Colors
 
-Each `NoteColor` enum value maps to Tailwind utility classes for background, hover, and border in `colors.ts`. The map provides both light and dark variants (e.g. `bg-yellow-100 dark:bg-yellow-900`), so themes can map colors differently between modes without touching the data model.
+In `colors.ts`, each `NoteColor` enum value has Tailwind utility classes for the background, hover
+and border. The map has light and dark variants (for example `bg-yellow-100 dark:bg-yellow-900`).
+Thus, themes can give different colors in each mode, and the data model does not change.
 
 ### Dark Mode
 
-Three-way preference (`system`, `light`, or `dark`) stored in `prefs.ts`. A signal `effect` toggles the `dark` class on `<html>`; in system mode it also subscribes to `prefers-color-scheme` changes. Settings, Appearance offers the three as sample windows (`ThemePicker`), each drawn in the shade chosen for it, with the light and dark shades' selects under the light and dark samples.
+The preference has three values (`system`, `light` or `dark`), stored in `prefs.ts`. A signal
+`effect` toggles the `dark` class on `<html>`. In system mode, it also subscribes to changes of
+`prefers-color-scheme`. Settings, Appearance shows the three values as sample windows
+(`ThemePicker`). Each sample has the shade selected for it. The selects for the light and dark shades
+are under the light and dark samples.
 
 ## Responsive Design
 
-- **Desktop / tablet** (≥ 768 px): Collapsed icon-only sidebar rail on the left, centered search bar in the header, multi-column grid.
-- **Mobile** (< 768 px): Sidebar is replaced by a horizontal nav bar under the header. The header shows a search icon button (opens the search view with an inline input) and the view/sort/settings controls. A floating `+` button at the bottom-right opens the new-note modal. Touch targets are sized for thumbs. The page can be pinch-zoomed: the viewport meta sets no maximum scale, and focusing a field does not zoom because text fields are 16 px on a phone and `touch-action: manipulation` turns off double-tap zoom.
+- **Desktop / tablet** (≥ 768 px): a collapsed sidebar rail with only icons on the left, a search bar
+  in the center of the header, and a grid with many columns.
+- **Mobile** (< 768 px):
+  - A horizontal nav bar under the header replaces the sidebar.
+  - The header shows a search icon button (it opens the search view with an inline input) and the
+    view, sort and settings controls.
+  - A floating `+` button at the bottom right opens the new-note modal.
+  - Touch targets have a size for thumbs.
+  - You can pinch-zoom the page. The viewport meta sets no maximum scale. Focus on a field does not
+    zoom, because text fields are 16 px on a phone, and `touch-action: manipulation` turns off the
+    double-tap zoom.
 
 ## Accessibility
 
-The target is WCAG 2.1 AA; what that covers, what is still open, and what a deployment may need to publish
-are in [Accessibility](../accessibility.md). In the client that comes down to:
+The target is WCAG 2.1 AA. [Accessibility](../accessibility.md) tells what that includes, what is
+still open, and what a deployment possibly must publish. In the client, this means:
 
-- Semantic HTML: `<main>`, `<nav>`, headings for the board's sections, and an `<article>` for each note,
-  opened through a visually hidden button (`[data-card-open]`) rather than by making the card a button,
-  which would hide the controls inside it.
-- Keyboard: Tab or `j` / `k` through cards, Enter to open, `Shift j` / `Shift k` to reorder, Escape to
-  close the newest layer (`useEscapeStack`). Modals trap Tab (`useFocusTrap`); dropdowns and card
-  popovers move focus in on opening and back to their trigger on closing.
-- Names and states: every icon-only button has an `aria-label` from the catalogue; buttons that open a
-  panel carry `aria-expanded`, and the current option in a picker `aria-pressed`.
+- Semantic HTML: `<main>`, `<nav>`, headings for the sections of the board, and an `<article>` for
+  each note. A visually hidden button (`[data-card-open]`) opens the note. The card itself is not a
+  button, because that hides the controls inside it.
+- Keyboard: Tab or `j` / `k` through cards, Enter to open, `Shift j` / `Shift k` to reorder, Escape
+  to close the newest layer (`useEscapeStack`). Modals keep Tab inside them (`useFocusTrap`).
+  Dropdowns and card popovers move focus in when they open, and back to their trigger when they
+  close.
+- Names and states: each icon-only button has an `aria-label` from the catalogue. Buttons that open a
+  panel have `aria-expanded`, and the current option in a picker has `aria-pressed`.
 - Announcements: live regions for toasts, the connection status, inline calculation results and
-  reordering (`boardAnnouncement`).
-- Contrast of 4.5:1 for text and 3:1 for controls in both themes, and one focus ring
-  (`:focus-visible` in `styles/setup.css`). Text and icons on a note take their tone from `noteText`
-  in `colors.ts`, which `colors.test.ts` measures on every note colour in every shade; something
-  meant to look done or past is struck through or set apart, never paled with opacity.
-- Targets of at least 24 by 24 px (WCAG 2.5.8). A control drawn smaller (the select circle, a
-  card's checkbox, a reminder's clear) reaches the size with an unseen margin around it.
-- Focus is never left under a bar: the board scrolls a card clear of the phone's top bar
-  (`scroll-padding-top`), and a phone sheet scrolls a control the keyboard reaches out from under
+  reorders (`boardAnnouncement`).
+- A contrast of 4.5:1 for text and 3:1 for controls in both themes, and one focus ring
+  (`:focus-visible` in `styles/setup.css`). Text and icons on a note get their tone from `noteText`
+  in `colors.ts`. `colors.test.ts` measures it on each note color in each shade. An item that must
+  look done or past has a line through it, or a different position. It is never paler through
+  opacity.
+- Targets of 24 by 24 px or larger (WCAG 2.5.8). A control that looks smaller (the select circle,
+  the checkbox of a card, the clear button of a reminder) gets the size from an invisible margin
+  around it.
+- A bar never hides focus. The board scrolls a card out from under the top bar of the phone
+  (`scroll-padding-top`). A phone sheet scrolls a control that the keyboard reaches out from under
   its sticky bars (`keepFocusClear` in `utils/phoneSheets.ts`).

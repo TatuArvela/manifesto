@@ -11,42 +11,52 @@ paths:
 
 # A Note's Format
 
-Spec: "Format" in `docs/specification/data-model.md`. What a note's words hold is a number,
-`currentNoteFormat()`, which is one more than the steps in `NOTE_FORMAT_STEPS`
-(`shared/src/noteFormat.ts`). The app holds every note in the current format; each place a note is
-kept records the format it was written in, and whatever reads one from there runs
-`upgradeNoteWords` before anything else sees it.
+The specification is "Format" in `docs/specification/data-model.md`. A number,
+`currentNoteFormat()`, tells what the words of a note contain. The number is the count of steps in
+`NOTE_FORMAT_STEPS` (`shared/src/noteFormat.ts`), plus one. The app keeps all notes in the current
+format. Each place that keeps a note records the format of the note. Code that reads a note from
+that place runs `upgradeNoteWords` before other code gets the note.
 
-**Changing what the words hold is a step appended to `NOTE_FORMAT_STEPS`**, never an edit to a step
-already released, since a stored note remembers which steps it has had. A step gets whichever words
-the holder has (a version has a title and text alone), changes those, and adds none. That is the
-whole of a format change: every reader below already runs the steps, and every writer stamps the
-new number. It does not reach the shared document a note is edited in, which has
-`EDITOR_SCHEMA_VERSION`, or colour and tags, which the checks in `noteChecks.ts` hold on opening.
+**To change what the words contain, append a step to `NOTE_FORMAT_STEPS`.** Never edit a step that
+is already released, because a stored note records the steps that it has had. A step gets the words
+that the holder has (a version has only a title and text). It changes those words and adds no
+words. That is the full format change: all of the readers below already run the steps, and all of
+the writers record the new number. The change does not apply to the shared document in which a
+note is edited, which has `EDITOR_SCHEMA_VERSION`. It also does not apply to color and tags. The
+checks in `noteChecks.ts` control those when a note opens.
 
-The places, and what each does with a format it does not know yet:
+These are the places, and what each place does with a format that it does not know:
 
-- **Open mode**: `manifesto:notes:format` in `LocalStorageAdapter.ts`, for the notes and
-  `VersionStorage`'s versions together. `loadNotes` upgrades the whole store once (versions first,
-  then the notes, whose write stamps the format), and `readableFormat` refuses a newer store on
-  every read and write, before the parse cache, so an old tab neither misreads nor overwrites it.
-- **Connected mode**: `format` on `SealedNote`, `SealedNoteVersion` and `PublicSnapshot`, readable.
-  The shared seal functions stamp it (`sealNewNote`, `sealNoteUpdate` when words are among the
-  changes, `sealVersion`) and `openSealedNote` / `openVersion` upgrade, or answer null for a newer
-  one; the `Sealer` sorts those into `newer` rather than `unreadable`. The server holds each write
-  to the stored format inside the `UPDATE` (`formatCondition`): words older than the note's are
-  refused, and words in a newer one only with all of them, because the format is one number for
-  every word. So a write that moves a note on sends every word: `Sealer.inCurrentFormat` and the
-  token path's `sealedChanges` read the note, upgrade it, and fill in the rest with `withEveryWord`.
-- **An export**: `manifest.json` (`exportArchiveFiles`); `notesFromZip` upgrades an older archive
-  and throws `NewerNoteFormatError` for a newer one, which `importFiles` counts in `newerCount`.
-- **Notes not stored yet**: each IndexedDB record in `offlineNotes.ts` carries `format`;
-  `readOffline` leaves a newer one in place and hands the format to `composerDraft.ts` and
+- **Open mode**: `manifesto:notes:format` in `LocalStorageAdapter.ts`. It applies to the notes and
+  to the versions of `VersionStorage` together. `loadNotes` upgrades the full store one time:
+  versions first, then the notes. The write of the notes records the format. `readableFormat`
+  refuses a newer store on each read and write, before the parse cache. Thus, an old tab does not
+  read the store incorrectly, and does not write over it.
+- **Connected mode**: `format` on `SealedNote`, `SealedNoteVersion` and `PublicSnapshot`. It is not
+  sealed.
+  - The shared seal functions record it: `sealNewNote`, `sealNoteUpdate` (when the changes include
+    words), and `sealVersion`.
+  - `openSealedNote` and `openVersion` upgrade, or return null for a newer format. The `Sealer` puts
+    those notes in `newer`, not in `unreadable`.
+  - The server checks each write against the stored format inside the `UPDATE`
+    (`formatCondition`). It refuses words older than those of the note. It accepts words in a newer
+    format only when the write contains all of the words, because the format is one number for all
+    words.
+  - Thus, a write that moves a note to a new format sends all of the words.
+    `Sealer.inCurrentFormat`, and `sealedChanges` on the token path, read the note, upgrade it, and
+    add the other words with `withEveryWord`.
+- **An export**: `manifest.json` (`exportArchiveFiles`). `notesFromZip` upgrades an older archive.
+  For a newer archive, it throws `NewerNoteFormatError`, and `importFiles` counts it in
+  `newerCount`.
+- **Notes that are not stored yet**: each IndexedDB record in `offlineNotes.ts` has `format`.
+  `readOffline` does not change a newer record. It gives the format to `composerDraft.ts` and
   `unsentNotes.ts`, which upgrade what they read.
 
-A new place that keeps a note's words records the format beside them and runs the steps when it
-reads, or a note kept there before a format change is read as if it were current.
-`NewerNoteFormatError` from any of them reaches the user through `reportFailure`, which says to
-reload instead of the action's own message. Tests raise the format with
-`setNoteFormatStepsForTests` and lower it again to play an older build; `noteFormatContract.ts`
-runs the server's guard against both drivers.
+If you add a new place that keeps the words of a note, record the format with the words, and run the
+steps when you read them. If you do not, the app reads a note from before a format change as if it
+were in the current format.
+
+`NewerNoteFormatError` from any of these places goes to the user through `reportFailure`. The
+message tells the user to reload, in place of the usual message of the action. Tests make the
+format higher with `setNoteFormatStepsForTests`, and make it lower again to simulate an older build.
+`noteFormatContract.ts` runs the server check against both drivers.

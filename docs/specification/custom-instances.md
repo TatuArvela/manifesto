@@ -1,65 +1,61 @@
 # Custom Instances
 
-Running Manifesto under your own name ("Corporate Notes", "Acme Memos",
-whatever fits. This walks through a complete branded deployment end to end.
+You can run Manifesto with your own name ("Corporate Notes", "Acme Memos", or a different name). This
+page tells how to make a full branded deployment, from start to end.
 
-The single most useful fact up front: **the server carries no branding at all.**
-Its API has no HTML, no icons, and no product name in any response. Rebranding
-is entirely a client-side concern, so the server you deploy is the stock
-published image, unmodified. The image does carry the stock client, which it
-serves at the site root; to serve yours instead, mount your build into the
-container and point `CLIENT_DIR` at it (see [One
-container](server/deployment.md#one-container)), or unset `CLIENT_DIR` and host
-the client yourself as below.
+The most important fact first: **the server has no branding.** Its API has no HTML, no icons, and no
+product name in a response. Rebranding is only a client-side task. Thus, the server that you deploy
+is the usual published image, with no changes. The image contains the usual client, and serves it at
+the site root. To serve your client in its place, mount your build into the container and set
+`CLIENT_DIR` to it (see [One container](server/deployment.md#one-container)). Or, do not set
+`CLIENT_DIR`, and host the client yourself as below.
 
 ## Which path
 
 | | Build from source | Edit a release bundle |
 |---|---|---|
 | Operating mode | open or connected | open only |
-| Toolchain needed | Node + pnpm | none, a text editor |
-| Brand assets live | in a folder outside the repo | in the unzipped bundle |
-| Effort per upstream release | re-run one build command | redo the edits |
+| Toolchain needed | Node and pnpm | none, only a text editor |
+| Location of the brand assets | a folder outside the repository | the unzipped bundle |
+| Work for each upstream release | run one build command again | do the edits again |
 
-The mode is what decides this. Connected mode bakes the server URL into the
-bundle *and* into its Content Security Policy, so an edited release zip stays at
-`connect-src 'self'` and physically cannot reach a server no matter what else
-you change. A team instance therefore builds from source, at which point the
-branding is three more variables in a command you were already running.
+The mode decides the path. Connected mode puts the server URL into the bundle *and* into its Content
+Security Policy. Thus, an edited release zip stays at `connect-src 'self'`, and it cannot connect to
+a server, whatever other changes you make. Thus, a team instance builds from source. Then the
+branding is only three more variables in a command that you already run.
 
-Editing a release bundle is the right path for an open-mode instance: a
-local-storage-only build dropped on an intranet share or a static host, with no
-accounts and no sync.
+To edit a release bundle is the correct path for an open-mode instance: a build that uses only local
+storage, on an intranet share or a static host, with no accounts and no sync.
 
 ## Walkthrough: a connected team instance
 
-The scenario: Acme wants "Corporate Notes" at `notes.acme.internal`, backed by
-their own server, with accounts from their existing identity provider.
+The scenario: Acme wants "Corporate Notes" at `notes.acme.internal`, with their own server, and with
+accounts from their existing identity provider.
 
-Replacing the app's name is optional. A deployment that keeps "Manifesto" and
-only says whose copy it is sets the instance and organisation instead
+It is optional to replace the name of the app. A deployment can keep "Manifesto" and only tell whose
+copy it is. It then sets the instance and the organization
 (`VITE_INSTANCE_NAME="Foo QA project" VITE_ORG_NAME="Acme Inc"
-VITE_ORG_LOGO=~/acme-brand/acme.svg`), and users see "Manifesto · Foo QA
-project" with Acme Inc's name and logo. The two combine; see
-[Rebranding](client/deployment.md#rebranding) for where each appears.
+VITE_ORG_LOGO=~/acme-brand/acme.svg`). Users see "Manifesto · Foo QA project", with the name and logo
+of Acme Inc. You can use the two methods together. See
+[Rebranding](client/deployment.md#rebranding) for where each one shows.
 
 ### 1. Collect the brand assets
 
-Create a folder anywhere outside the repository, such as `~/acme-brand/`. Include only
-what you want to change; anything absent keeps the stock mark.
+Make a folder outside the repository, for example `~/acme-brand/`. Put in it only the files that you
+want to change. If a file is not there, the usual mark stays.
 
-| File | Where it shows up |
+| File | Where it shows |
 |---|---|
-| `logo.svg` | the mark beside the title in the header |
+| `logo.svg` | the mark adjacent to the title in the header |
 | `favicon.svg` | the browser tab |
 | `icon-1024.png` | the installed PWA and the iOS home screen |
 
-`logo.svg` is rendered at 24×24 and inverted in dark mode (`dark:invert`), so a
-dark, single-colour mark on a transparent background works best.
+The app renders `logo.svg` at 24×24, and inverts it in dark mode (`dark:invert`). Thus, a dark mark
+with one color on a transparent background is best.
 
 ### 2. Run the server
 
-Stock image, no rebuild. Pin the tag to the release you intend to run.
+Use the usual image. Do not build it again. Pin the tag to the release that you want to run.
 
 ```yaml
 services:
@@ -79,18 +75,18 @@ services:
 volumes: { notes-data: }
 ```
 
-`CORS_ORIGINS` must list the client's origin or the browser blocks every
-request, unless you put both behind
-[one reverse proxy on one origin](server/deployment.md#single-origin-behind-one-reverse-proxy),
-where nothing is cross-origin and the variable never applies. Drop the published
-`3001` port once a proxy is in front: see
-[Do not publish the server port](server/deployment.md#do-not-publish-the-server-port).
-See [Server Deployment](server/deployment.md) for the full variable list,
-Postgres setup, and reverse-proxy notes.
+`CORS_ORIGINS` must list the origin of the client. If not, the browser blocks all requests. The
+exception is when you put both behind
+[one reverse proxy on one origin](server/deployment.md#single-origin-behind-one-reverse-proxy).
+Then nothing is cross-origin, and the variable does not apply. When a proxy is in front, remove the
+published `3001` port. See
+[Do not publish the server port](server/deployment.md#do-not-publish-the-server-port). See
+[Server Deployment](server/deployment.md) for the full list of variables, the Postgres setup, and
+the notes about the reverse proxy.
 
 ### 3. Build the client
 
-Branding and backend in one command:
+Branding and backend are in one command:
 
 ```bash
 git clone https://github.com/TatuArvela/manifesto && cd manifesto
@@ -102,17 +98,16 @@ VITE_MANIFESTO_SERVER=https://notes-api.acme.internal \
   pnpm --filter @manifesto/client build
 ```
 
-Hosting under a subpath rather than a domain root? Add
-`MANIFESTO_BASE_URL=/notes/`. The router, the logo, the web manifest and the
-service worker all derive their paths from it.
+To host under a subpath and not at the root of a domain, add `MANIFESTO_BASE_URL=/notes/`. The
+router, the logo, the web manifest and the service worker all get their paths from it.
 
 ### 4. Serve the output
 
-`packages/client/dist/` is a static site. Any host works, as long as unknown
-paths fall back to `index.html`: Manifesto uses real URL paths, so `/archived`
-and `/tags/work` must reach the SPA. `dist/404.html` covers GitHub Pages out of
-the box; see [Client Deployment](client/deployment.md#routing-for-static-hosts)
-for nginx, Caddy, Netlify and Vercel.
+`packages/client/dist/` is a static site. All hosts work, if unknown paths go to `index.html`.
+Manifesto uses real URL paths. Thus, `/archived` and `/tags/work` must reach the SPA.
+`dist/404.html` does this on GitHub Pages without more work. See
+[Client Deployment](client/deployment.md#routing-for-static-hosts) for nginx, Caddy, Netlify and
+Vercel.
 
 ### 5. Verify
 
@@ -122,16 +117,16 @@ curl -s https://notes.acme.internal/ | grep -o '<title>.*'  # Corporate Notes
 curl -s https://notes.acme.internal/manifest.webmanifest    # name + description
 ```
 
-Then load the page: the header should show your mark and name, and the login
-screen should have "Corporate Notes" as its heading. Open-mode exports download as
-`corporate-notes-export-YYYY-MM-DD.zip`; a server names its download after the account.
+Then load the page. The header must show your mark and name. The heading of the login screen must
+be "Corporate Notes". Open-mode exports download as `corporate-notes-export-YYYY-MM-DD.zip`. A server
+gives its download the name of the account.
 
 ## Walkthrough: rebranding a release bundle
 
-No toolchain. The app reads its name from the HTML at startup and its icons are
-plain files at fixed paths, so both are editable after the fact. The bundle
-ships in open mode; the same file also carries the server it talks to, so a
-rebranded connected instance is this walkthrough plus
+You do not need a toolchain. The app reads its name from the HTML when it starts, and its icons are
+plain files at fixed paths. Thus, you can edit both after the build. The bundle is in open mode. The
+same file also contains the server that it connects to. Thus, for a rebranded connected instance, do
+this walkthrough and
 [two more lines](client/deployment.md#pointing-a-release-bundle-at-a-server).
 
 ```bash
@@ -140,71 +135,69 @@ sed -i '' 's/Manifesto/Corporate Notes/g' index.html 404.html manifest.webmanife
 cp ~/acme-brand/*.svg ~/acme-brand/icon-1024.png .
 ```
 
-That covers `<title>`, `<meta name="application-name">`,
-`<meta name="description">`, and the manifest's `name` / `short_name` /
-`description`. `404.html` is a copy of `index.html` for SPA fallback, so it
-needs the same treatment.
+This changes `<title>`, `<meta name="application-name">`, `<meta name="description">`, and the
+`name` / `short_name` / `description` of the manifest. `404.html` is a copy of `index.html` for the
+SPA fallback. Thus, it needs the same change.
 
-**Leave the JS bundle alone.** It is minified, and the `manifesto:` prefixes
-inside it are `localStorage` keys, and rewriting those would orphan every note
-already saved in a browser.
+**Do not change the JS bundle.** It is minified. The `manifesto:` prefixes inside it are
+`localStorage` keys. If you change them, the app loses all notes that are already saved in a
+browser.
 
 ## What is parametrised
 
 | Surface | Set by |
 |---|---|
 | Window title, header, login screen, crash screen, PWA name | `VITE_APP_NAME` |
-| The app's mark in the header, login screen and welcome dialog | `VITE_APP_LOGO` (or `logo.svg` in `VITE_APP_ICONS_DIR`) |
-| Which copy this is, beside the name in the header and tab, on the login screen, in About and the authenticator entry | `VITE_INSTANCE_NAME` |
-| The instance's logo, in About and (with the next row) the header | `VITE_INSTANCE_LOGO` |
-| The instance's logo and name in the header instead of the app's, and its logo as the tab icon | `VITE_HEADER_BRAND=instance` |
-| The window title as the instance's name alone, without " · Manifesto" | `VITE_TITLE_APP_NAME=off` |
-| Any logo's dark-theme version | `VITE_APP_LOGO_DARK`, `VITE_INSTANCE_LOGO_DARK`, `VITE_ORG_LOGO_DARK` |
-| The owning organisation's name and logo, on the login screen and in About | `VITE_ORG_NAME`, `VITE_ORG_LOGO` |
-| A link to the deployment's privacy notice, on the login screen and in About | `VITE_PRIVACY_URL` |
-| Export and crash-backup filenames | derived from `VITE_APP_NAME` |
+| The mark of the app in the header, login screen and welcome dialog | `VITE_APP_LOGO` (or `logo.svg` in `VITE_APP_ICONS_DIR`) |
+| Which copy this is: adjacent to the name in the header and tab, on the login screen, in About and in the authenticator entry | `VITE_INSTANCE_NAME` |
+| The logo of the instance, in About and (with the next row) the header | `VITE_INSTANCE_LOGO` |
+| The logo and name of the instance in the header in place of those of the app, and its logo as the tab icon | `VITE_HEADER_BRAND=instance` |
+| The window title as only the name of the instance, without " · Manifesto" | `VITE_TITLE_APP_NAME=off` |
+| The dark-theme version of each logo | `VITE_APP_LOGO_DARK`, `VITE_INSTANCE_LOGO_DARK`, `VITE_ORG_LOGO_DARK` |
+| The name and logo of the owner organization, on the login screen and in About | `VITE_ORG_NAME`, `VITE_ORG_LOGO` |
+| A link to the privacy notice of the deployment, on the login screen and in About | `VITE_PRIVACY_URL` |
+| The names of export files and crash-backup files | made from `VITE_APP_NAME` |
 | PWA manifest description, HTML meta description | `VITE_APP_DESCRIPTION` |
 | Header mark, favicon, PWA icon | `VITE_APP_ICONS_DIR` |
-| First-visit welcome dialog, on or off | `VITE_APP_WELCOME`, or the `welcome-dialog` meta tag in a release bundle |
+| The welcome dialog on the first visit, on or off | `VITE_APP_WELCOME`, or the `welcome-dialog` meta tag in a release bundle |
 
-No translated string spells the name out. The message catalogues carry an
-`{appName}` placeholder that is filled at render time, so a rebrand reaches
-every locale at once. A test fails if a catalogue ever hard-codes it.
+No translated string contains the name. The message catalogues have an `{appName}` placeholder,
+which the app fills when it renders. Thus, a rebrand applies to all locales at the same time. A test
+fails if a catalogue contains the name as a literal.
 
-A placeholder cannot be inflected, since a translation cannot know how another
-name declines, so every message is phrased to leave it in its base form: the
-welcome dialog says "Tämä on {appName}", not "Tervetuloa {appName}on". One
-wording therefore serves every deployment name.
+A placeholder cannot inflect, because a translation cannot know how a different name inflects. Thus,
+each message keeps the placeholder in its base form. The welcome dialog says "Tämä on {appName}",
+not "Tervetuloa {appName}on". Thus, one text is correct for all deployment names.
 
-Not parametrised, both one-line source edits:
+These are not parametrised. Each is a change of one line in the source:
 
-- **Theme colour** `#2563eb`, in `packages/client/index.html`
-  (`<meta name="theme-color">`) and `packages/client/public/manifest.webmanifest`
-  (`theme_color`). It colours the browser's bar in the light theme; in the dark
-  one the app paints that bar with its header's background instead.
+- **Theme color** `#2563eb`, in `packages/client/index.html` (`<meta name="theme-color">`) and
+  `packages/client/public/manifest.webmanifest` (`theme_color`). It gives the color of the browser
+  bar in the light theme. In the dark theme, the app paints that bar with the background of its
+  header.
 - **The repository link** in Settings → About, in
   `packages/client/src/components/settings/AboutSettings.tsx`.
 
-Deliberately left alone: the `manifesto:` `localStorage` keys and the
-`@manifesto/*` workspace package names. They are internal identifiers, and
-changing the storage keys would orphan existing notes in users' browsers.
+We do not change these on purpose: the `manifesto:` `localStorage` keys and the `@manifesto/*`
+workspace package names. They are internal identifiers. A change to the storage keys loses the
+existing notes in the browsers of the users.
 
 ## Tracking upstream
 
-Brand assets stay outside the repository precisely so that upgrading is a
-fast-forward, not a merge conflict:
+The brand assets stay outside the repository so that an upgrade is a fast-forward, not a merge
+conflict:
 
 ```bash
 git pull && pnpm install
 VITE_APP_NAME="Corporate Notes" ... pnpm --filter @manifesto/client build
 ```
 
-Keeping the environment variables in `packages/client/.env` (gitignored, see
-`.env.example`) rather than the command line makes that a plain `pnpm build`.
-The server is a tag bump in your compose file.
+Put the environment variables in `packages/client/.env` (gitignored, see `.env.example`), not on the
+command line. Then the build is only `pnpm build`. For the server, change the tag in your compose
+file.
 
 ## See also
 
-- [Operating Modes](operating-modes.md): open vs connected, storage and auth options
-- [Client Deployment](client/deployment.md): static hosting, PWA, build-time configuration
+- [Operating Modes](operating-modes.md): open mode and connected mode, storage and auth options
+- [Client Deployment](client/deployment.md): static hosting, PWA, configuration at build time
 - [Server Deployment](server/deployment.md): Docker, environment, reverse proxy, OIDC, Postgres

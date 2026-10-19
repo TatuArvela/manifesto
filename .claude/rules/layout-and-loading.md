@@ -20,85 +20,135 @@ paths:
 
 # Layout and Loading
 
-`hooks/useMasonryGrid.ts` does masonry with `grid-row` spans: release every card to its natural
-height, measure, then write each span back. It runs from a `ResizeObserver`, so it only writes
-spans that changed. A pass that changes nothing provokes no further callback, which is what keeps
-it from looping. Only a change of the container's *width* releases the whole grid; a card that
-resized is re-measured where it stands (items are `items-start`, so its span cannot change its
-height), and the effect is keyed on the note ids, not the note list, so an auto-save does not set
-the grid up again. Content that settles after first paint (images, fonts) has to trigger a re-measure
-or the card keeps the height it was born with.
+## Masonry
 
-Drag-to-reorder is gated by the `canReorder` computed: Notes or Auto-notes view, default sort, no
-search, no modal. The same gate offers the keyboard's way (`moveNoteBy`, one place in the
-card's section, bound to `Shift j` / `Shift k` and in the card menu), which WCAG requires of any
-drag. `reorderNotes` gives the dropped note the midpoint between its neighbours and
-writes nothing else. `position` is a float in both drivers, so a `POSITION_STEP` (1000) gap lasts
-about fifty halvings before `renumberFrom` spreads everything out again. The neighbours are found
-on the whole number line, archived and trashed notes included: they share it, and a slot chosen
-among the visible notes alone can land on a hidden one. Ties in the manual sort break on `id`.
+`hooks/useMasonryGrid.ts` makes a masonry layout with `grid-row` spans. It releases each card to its
+natural height, measures it, and then writes each span back.
 
-While a card is dragged, `ReorderableGrid` previews the new order (`hooks/useReorderDrag.ts`): the card takes the place of the
-card under the pointer, found by hit-testing where cards are drawn, and the others slide (FLIP)
-to make room. The order is shown through each card's CSS `order`, never by moving DOM nodes,
-because moving a node drops the pointer capture a touch drag holds. The dragged card keeps its
-slot with `visibility: hidden`; the only copy on screen is under the pointer (the browser's drag
-image, or `.note-drag-ghost` for a finger). The card just swapped with is passed over until the
-pointer leaves it, or the two swap back and forth under a still pointer. A drop commits the order
-on screen and never applies a move still waiting for its frame. `dragenter` is cancelled as well
-as `dragover`: cards move under the pointer, and a drop onto a card entered with no `dragover`
-since is refused by the browser.
+- It runs from a `ResizeObserver`. Thus, it writes only the spans that changed. A pass that changes
+  nothing causes no new callback, and this prevents a loop.
+- Only a change of the *width* of the container releases the full grid. A card that changed size is
+  measured again in its position. The items are `items-start`, so the span of a card cannot change
+  its height.
+- The key of the effect is the note ids, not the note list. Thus, an auto-save does not set up the
+  grid again.
+- Content that settles after the first paint (images, fonts) must cause a new measurement. If not,
+  the card keeps its first height.
 
-On a touch screen that drag is reached only by holding the card first, and the ordering in
-`hooks/useTouchGesture.ts` is what keeps the board scrollable: a finger that moves before the hold
-has elapsed is scrolling, so the gesture abandons itself and the card is never picked up, dimmed or
-selected on the way past. Releasing a hold that never moved is what enters select mode.
-`.note-draggable` therefore carries `touch-action: pan-y`, not `none`. That alone would let the
-browser start a pan on the first move *after* the hold and take the pointer stream with it, so a
-held card cancels the scroll at its source: a non-passive `touchmove` listener that
-`preventDefault`s from the moment the hold fires. `touch-action` cannot express "pannable until
-held". `onHoldEnd` fires however a hold ends, including a `pointercancel` the system sends, or a
-card the OS took the touch from would stay lifted with nothing holding it.
+## Reorder
 
-`index.html` carries a loading screen and a blocking `/theme-init.js` ahead of the bundle, because
-both have to be on screen or applied before the bundle exists: launched from a home screen there is
-no browser chrome to look at while it loads. `theme-init.js` duplicates the two reads `prefs.ts`
-makes of `manifesto:prefs` and writes the same `dark` class; it is a separate file rather than an
-inline script because the page's CSP allows scripts from `'self'` only. The splash comes down
-when the first real screen is there, not on the first render, which is an empty board: `splash.ts`
-fades it once `revealApp()` is called (notes loaded, the sign-in screen, a crash or setup error)
-and the fonts that screen asked for have arrived, or at `SPLASH_CAP_MS` after boot regardless. It
-is removed on a timer as well as `transitionend`, since that event never arrives in a background
-tab.
+The `canReorder` computed controls drag-to-reorder: the Notes view or the Auto-notes view, default
+sort, no search, no modal. The same control applies to the keyboard method (`moveNoteBy`, one
+position in the section of the card, bound to `Shift j` / `Shift k` and in the card menu). WCAG
+requires a keyboard method for each drag.
 
-On a phone, an open note, the composer and a note's history are laid out *in the page*, not fixed
-over it, and go through `NoteSheet`. `.app-shell` (the board) is `fixed` to the screen, so the page
-scrolls the note and the board stays put under it. It is fixed always, not only while a sheet is up:
-a home-screen app on iOS blurs what lies under the status bar unless a fixed or sticky bar is there,
-and the board's header, in the flow of a page that never scrolls, was not. That is the one arrangement where iOS keeps the caret
-above the keyboard by scrolling the page rather than sliding the visible area over a fixed sheet.
-Nothing reads `visualViewport`, and that is deliberate: sizing a sheet to it left a sliver of note
-(Safari in a tab reports it too short), padding for the keyboard added blank room past the end, and
-a top bar moved to follow it trailed every scroll by a frame. With the keyboard up in a Safari tab,
-iOS pans the page past the foot of everything laid out, `fixed` layers included, so the page's own
-background shows there; `paintPage` gives it the open note's colour. Since the keyboard covers the foot of the
-layout and nothing tracks it, the editor's tools are not there on a phone: `NoteEditor` mounts
-`NoteEditorToolbar` in the sticky top bar (`atTop`, chosen with `useMediaQuery(PHONE_QUERY)`), with
-undo and redo beside the pin, and under the note only on a wider screen. Chrome on Android is told
-`interactive-widget=resizes-content` in the viewport meta tag, so there the keyboard shrinks the
-layout instead; Safari ignores it. Anything that
-must show over an open note belongs outside `.app-shell` (App's dialogs, toasts and banners are).
-`NoteSheet` also offers its content a place beside the panel on a wide screen: the `SheetAside`
-context is an element to portal into, to the right of the panel and as tall as it (a note's comments
-open there). It is inside the dialog, so the focus trap covers it; empty, it has no width and the
-panel sits centred alone. It widens as content arrives and closes up as it leaves (`.sheet-aside` in
-`styles/editor.css`), so the panel slides rather than jumps; the content takes `sheet-aside-panel`
-and is held through its exit by `usePresence` with `SHEET_ASIDE_EXIT_MS`. Whether to use it is asked with `useMediaQuery(SHEET_ASIDE_QUERY)`,
-which has to agree with the element's own `max-lg:hidden`.
-The open and close morph uncovers the panel with `clip-path` there instead of scaling it
-(`utils/morph.ts`), since a whole screen scaled onto a card squashes its text.
+- `reorderNotes` gives the dropped note the midpoint between its neighbors, and writes nothing else.
+- `position` is a float in both drivers. Thus, a `POSITION_STEP` (1000) gap lasts for approximately
+  fifty halvings. Then `renumberFrom` spreads all positions again.
+- The neighbors come from the full number line, with archived and trashed notes. All notes share the
+  line. A position selected only from the visible notes can be the same as a hidden note.
+- In the manual sort, `id` decides ties.
 
-`storage/quota.ts` reports a browser storage refusal and nothing more: it holds no reference to the
-toast queue or the catalogue, so the "tell the user" decision stays in `failures.ts`. A refused
-write is neither retried nor rolled back: the signal keeps the change, so the session continues
-with a note that exists only in this tab.
+## The drag preview
+
+While you drag a card, `ReorderableGrid` shows the new order (`hooks/useReorderDrag.ts`):
+
+- The card takes the position of the card under the pointer. A hit test on the drawn positions of the
+  cards finds that card. The other cards slide (FLIP) to make space.
+- The CSS `order` of each card shows the order. Never move DOM nodes, because a move of a node
+  removes the pointer capture of a touch drag.
+- The dragged card keeps its position with `visibility: hidden`. The only copy on the screen is under
+  the pointer (the drag image of the browser, or `.note-drag-ghost` for a finger).
+- The card that was just swapped is ignored until the pointer leaves it. If not, the two cards swap
+  again and again under a pointer that does not move.
+- A drop commits the order on the screen. It never applies a move that still waits for its frame.
+- The code cancels `dragenter` and `dragover`. Cards move under the pointer. If no `dragover`
+  occurred after the pointer entered a card, the browser refuses a drop onto that card.
+
+## Touch holds
+
+On a touch screen, you can start that drag only when you hold the card first. The order of events in
+`hooks/useTouchGesture.ts` keeps the board scrollable:
+
+- If a finger moves before the hold time is complete, it is a scroll. The gesture stops itself. The
+  card is never picked up, dimmed or selected during the scroll.
+- When you release a hold that did not move, select mode starts.
+- Thus, `.note-draggable` has `touch-action: pan-y`, not `none`. But with only that, the browser can
+  start a pan on the first move *after* the hold, and take the pointer stream. Thus, a held card
+  cancels the scroll at its source: a non-passive `touchmove` listener calls `preventDefault` from
+  the time when the hold fires. `touch-action` cannot say "pannable until held".
+- `onHoldEnd` fires for each end of a hold, also for a `pointercancel` from the system. If not, a
+  card that the OS took the touch from stays lifted, and nothing holds it.
+
+## The loading screen
+
+`index.html` has a loading screen and a blocking `/theme-init.js` before the bundle. Both must be on
+the screen, or applied, before the bundle exists. When an app starts from a home screen, there is no
+browser chrome to look at while it loads.
+
+- `theme-init.js` does the same two reads of `manifesto:prefs` as `prefs.ts`, and writes the same
+  `dark` class. It is a separate file, not an inline script, because the CSP of the page permits
+  scripts only from `'self'`.
+- The splash goes away when the first real screen is there, not on the first render, which is an
+  empty board. `splash.ts` fades it after two conditions: `revealApp()` is called (notes loaded, the
+  sign-in screen, a crash or a setup error), and the fonts for that screen have arrived. It also
+  fades at `SPLASH_CAP_MS` after the start, in all cases.
+- A timer removes it, and `transitionend` also removes it. The reason is that the event never comes
+  in a background tab.
+
+## Phone sheets
+
+On a phone, an open note, the composer and the history of a note are in the layout *of the page*.
+They are not fixed over it. They go through `NoteSheet`.
+
+- `.app-shell` (the board) is `fixed` to the screen. Thus, the page scrolls the note, and the board
+  stays under it.
+- It is always fixed, not only while a sheet is open. A home-screen app on iOS blurs the area under
+  the status bar only if a fixed or sticky bar is there. The header of the board, in the flow of a
+  page that never scrolls, was not.
+- With this arrangement only, iOS keeps the caret above the keyboard. It scrolls the page, and does
+  not slide the visible area over a fixed sheet.
+
+No code reads `visualViewport`, on purpose:
+
+- When a sheet had the size of the visual viewport, a thin part of the note was missing (Safari in a
+  tab reports it too short).
+- Padding for the keyboard added empty space after the end.
+- A top bar that followed the visual viewport was one frame late on each scroll.
+
+When the keyboard is open in a Safari tab, iOS pans the page past the bottom of the layout, and
+past the `fixed` layers. Thus, the background of the page shows there. `paintPage` gives it the
+color of the open note.
+
+The keyboard covers the bottom of the layout, and nothing follows it. Thus, on a phone the tools of
+the editor are not there. `NoteEditor` mounts `NoteEditorToolbar` in the sticky top bar (`atTop`,
+selected with `useMediaQuery(PHONE_QUERY)`), with undo and redo adjacent to the pin. Only on a wider
+screen is the toolbar under the note. The viewport meta tag tells Chrome on Android
+`interactive-widget=resizes-content`. Thus, in Chrome the keyboard makes the layout smaller. Safari
+ignores it. Each element that must show over an open note belongs outside `.app-shell` (the dialogs,
+toasts and banners of App are there).
+
+## The sheet aside
+
+On a wide screen, `NoteSheet` also gives its content a place adjacent to the panel. The `SheetAside`
+context is an element to portal into. It is to the right of the panel, with the same height (the
+comments of a note open there).
+
+- It is inside the dialog. Thus, the focus trap includes it.
+- When it is empty, it has no width, and the panel is alone in the center.
+- It becomes wider when content arrives, and narrower when content goes (`.sheet-aside` in
+  `styles/editor.css`). Thus, the panel slides and does not jump.
+- The content uses `sheet-aside-panel`. `usePresence` with `SHEET_ASIDE_EXIT_MS` keeps it during its
+  exit.
+- To decide if you use it, call `useMediaQuery(SHEET_ASIDE_QUERY)`. The query must agree with the
+  `max-lg:hidden` of the element.
+
+The open and close morph uncovers the panel there with `clip-path`, and does not scale it
+(`utils/morph.ts`). A full screen scaled onto a card makes its text look compressed.
+
+## Storage quota
+
+`storage/quota.ts` reports a refusal of browser storage, and nothing more. It has no reference to the
+toast queue or the catalogue. Thus, `failures.ts` keeps the decision to tell the user. The app does
+not try a refused write again, and does not roll it back. The signal keeps the change. Thus, the
+session continues with a note that exists only in this tab.

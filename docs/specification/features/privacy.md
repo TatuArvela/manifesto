@@ -1,179 +1,196 @@
 # Privacy
 
-Who can read what someone writes in Manifesto, and what they can find out when they do. The short
-version: in open mode nobody but the person at the device; in connected mode the people a note is
-shared with, and neither the operator nor the admins, since notes are sealed in the browser before
-they reach the server. Anything an admin does to an account shows on that account's own Activity page.
+This page tells who can read what a person writes in Manifesto, and what they can learn when they
+read it. The short version: in open mode, only the person at the device. In connected mode, the
+people who share a note. The operator and the admins cannot read notes, because the browser seals
+notes before they go to the server. All actions of an admin on an account show on the Activity page
+of that account.
 
-This page describes the software. A deployment's operator decides the rest (who is an admin, where the
-database and its backups live, which settings are on), so a user of someone else's server trusts that
-operator, not only the code.
+This page describes the software. The operator of a deployment decides the other parts (who is an
+admin, where the database and its backups are, which settings are on). Thus, a user of a server of a
+different person trusts that operator, not only the code.
 
 ## Who can read notes
 
 | Mode | Who can read notes |
 |---|---|
-| **Open mode** | Whoever can use the browser profile they are in. Nothing leaves the device. |
-| **Connected, own server** | Its operator, which is the user. |
-| **Connected, someone else's server** | The people a note is [shared with](sharing-with-people.md). The operator and the admins hold what the browser sealed and no key that opens it. |
+| **Open mode** | The persons who can use the browser profile. Nothing goes off the device. |
+| **Connected, own server** | Its operator, who is the user. |
+| **Connected, server of a different person** | The people who have the note [shared with](sharing-with-people.md) them. The operator and the admins have what the browser sealed, and no key that opens it. |
 
-Everything a person writes in a note (its title, text, tags, colour, images, the shared document it
-is edited in, its versions and comments) is sealed in the browser before it reaches the server.
-[Encryption](encryption.md) has the design, what is built, and what it does not protect: chiefly an
-operator who changes the client the server hands out, and a request made with a token, which the
-server opens in memory.
+All that a person writes in a note (its title, text, tags, color, images, the shared document in
+which it is edited, its versions and comments) is sealed in the browser before it goes to the server.
+[Encryption](encryption.md) tells the design, what is built, and what it does not protect. The main
+items are an operator who changes the client that the server sends, and a request with a token, which
+the server opens in memory.
 
 ## What an admin can see
 
-An [admin](accounts.md) administers accounts, not their contents. From inside the app an admin sees:
+An [admin](accounts.md) manages accounts, not their contents. In the app, an admin sees:
 
-- **Every account**: username, display name, email address, whether it is an admin, how it signs in,
-  its note count, when it was created and last seen.
-- **The overview**: totals, and per account the number of notes, shares, images, the bytes they take
-  and saved versions. Counts, never contents.
+- **Each account**: username, display name, email address, if it is an admin, how it signs in, its
+  note count, when it was created, and when it was last seen.
+- **The overview**: totals, and for each account the number of notes, shares, images, the bytes that
+  they use, and saved versions. Only counts, never contents.
 - **The audit log**: who did what to which account or note, when, and from which address. It records
   that a note was shared, never what the note says.
 
-An admin does not see the notes themselves: no view, route or search in the app reads another
-account's notes, and the server has nothing readable to hand over. There is no export of another
-account's notes; a person exports their own from the app. One action comes close, and it is visible
-to the account's owner:
+An admin does not see the notes. No view, route or search in the app reads the notes of a different
+account, and the server has no readable data to give. There is no export of the notes of a different
+account. A person exports their own notes from the app. One action is almost an exception, and the
+owner of the account can see it:
 
-- **Issuing a temporary password** (local sign-in only). An admin who used it to sign in as someone
-  would first have to choose a new password, which signs the owner out everywhere, turns off their
-  two-factor sign-in and removes their passkeys, and leaves their own password not working. It is recorded as
-  `admin.password_reset`.
+- **A temporary password** (local sign-in only). If an admin uses it to sign in as a person, the admin
+  must first select a new password. This signs the owner out on all devices, turns off their
+  two-factor sign-in, removes their passkeys, and their own password stops. The audit log records it
+  as `admin.password_reset`.
 
 ## What other users can see
 
-Someone sharing a note looks the other person up, and what that lookup shows is `USER_LOOKUP`
-([Sharing with people](sharing-with-people.md#inviting)). Under `exact`, the default, it finds an
-account only by its whole username or email address and never shows the address, so the list of
-accounts cannot be browsed. Under `search` it suggests accounts as the owner types, with their email
-addresses, so anyone who can sign in can collect every address on the server. That suits a team whose
-members all know each other, and no server where anyone may register.
+A person who shares a note looks for the other person. `USER_LOOKUP` controls what that search shows
+([Sharing with people](sharing-with-people.md#inviting)).
 
-Beyond that, someone on a note sees the names of the others on it, and the names on its comments.
+- With `exact`, the default, it finds an account only by its full username or email address. It
+  never shows the address. Thus, nobody can look through the list of accounts.
+- With `search`, it suggests accounts while the owner types, with their email addresses. Thus, all
+  persons who can sign in can collect all addresses on the server. That is correct for a team whose
+  members all know each other. It is not correct for a server where all persons can register.
+
+Also, a person on a note sees the names of the other persons on it, and the names on its comments.
 
 ## What a user can see about their account
 
-Settings has an **Activity** page for every signed-in user (`GET /api/v1/auth/me/activity`): the audit
-log's lines where they are the actor or the target, newest first. That is their sign-ins and failed
-ones, changes to how the account is secured, shares with and by them, and every admin action on their
-account, with the admin's name. The rule is that what an admin
-can see about someone, that person can see too.
+Settings has an **Activity** page for each signed-in user (`GET /api/v1/auth/me/activity`). It shows
+the lines of the audit log where the user is the actor or the target, newest first. These are their
+sign-ins and failed sign-ins, changes to the security of the account, shares with them and by them,
+and each admin action on their account, with the name of the admin. The rule: what an admin can see
+about a person, that person can also see.
 
-- **Addresses** are shown for what the user did themselves and for failed sign-ins on their account,
-  since those are the ones they may want to recognise. Where someone else acted on them (an admin, a
-  person sharing a note) the entry names who, but not from where.
-- **Only with a session.** An [API token](../api.md) cannot read it, as it cannot read anything else
-  about how the account is secured.
-- **Kept as long as the log is**: `AUDIT_RETENTION_DAYS`, 180 days by default. An admin cannot delete
-  single entries from the app.
+- **Addresses** show for the actions of the user and for failed sign-ins on their account. The user
+  possibly wants to identify those. Where a different person acted on them (an admin, a person who
+  shared a note), the entry names who, but not from where.
+- **Only with a session.** An [API token](../api.md) cannot read it, as it cannot read other data
+  about the security of the account.
+- **Kept for the same time as the log**: `AUDIT_RETENTION_DAYS`, 180 days by default. An admin cannot
+  delete one entry from the app.
 
 ## What the operator holds
 
-Everything the server stores is in the hands of whoever runs it. Some of it is sealed, and the
-operator holds it without a key; the rest is readable:
+The operator of the server has all of the data that the server stores. Some of it is sealed, and the
+operator has no key for it. The other data is readable:
 
 - **Notes**, their [version history](version-history.md), [attachments](attachments.md), comments
-  and the shared document state of [collaborative editing](collaborative-editing.md): sealed. What
-  the server reads about them (which exist, whose they are, who they are shared with, how large,
-  when they changed, their pin, archive and trash state, and when a reminder is due) is listed in
-  [Encryption](encryption.md#what-it-does-not-protect).
-- **Accounts**: usernames, display names, email addresses, the language each client is set to, and
-  password hashes (argon2). Sessions and API tokens are stored as hashes.
-- **Preferences** that follow the account ([Preferences](preferences.md)): sealed, like notes.
-- **The audit log**, with client addresses. A failed sign-in names the account it was for only when
-  the name tried belongs to one: a name that matched no account is not kept, since it is often a
-  password typed into the wrong field.
-- **Backups**, when `BACKUP_INTERVAL_HOURS` is set: whole copies of all of the above, in `BACKUP_DIR`,
-  the newest `BACKUP_KEEP` of them.
+  and the shared document state of [collaborative editing](collaborative-editing.md): sealed.
+  [Encryption](encryption.md#what-it-does-not-protect) lists what the server reads about them (which
+  exist, who owns them, with whom they are shared, their size, when they changed, their pin, archive
+  and trash state, and when a reminder is due).
+- **Accounts**: usernames, display names, email addresses, the language of each client, and password
+  hashes (argon2). Sessions and API tokens are stored as hashes.
+- **Preferences** that go with the account ([Preferences](preferences.md)): sealed, as notes are.
+- **The audit log**, with client addresses. A failed sign-in names its account only when the name
+  that was tried belongs to an account. The server does not keep a name that matched no account,
+  because it is frequently a password typed into the wrong field.
+- **Backups**, when `BACKUP_INTERVAL_HOURS` is set: full copies of all of the above, in
+  `BACKUP_DIR`. The server keeps the newest `BACKUP_KEEP` of them.
 
-How long each is kept:
+How long the server keeps each item:
 
 | What | Kept |
 |---|---|
-| An account and what it holds | Until it is deleted, by its owner or an admin |
+| An account and its data | Until its owner or an admin deletes it |
 | A note in the trash | 30 days ([Trash](trash.md)) |
-| A note's versions | The newest 50, and none older than 90 days |
-| An image no note refers to | 90 days, so a restored version still finds it |
-| A session, a sign-in or reset link, an API token | Until it expires or is ended, then swept within the hour |
-| An audit log entry | `AUDIT_RETENTION_DAYS`, 180 days by default, also after the account it is about is deleted |
-| A backup | Until `BACKUP_KEEP` newer ones replace it, also after an account in it is deleted |
+| The versions of a note | The newest 50, and none older than 90 days |
+| An image to which no note refers | 90 days, so that a restored version still finds it |
+| A session, a sign-in or reset link, an API token | Until it expires or ends. Then the sweep removes it in one hour |
+| An audit log entry | `AUDIT_RETENTION_DAYS`, 180 days by default, also after the deletion of its account |
+| A backup | Until `BACKUP_KEEP` newer backups replace it, also after the deletion of an account in it |
 
 ## A person's own data
 
-What a person can do about what the server holds on them, without asking anyone:
+A person can do these things with the data that the server has about them, without a request to
+other persons:
 
-- **See it.** Settings shows the account's details, its tokens, webhooks and passkeys, and its
-  **Activity** page shows the audit log's lines about it ([above](#what-a-user-can-see-about-their-account)).
-- **Take it away.** **Export Notes** downloads every note the account owns, with versions and
-  preferences, in a format that imports anywhere ([Export](export-import.md#export)). Notes shared with
-  the account are their owners', and comments it wrote stay with the notes they were written on.
-- **Correct it.** The email address is changed on the Account page; under single sign-on it comes from
-  the identity provider.
-- **Delete it.** **Delete account** on the Account page removes the account and everything it holds
-  ([Accounts](accounts.md#deleting-your-own-account)). What stays is the audit log's entries until they
-  expire and the backups taken before, as the table above says.
+- **See it.** Settings shows the details of the account, its tokens, webhooks and passkeys. Its
+  **Activity** page shows the lines of the audit log about it
+  ([above](#what-a-user-can-see-about-their-account)).
+- **Take it away.** **Export Notes** downloads all notes that the account owns, with versions and
+  preferences, in a format that you can import anywhere ([Export](export-import.md#export)). Notes
+  shared with the account belong to their owners. Comments that it wrote stay with their notes.
+- **Correct it.** You change the email address on the Account page. With single sign-on, it comes
+  from the identity provider.
+- **Delete it.** **Delete account** on the Account page removes the account and all of its data
+  ([Accounts](accounts.md#deleting-your-own-account)). The audit log entries stay until they expire,
+  and the older backups stay, as the table above tells.
 
 ## The operator's privacy notice
 
-Whoever runs a server for other people decides who holds their data and for how long, and is the one
-to tell them. `VITE_PRIVACY_URL`, or the `privacy-url` meta tag in a release bundle
-([Client Deployment](../client/deployment.md)), links that notice from the sign-in screen, where an
-account is made, and from About. This page is a starting point for writing it: the settings that
-change what it has to say are `USER_LOOKUP`, `REGISTRATION_ENABLED`, `AUDIT_RETENTION_DAYS`,
-`BACKUP_INTERVAL_HOURS` and `BACKUP_KEEP`, `TRUST_PROXY` (whose addresses the audit log records),
-and the features that reach third parties, below.
+The operator of a server for other people decides who has their data and for how long. The operator
+must tell them. `VITE_PRIVACY_URL`, or the `privacy-url` meta tag in a release bundle
+([Client Deployment](../client/deployment.md)), puts a link to that notice on the sign-in screen,
+where accounts are made, and in About. Use this page as a start for the notice. These settings change
+what it must say:
 
-The server's own log carries method, path, status and timing, never a request body or a query string,
-so what someone searches for is not logged. Encryption at rest is whatever the operator's disk or
-database provides; on top of it, notes are sealed by the browser and a few values the server
-reads by itself (reminder times, webhook and authenticator secrets, push keys) by the [server
-key](encryption.md#the-server-key).
+- `USER_LOOKUP`
+- `REGISTRATION_ENABLED`
+- `AUDIT_RETENTION_DAYS`
+- `BACKUP_INTERVAL_HOURS` and `BACKUP_KEEP`
+- `TRUST_PROXY` (it controls which addresses the audit log records)
+- The features that send data to third parties, below.
+
+The log of the server contains the method, path, status and timing. It never contains a request body
+or a query string. Thus, the log does not record what a person searches for. Encryption at rest is
+what the disk or database of the operator gives. In addition, the browser seals notes. The [server
+key](encryption.md#the-server-key) seals some values that the server reads by itself (reminder times,
+webhook and authenticator secrets, push keys).
 
 ## What reaches third parties
 
-- **Push reminders** (connected mode, `WEB_PUSH` on by default): a reminder nobody's open app fired is
-  sent through the browser's push service, which is Google's, Apple's or Mozilla's according to the
-  browser. The service learns that this server sent that browser a message, when, and how large; the
-  note's title and first words inside it are encrypted to the browser and it cannot read them. Nothing
-  is sent for an account with no subscribed browser.
-- **Link previews** (connected mode, `LINK_PREVIEWS` on by default): the server fetches the pages a
-  note links to. Those sites see the server's address, not the user's, and the URL, not the note.
-  Open mode never does this; its CSP forbids it.
-- **Webhooks**: a user's own [webhooks](webhooks.md) post note events to the URLs they chose.
-- **AI assistants**: whatever a user's own assistant reads through the [MCP endpoint](mcp.md) goes
-  wherever that assistant runs, usually its vendor's service. Only a token the user minted opens it.
+- **Push reminders** (connected mode, `WEB_PUSH` on by default): if no open app fired a reminder, the
+  server sends it through the push service of the browser. That service belongs to Google, Apple or
+  Mozilla, as the browser decides. The service learns that this server sent a message to that
+  browser, when, and its size. The title and first words of the note inside it are encrypted to the
+  browser, and the service cannot read them. The server sends nothing for an account with no
+  subscribed browser.
+- **Link previews** (connected mode, `LINK_PREVIEWS` on by default): the server gets the pages that a
+  note links to. Those sites see the address of the server, not of the user, and the URL, not the
+  note. Open mode never does this. Its CSP does not permit it.
+- **Webhooks**: the [webhooks](webhooks.md) of a user send note events to the URLs that the user
+  selected.
+- **AI assistants**: what the assistant of a user reads through the [MCP endpoint](mcp.md) goes to
+  the place where that assistant runs, usually the service of its vendor. Only a token that the user
+  made opens it.
 - **Mail**, with `SMTP_URL` set: password reset links and share invitations go through that relay.
-- **The update check** (`UPDATE_CHECK`): the server asks GitHub for the newest release. It sends
-  nothing about users or notes.
-- **Share links** ([Sharing](sharing.md)) carry the note in the URL fragment, which the browser does
-  not send to any server; whoever holds the link can read the note.
-- **Public links** ([Sharing](sharing.md#public-links)) let anyone holding one read the note it
-  publishes, with no account, until it expires, is used up or is revoked. The server counts the views
-  and keeps the time of the last one, and nothing about who viewed.
+- **The update check** (`UPDATE_CHECK`): the server asks GitHub for the newest release. It sends no
+  data about users or notes.
+- **Share links** ([Sharing](sharing.md)) contain the note in the URL fragment. The browser does not
+  send the fragment to a server. All persons with the link can read the note.
+- **Public links** ([Sharing](sharing.md#public-links)) let all persons with a link read its note,
+  with no account, until it expires, reaches its view limit, or is revoked. The server counts the
+  views and keeps the time of the last view. It keeps no data about who looked.
 
 ## On the device
 
-- **Open mode** keeps everything in `localStorage` and IndexedDB, as private as the browser profile.
-- **Connected mode** keeps the notes in memory, and an offline copy of each note opened for editing in
-  IndexedDB (`manifesto:yjs-sealed:<id>`), so an edit made offline survives a reload. The copy is
-  the sealed log of the note's edits, as the server holds it. A browser that kept readable copies
-  before notes were sealed (`manifesto:yjs:<id>`) deletes them the next time a note is opened.
-- **Notes not stored yet.** The new-note composer's draft, and new notes written while the server
-  could not be reached, are kept in IndexedDB (`manifesto-offline`) until they are saved and sent.
-  In connected mode each is sealed under a key derived from the account key and bound to the
-  account, so it is as unreadable on the device as the offline copies; in open mode it is kept
-  readable, as the notes are.
-- **Signing out** leaves none of the account's notes behind: the list leaves memory, the reminders
-  stop (in the page and in the service worker's copy, which is handed an empty list), and the offline
-  copies, the draft and the notes not sent yet are deleted. Signing out with notes not sent asks
-  first, since this device is the only place they are. A session that ends because the server
-  refused it (`401`) empties the list and stops the reminders too, but keeps the offline copies and
-  the notes not sent, since it can arrive with work done offline that has not reached the server
-  yet; they are sent once the account is unlocked here again.
-- **Preferences** (`manifesto:prefs`) stay after sign-out. They hold settings such as the theme, and
-  the names of tags hidden from the board; in connected mode most of them are also the account's,
-  kept on the server.
+- **Open mode** keeps all data in `localStorage` and IndexedDB. It is as private as the browser
+  profile.
+- **Connected mode** keeps the notes in memory. It keeps an offline copy of each note opened for
+  editing in IndexedDB (`manifesto:yjs-sealed:<id>`). Thus, an offline edit stays after a reload. The
+  copy is the sealed log of the edits of the note, as the server has it. A browser that kept readable
+  copies before notes were sealed (`manifesto:yjs:<id>`) deletes them the next time a note opens.
+- **Notes that are not stored yet.** The draft of the new-note composer, and new notes written while
+  the server was not available, stay in IndexedDB (`manifesto-offline`) until they are saved and sent.
+  In connected mode, each is sealed under a key made from the account key, and bound to the account.
+  Thus, it is as unreadable on the device as the offline copies. In open mode, it stays readable, as
+  the notes are.
+- **Signing out** leaves no notes of the account:
+  - The list goes out of memory.
+  - The reminders stop, in the page and in the copy of the service worker, which gets an empty list.
+  - The app deletes the offline copies, the draft and the notes that were not sent.
+  - If there are notes that were not sent, the app asks first, because this device is the only place
+    where they are.
+- **A session that ends because the server refused it** (`401`) also empties the list and stops the
+  reminders. But it keeps the offline copies and the notes that were not sent, because it can occur
+  when offline work did not go to the server yet. The app sends them when the account is unlocked
+  here again.
+- **Preferences** (`manifesto:prefs`) stay after a sign-out. They contain settings, for example the
+  theme, and the names of tags hidden from the board. In connected mode, most of them also belong to
+  the account, and the server keeps them.

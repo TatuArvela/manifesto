@@ -8,4 +8,18 @@ paths:
 
 # Version History
 
-Notes have persistent version history. Versions are saved automatically when the editor closes with changes (capturing the pre-edit state), through the storage adapter (`state/versions.ts`): in connected mode the server keeps them (`note_versions`, `/api/v1/notes/:id/versions`), and a browser's older local history for a note is sent across the first time it is opened. In open mode they are LZ-String compressed in `localStorage`, one key per note (`manifesto:versions:<id>`), so saving a version never re-compresses another note's history; the old shared `manifesto:versions` map is split on first use (`storage/VersionStorage.ts`). Capped at `MAX_NOTE_VERSIONS` per note and `NOTE_VERSION_MAX_AGE_DAYS` in both. UI: `components/VersionHistory.tsx`, accessed via kebab menu in the note editor.
+Notes have a persistent version history. The app saves a version automatically when the editor
+closes with changes. The version holds the state from before the edit. The save goes through the
+storage adapter (`state/versions.ts`).
+
+- **Connected mode**: the server keeps the versions (`note_versions`,
+  `/api/v1/notes/:id/versions`). The first time a note opens, the browser sends its older local
+  history for that note to the server.
+- **Open mode**: the versions are in `localStorage`, compressed with LZ-String. Each note has its
+  own key (`manifesto:versions:<id>`). Thus, a new version of one note does not compress the history
+  of other notes again. The first use splits the old shared `manifesto:versions` map
+  (`storage/VersionStorage.ts`).
+
+Both modes keep a maximum of `MAX_NOTE_VERSIONS` for each note, and no version older than
+`NOTE_VERSION_MAX_AGE_DAYS`. The UI is `components/VersionHistory.tsx`. Open it from the kebab menu
+in the note editor.

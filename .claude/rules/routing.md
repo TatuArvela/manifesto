@@ -12,30 +12,49 @@ paths:
 
 # Routing
 
-`state/router.ts` syncs `activeView` / `activeTag` with `location.pathname` (base-prefixed from
-Vite's `BASE_URL`). Eight views, eight paths: `/` → active, `/tags` and `/tags/<tag>` → tags (a nested tag is a path of its own, `/tags/work/clients`, each
-part encoded by itself; `isTagWithin` and the rest of the path helpers are in `shared/src/tags.ts`),
-`/reminders`, `/auto-notes`, `/archived`, `/trash`, `/search`, `/admin`. `/admin` renders only for an
-admin in connected mode; `App` (`useAccountCheck`) sends anyone else to `/` once `/me` has answered, not before, since the
-persisted user can predate a grant. The `githubPagesSpaFallback` Vite
-plugin copies `dist/index.html` to `dist/404.html` so GitHub Pages serves the SPA for any unknown
-path.
+`state/router.ts` keeps `activeView` and `activeTag` the same as `location.pathname`. The path has
+the prefix from the `BASE_URL` of Vite. There are eight views and eight paths:
 
-Changing the view or the tag plays `hooks/useViewTransition.ts`. A note on both boards moves from
-where it was to where it is now, one only on the board before fades out where it stood, one new to
-the board fades in, and everything else cross-fades. The new-note pad (`data-view-slide`) slides
-down from under the board's top edge and back up under it instead. The board before is gone once
-Preact renders the new one, so a signal `effect`, which runs on the change itself and so before the
-render a microtask later, notes where every card is and lays an inert copy of the content over
-`<main>` to fade out; once the new board is laid out, the copy's cards that are on it too are hidden.
-The content is animated in place, never remounted by a `key`, which would throw away the masonry
-grid's measurements, and from a layout effect: after paint, the new view shows whole for a frame
-first. `App` calls it after `usePaneSlide`, so a sidebar opening in the same change has started from
-closed when the cards are measured. A Web Animation is not reached by the `.no-motion` override in
-`styles/preferences.css`, so the hooks read the `animations` preference themselves.
+- `/` shows the active notes.
+- `/tags` and `/tags/<tag>` show the tags. A nested tag has its own path, `/tags/work/clients`. The
+  app encodes each part of the path separately. `isTagWithin` and the other path helpers are in
+  `shared/src/tags.ts`.
+- `/reminders`, `/auto-notes`, `/archived`, `/trash`, `/search` and `/admin`.
 
-On a wide screen the Tags view's sidebar opens and closes as a drawer (`usePaneSlide`, beside it):
-its width is animated, so the board is carried by its edge and the tree inside, right-aligned at its
-full width, rides on it. `App` keeps the pane mounted through `usePresence` until it has closed.
-While it moves, the board's content is held at the width it ends at, since the masonry grid would
-otherwise reflow its columns every frame, and the board clips it sideways for that moment.
+`/admin` shows only for an admin in connected mode. `App` (`useAccountCheck`) sends all other users
+to `/`, but only after `/me` answers. The persisted user can be older than a grant of admin rights.
+The `githubPagesSpaFallback` Vite plugin copies `dist/index.html` to `dist/404.html`. Thus, GitHub
+Pages serves the SPA for all unknown paths.
+
+## View transitions
+
+A change of the view or the tag plays `hooks/useViewTransition.ts`:
+
+- A note on both boards moves from its old position to its new position.
+- A note that is only on the old board fades out where it was.
+- A note that is new on the board fades in.
+- All other content cross-fades.
+- The new-note pad (`data-view-slide`) does not do these. It slides down from under the top edge of
+  the board, and back up under it.
+
+When Preact renders the new board, the old board is gone. Thus, a signal `effect` does the first
+step. The effect runs on the change itself, which is before the render (the render is one microtask
+later). The effect records the position of each card. It also puts an inert copy of the content over
+`<main>`, to fade out. When the layout of the new board is complete, the code hides the cards in the
+copy that are also on the new board.
+
+The animation moves the content in place. Do not remount it with a `key`, because that deletes the
+measurements of the masonry grid. The animation starts from a layout effect. If it starts after
+paint, the new view shows fully for one frame first. `App` calls the hook after `usePaneSlide`.
+Thus, if a sidebar opens in the same change, the sidebar starts from closed when the code measures
+the cards. The `.no-motion` override in `styles/preferences.css` does not apply to a Web Animation.
+Thus, the hooks read the `animations` preference themselves.
+
+## Tags sidebar
+
+On a wide screen, the sidebar of the Tags view opens and closes as a drawer (`usePaneSlide`, in the
+same folder). The animation changes its width. The edge of the sidebar pushes the board. The tree
+inside is right-aligned at its full width, and moves with the sidebar. `App` keeps the pane mounted
+through `usePresence` until it is closed. While the pane moves, the content of the board stays at
+its final width, because the masonry grid otherwise changes its columns in each frame. During that
+time, the board clips the content at the sides.

@@ -1,184 +1,217 @@
 # Attachments
 
-A note carries up to `MAX_IMAGES_PER_NOTE` images of up to 5 MB each, and in both modes the note holds
-**references**, never the bytes:
+A note can have up to `MAX_IMAGES_PER_NOTE` images of up to 5 MB each. In both modes, the note
+contains **references**, never the bytes:
 
-- **Connected mode:** `attachment:<id>`, an image in the server's attachment store (below).
-- **Open mode:** `local:<sha256>`, an image in this browser's IndexedDB (`storage/localImages.ts`).
+- **Connected mode:** `attachment:<id>`, an image in the attachment store of the server (below).
+- **Open mode:** `local:<sha256>`, an image in the IndexedDB of this browser
+  (`storage/localImages.ts`).
 
-A link preview's thumbnail and favicon are held the same way, and everything below applies to them
-too: they are sealed, claimed for the note's owner, served to its recipients, swept when no preview
-or image refers to them, and inlined again on export (where one that cannot be read is left out and its card
-kept, since it is a picture of the linked page rather than something the user attached).
+The thumbnail and the favicon of a link preview are kept in the same way, and all of the rules below
+also apply to them. They are sealed, claimed for the owner of the note, served to its recipients,
+swept when no preview or image refers to them, and inlined again on export. On export, the app does
+not include one that it cannot read, but keeps its card, because it is a picture of the linked page,
+not a file that the user attached.
 
-`data:` URLs appear only in export and import files. Inline, every note write, every conflict retry,
-every `GET /api/v1/notes/:id` would carry the bytes of every image on the note, and in open mode a few
-photos filled `localStorage`'s ~5 MB, after which every save failed, text included. Referred to, a note
-carries a few dozen bytes per image. `StoredImage` draws either kind through a `blob:` URL.
+`data:` URLs show only in export and import files. If images were inline, each note write, each
+conflict retry and each `GET /api/v1/notes/:id` carries the bytes of all images on the note. In open
+mode, some photos filled the approximately 5 MB of `localStorage`, and after that all saves failed,
+also for text. With references, a note carries some dozen bytes for each image. `StoredImage` draws
+both types through a `blob:` URL.
 
 ## Drawings
 
-**Draw**, the pen beside the add-image button in an open note's toolbar, opens a drawing pad: a sheet of white paper to draw on with a finger, a
-pen or a mouse. Done puts the drawing on the note as a PNG image, through the same path as an attached
-picture, so it is stored, shown, shared and exported like one, and takes one of the note's image slots.
+**Draw**, the pen adjacent to the add-image button in the toolbar of an open note, opens a drawing
+pad: a sheet of white paper. You draw on it with a finger, a pen or a mouse. Done puts the drawing on
+the note as a PNG image, through the same path as an attached picture. Thus, the app stores, shows,
+shares and exports it as a picture, and it uses one of the image slots of the note.
 
-- Four inks (black, red, blue, green), three pen widths, an eraser, undo of the last stroke, and clear.
-  A tap leaves a dot.
-- The paper is 1600 by 1200 and opaque, so a drawing reads the same on a note of any colour and in
-  either theme. It is shown as large as fits, keeping its shape.
-- One pointer draws at a time, the first one down: a second finger or a resting palm is ignored. No
-  gesture of the page takes a stroke away (the paper alone has `touch-action: none`), the stroke follows
-  the pointer past the paper's edge, and a touch the system cancels keeps what was drawn.
-- Closing the pad with a drawing on it asks first, by the close button, Escape or Back, and choosing
-  not to discard leaves Back the pad's. Done on empty paper adds nothing. Done or closing with the pen
-  still down counts the line being drawn.
-- If the picture cannot be made, the pad says so and stays open with the drawing on it.
-- The pad is not offered on a note that cannot be changed (shared to view, or an auto-note).
+- There are four inks (black, red, blue, green), three pen widths, an eraser, an undo of the last
+  stroke, and clear. A tap makes a dot.
+- The paper is 1600 by 1200 and opaque. Thus, a drawing looks the same on a note of any color and in
+  both themes. It shows as large as possible, and keeps its shape.
+- Only one pointer draws at a time, the first one down. The pad ignores a second finger or a palm
+  that rests on the screen.
+  - No gesture of the page takes a stroke away (only the paper has `touch-action: none`).
+  - The stroke follows the pointer past the edge of the paper.
+  - When the system cancels a touch, the pad keeps what you drew.
+- If the pad has a drawing, it asks before it closes, from the close button, Escape or Back. If you
+  do not discard, Back stays with the pad. Done on empty paper adds nothing. Done, or a close while
+  the pen is still down, includes the line that you draw.
+- If the app cannot make the picture, the pad tells you, and stays open with the drawing on it.
+- The pad is not available on a note that you cannot change (shared to view, or an auto-note).
 
 ### Drawing over an image
 
-Each image in an open note has a **Draw on image** button beside its delete button (both shown as the
-image is pointed at, and always on a touch screen). It opens that image
-on the pad as the paper, and Done puts the result in the image's place (at the end, if the image was
-removed meanwhile). This is how a drawing is changed after it is saved, and how a photo is annotated.
+Each image in an open note has a **Draw on image** button adjacent to its delete button. Both show
+when the pointer is on the image, and always on a touch screen. The button opens that image on the
+pad as the paper. Done puts the result in the position of the image (at the end, if you removed the
+image in the meantime). Use this to change a drawing after you save it, and to add notes on a photo.
 
-- A drawing is a picture once it is on the note, so its old lines are part of the paper: undo and clear
-  reach only the lines of this sitting, and the eraser paints white over whatever is under it, a photo
-  included. Keeping the strokes would need somewhere to store them beside the image.
-- The paper takes the image's shape. Its long edge is at least a new drawing's 1600 (a line drawn on a
-  thumbnail would be blocks) and at most `MAX_IMAGE_EDGE`; pens are scaled to look the same width on
-  screen.
-- The result is a PNG, which keeps lines crisp however often a drawing is reopened, unless that comes
-  to over a megabyte, as it does over a photo: then it is a JPEG. An animated GIF becomes a still.
-- Done with nothing drawn leaves the image as it was. The original is replaced, not kept, and the
-  drawing takes its description, which still says what is under the lines.
+- After a drawing is on the note, it is a picture. Thus, its old lines are part of the paper. Undo
+  and clear apply only to the lines of this session. The eraser paints white over all that is under
+  it, also a photo. To keep the strokes, the app needs a place to store them with the image.
+- The paper gets the shape of the image. Its long edge is a minimum of 1600, the size of a new
+  drawing (a line drawn on a thumbnail looks like blocks), and a maximum of `MAX_IMAGE_EDGE`. The app
+  scales the pens, so that they look the same width on the screen.
+- The result is a PNG, which keeps lines sharp each time you open a drawing again. If the PNG is more
+  than one megabyte, as over a photo, the result is a JPEG. An animated GIF becomes a still image.
+- Done with nothing drawn does not change the image. The drawing replaces the original, and the app
+  does not keep the original. The drawing gets its description, which still tells what is under the
+  lines.
 
 ### Describing an image
 
-Each image in an open note also has a **Describe image** button, which opens the image viewer with
-the focus on a description field under the image; the viewer has the field whenever the note can be
-changed. The description is what a screen reader reads in the image's place: every view of the note
-shows it as the image's `alt`, and names the image's open button with it. It is saved when the field
-is left, the viewer moves to another image or closes, and only if it changed. See
-[Images](../data-model.md#images) for how it is kept, and [Accessibility](../accessibility.md).
+Each image in an open note also has a **Describe image** button. It opens the image viewer with the
+focus on a description field under the image. The viewer has the field when you can change the note.
+A screen reader reads the description in place of the image. Each view of the note shows it as the
+`alt` of the image, and uses it as the name of the open button of the image. The app saves it when
+the field loses focus, or the viewer goes to a different image or closes, and only if it changed. See
+[Images](../data-model.md#images) for how the app keeps it, and [Accessibility](../accessibility.md).
 
 ## Shrinking on attach
 
-Before an image is stored, in either mode, the client makes it a sensible size (`utils/shrinkImage.ts`):
-an image larger than 2560 pixels on its long edge is redrawn at 2560 and re-encoded, as WebP (JPEG where
-the browser cannot encode WebP), or as PNG if it was a PNG, so screenshots stay crisp. An image within
-the edge but over a megabyte is re-encoded only if that makes it smaller, and smaller images and GIFs
-(whose animation a redraw would stop) are kept byte for byte. A phone photo usually comes out a few
-hundred kilobytes, and the redraw drops its EXIF data (camera, location). The 5 MB limit is the ceiling
-for what is not shrunk.
+In both modes, before the app stores an image, the client gives it a correct size
+(`utils/shrinkImage.ts`):
+
+- If an image is larger than 2560 pixels on its long edge, the client draws it again at 2560 and
+  encodes it again. It uses WebP (JPEG where the browser cannot encode WebP), or PNG if it was a PNG.
+  Thus, screenshots stay sharp.
+- If an image is within that edge but is more than one megabyte, the client encodes it again only if
+  that makes it smaller.
+- The client keeps smaller images and GIFs byte for byte. A new draw of a GIF stops its animation.
+
+A phone photo usually becomes a few hundred kilobytes. The new draw removes its EXIF data (camera,
+location). The 5 MB limit is the maximum for images that the client does not make smaller.
 
 ## Sealed in the browser
 
-In connected mode an image is encrypted before it is uploaded, and the server stores bytes it cannot
-read ([Encryption](encryption.md#images)):
+In connected mode, the client encrypts an image before it uploads it. The server stores bytes that it
+cannot read ([Encryption](encryption.md#images)):
 
-- **Its key** is made from the uploader's account key and the image's own bytes (an HMAC), and the
-  image is sealed under it with AES-256-GCM.
-- **Its address** is a second HMAC of the bytes, under another key of the account's. The server finds
-  an attachment by it, so the same image sent again (a conflict retry, a stale tab, a duplicate note)
-  resolves to the attachment that already holds it, and the address says nothing to anyone without
-  the key.
-- **The key travels in the note.** The note's sealed list of images holds each one's id, key and
-  type, which is how every device of the account, and everyone a note is shared with, opens them. A
-  preview's thumbnail and icon are held the same way inside the sealed previews. In the app a note
-  names its images by reference alone, and the keys wait beside it (`Sealer` in
-  `storage/sealing.ts`) to be sealed back in.
-- **The type** is the client's to say and to check. The sealing client reads it from the image's
-  leading bytes (PNG, JPEG, GIF, WebP, AVIF), whatever the file was handed over as, and refuses
-  anything else. The opening client takes only those five types and checks the leading bytes again
-  after decrypting, since the type in a note was written by whoever attached the image; one that
-  fails is not shown.
+- **Its key** comes from the account key of the uploader and the bytes of the image (an HMAC). The
+  client seals the image under it with AES-256-GCM.
+- **Its address** is a second HMAC of the bytes, under a different key of the account. The server
+  finds an attachment by it. Thus, if the same image comes again (a conflict retry, a stale tab, a
+  duplicate note), it resolves to the existing attachment. The address tells nothing to a person
+  without the key.
+- **The key goes in the note.** The sealed list of images of the note contains the id, the key and
+  the type of each image. Thus, all devices of the account, and all persons who share the note, can
+  open them. The sealed previews contain the thumbnail and icon of a preview in the same way. In the
+  app, a note names its images only by reference. The keys wait adjacent to it (`Sealer` in
+  `storage/sealing.ts`), until the app seals them back in.
+- **The client tells and checks the type.** The sealing client reads it from the first bytes of the
+  image (PNG, JPEG, GIF, WebP, AVIF), whatever the stated type of the file, and refuses all other
+  types. The opening client accepts only those five types, and checks the first bytes again after it
+  decrypts, because the person who attached the image wrote the type in the note. The client does not
+  show an image that fails.
 
 ## How an image gets there
 
-The client uploads each image as it is attached: `POST /api/v1/attachments` with the sealed bytes (no
-base64) and the image's address in `X-Attachment-Address`, answered with
-`{ ref: "attachment:<id>" }`. The editor draws the image at once from the local file, shows the
-upload's progress, and puts the reference in the note when it is stored. A failed upload stays in
-the editor, marked, with **Try again** and **Remove**, rather than saving a note that refers to
-nothing; closing the editor cancels what is still uploading. The REST adapter also uploads any image
-that reaches a note write still inline (an import, something shared to the app), so what it sends is
-references.
+The client uploads each image when you attach it: `POST /api/v1/attachments` with the sealed bytes
+(no base64) and the address of the image in `X-Attachment-Address`. The answer is
+`{ ref: "attachment:<id>" }`.
 
-The server stores what it is sent as bytes of no stated kind: sealed, an image cannot be told from
-anything else, so nothing is read from its leading bytes any more. An upload without an address, or
-with nothing in it, is 422; over the image limit (plus the 28 bytes sealing adds) is 413. An upload
-is stored under the uploader, once for an address.
+- The editor draws the image immediately from the local file, and shows the progress of the upload.
+  It puts the reference in the note when the upload is stored.
+- A failed upload stays in the editor, with a mark, **Try again** and **Remove**. The editor does not
+  save a note that refers to nothing.
+- When the editor closes, it cancels the uploads that are not complete.
+- The REST adapter also uploads each image that is still inline in a note write (an import, a share
+  to the app). Thus, it sends only references.
+
+The server stores what it gets as bytes with no stated type. A sealed image looks the same as all
+other data. Thus, the server does not read its first bytes now.
+
+- An upload without an address, or with no content, gets 422.
+- An upload that is larger than the image limit (plus the 28 bytes that the seal adds) gets 413.
+- The server stores an upload under the uploader, one time for each address.
 
 ## Reading
 
-`GET /api/v1/attachments/:id` returns the sealed bytes as `application/octet-stream`, to the owner and
-to anyone holding an accepted share of a note of the owner's that refers to it, while the owner has
-not trashed that note. To anyone else it is a 404. The response is `Cache-Control: private, immutable`
-(an id names one set of bytes for good), `nosniff`, and carries a sandboxing CSP. It has its own
-per-user rate limit, wider than the notes API's, since a grid asks for one image per card.
+`GET /api/v1/attachments/:id` returns the sealed bytes as `application/octet-stream`. It returns them
+to the owner, and to each person with an accepted share of a note of the owner that refers to it,
+while the owner did not trash that note. All other persons get a 404.
 
-The client fetches each attachment once per session, opens it with the key its note holds, and shows
-it through a `blob:` URL of the type it turned out to be (`state/attachments.ts`,
-`components/StoredImage.tsx`), which the page's CSP already allows.
+- The response has `Cache-Control: private, immutable` (an id always names the same bytes),
+  `nosniff`, and a sandboxing CSP.
+- It has its own rate limit for each user, which is higher than that of the notes API, because a grid
+  asks for one image for each card.
+
+The client gets each attachment one time in each session. It opens the attachment with the key that
+its note has, and shows it through a `blob:` URL of its real type (`state/attachments.ts`,
+`components/StoredImage.tsx`). The CSP of the page already permits this.
 
 ## Leaving the session
 
-Anything that leaves the session carries the bytes, never a reference only this server can read: the
-export zip and a single note's JSON download inline every attachment again, and give up with an error
-rather than write a file missing a picture. Importing such a file into a server stores the images again.
+All data that goes out of the session contains the bytes, never a reference that only this server
+can read. The export zip and the JSON download of one note inline each attachment again. If they
+cannot, they stop with an error, and do not write a file without a picture. When you import such a
+file into a server, the server stores the images again.
 
 ## Sweeping
 
-`attachments.sweep` runs hourly on `startPeriodicJob` (`jobs/attachmentCleanup.ts`). It marks an
-attachment no note refers to with the time it noticed, clears the mark when a note refers to it again,
-and deletes it once it has been unreferenced for 90 days. That matches the client's version history,
-which refers to attachments by id and keeps versions for 90 days, so a version restored within its life
-still finds its images.
+`attachments.sweep` runs each hour on `startPeriodicJob` (`jobs/attachmentCleanup.ts`):
+
+- It marks an attachment to which no note refers, with the time when it found it.
+- It clears the mark when a note refers to it again.
+- It deletes it after it is unreferenced for 90 days.
+
+This agrees with the version history of the client, which refers to attachments by id and keeps
+versions for 90 days. Thus, a version that you restore within its life still finds its images.
 
 ## Note writes
 
-A note names its images inside ciphertext, so a write that carries the sealed list carries the
-references it names beside it (`imageRefs`, and `previewRefs` for link previews): these are the
-server's record of which attachments a note uses, for serving them to its recipients and for the
-sweep. Each must be an `attachment:<id>` reference; anything else is refused with 422. Note writes
-are held to the same 1 MiB body limit as the rest of the API, and uploads (one sealed image, up to
-the image limit) are the only route allowed more.
+A note names its images inside ciphertext. Thus, a write that contains the sealed list also contains
+the references that it names (`imageRefs`, and `previewRefs` for link previews). These are the record
+of the server of which attachments a note uses, to serve them to its recipients and for the sweep.
+Each must be an `attachment:<id>` reference. The server refuses all other values with 422. Note
+writes have the same 1 MiB body limit as the remaining API. Only uploads (one sealed image, up to the
+image limit) can be larger.
 
-Every attachment a note refers to belongs to the note's owner, whose notes it is swept with and
-whose account it goes with. A readable note could have a reference rewritten under it; a sealed one
-cannot, so the image is made the owner's before the note is sealed:
+Each attachment to which a note refers belongs to the owner of the note. The server sweeps it with
+the notes of the owner, and deletes it with the account of the owner. A person can change a reference
+under a readable note, but not under a sealed note. Thus, the image must belong to the owner before
+the note is sealed:
 
-- **`POST /api/v1/attachments/claim`** takes `{ noteId?, refs }` and answers `{ refs }`, the owner's own
-  reference for each in order. One the owner already holds comes back as it is. One held by another
-  account (an editor's own upload, or an image copied out of a note shared with them) is stored again
-  for the owner if the caller may read it, under a new id: the sealed bytes are the same, so the key
-  the note holds still opens them. `noteId` is the note about to be written, and absent for one not
-  made yet, whose owner is the caller. A viewer is refused (403), and so is a reference the caller
-  cannot read (422). A token that carries keys does not call it: the server makes the images of a
-  token's write the owner's as it seals the note, and the key kept with the token's upload goes
-  into the note under the owner's reference.
-- **The write** then names the references it was given. One that is not the owner's by then is
-  refused with 422 (`attachments/store.ts`), or a crafted reference would lend a note someone else's
-  image.
+- **`POST /api/v1/attachments/claim`** takes `{ noteId?, refs }`, and answers `{ refs }`: the own
+  reference of the owner for each one, in order.
+  - A reference that the owner already has comes back as it is.
+  - A reference that a different account has (the own upload of an editor, or an image copied out of
+    a note shared with them) is stored again for the owner, under a new id, if the caller can read it.
+    The sealed bytes are the same. Thus, the key in the note still opens them.
+  - `noteId` is the note that the caller writes next. It is absent for a new note, whose owner is the
+    caller.
+  - The server refuses a viewer (403), and a reference that the caller cannot read (422).
+  - A token that contains keys does not call it. When the server seals a write from a token, it gives
+    the images to the owner. The key kept with the upload of the token goes into the note, under the
+    reference of the owner.
+- **The write** then names the references that it got. If one does not belong to the owner by then,
+  the server refuses it with 422 (`attachments/store.ts`). If not, a crafted reference could give a
+  note the image of a different person.
 
-Inline images from before this, which only development databases ever held, were dropped by migration
-`0013-drop-inline-images` rather than moved.
+Before this design, only development databases had inline images. Migration
+`0013-drop-inline-images` removed them, and did not move them.
 
 ## Open mode
 
-Images go into an IndexedDB store keyed by the SHA-256 of their bytes, so one attached twice is stored
-once. IndexedDB holds binary and gets a share of the disk rather than `localStorage`'s few megabytes. The
-first image stored asks the browser to keep the site's storage persistent
-(`navigator.storage.persist()`), since in open mode it is the only copy. A refusal for want of space is
-reported like a `localStorage` one (`storage/quota.ts`), and the attach stays in the editor with a
-retry. On load, images no note refers to any more (a note deleted for good, an image removed) are
-swept after a day's grace, which spares one just attached to an unsaved draft. Images from before
-this, held inline in notes, are moved into IndexedDB on first load. Like open-mode notes, they belong to
-one browser profile; export and import move them, as `data:` URLs.
+Images go into an IndexedDB store, with the SHA-256 of their bytes as the key. Thus, an image that you
+attach two times is stored one time.
+
+- IndexedDB holds binary data, and gets a part of the disk, not only the few megabytes of
+  `localStorage`.
+- The first stored image asks the browser to keep the storage of the site persistent
+  (`navigator.storage.persist()`), because in open mode it is the only copy.
+- A refusal because there is no space gets the same report as for `localStorage`
+  (`storage/quota.ts`). The attachment stays in the editor, with a retry.
+- On load, the app sweeps images to which no note refers now (a note deleted permanently, a removed
+  image), after one day. This protects an image that you just attached to an unsaved draft.
+- Images from before this design, inline in notes, move into IndexedDB on the first load.
+- As open-mode notes, they belong to one browser profile. Export and import move them, as `data:`
+  URLs.
 
 ## Storage
 
-Attachments live in the database (`attachments`: `BLOB` in SQLite, `BYTEA` in Postgres), so a database
-backup is a complete backup. A disk or S3-compatible backend behind the same `AttachmentsRepo` is
-possible later, and would let non-image files be attached.
+Attachments are in the database (`attachments`: `BLOB` in SQLite, `BYTEA` in Postgres). Thus, a
+database backup is a complete backup. Later, a disk backend or an S3-compatible backend behind the
+same `AttachmentsRepo` is possible. That also lets users attach files that are not images.

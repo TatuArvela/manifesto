@@ -9,68 +9,138 @@ paths:
 
 # Client State Management
 
-State lives in `packages/client/src/state/` using @preact/signals:
+The state is in `packages/client/src/state/`, and uses @preact/signals.
 
-- **`notesStore.ts`**: the `notes` signal and the actions that talk to storage about it
-  (`createNote`, `updateNote`, `deleteNote`, `loadNotes`, `importNotes`, `ensureImages`).
-  `actions.ts` builds the user-level actions on it (trash, archive, pin, tags, bulk, reorder),
-  `views.ts` holds the computed views (`filteredNotes`, `sortedNotes`, `allTags`), and
-  `selection.ts`, `ordering.ts` and `exportNotes.ts` the rest.
-  **An action reports its own failure and resolves; it never rejects**, and says whether it worked
-  in its return value (`false`, or `null` where a value was expected). The call sites are JSX
-  handlers with nowhere to put a `catch`, so a rejection there is an unhandled rejection the user
-  never sees. Group work goes through `asBatch` (`failures.ts`), which hands each action a `Batch`
-  to count its failure in instead of raising its own toast, and reports the total once. The batch
-  is passed explicitly, never held in module state, since two groups can be in flight at once.
-  In connected mode a write is local-first: `updateNote` puts the change in the signal before it
-  sends. Every copy of a note the server sends back (a reply, a broadcast, a listing) comes in
-  through `receiveNote` / `receiveNoteList` and never through a plain assignment; a note leaves
+## notesStore.ts
+
+**`notesStore.ts`** contains the `notes` signal, and the actions that send it to the storage
+(`createNote`, `updateNote`, `deleteNote`, `loadNotes`, `importNotes`, `ensureImages`).
+
+- `actions.ts` builds the user-level actions on it (trash, archive, pin, tags, bulk, reorder).
+- `views.ts` contains the computed views (`filteredNotes`, `sortedNotes`, `allTags`).
+- `selection.ts`, `ordering.ts` and `exportNotes.ts` contain the other parts.
+
+### Actions never reject
+
+**An action reports its own failure and resolves. It never rejects.** Its return value tells if it
+worked (`false`, or `null` where a value was expected). The callers are JSX handlers, which have no
+place for a `catch`. A rejection there is an unhandled rejection, and the user never sees it.
+
+Group work goes through `asBatch` (`failures.ts`). It gives each action a `Batch`. The action counts
+its failure in the batch, and does not show its own toast. The batch reports the total one time.
+Always give the batch explicitly. Never keep it in module state, because two groups can run at the
+same time.
+
+### Writes in connected mode
+
+In connected mode, a write is local-first: `updateNote` puts the change in the signal before it
+sends it.
+
+- Each copy of a note that the server sends (a reply, a broadcast, a listing) comes in through
+  `receiveNote` or `receiveNoteList`. It never comes in through a plain assignment. A note goes out
   through `forgetNote`.
-  `pendingWrites.ts` replays the writes still outstanding on top of that copy, so a late reply
-  cannot revert a newer click. A copy older (by `updatedAt`) than the last one taken in is replaced
-  by that one, since a 412's body or a slow reply can arrive after a newer broadcast, and a failed
-  write falls back to that last confirmed copy, never to the note as it was clicked.
-  `pendingWrites.property.browser.test.ts` drives all of this against a fake `If-Match` server over
-  generated interleavings; run it after touching any of them. `settle` must get the same `changes` object `begin` did, even
-  when a conflict retry sent a merged one. `incomingNote.ts` hands back the held note by
-  reference when nothing changed. That keeps a client's own write, which it hears twice (as the
-  reply and as the broadcast), and a reconnect's re-fetch from repainting the board or dropping
-  image bytes a card already loaded. Grouped writes start together, each showing its change
-  before it awaits anything.
-- **`composerDraft.ts`** and **`unsentNotes.ts`**: what is written in the new-note composer before
-  it is stored, kept on the device (`storage/offlineNotes.ts`, plain IndexedDB, sealed in connected
-  mode under the `drafts` subkey). `NoteInput` saves its draft on a debounce and on `pagehide`,
-  reads it back when it opens and clears it on close or discard; it writes nothing until that read
-  has come back (`draftRead`), or the empty editor clears the draft it is about to show, and it
-  rebuilds the editor around a restored draft, since Milkdown takes its text only when built. Closing
-  the composer calls `queueNote`, never `createNote`: in connected mode the note gets its id there,
-  is kept before it is sent, and is sent again by `sendUnsent` (the `online` event, a socket
-  reconnect, an unlock) until it lands. A send that failed for want of a server waits; a 409 means
-  the note may be this one whose answer was lost, so it is looked up by id before anything else;
-  any other refusal marks it `refused`, never sent again until it is changed. A note in the queue is
-  not in `notes` and so not on the board: `UnsentNotes` lists the ones whose first try has failed
-  (`settledNoteIds`), so a note that lands at once never flashes up. A kept note carries the keys of
-  its images, which the `Sealer` holds only in memory. Signing out deletes both, after asking when
-  the queue is not empty; a 401 keeps them, sealed, for the next unlock. Browser test files share
-  one IndexedDB, so each keeps open mode's records under a name of its own
-  (`setOpenModeOwnerForTests`), and a test that renders the composer clears the draft around itself.
-- **`ui.ts`**: UI state signals (`editingNoteId`, `activeView`, `searchQuery`, `selectedNotes`).
-- **`prefs.ts`**: User preferences persisted to `localStorage` key `manifesto:prefs` with debounced `effect()`.
-  What each may hold and how a stored value is read back (`PREF_PARSERS`, `DEVICE_PREFS`) is `prefParsers.ts`.
-  In connected mode `prefsSync.ts` also keeps every preference outside `DEVICE_PREFS` on the server
-  (`/api/v1/auth/me/prefs`, `prefs:updated`), so a new preference follows the account unless it is
-  added there. Whatever arrives from the server goes through `PREF_PARSERS` like a hand-edited blob,
-  and `adoptAccountPrefs` saves it itself, since the save effect skips a change from elsewhere.
-  While signed in, another tab's blob (the `storage` event) is taken for the device's preferences
-  alone (`setAccountPrefsFromServer`): every tab hears the account's on its own socket, and a tab
-  saves whenever it adopts the server's copy, so taking the blob whole let an echo heard late in
-  one tab put back a value just changed in another.
-  The host's defaults (`DEFAULT_PREFS`, `defaultPrefs` in `/api/v1/capabilities`) are held in
-  `serverDefaults.ts`, a module with no side effects and no imports of state, so `auth.ts` and
-  `prefsSync.ts` both set it without loading each other or `prefs.ts`. `prefsSync.ts` gives one
-  to each key the account lacks at sign-in (asking `/api/v1/capabilities` itself if the answer has
-  not arrived), and `prefs.ts` applies them all on a first visit.
-- **`router.ts`**: Two-way sync between `activeView`/`activeTag` and `location.pathname` (see
-  `routing.md`). `initRouter()` is called once from `App` on mount (`useAppServices`). The URL *fragment* is a
-  separate channel used by share links and the OIDC callback, not by the router.
-- **`account/auth.ts`**: Server-mode auth: `authToken` / `currentUser` signals persisted to `localStorage` key `manifesto:auth`. `login` / `register` POST to `/api/v1/auth/*`. `LoginScreen` reads `/api/v1/capabilities` (`fetchCapabilities`, which also fills `serverFeatures`) on mount and renders either the local form or a single "Continue with SSO" button (linking to `${SERVER_URL}/api/v1/auth/login`) depending on the active provider. Requests made with no session go out through `requestWithoutSession` there, which is how `mailedLinks.ts` (the reset and sign-in links) and `oidcSignIn.ts` reach the server without a `fetch` of their own. After an OIDC callback the server redirects to the client with `#token=...`; `consumeOidcRedirect()` (`oidcSignIn.ts`) runs once on `App` mount, fetches `/api/v1/auth/me`, populates the signals, and strips the fragment from the URL. It takes the token only where `takeOidcFlow()` (`oidcFlow.ts`) finds the mark this tab left on its way out, so every link to `oidcLoginUrl` / `oidcReauthUrl` carries `onClick={beginOidcSignIn}` (and `onAuxClick`); a new one without it starts a sign-in whose return is ignored. Taken on sight, a `#token=` in a link would sign its reader in to the sender's account.
+- `pendingWrites.ts` applies the writes that are not complete on top of that copy again. Thus, a
+  late reply cannot revert a newer click.
+- If a copy is older (by `updatedAt`) than the last copy that came in, the last copy replaces it.
+  The reason is that the body of a 412, or a slow reply, can arrive after a newer broadcast.
+- A failed write goes back to that last confirmed copy. It never goes back to the note as it was at
+  the click.
+- `pendingWrites.property.browser.test.ts` runs all of this against a fake `If-Match` server, with
+  generated interleavings. Run it after you change any of these parts.
+- `settle` must get the same `changes` object as `begin`, also when a conflict retry sent a merged
+  object.
+- When nothing changed, `incomingNote.ts` gives back the held note by reference. A client hears its
+  own write two times (as the reply and as the broadcast). A reconnect also gets the notes again.
+  The reference prevents a new paint of the board, and prevents the loss of image bytes that a card
+  already loaded.
+- Grouped writes start together. Each one shows its change before it awaits anything.
+
+## composerDraft.ts and unsentNotes.ts
+
+**`composerDraft.ts`** and **`unsentNotes.ts`** keep the text of the new-note composer on the device
+before the app stores it (`storage/offlineNotes.ts`, plain IndexedDB). In connected mode, the data
+is sealed under the `drafts` subkey.
+
+- `NoteInput` saves its draft after a debounce and on `pagehide`. It reads the draft back when it
+  opens. It clears the draft when it closes or when you discard it.
+- It writes nothing until that read is complete (`draftRead`). If not, the empty editor clears the
+  draft that it must show.
+- It builds the editor again around a restored draft, because Milkdown accepts its text only when it
+  is built.
+
+When the composer closes, it calls `queueNote`, never `createNote`. In connected mode, the note gets
+its id there, and the app keeps it before it sends it. `sendUnsent` sends it again until it arrives
+(on the `online` event, a socket reconnect, an unlock).
+
+- If a send failed because there was no server, the note waits.
+- A 409 means that the note is possibly this one, and its answer was lost. Thus, the app first looks
+  for it by id.
+- All other refusals mark it `refused`. The app does not send it again until it changes.
+
+A note in the queue is not in `notes`. Thus, it is not on the board. `UnsentNotes` lists the notes
+whose first try failed (`settledNoteIds`). Thus, a note that arrives immediately does not show for a
+moment. A kept note contains the keys of its images, which the `Sealer` keeps only in memory.
+
+When you sign out, the app deletes both. If the queue is not empty, it asks first. A 401 keeps
+them, sealed, for the next unlock. Browser test files share one IndexedDB. Thus, each test file keeps
+the records of open mode under its own name (`setOpenModeOwnerForTests`). A test that renders the
+composer clears the draft before and after it.
+
+## ui.ts
+
+**`ui.ts`** contains the UI state signals (`editingNoteId`, `activeView`, `searchQuery`,
+`selectedNotes`).
+
+## prefs.ts
+
+**`prefs.ts`** keeps the user preferences in the `localStorage` key `manifesto:prefs`, with a
+debounced `effect()`.
+
+- `prefParsers.ts` tells what each preference can contain, and how the app reads a stored value
+  back (`PREF_PARSERS`, `DEVICE_PREFS`).
+- In connected mode, `prefsSync.ts` also keeps each preference that is not in `DEVICE_PREFS` on the
+  server (`/api/v1/auth/me/prefs`, `prefs:updated`). Thus, a new preference goes with the account,
+  unless you add it to `DEVICE_PREFS`.
+- All data from the server goes through `PREF_PARSERS`, the same as a blob that a person edited.
+  `adoptAccountPrefs` saves it itself, because the save effect ignores a change from a different
+  source.
+- While a user is signed in, the app takes only the device preferences from the blob of a different
+  tab (the `storage` event, `setAccountPrefsFromServer`). Each tab gets the account preferences on
+  its own socket. A tab saves each time it adopts the copy of the server. When the app took the full
+  blob, a late echo in one tab put back a value that was just changed in a different tab.
+- `serverDefaults.ts` contains the defaults of the host (`DEFAULT_PREFS`, `defaultPrefs` in
+  `/api/v1/capabilities`). This module has no side effects, and imports no state. Thus, `auth.ts`
+  and `prefsSync.ts` can both set it, and neither loads the other or `prefs.ts`.
+- At sign-in, `prefsSync.ts` gives a default to each key that the account does not have. If the
+  answer of `/api/v1/capabilities` is not available yet, it asks for it. On a first visit,
+  `prefs.ts` applies all of the defaults.
+
+## router.ts
+
+**`router.ts`** keeps `activeView` / `activeTag` and `location.pathname` the same, in both
+directions (see `routing.md`). `App` calls `initRouter()` one time when it mounts (`useAppServices`).
+The URL *fragment* is a different channel. Share links and the OIDC callback use it. The router
+does not.
+
+## account/auth.ts
+
+**`account/auth.ts`** is the authentication for server mode.
+
+- The `authToken` and `currentUser` signals are kept in the `localStorage` key `manifesto:auth`.
+- `login` and `register` send a POST to `/api/v1/auth/*`.
+- When `LoginScreen` mounts, it reads `/api/v1/capabilities` (`fetchCapabilities`, which also fills
+  `serverFeatures`). Then it shows the local form or one "Continue with SSO" button (a link to
+  `${SERVER_URL}/api/v1/auth/login`), as the active provider requires.
+- Requests without a session go out through `requestWithoutSession` in this file. `mailedLinks.ts`
+  (the reset links and the sign-in links) and `oidcSignIn.ts` use it, so that they do not need their
+  own `fetch`.
+
+After an OIDC callback, the server redirects to the client with `#token=...`.
+`consumeOidcRedirect()` (`oidcSignIn.ts`) runs one time when `App` mounts. It gets
+`/api/v1/auth/me`, fills the signals, and removes the fragment from the URL.
+
+It accepts the token only where `takeOidcFlow()` (`oidcFlow.ts`) finds the mark that this tab left
+when it went out. Thus, each link to `oidcLoginUrl` or `oidcReauthUrl` has
+`onClick={beginOidcSignIn}` (and `onAuxClick`). If a new link does not have it, the app ignores the
+return of its sign-in. If the app accepted each `#token=` that it sees, a link with a token signs its
+reader in to the account of the sender.
