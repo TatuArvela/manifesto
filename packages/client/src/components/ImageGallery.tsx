@@ -3,7 +3,6 @@ import { Captions, ChevronLeft, ChevronRight, PenLine, X } from "lucide-preact";
 import { createPortal } from "preact";
 import {
   useCallback,
-  useEffect,
   useId,
   useLayoutEffect,
   useRef,
@@ -214,15 +213,6 @@ function ImageLightbox({
           alt={alt}
           class={`pointer-events-auto max-w-full object-contain select-none ${onDescribe ? "max-h-[calc(100%-7rem)]" : "max-h-full"}`}
         />
-        {onDescribe && (
-          <ImageDescription
-            key={shown}
-            image={shown}
-            alt={alt}
-            autoFocus={describing}
-            onDescribe={onDescribe}
-          />
-        )}
         <button
           type="button"
           class="pointer-events-auto absolute top-4 right-4 p-2 rounded-full bg-black/60 text-white hover:bg-black/80 cursor-pointer"
@@ -256,6 +246,19 @@ function ImageLightbox({
               <ChevronRight class="w-6 h-6" />
             </button>
           </>
+        )}
+        {/* After the buttons, though drawn under the image: the focus trap
+            starts on the first control, and a field there raised a phone's
+            keyboard over the image just opened to look at. "Describe image"
+            still comes straight here (`autoFocus`). */}
+        {onDescribe && (
+          <ImageDescription
+            key={shown}
+            image={shown}
+            alt={alt}
+            autoFocus={describing}
+            onDescribe={onDescribe}
+          />
         )}
       </div>
     </>,
@@ -295,7 +298,9 @@ function ImageDescription({
     latest.current.alt = text;
   }, [image]);
 
-  useEffect(() => {
+  // Layout, so it runs ahead of the viewer's focus trap, which then finds
+  // focus inside and leaves it here rather than on the first button.
+  useLayoutEffect(() => {
     if (autoFocus) fieldRef.current?.focus();
   }, [autoFocus]);
 
