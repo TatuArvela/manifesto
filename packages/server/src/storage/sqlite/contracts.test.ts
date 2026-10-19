@@ -1,6 +1,7 @@
 import { describeAccountKeysContract } from "#/storage/contracts/accountKeysContract.ts";
 import { describeAttachmentsContract } from "#/storage/contracts/attachmentsContract.ts";
 import { describeCommentsContract } from "#/storage/contracts/commentsContract.ts";
+import { describeNoteFormatContract } from "#/storage/contracts/noteFormatContract.ts";
 import { describeOAuthContract } from "#/storage/contracts/oauthContract.ts";
 import { describePasskeysContract } from "#/storage/contracts/passkeysContract.ts";
 import { describePrefsContract } from "#/storage/contracts/prefsContract.ts";
@@ -52,5 +53,9 @@ describeCommentsContract("sqlite", async () =>
 );
 
 describePushContract("sqlite", async () =>
+  createSqliteStorage({ dbPath: ":memory:" }),
+);
+
+describeNoteFormatContract("sqlite", async () =>
   createSqliteStorage({ dbPath: ":memory:" }),
 );

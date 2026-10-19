@@ -33,6 +33,12 @@ export interface SealedNote
    * replaced. */
   keyVersion: number;
   /**
+   * The format the words under the note key are in (`noteFormat.ts`):
+   * readable, since a client has to know before it opens them whether it
+   * can read them, and the server holds every write to it.
+   */
+  format: number;
+  /**
    * For someone the note is shared with whose own copy of the key is behind:
    * the current key, wrapped to their public key and signed. Their client
    * opens it, keeps it under their own notes key, and reads the note again.
@@ -129,10 +135,11 @@ export interface NoteRekeyRequest {
 export type SealedNoteImport = SealedNoteCreate & { createdAt?: string };
 
 /**
- * The fields of a sealed note everyone on it shares: `SHARED_NOTE_FIELDS`
- * and the excerpt that is written with the text.
+ * The fields of a sealed note everyone on it shares: `SHARED_NOTE_FIELDS`,
+ * the excerpt that is written with the text, and the format they are in.
  */
 export const SEALED_SHARED_NOTE_FIELDS = [
+  "format",
   "title",
   "content",
   "excerpt",
@@ -161,6 +168,8 @@ export interface SealedNoteVersion {
   noteId: string;
   timestamp: string;
   keyVersion: number;
+  /** The format its title and text are in, as a note's. */
+  format: number;
   title: string;
   content: string;
 }
@@ -169,6 +178,7 @@ export interface SealedNoteVersion {
 export interface SealedNoteVersionCreateRequest {
   id: string;
   keyVersion: number;
+  format: number;
   title: string;
   content: string;
   timestamp?: string;

@@ -196,6 +196,7 @@ describe("importFiles", () => {
       singleCount: 1,
       bulkCount: 0,
       failedCount: 0,
+      newerCount: 0,
     });
     expect(created[0]?.title).toBe("Hi");
     expect(created[0]?.content).toBe("Body");
@@ -278,6 +279,7 @@ describe("importFiles", () => {
       singleCount: 0,
       bulkCount: 0,
       failedCount: 2,
+      newerCount: 0,
     });
   });
 });

@@ -80,6 +80,7 @@ function sealedBody(method: string, path: string, body: unknown): unknown {
     return {
       id: newId(),
       keyVersion: 1,
+      format: 1,
       ...rest,
       title: typeof title === "string" ? ciphertext(title) : title,
       content: typeof content === "string" ? ciphertext(content) : content,
