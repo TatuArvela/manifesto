@@ -98,7 +98,7 @@ export function ContentPreview({
                         raw, `**milk**` showed its asterisks while the same
                         words one line below rendered bold. */}
                     <span
-                      class={`note-inline-markdown ${item.checked ? "line-through opacity-60" : ""}`}
+                      class={`note-inline-markdown ${item.checked ? "line-through" : ""}`}
                       dangerouslySetInnerHTML={{
                         __html: drawn(
                           renderInlineMarkdown(item.label, item.checked),

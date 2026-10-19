@@ -242,4 +242,6 @@ are in [Accessibility](../accessibility.md). In the client that comes down to:
 - Announcements: live regions for toasts, the connection status, inline calculation results and
   reordering (`boardAnnouncement`).
 - Contrast of 4.5:1 for text and 3:1 for controls in both themes, and one focus ring
-  (`:focus-visible` in `styles/setup.css`).
+  (`:focus-visible` in `styles/setup.css`). Text and icons on a note take their tone from `noteText`
+  in `colors.ts`, which `colors.test.ts` measures on every note colour in every shade; something
+  meant to look done or past is struck through or set apart, never paled with opacity.

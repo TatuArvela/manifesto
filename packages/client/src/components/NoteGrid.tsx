@@ -8,6 +8,7 @@ import {
   pinnedNotes,
   unpinnedNotes,
 } from "#/state/views.ts";
+import { boardLabel } from "./boardCard.ts";
 import { EmptyBoard } from "./EmptyBoard.tsx";
 import { ReorderableGrid } from "./ReorderableGrid.tsx";
 
@@ -26,9 +27,6 @@ export function NoteGrid() {
     return <EmptyBoard view={activeView.value} hiddenByTag={hiddenByTag} />;
   }
 
-  const headingClass =
-    "text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400 mb-2 px-1";
-
   return (
     <div class="mt-4">
       <p class="sr-only" role="status">
@@ -36,7 +34,9 @@ export function NoteGrid() {
       </p>
       {pinned.length > 0 && (
         <section>
-          <h2 class={headingClass}>{t("noteGrid.pinned")}</h2>
+          <h2 class="mb-2">
+            <span class={boardLabel}>{t("noteGrid.pinned")}</span>
+          </h2>
           <ReorderableGrid
             notes={pinned}
             reorderable={reorderable}
@@ -46,7 +46,9 @@ export function NoteGrid() {
       )}
 
       {pinned.length > 0 && unpinned.length > 0 && (
-        <h2 class={`${headingClass} mt-6`}>{t("noteGrid.others")}</h2>
+        <h2 class="mt-6 mb-2">
+          <span class={boardLabel}>{t("noteGrid.others")}</span>
+        </h2>
       )}
 
       {unpinned.length > 0 && (

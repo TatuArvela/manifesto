@@ -475,7 +475,7 @@ export function TagsView({
       </div>
 
       {tags.length === 0 && notesLoaded.value && (
-        <p class="px-3 text-sm text-neutral-500 dark:text-neutral-500">
+        <p class="px-3 text-sm text-neutral-500 dark:text-neutral-400">
           {t("tags.empty")}
         </p>
       )}

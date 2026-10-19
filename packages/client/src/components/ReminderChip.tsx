@@ -1,6 +1,7 @@
 import type { NoteReminder } from "@manifesto/shared";
 import { Bell, X } from "lucide-preact";
 import type { Ref } from "preact";
+import { noteText } from "#/colors.ts";
 import { t } from "#/i18n/index.ts";
 import { locale } from "#/state/prefs.ts";
 import { parseLocalISO } from "#/state/reminderScheduler.ts";
@@ -35,9 +36,9 @@ export function ReminderChip({
 
   const cls = [
     "inline-flex items-center gap-1 pl-2 pr-1 py-0.5 text-xs rounded-full border border-neutral-400/50",
-    isPast
-      ? "text-neutral-500/70 dark:text-neutral-400/60"
-      : "text-neutral-700 dark:text-neutral-300",
+    // A reminder that has gone off is told apart by its tone alone, and the
+    // quiet one is as pale as a note's text can go (`noteText`).
+    isPast ? noteText.quiet : noteText.read,
   ].join(" ");
 
   const face = (

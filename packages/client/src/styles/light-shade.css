@@ -14,7 +14,9 @@
    board's preset colours. Chroma tapers off towards the dark end, which is
    the light theme's text, for the reason the dark ramp tapers towards its
    light end. `--light-dim` takes the surfaces down from full white, which can
-   carry no colour at all, just far enough to make room for the cast.
+   carry no colour at all, just far enough to make room for the cast. The 500
+   step goes down with them: it is the app's secondary text, at 4.7:1 on
+   white, and a dimmed page alone took it under 4.5:1 (`colors.test.ts`).
 
    The `[data-light-hue]` rules are not scoped to `html`, so the settings
    swatches can set the attribute on themselves to sample a shade. */
@@ -100,7 +102,8 @@ html:not(.dark) {
     70.8% calc(var(--light-tint-c) * 0.6) var(--light-tint-h)
   );
   --color-neutral-500: oklch(
-    55.6% calc(var(--light-tint-c) * 0.45) var(--light-tint-h)
+    calc(55.6% - var(--light-dim)) calc(var(--light-tint-c) * 0.45)
+      var(--light-tint-h)
   );
   --color-neutral-600: oklch(
     43.9% calc(var(--light-tint-c) * 0.35) var(--light-tint-h)

@@ -22,8 +22,14 @@ client's own conventions (one focus ring, named layers, the Escape stack) are in
   is an `<article>` whose open button is named by the note's title or first line. Toasts, the connection
   status, an inline calculation's result and where a moved card landed are announced through live
   regions.
-- **Seeing**: the app's own text is set for 4.5:1 contrast and its controls for 3:1 in both themes,
-  keyboard focus shows one ring everywhere, the page can be zoomed, and motion follows the system's reduced-motion setting unless the
+- **Seeing**: the app's own text is set for 4.5:1 contrast and its controls for 3:1 in both themes.
+  On a note this is measured, not only intended: text and icons on each of the eleven note colours,
+  as a card and as an auto-note, in every light and dark shade, are checked by a test. A ticked
+  checklist item or a past reminder is told apart by a line through it or its tone, never by
+  fading under that contrast. Anything that sits on the board (the "Pinned" and "Others" headings,
+  the empty board's message, the search filters) is drawn on a solid surface of its own, so no board
+  colour, texture or picture behind it can lower it. Keyboard focus shows one ring everywhere, the
+  page can be zoomed, and motion follows the system's reduced-motion setting unless the
   animations preference says otherwise.
 - **Time**: apart from what security needs (a sign-in link or code that expires, a session that ends),
   nothing the app asks of a person has a time limit. An error message stays until it is
@@ -49,8 +55,8 @@ These are open, and a deployment that publishes a statement should list them:
   screen readers (NVDA, JAWS, VoiceOver, TalkBack) or with speech input.
 - **WCAG 2.2 not yet assessed.** Its new criteria, target size (2.5.8) and focus not obscured (2.4.11)
   among them, have not been checked. Dragging (2.5.7) has its alternative above.
-- **Contrast on every note colour not measured.** Text on each of the eleven note colours, in both
-  themes and with a board background behind the cards, has not been measured against 4.5:1.
+- **Placeholders are not measured.** The hint in an empty field is drawn paler than text, and may be
+  under 4.5:1.
 - **Auto-notes are their plugin's.** A card an auto-note plugin draws is accessible only as far as the
   plugin's content is.
 
