@@ -425,8 +425,9 @@ describe("MilkdownEditor teardown", () => {
     await vi.waitFor(() => expect(ready).toHaveBeenCalledOnce());
     expect(gone).not.toHaveBeenCalled();
 
+    // Preact 11 runs an effect's cleanup a frame after the unmount.
     render(null, host);
-    expect(gone).toHaveBeenCalledOnce();
+    await vi.waitFor(() => expect(gone).toHaveBeenCalledOnce());
   });
 });
 
