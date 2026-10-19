@@ -1,7 +1,7 @@
 import { type Editor, editorViewCtx } from "@milkdown/kit/core";
 import { TextSelection } from "@milkdown/kit/prose/state";
 import { createRef, render } from "preact";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import { t } from "#/i18n/index.ts";
 import { FormattingToolbar } from "./FormattingToolbar.tsx";
@@ -71,6 +71,12 @@ describe("FormattingToolbar in raw mode", () => {
 });
 
 describe("FormattingToolbar's floating bar", () => {
+  // A wide screen's: a phone has these in the fold, and the default viewport
+  // is a phone's width.
+  beforeEach(async () => {
+    await page.viewport(1024, 768);
+  });
+
   async function mountToolbar(content: string) {
     const host = document.createElement("div");
     document.body.appendChild(host);
@@ -182,6 +188,22 @@ describe("FormattingToolbar's floating bar", () => {
       expect(host.querySelectorAll(".ProseMirror blockquote")).toHaveLength(1),
     );
     expect(host.querySelector(".ProseMirror blockquote blockquote")).toBeNull();
+  });
+
+  it("is in the fold on a phone, which has no Escape to close the bar", async () => {
+    await page.viewport(375, 700);
+    const { toolbarHost } = await mountToolbar("Text");
+    await expect
+      .element(page.getByRole("button", { name: t("format.moreFormatting") }))
+      .not.toBeInTheDocument();
+    await page.getByRole("button", { name: t("format.moreControls") }).click();
+    const quote = page.getByRole("button", { name: t("format.quote") });
+    await expect.element(quote).toBeVisible();
+    expect(
+      toolbarHost
+        .querySelector(`button[aria-label="${t("format.quote")}"]`)
+        ?.closest(".dropdown-panel"),
+    ).toBeNull();
   });
 
   it("closes on Escape", async () => {

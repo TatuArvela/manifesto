@@ -6,6 +6,7 @@ paths:
   - "packages/client/src/components/ReorderableGrid.tsx"
   - "packages/client/src/hooks/useReorderDrag.ts"
   - "packages/client/src/components/NoteSheet.tsx"
+  - "packages/client/src/components/editor/NoteEditorToolbar.tsx"
   - "packages/client/src/state/ordering.ts"
   - "packages/client/src/splash.ts"
   - "packages/client/src/utils/phoneSheets.ts"
@@ -78,7 +79,12 @@ Nothing reads `visualViewport`, and that is deliberate: sizing a sheet to it lef
 (Safari in a tab reports it too short), padding for the keyboard added blank room past the end, and
 a top bar moved to follow it trailed every scroll by a frame. With the keyboard up in a Safari tab,
 iOS pans the page past the foot of everything laid out, `fixed` layers included, so the page's own
-background shows there; `paintPage` gives it the open note's colour. Anything that
+background shows there; `paintPage` gives it the open note's colour. Since the keyboard covers the foot of the
+layout and nothing tracks it, the editor's tools are not there on a phone: `NoteEditor` mounts
+`NoteEditorToolbar` in the sticky top bar (`atTop`, chosen with `useMediaQuery(PHONE_QUERY)`), with
+undo and redo beside the pin, and under the note only on a wider screen. Chrome on Android is told
+`interactive-widget=resizes-content` in the viewport meta tag, so there the keyboard shrinks the
+layout instead; Safari ignores it. Anything that
 must show over an open note belongs outside `.app-shell` (App's dialogs, toasts and banners are).
 `NoteSheet` also offers its content a place beside the panel on a wide screen: the `SheetAside`
 context is an element to portal into, to the right of the panel and as tall as it (a note's comments

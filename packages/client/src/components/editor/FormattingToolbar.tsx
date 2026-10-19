@@ -117,6 +117,55 @@ export function FormattingToolbar({
     />
   );
 
+  // The rarer marks, the whole blocks, indenting and clearing. A wide screen
+  // keeps them on a floating bar; a phone puts them in the fold, since a bar
+  // as wide as these wraps over the button that opened it there, and a
+  // phone has no Escape to put it away with.
+  const extras = () => (
+    <>
+      {fmtBtn(
+        "strikethrough",
+        t("format.strikethrough"),
+        <Strikethrough class="w-4 h-4" />,
+      )}
+      {fmtBtn(
+        "subscript",
+        t("format.subscript"),
+        <Subscript class="w-4 h-4" />,
+      )}
+      {fmtBtn(
+        "superscript",
+        t("format.superscript"),
+        <Superscript class="w-4 h-4" />,
+      )}
+      <Separator />
+      {fmtBtn(
+        "divider",
+        t("format.divider"),
+        <SeparatorHorizontal class="w-4 h-4" />,
+      )}
+      {fmtBtn("quote", t("format.quote"), <Quote class="w-4 h-4" />)}
+      {fmtBtn(
+        "codeBlock",
+        t("format.codeBlock"),
+        <SquareCode class="w-4 h-4" />,
+      )}
+      <TableMenu target={target} inTable={af.table} />
+      <Separator />
+      {fmtBtn("indent", t("format.indent"), <IndentIncrease class="w-4 h-4" />)}
+      {fmtBtn(
+        "outdent",
+        t("format.outdent"),
+        <IndentDecrease class="w-4 h-4" />,
+      )}
+      {fmtBtn(
+        "clearFormatting",
+        t("format.clearFormatting"),
+        <RemoveFormatting class="w-4 h-4" />,
+      )}
+    </>
+  );
+
   return (
     <div class="flex flex-wrap items-center gap-0.5 py-0.5 mb-2 border-b border-black/5 dark:border-white/5">
       {/* The secondary controls. On a wide screen this is an ordinary flex item
@@ -176,6 +225,11 @@ export function FormattingToolbar({
                 <ListChecks class="w-4 h-4" />,
               )}
             </div>
+
+            <div class="sm:hidden contents">
+              <Separator />
+              {extras()}
+            </div>
           </div>
         </div>
       </div>
@@ -195,79 +249,39 @@ export function FormattingToolbar({
           or above it and back to its left where there is no room. It stays
           open while it is used, unlike a menu, so a run of changes does not
           mean reopening it for each one; the button that opened it, or
-          Escape, puts it away. */}
-      <Dropdown
-        open={showExtras}
-        onClose={() => setShowExtras(false)}
-        placement="inline-end"
-        persistent
-        trigger={
-          <Tooltip label={t("format.moreFormatting")}>
-            <button
-              type="button"
-              class={toolbarButtonClass(showExtras)}
-              onMouseDown={keepFocus}
-              onClick={() => setShowExtras(!showExtras)}
-              aria-label={t("format.moreFormatting")}
-              disabled={disabled}
-            >
-              <MoreHorizontal class="w-4 h-4" />
-            </button>
-          </Tooltip>
-        }
-        panelClass="w-max rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800"
-      >
-        <div
-          role="toolbar"
-          aria-label={t("format.moreFormatting")}
-          class="flex flex-wrap items-center gap-0.5 p-1"
+          Escape, puts it away. Wide screens only: a phone has them in the
+          fold (`extras`). */}
+      <div class="max-sm:hidden flex">
+        <Dropdown
+          open={showExtras}
+          onClose={() => setShowExtras(false)}
+          placement="inline-end"
+          persistent
+          trigger={
+            <Tooltip label={t("format.moreFormatting")}>
+              <button
+                type="button"
+                class={toolbarButtonClass(showExtras)}
+                onMouseDown={keepFocus}
+                onClick={() => setShowExtras(!showExtras)}
+                aria-label={t("format.moreFormatting")}
+                disabled={disabled}
+              >
+                <MoreHorizontal class="w-4 h-4" />
+              </button>
+            </Tooltip>
+          }
+          panelClass="w-max rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800"
         >
-          {fmtBtn(
-            "strikethrough",
-            t("format.strikethrough"),
-            <Strikethrough class="w-4 h-4" />,
-          )}
-          {fmtBtn(
-            "subscript",
-            t("format.subscript"),
-            <Subscript class="w-4 h-4" />,
-          )}
-          {fmtBtn(
-            "superscript",
-            t("format.superscript"),
-            <Superscript class="w-4 h-4" />,
-          )}
-          <Separator />
-          {fmtBtn(
-            "divider",
-            t("format.divider"),
-            <SeparatorHorizontal class="w-4 h-4" />,
-          )}
-          {fmtBtn("quote", t("format.quote"), <Quote class="w-4 h-4" />)}
-          {fmtBtn(
-            "codeBlock",
-            t("format.codeBlock"),
-            <SquareCode class="w-4 h-4" />,
-          )}
-          <TableMenu target={target} inTable={af.table} />
-          <Separator />
-          {fmtBtn(
-            "indent",
-            t("format.indent"),
-            <IndentIncrease class="w-4 h-4" />,
-          )}
-          {fmtBtn(
-            "outdent",
-            t("format.outdent"),
-            <IndentDecrease class="w-4 h-4" />,
-          )}
-          {fmtBtn(
-            "clearFormatting",
-            t("format.clearFormatting"),
-            <RemoveFormatting class="w-4 h-4" />,
-          )}
-        </div>
-      </Dropdown>
+          <div
+            role="toolbar"
+            aria-label={t("format.moreFormatting")}
+            class="flex flex-wrap items-center gap-0.5 p-1"
+          >
+            {extras()}
+          </div>
+        </Dropdown>
+      </div>
 
       <Tooltip label={t("format.moreControls")}>
         <button

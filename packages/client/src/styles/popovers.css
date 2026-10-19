@@ -177,7 +177,7 @@
   /* Beside the trigger, centred on it, as a toolbar continues a row (the
      formatting toolbar's floating bar). Where there is no room after it,
      above the trigger running back to its left, then below. Where none of
-     those fits on one line (a phone), beside the trigger again, wrapped to
+     those fits on one line (a narrow window), beside the trigger again, wrapped to
      the room there: a percentage width is of the area it is placed in. */
   .dropdown-panel[popover][data-placement="inline-end"] {
     position-area: inline-end;

@@ -51,6 +51,18 @@ describe("ImageGallery", () => {
     await tick();
   });
 
+  it("opens an image on its close button, not in the description", async () => {
+    mount(
+      <ImageGallery images={[PIXEL]} alts={["A cat"]} onDescribe={() => {}} />,
+    );
+    button("Open image: A cat").click();
+    await tick();
+    // A focused field raises a phone's keyboard over the image.
+    expect(document.activeElement).toBe(button("Close image"));
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await tick();
+  });
+
   it("saves a description written in the viewer when it closes", async () => {
     const onDescribe = vi.fn();
     mount(

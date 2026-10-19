@@ -30,10 +30,14 @@ import { getColorPickerColors, getFontLabel, t } from "#/i18n/index.ts";
 import { editorButtonClass, editorIconClass } from "./editorButtons.ts";
 
 /**
- * The open note's bottom toolbar. Two groups that wrap as units: the first
- * tools, and everything else. When a phone is too narrow for one row, the
- * first group is what gives way, so it moves up a row and the controls a
- * thumb reaches for (the menu, undo, done) keep the bottom one.
+ * The open note's toolbar: under the note on a wide screen, and on a phone in
+ * the top bar (`atTop`), since the keyboard covers the foot of the screen
+ * there and iOS never moves anything out from under it. Undo and redo then
+ * sit in the top bar's own row (`HistoryButtons`), which leaves this one room
+ * for the rest. Two groups that wrap as units: the first tools, and
+ * everything else. When the bar is too narrow for one row, the first group is
+ * what gives way, so it takes a row of its own and the controls a thumb
+ * reaches for (the menu, undo, done) keep theirs together.
  */
 export function NoteEditorToolbar({
   color,
@@ -57,6 +61,7 @@ export function NoteEditorToolbar({
   deleteLabel,
   onDone,
   disabled,
+  atTop = false,
 }: {
   color: NoteColor;
   onColorChange: (color: NoteColor) => void;
@@ -80,6 +85,8 @@ export function NoteEditorToolbar({
   deleteLabel?: string | undefined;
   onDone: () => void;
   disabled?: boolean | undefined;
+  /** In a phone's top bar, without undo and redo, rather than under the note. */
+  atTop?: boolean;
 }) {
   // One of the bar's three panels at most is open: opening one closes the
   // others.
@@ -151,7 +158,9 @@ export function NoteEditorToolbar({
   );
 
   return (
-    <div class="note-sheet-bottom px-3 pt-1.5 sm:pb-2 flex flex-wrap items-center gap-0.5">
+    <div
+      class={`${atTop ? "pb-1" : "note-sheet-bottom pt-1.5 sm:pb-2"} px-3 flex flex-wrap items-center gap-0.5`}
+    >
       <div class="flex items-center gap-0.5">
         <Dropdown
           open={open === "color"}
@@ -278,25 +287,19 @@ export function NoteEditorToolbar({
           />
         </div>
 
-        {/* Centered between the tools and Done on a phone, inline on desktop. */}
-        <div class="flex-1 sm:hidden" />
+        {!atTop && (
+          <>
+            {/* Centered between the tools and Done on a phone, inline on desktop. */}
+            <div class="flex-1 sm:hidden" />
 
-        <div class="flex items-center gap-0.5">
-          <ToolButton
-            label={t("editor.undo")}
-            icon={Undo}
-            onClick={onUndo}
-            disabled={!canUndo}
-            dimmed={!canUndo}
-          />
-          <ToolButton
-            label={t("editor.redo")}
-            icon={Redo}
-            onClick={onRedo}
-            disabled={!canRedo}
-            dimmed={!canRedo}
-          />
-        </div>
+            <HistoryButtons
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onUndo={onUndo}
+              onRedo={onRedo}
+            />
+          </>
+        )}
 
         <div class="flex-1" />
 
@@ -306,6 +309,38 @@ export function NoteEditorToolbar({
 
         <ToolButton label={t("editor.done")} icon={Check} onClick={onDone} />
       </div>
+    </div>
+  );
+}
+
+/** Undo and redo, faded while there is nothing to do. */
+export function HistoryButtons({
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+}: {
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+}) {
+  return (
+    <div class="flex items-center gap-0.5">
+      <ToolButton
+        label={t("editor.undo")}
+        icon={Undo}
+        onClick={onUndo}
+        disabled={!canUndo}
+        dimmed={!canUndo}
+      />
+      <ToolButton
+        label={t("editor.redo")}
+        icon={Redo}
+        onClick={onRedo}
+        disabled={!canRedo}
+        dimmed={!canRedo}
+      />
     </div>
   );
 }
