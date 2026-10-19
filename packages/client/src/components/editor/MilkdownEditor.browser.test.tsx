@@ -406,6 +406,28 @@ describe("MilkdownEditor teardown", () => {
     window.removeEventListener("error", onError);
     expect(seen).toEqual([]);
   });
+
+  it("tells its parent when the editor it handed over is gone", async () => {
+    // A parent keeping the destroyed editor read it on its next render, and
+    // every read threw `Context "editorState" not found`.
+    const ready = vi.fn();
+    const gone = vi.fn();
+    const host = mountHost();
+    render(
+      <MilkdownEditor
+        content="Milk"
+        onChange={() => {}}
+        onEditorReady={ready}
+        onEditorGone={gone}
+      />,
+      host,
+    );
+    await vi.waitFor(() => expect(ready).toHaveBeenCalledOnce());
+    expect(gone).not.toHaveBeenCalled();
+
+    render(null, host);
+    expect(gone).toHaveBeenCalledOnce();
+  });
 });
 
 describe("MilkdownEditor links", () => {

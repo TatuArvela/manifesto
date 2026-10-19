@@ -328,6 +328,7 @@ export function NoteEditor({
               setEditor(instance);
               onEditorReady?.(instance);
             }}
+            onEditorGone={() => setEditor(null)}
             collab={collab}
           />
         </div>

@@ -26,6 +26,10 @@ takes a `beforeDestroy` callback for exactly this, and `MilkdownEditor` uses it 
 makes the pending timer a no-op. Anything else added to the editor that outlives a frame needs
 disarming there too; teardown is the only moment the context is still intact.
 
+A parent that keeps the editor from `onEditorReady` drops it on `onEditorGone`. A destroyed editor
+throws `Context "editorState" not found` on every read, and `NoteEditor` reads its editor in render
+(`textActions`), so one held across the solo to collab remount threw on the next render.
+
 **Collaborative binding.** Once `collab` is supplied, the shared `Y.XmlFragment` is the authority
 and the `content` prop must never be written into a fragment that already holds something: doing
 so deletes another session's work on every device at once. Four pieces enforce that, and the
