@@ -146,6 +146,24 @@
   }
 }
 
+/* Tailwind's `border` is `border-style: var(--tw-border-style)`, and its
+   `shadow-*` a `box-shadow` of five `--tw-*` variables, which take their
+   defaults from `@property` rules alone in any browser new enough. Safari on
+   iOS leaves those defaults off the panel itself (the rows inside it get
+   them), so the panel lost its border and shadow there and the menu ran into
+   the note under it. The defaults are restated here, in `base` so a panel
+   that sets one of them (`ring-*`, `border-dashed`) still wins. */
+@layer base {
+  .dropdown-panel {
+    --tw-border-style: solid;
+    --tw-inset-shadow: 0 0 #0000;
+    --tw-inset-ring-shadow: 0 0 #0000;
+    --tw-ring-offset-shadow: 0 0 #0000;
+    --tw-ring-shadow: 0 0 #0000;
+    --tw-shadow: 0 0 #0000;
+  }
+}
+
 @supports (position-area: block-end) {
   .dropdown-panel[popover] {
     /* Margin on both block edges, not just the requested side: a panel that
