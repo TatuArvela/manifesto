@@ -1,4 +1,5 @@
 import { render } from "preact";
+import { act } from "preact/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { incomingShare } from "#/state/incomingShare.ts";
 import { activeTag, activeView } from "#/state/ui.ts";
@@ -24,10 +25,11 @@ function paste(target: EventTarget, text: string) {
 }
 
 describe("a paste on the board", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     host = document.createElement("div");
     document.body.appendChild(host);
-    render(<Paster />, host);
+    // Through `act`, so the listener is in place before the first paste.
+    await act(() => render(<Paster />, host));
     incomingShare.value = null;
     activeView.value = "active";
     activeTag.value = null;
