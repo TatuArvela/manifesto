@@ -1,5 +1,6 @@
 import {
   type ImageKey,
+  isNewerNoteFormat,
   LINK_KEY_PATTERN,
   type LinkPreview,
   type Note,
@@ -15,6 +16,7 @@ import {
   type PublicLinksResponse,
   type PublicNoteResponse,
   snapshotKey,
+  upgradeNoteWords,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { apiFetch } from "#/storage/apiRequest.ts";
@@ -172,6 +174,8 @@ export type PublicNoteResult =
   | { kind: "wrong-password" }
   | { kind: "too-many" }
   | { kind: "gone" }
+  /** Saved by a newer version of the app than this page. */
+  | { kind: "newer" }
   | { kind: "failed" };
 
 async function readPublicNote(res: Response | null): Promise<PublicNoteResult> {
@@ -187,6 +191,7 @@ async function readPublicNote(res: Response | null): Promise<PublicNoteResult> {
   const linkKey = linkKeyOf(window.location.hash);
   if (!linkKey) return { kind: "gone" };
   const { note } = body;
+  if (isNewerNoteFormat(note.format)) return { kind: "newer" };
   let key: NoteSealKey | null;
   try {
     key = body.wrappedKey
@@ -197,8 +202,9 @@ async function readPublicNote(res: Response | null): Promise<PublicNoteResult> {
   }
   // A snapshot's key is derived from whatever the address holds, so another
   // link's key gives one too; only the words opening tell it is this note's.
-  const opened = key && (await openSharedFieldsUnder(key, note.id, note));
-  if (!opened) return { kind: "gone" };
+  const sealedWords = key && (await openSharedFieldsUnder(key, note.id, note));
+  if (!sealedWords) return { kind: "gone" };
+  const opened = upgradeNoteWords(sealedWords, note.format);
   imageKeys.clear();
   for (const [ref, imageKey] of opened.imageKeys) imageKeys.set(ref, imageKey);
   return {

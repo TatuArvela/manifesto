@@ -1,8 +1,11 @@
 import {
   type AccountKeys,
   type AccountSealKeys,
+  changesWords,
+  currentNoteFormat,
   type HeldKeyRequest,
   type ImageKey,
+  isNewerNoteFormat,
   type Note,
   type NoteComment,
   type NoteCreate,
@@ -38,6 +41,7 @@ import {
   sealVersion,
   unwrapNoteKey,
   wipe,
+  withEveryWord,
   wrapForLink,
   wrapForReminders,
   wrapNoteKey,
@@ -166,8 +170,16 @@ export class Sealer {
   /** Notes that arrived and did not open, by id: what the board says it
    * is not showing (`UnopenedNotes`). */
   readonly unreadable = signal<ReadonlySet<string>>(new Set());
-  /** Those of them this account owns. */
+  /**
+   * Notes that arrived in a format newer than this build reads, by id: saved
+   * by a newer version of the app, so this one has to be reloaded to show
+   * them (`UnopenedNotes`).
+   */
+  readonly newer = signal<ReadonlySet<string>>(new Set());
+  /** Those of both kinds this account owns. */
   private readonly unopenedOwn = new Set<string>();
+  /** The format each note opened here is stored in. */
+  private readonly formats = new Map<string, number>();
   /**
    * The notes this account owns that are due a new key: someone who held
    * the one they are under no longer holds the note.
@@ -352,8 +364,16 @@ export class Sealer {
     return this.wrappedForFeed(id, await this.keyOf(id, fetch));
   }
 
-  /** The note as its reader sees it; null when its key does not open. */
+  /** The note as its reader sees it, in the current format; null when its
+   * key does not open, or it is in a format newer than this build reads. */
   async open(sealed: SealedNote): Promise<Note | null> {
+    const owned = (sealed.sharing?.role ?? "owner") === "owner";
+    if (isNewerNoteFormat(sealed.format)) {
+      toggleIn(this.newer, sealed.id, true);
+      if (owned) this.unopenedOwn.add(sealed.id);
+      return null;
+    }
+    toggleIn(this.newer, sealed.id, false);
     const account = await this.account;
     // No copy of the key of their own, and one offered: taken first, unless
     // it was taken already and the server has not stored the copy yet.
@@ -385,11 +405,10 @@ export class Sealer {
         this.noteKeys.delete(sealed.id);
       }
       toggleIn(this.unreadable, sealed.id, true);
-      if ((sealed.sharing?.role ?? "owner") === "owner") {
-        this.unopenedOwn.add(sealed.id);
-      }
+      if (owned) this.unopenedOwn.add(sealed.id);
       return null;
     }
+    this.formats.set(sealed.id, sealed.format);
     const previous = sealed.previousKeys ?? "";
     if (
       known?.key === opened.key &&
@@ -456,7 +475,9 @@ export class Sealer {
   forget(id: string): void {
     this.noteKeys.delete(id);
     this.unopenedOwn.delete(id);
+    this.formats.delete(id);
     toggleIn(this.unreadable, id, false);
+    toggleIn(this.newer, id, false);
     toggleIn(this.due, id, false);
     toggleIn(this.feedDue, id, false);
   }
@@ -501,6 +522,7 @@ export class Sealer {
           previous: sealed.previousKeys ?? "",
         };
         this.hold(id, held);
+        this.formats.set(id, sealed.format);
         return held;
       }
     }
@@ -591,6 +613,27 @@ export class Sealer {
     }
   }
 
+  /**
+   * `changes`, with every word of the note when it is stored in an older
+   * format than this build writes and they change any: the server keeps one
+   * format for all of a note's words, so the rest come from the note as it
+   * is read now, brought up to date.
+   */
+  private async inCurrentFormat(
+    id: string,
+    changes: NoteUpdate,
+    fetch: () => Promise<SealedNote | null>,
+  ): Promise<NoteUpdate> {
+    const stored = this.formats.get(id) ?? currentNoteFormat();
+    if (stored >= currentNoteFormat() || !changesWords(changes)) {
+      return changes;
+    }
+    const sealed = await fetch();
+    const note = sealed ? await this.open(sealed) : null;
+    if (!note) throw new NoteKeyError(id);
+    return withEveryWord(note, changes);
+  }
+
   /** The changes to a note, with the words among them sealed. */
   async sealUpdate(
     id: string,
@@ -603,7 +646,7 @@ export class Sealer {
       await this.account,
       key,
       id,
-      changes,
+      await this.inCurrentFormat(id, changes, fetch),
       this.images.byRef,
     );
     // A reminder being set: the note's key goes under the reminder key with
@@ -656,6 +699,7 @@ export class Sealer {
       id,
       key: held.wrapped,
       keyVersion: held.key.version,
+      format: currentNoteFormat(),
       ...shared,
       ...personal,
       ...(note.reminder && {

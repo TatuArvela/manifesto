@@ -120,7 +120,12 @@ describe("importFiles with a Markdown folder", () => {
         },
       },
     );
-    expect(summary).toEqual({ singleCount: 0, bulkCount: 2, failedCount: 0 });
+    expect(summary).toEqual({
+      singleCount: 0,
+      bulkCount: 2,
+      failedCount: 0,
+      newerCount: 0,
+    });
     expect(bulks[0]?.map((n) => ({ title: n.title, tags: n.tags }))).toEqual([
       { title: "Inbox", tags: [] },
       { title: "Plan", tags: ["Work"] },

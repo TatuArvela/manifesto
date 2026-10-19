@@ -1,7 +1,12 @@
-import { derivable, type Note, NoteLimitError } from "@manifesto/shared";
+import {
+  derivable,
+  type Note,
+  NoteLimitError,
+  setNoteFormatStepsForTests,
+} from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { storageConnection } from "#/storage/index.ts";
-import { dropAllOffline } from "#/storage/offlineNotes.ts";
+import { dropAllOffline, readOffline } from "#/storage/offlineNotes.ts";
 import { ImageUploadError, RequestError } from "#/storage/RestApiAdapter.ts";
 import {
   LockedError,
@@ -101,6 +106,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  setNoteFormatStepsForTests(null);
   await dropAllOffline(keys.userId);
   storageKeys.value = null;
   storageConnection.value = { serverUrl: null, token: null };
@@ -154,6 +160,36 @@ describe("queueNote", () => {
     expect([...server.notes.values()].map((n) => n.title)).toEqual([
       "Before the battery died",
     ]);
+  });
+
+  it("brings a note an older build kept up to date across a reload", async () => {
+    reach = unreachable;
+    await queueNote({ title: "Kept before" });
+    await sendUnsent();
+
+    // Format 2 after the reload: every title in capitals.
+    setNoteFormatStepsForTests([
+      (words) =>
+        words.title === undefined ? {} : { title: words.title.toUpperCase() },
+    ]);
+    await unlockAgain();
+    expect(unsentNotes.value.map((e) => e.note.title)).toEqual(["KEPT BEFORE"]);
+  });
+
+  it("leaves a note a newer build kept where it is", async () => {
+    const shout = (words: { title?: string }) =>
+      words.title === undefined ? {} : { title: words.title.toUpperCase() };
+    setNoteFormatStepsForTests([shout]);
+    reach = unreachable;
+    await queueNote({ title: "Kept later" });
+    await sendUnsent();
+
+    setNoteFormatStepsForTests(null);
+    const owner = { id: keys.userId, keys };
+    expect(await readOffline(owner, "unsent")).toEqual([]);
+    // Still there for the newer build.
+    setNoteFormatStepsForTests([shout]);
+    expect(await readOffline(owner, "unsent")).toHaveLength(1);
   });
 
   it("sends the notes in the order they were written", async () => {
