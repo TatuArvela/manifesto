@@ -89,6 +89,23 @@ export const noteColorMap: Record<NoteColor, ColorClasses> = {
 };
 
 /**
+ * The tones of text and icons on a note, whatever its colour. Every pair is
+ * measured against each note colour in both themes (`colors.test.ts`): a step
+ * lighter than `quietText` in the light theme, or darker in the dark one,
+ * drops under 4.5:1 on some colour, so a dimmer look (a ticked item, a past
+ * reminder) comes from a line through it or its position, never from a paler
+ * tone or opacity.
+ */
+export const noteText = {
+  /** What a note is read in: an open note's text, a current reminder. */
+  read: "text-neutral-700 dark:text-neutral-200",
+  /** Everything secondary: a card's preview, dates, a link's host. */
+  quiet: "text-neutral-600 dark:text-neutral-300",
+  /** An icon at rest, which needs 3:1. */
+  icon: "text-neutral-500 dark:text-neutral-400",
+} as const;
+
+/**
  * Auto-note variant: lighter background with a thick colored border so
  * generated notes are visually distinct from user notes at a glance.
  */

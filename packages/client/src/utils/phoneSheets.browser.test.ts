@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { openSheet, openSheetCount } from "./phoneSheets.ts";
 import "#/styles.css";
 
@@ -88,6 +88,62 @@ describe("on a phone", () => {
     el.remove();
     expect(getComputedStyle(shell).position).toBe("fixed");
     expect(shell.getBoundingClientRect().top).toBe(0);
+  });
+});
+
+describe("keyboard focus under the sheet's bars", () => {
+  beforeEach(() => page.viewport(375, 700));
+
+  /** A long note with both bars, and a button `at` px down the note. */
+  function barredSheet(at: number) {
+    const el = sheet(3000);
+    const surface = el.querySelector(".note-sheet-surface") as HTMLElement;
+    const top = document.createElement("div");
+    top.className = "note-sheet-top";
+    top.style.height = "80px";
+    // Where Tab starts from: fixed between the bars, so it needs no scroll.
+    const before = document.createElement("button");
+    before.textContent = "before";
+    before.style.cssText = "position: fixed; top: 300px";
+    const target = document.createElement("button");
+    target.textContent = "target";
+    target.style.cssText = `position: absolute; top: ${at}px; height: 24px`;
+    const bottom = document.createElement("div");
+    bottom.className = "note-sheet-bottom";
+    bottom.style.cssText = "height: 60px; margin-top: 2800px";
+    surface.style.position = "relative";
+    surface.append(top, before, target, bottom);
+    return { el, top, target, bottom, before };
+  }
+
+  const nextFrame = () =>
+    new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+  it("scrolls a control out from under the top bar", async () => {
+    const { el, top, target, before } = barredSheet(600);
+    open(el);
+    window.scrollTo(0, 560);
+    before.focus();
+    await userEvent.tab();
+    expect(document.activeElement).toBe(target);
+    await nextFrame();
+    await nextFrame();
+    expect(target.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      top.getBoundingClientRect().bottom - 0.5,
+    );
+  });
+
+  it("scrolls a control up from under the bottom bar", async () => {
+    const { el, bottom, target, before } = barredSheet(640);
+    open(el);
+    window.scrollTo(0, 0);
+    before.focus();
+    await userEvent.tab();
+    await nextFrame();
+    await nextFrame();
+    expect(target.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+      bottom.getBoundingClientRect().top + 0.5,
+    );
   });
 });
 

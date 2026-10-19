@@ -64,6 +64,14 @@ paths:
 - **On the board itself**, anything that is not a note (the empty board's message, the Auto-notes
   introduction, the search filters, the admin view) sits on `boardCard` from `boardCard.ts`, so it
   stays legible over a board picture or a busy texture and the four look alike.
+- **Tones on a note** come from `noteText` in `colors.ts` (`read`, `quiet`, `icon`), which
+  `colors.test.ts` measures against every note colour in every shade. `quiet` is as pale as text
+  on a note can go, so a dimmer look (ticked, past) is a line through or a position, never a paler
+  step or an `opacity-*`. `boardCard` and `boardLabel` (the board's section headings) are opaque
+  for the same reason: a translucent surface lets a dark board pull grey text under 4.5:1.
+- **Targets** are at least 24 by 24 px (WCAG 2.5.8). One drawn smaller keeps its look and reaches
+  the size unseen: an `after:absolute after:-inset-*` on a `relative` button, or for a checkbox a
+  `<label>` around it with padding and the same negative margin.
 - **Keyboard focus** is one ring for the whole app, `:focus-visible` in `styles/setup.css`. A
   control that draws its own uses `outline-none` with a `ring`, which wins because the default sits
   in the base layer; one that removes the outline and draws nothing leaves no focus to see.

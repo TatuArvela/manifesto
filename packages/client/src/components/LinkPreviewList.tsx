@@ -1,5 +1,6 @@
 import type { LinkPreview } from "@manifesto/shared";
 import { Link as LinkIcon, X } from "lucide-preact";
+import { noteText } from "#/colors.ts";
 import { t } from "#/i18n/index.ts";
 import { StoredImage } from "./StoredImage.tsx";
 
@@ -62,19 +63,17 @@ function LinkPreviewRow({
             class="w-6 h-6 object-contain"
           />
         ) : (
-          <LinkIcon class="w-5 h-5 text-neutral-500 dark:text-neutral-400" />
+          <LinkIcon class={`w-5 h-5 ${noteText.icon}`} />
         )}
       </div>
       <div class="flex-1 min-w-0 px-3 py-2 pr-8">
         <div class="text-sm font-medium truncate">{preview.title}</div>
-        <div class="text-xs text-neutral-500 dark:text-neutral-400 truncate">
-          {preview.domain}
-        </div>
+        <div class={`text-xs truncate ${noteText.quiet}`}>{preview.domain}</div>
       </div>
       {onRemove && (
         <button
           type="button"
-          class="absolute top-1 right-1 p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-100 hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-pointer"
+          class="absolute top-0.5 right-0.5 p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-100 hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-pointer"
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
@@ -82,7 +81,7 @@ function LinkPreviewRow({
           }}
           aria-label={t("linkPreview.remove")}
         >
-          <X class="w-3.5 h-3.5" />
+          <X class="w-4 h-4" />
         </button>
       )}
     </div>

@@ -3,7 +3,7 @@ import { useComputed } from "@preact/signals";
 import clsx from "clsx";
 import { memo } from "preact/compat";
 import { useRef, useState } from "preact/hooks";
-import { autoNoteColorMap, noteColorMap } from "#/colors.ts";
+import { autoNoteColorMap, noteColorMap, noteText } from "#/colors.ts";
 import { useEditor } from "#/components/editor/lazyEditor.ts";
 import { NoteSheet } from "#/components/NoteSheet.tsx";
 import { CARD_POPOVER_EXIT_MS } from "#/components/Popover.tsx";
@@ -378,7 +378,7 @@ export const NoteCard = memo(function NoteCard({
           />
 
           {isTrashView && note.trashedAt && (
-            <p class="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+            <p class={`mt-2 text-xs ${noteText.quiet}`}>
               {t("noteCard.trashedAt", { date: formatDate(note.trashedAt) })}
             </p>
           )}

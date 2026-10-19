@@ -324,7 +324,7 @@ export function AutoNotesView() {
                     class={`flex-1 min-w-0 text-sm font-medium truncate ${
                       plugin.name
                         ? ""
-                        : "italic text-neutral-500 dark:text-neutral-500 font-normal"
+                        : "italic text-neutral-500 dark:text-neutral-400 font-normal"
                     }`}
                   >
                     {plugin.name || t("settings.autoNotes.untitled")}

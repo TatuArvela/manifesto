@@ -1,4 +1,5 @@
 import type { Note } from "@manifesto/shared";
+import { useId } from "preact/hooks";
 import { parseChecklistLine, segmentContent } from "#/utils/markdown.ts";
 import {
   renderInlineMarkdown,
@@ -29,6 +30,7 @@ export function ContentPreview({
    * `withoutImages`. */
   noImages?: boolean;
 }) {
+  const id = useId();
   const drawn = (html: string) => (noImages ? withoutImages(html) : html);
   if (!note.content) return null;
 
@@ -86,19 +88,31 @@ export function ContentPreview({
                     class="inline-flex items-start gap-2"
                     style={{ paddingLeft: `${item.indent.length * 7.5}px` }}
                   >
-                    <input
-                      type="checkbox"
-                      class={`mt-0.5 w-4 h-4 rounded appearance-none border-2 border-neutral-500 dark:border-neutral-400 shrink-0 transition-colors checkbox-custom ${readOnly ? "cursor-default" : "cursor-pointer hover:border-neutral-600 dark:hover:border-neutral-300"}`}
-                      checked={item.checked}
-                      disabled={readOnly}
+                    {/* The box is drawn at 16px and pressed at 24px (WCAG
+                        2.5.8): the label around it reaches 4px further on
+                        each side, and its negative margin keeps the row as
+                        it was. A press on it stops here, not at the card. */}
+                    {/* biome-ignore lint/a11y/useKeyWithClickEvents: the keys are the input's own; this only keeps a press from the card */}
+                    <label
+                      class={`-mx-1 -mb-1 -mt-0.5 p-1 shrink-0 ${readOnly ? "cursor-default" : "cursor-pointer"}`}
                       onClick={(e) => e.stopPropagation()}
-                      onChange={() => onCheckboxToggle(lineIndex)}
-                    />
+                    >
+                      <input
+                        type="checkbox"
+                        class={`block w-4 h-4 rounded appearance-none border-2 border-neutral-500 dark:border-neutral-400 transition-colors checkbox-custom ${readOnly ? "cursor-default" : "cursor-pointer hover:border-neutral-600 dark:hover:border-neutral-300"}`}
+                        checked={item.checked}
+                        disabled={readOnly}
+                        aria-labelledby={`${id}-${lineIndex}`}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={() => onCheckboxToggle(lineIndex)}
+                      />
+                    </label>
                     {/* The label is markdown like any other text: printed
                         raw, `**milk**` showed its asterisks while the same
                         words one line below rendered bold. */}
                     <span
-                      class={`note-inline-markdown ${item.checked ? "line-through opacity-60" : ""}`}
+                      id={`${id}-${lineIndex}`}
+                      class={`note-inline-markdown ${item.checked ? "line-through" : ""}`}
                       dangerouslySetInnerHTML={{
                         __html: drawn(
                           renderInlineMarkdown(item.label, item.checked),

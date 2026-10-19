@@ -15,7 +15,7 @@ import {
 } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { plugins } from "#/autoNotes/registry.ts";
-import { noteColorMap, noteFontFamilies } from "#/colors.ts";
+import { noteColorMap, noteFontFamilies, noteText } from "#/colors.ts";
 import { Dropdown } from "#/components/Dropdown.tsx";
 import {
   editorButtonClass,
@@ -213,7 +213,9 @@ export function NoteReadonlyView({
         <NoteComments note={note} />
 
         {pluginLabel && (
-          <div class="mt-4 pt-2 border-t border-black/10 dark:border-white/10 text-xs text-black/40 dark:text-white/40 whitespace-pre-line">
+          <div
+            class={`mt-4 pt-2 border-t border-black/10 dark:border-white/10 text-xs whitespace-pre-line ${noteText.quiet}`}
+          >
             {t("autoNotes.generatedBy", { name: pluginLabel })}
           </div>
         )}
@@ -226,7 +228,7 @@ export function NoteReadonlyView({
               label={t("autoNotes.generatedBy", { name: pluginLabel ?? "" })}
             >
               <span
-                class="p-1.5 max-sm:p-3 opacity-60"
+                class="p-1.5 max-sm:p-3"
                 role="img"
                 aria-label={t("autoNotes.badge")}
               >

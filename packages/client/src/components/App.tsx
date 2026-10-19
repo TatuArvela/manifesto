@@ -264,6 +264,13 @@ function MainApp() {
           <div class="board-frame flex flex-1 min-w-0">
             <main
               ref={mainRef}
+              // The phone's top bar lies over the board, so a card the
+              // keyboard reaches is scrolled clear of it (WCAG 2.4.11).
+              style={
+                topBarHeight > 0
+                  ? { scrollPaddingTop: `${topBarHeight}px` }
+                  : undefined
+              }
               class={`board flex-1 overflow-y-auto px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-[calc(1.5rem+env(safe-area-inset-bottom))] ${isActive ? "pt-4 md:pt-0 md:-mt-4" : "pt-2"}`}
             >
               {topBarHeight > 0 && (

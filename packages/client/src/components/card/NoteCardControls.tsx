@@ -58,7 +58,8 @@ export function CardSelectButton({
       <button
         type="button"
         class={clsx(
-          "w-5 h-5 rounded-full flex items-center justify-center transition-all shadow-sm",
+          // 20px drawn, 24px to press (WCAG 2.5.8).
+          "relative w-5 h-5 rounded-full flex items-center justify-center transition-all shadow-sm after:absolute after:-inset-0.5",
           isSelected
             ? "bg-blue-500 text-white hover:bg-blue-600"
             : "bg-white dark:bg-neutral-200 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-white hover:scale-110 border border-neutral-300",
@@ -110,7 +111,7 @@ export function CardStatusBar({
         // shadow of their own rather than joining the neutral ramp.
         overlay
           ? "text-white [filter:drop-shadow(0_1px_2px_rgb(0_0_0/0.7))]"
-          : "text-neutral-500 dark:text-neutral-500 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 group-data-popover-open:text-neutral-800 dark:group-data-popover-open:text-neutral-200 group-has-[:focus-visible]:text-neutral-800 dark:group-has-[:focus-visible]:text-neutral-200 touch:text-neutral-800 dark:touch:text-neutral-200",
+          : "text-neutral-500 dark:text-neutral-400 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 group-data-popover-open:text-neutral-800 dark:group-data-popover-open:text-neutral-200 group-has-[:focus-visible]:text-neutral-800 dark:group-has-[:focus-visible]:text-neutral-200 touch:text-neutral-800 dark:touch:text-neutral-200",
         // Faded rather than switched, both ways. Visibility is in the
         // transition so it waits for the fade out, and still hides the
         // buttons from Tab once it has finished.
@@ -139,14 +140,14 @@ export function CardStatusBar({
       )}
       {note.archived && (
         <Tooltip label={t("noteCard.archived")}>
-          <span class="p-1.5 opacity-60">
+          <span class="p-1.5">
             <Archive class="w-4 h-4" />
           </span>
         </Tooltip>
       )}
       {note.trashed && (
         <Tooltip label={t("noteCard.trashed")}>
-          <span class="p-1.5 opacity-60">
+          <span class="p-1.5">
             <Trash2 class="w-4 h-4" />
           </span>
         </Tooltip>

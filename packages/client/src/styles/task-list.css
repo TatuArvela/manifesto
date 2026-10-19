@@ -141,14 +141,16 @@
   li[data-item-type="task"][data-checked="true"]
   > .task-item-content {
   text-decoration: line-through;
-  color: var(--color-neutral-400);
+  /* As pale as a note's text can go and still read on every colour
+     (`noteText.quiet` in colors.ts); the line says it is done. */
+  color: var(--color-neutral-600);
 }
 
 .dark
   .milkdown-editor
   li[data-item-type="task"][data-checked="true"]
   > .task-item-content {
-  color: var(--color-neutral-500);
+  color: var(--color-neutral-300);
 }
 
 /* Drag handle: absolute-positioned in the gutter, only visible on hover. */

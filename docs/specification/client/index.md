@@ -242,4 +242,11 @@ are in [Accessibility](../accessibility.md). In the client that comes down to:
 - Announcements: live regions for toasts, the connection status, inline calculation results and
   reordering (`boardAnnouncement`).
 - Contrast of 4.5:1 for text and 3:1 for controls in both themes, and one focus ring
-  (`:focus-visible` in `styles/setup.css`).
+  (`:focus-visible` in `styles/setup.css`). Text and icons on a note take their tone from `noteText`
+  in `colors.ts`, which `colors.test.ts` measures on every note colour in every shade; something
+  meant to look done or past is struck through or set apart, never paled with opacity.
+- Targets of at least 24 by 24 px (WCAG 2.5.8). A control drawn smaller (the select circle, a
+  card's checkbox, a reminder's clear) reaches the size with an unseen margin around it.
+- Focus is never left under a bar: the board scrolls a card clear of the phone's top bar
+  (`scroll-padding-top`), and a phone sheet scrolls a control the keyboard reaches out from under
+  its sticky bars (`keepFocusClear` in `utils/phoneSheets.ts`).
