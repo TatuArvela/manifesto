@@ -1,9 +1,9 @@
 /**
  * What a token is for. `api` (`mfp_`) works on the REST API and the sockets,
- * as a session does; `mcp` (`mfm_`) works only at `/api/mcp`, for an AI
+ * as a session does; `mcp` (`mfm_`) works only at `/api/v1/mcp`, for an AI
  * assistant, so a secret copied into an assistant's settings can do only what
  * its tools do; `calendar` (`mfc_`) is the secret in a reminder feed's
- * address (`/api/calendar/<token>.ics`), since a calendar app sends no
+ * address (`/api/v1/calendar/<token>.ics`), since a calendar app sends no
  * header, and opens that feed and nothing else.
  */
 export const API_TOKEN_KINDS = ["api", "mcp", "calendar"] as const;
@@ -11,7 +11,7 @@ export type ApiTokenKind = (typeof API_TOKEN_KINDS)[number];
 
 /**
  * What a token may reach. Each route a token can call names one, and so does
- * each socket (`/api/ws` reads notes, `/api/yjs` writes them). A `:write`
+ * each socket (`/api/v1/ws` reads notes, `/api/v1/yjs` writes them). A `:write`
  * scope includes its `:read`. A session has them all, and none of them
  * reaches what only a session may do (passwords, tokens, webhooks, admin).
  */
@@ -101,7 +101,7 @@ export interface ApiTokenCreatedResponse {
 }
 
 /**
- * An assistant asking to be let in by OAuth (`GET /api/oauth/client`), as the
+ * An assistant asking to be let in by OAuth (`GET /api/v1/oauth/client`), as the
  * consent screen shows it. The client id is the address of the client's own
  * metadata document, or one this server gave out when the client registered.
  */
@@ -121,7 +121,7 @@ export interface OAuthClientInfo {
   scopes: ApiTokenScope[];
 }
 
-/** `POST /api/oauth/authorize`: the signed-in user lets the client in. */
+/** `POST /api/v1/oauth/authorize`: the signed-in user lets the client in. */
 export interface OAuthAuthorizeRequest {
   clientId: string;
   redirectUri: string;

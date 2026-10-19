@@ -12,7 +12,7 @@ An assistant that can sign in through the browser (Claude Code, Claude Desktop, 
 others that speak the protocol over HTTP) needs only the address:
 
 ```bash
-claude mcp add --transport http manifesto https://notes.example/api/mcp
+claude mcp add --transport http manifesto https://notes.example/api/v1/mcp
 ```
 
 The first time it connects, it opens a page of the client in the browser, where the user signs in
@@ -24,30 +24,30 @@ An assistant that cannot sign in that way takes a token minted by hand. Minting 
 shows its secret once, with the command that connects Claude Code:
 
 ```bash
-claude mcp add --transport http manifesto https://notes.example/api/mcp \
+claude mcp add --transport http manifesto https://notes.example/api/v1/mcp \
   --header "Authorization: Bearer mfm_..."
 ```
 
-Any other client takes the same two things: the URL `<server>/api/mcp` over HTTP, and the token as a
+Any other client takes the same two things: the URL `<server>/api/v1/mcp` over HTTP, and the token as a
 bearer token in the `Authorization` header.
 
 ## Signing in through the browser
 
-The server is an OAuth 2.1 authorization server for `/api/mcp` and nothing else, as the protocol's
+The server is an OAuth 2.1 authorization server for `/api/v1/mcp` and nothing else, as the protocol's
 [authorization](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization)
 section describes. It is on whenever MCP is and the server knows where its client is: `APP_URL`, or
 the client it serves itself (`CLIENT_DIR`). Without either, there is no page to send the user to, so
 the endpoints below answer `404` and tokens minted by hand are the only way in.
 
-- **Discovery**: a request to `/api/mcp` without a valid token answers `401` with
-  `WWW-Authenticate: Bearer resource_metadata=".../.well-known/oauth-protected-resource/api/mcp"`
+- **Discovery**: a request to `/api/v1/mcp` without a valid token answers `401` with
+  `WWW-Authenticate: Bearer resource_metadata=".../.well-known/oauth-protected-resource/api/v1/mcp"`
   (RFC 9728), which names this server as the authorization server, whose metadata is at
   `/.well-known/oauth-authorization-server` (RFC 8414). Its addresses are built from the one the
   request came to, so behind a TLS proxy `TRUST_PROXY` must be on for them to say `https`.
 - **Clients**: an assistant identifies itself either by the `https` address of its own metadata
   document (a Client ID Metadata Document, which the server reads through the same guard as link
   previews: public addresses only, no redirects, at most 5 KB, kept five minutes), or by registering
-  (`POST /api/oauth/register`, RFC 7591). Every client is public: none holds a secret, and PKCE
+  (`POST /api/v1/oauth/register`, RFC 7591). Every client is public: none holds a secret, and PKCE
   (`S256` only) stands in for one. A registered client that is never given a grant is removed after
   a day. The consent page says which kind is asking: a metadata document's host vouches for the name
   it shows, while a registered client's name is only what it said about itself.
@@ -56,7 +56,7 @@ the endpoints below answer `404` and tokens minted by hand are the only way in.
   of the app's own (`cursor://`). Schemes a browser would run or read (`javascript:`, `data:`,
   `file:` and the like) are refused at registration, and the page does not trust that alone.
 - **Consent**: `/oauth/authorize` is a page of the client. It asks the server about the request
-  (`GET /api/oauth/client`) and, once the user agrees, for a code (`POST /api/oauth/authorize`), both
+  (`GET /api/v1/oauth/client`) and, once the user agrees, for a code (`POST /api/v1/oauth/authorize`), both
   with the user's session. Agreeing asks for the password (or, without one, a recent sign-in), as
   minting a token by hand does, and counts toward the same limit of 50 tokens. A user who signs in
   through the identity provider from that page comes back to it after. A code is good once, for two
@@ -66,11 +66,11 @@ the endpoints below answer `404` and tokens minted by hand are the only way in.
   wraps the keys under a key derived from it; the server is sent the code's hash and the wrapped
   keys, and answers with the redirect address without a code, which the page adds. The server
   first sees the code when the assistant trades it in.
-- **Tokens**: `POST /api/oauth/token` trades the code for an access token (`mfm_`, an hour) and a
+- **Tokens**: `POST /api/v1/oauth/token` trades the code for an access token (`mfm_`, an hour) and a
   refresh token (`mfr_`), which trades for the next pair; each refresh replaces both, and wraps the
   grant's keys again under the new pair in place of the copies before. The refresh
   token is not a bearer token anywhere. One that comes back after it was replaced has been copied,
-  and ends the grant for the assistant and the copy alike. A `resource` other than `/api/mcp` is
+  and ends the grant for the assistant and the copy alike. A `resource` other than `/api/v1/mcp` is
   refused (`invalid_target`).
 - **The grant** is an MCP token like one minted by hand: listed in Settings under **API tokens**,
   named after the assistant and marked as connected by signing in, with the access and lifetime the
@@ -135,7 +135,7 @@ assistant is told to read the note again, rather than writing over the other cha
 An assistant's token (`mfm_...`), whether minted by hand or given by signing in, is a
 [personal API token](../api.md#api-tokens) of its own kind:
 
-- It works at `/api/mcp` and nowhere else. The REST API and both WebSockets refuse it, so a secret
+- It works at `/api/v1/mcp` and nowhere else. The REST API and both WebSockets refuse it, so a secret
   copied out of an assistant's settings can do only what the tools above do.
 - It can be **read only** (the `notes:read` scope without `notes:write`), chosen when it is minted.
   The tools that write are then not offered, and the routes they would call refuse it.
@@ -152,7 +152,7 @@ makes reaches the user's open tabs and their [webhooks](webhooks.md) like any ot
 shared note can read it through an assistant and not change it.
 
 The endpoint is the protocol's Streamable HTTP transport in its stateless form, written for this server
-rather than taken from the MCP SDK: `POST /api/mcp` takes one JSON-RPC message (or, under protocol
+rather than taken from the MCP SDK: `POST /api/v1/mcp` takes one JSON-RPC message (or, under protocol
 `2025-03-26`, a batch of at most 50) and answers with JSON. It keeps no session and never streams, so `GET` and
 `DELETE` answer `405`. It speaks protocol versions `2025-11-25`, `2025-06-18` and `2025-03-26`, and
 offers tools only (no prompts or resources). A request carrying an `Origin` that is neither in
@@ -170,5 +170,5 @@ read-only token limits what the assistant can change, not what it can read. See
 
 `MCP` (on by default) turns the endpoint on or off; see
 [Server Deployment](../server/deployment.md). On opens nothing by itself, since the endpoint answers
-only a token a user has minted or agreed to give. Off, `/api/mcp` and the sign-in endpoints answer
+only a token a user has minted or agreed to give. Off, `/api/v1/mcp` and the sign-in endpoints answer
 404, no assistant token can be minted or given, and existing ones stop working with it.

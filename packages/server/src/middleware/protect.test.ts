@@ -37,7 +37,7 @@ describe("route protection", () => {
     });
     ({ token: admin } = await registerTestUser(rig, "admin"));
     ({ token: member } = await registerTestUser(rig, "member"));
-    const minted = await rig.request("/api/tokens", {
+    const minted = await rig.request("/api/v1/tokens", {
       method: "POST",
       headers: authHeaders(member),
       body: JSON.stringify({
@@ -123,11 +123,11 @@ describe("route protection", () => {
     // tokens, webhooks, the password, email, two-factor, passkeys, sign-in
     // by OAuth, and the admin API.
     const guarded = [
-      /^\/api\/tokens/,
-      /^\/api\/webhooks/,
-      /^\/api\/admin\//,
-      /^\/api\/auth\/(password|two-factor|passkeys)/,
-      /^\/api\/oauth\/(client|authorize)$/,
+      /^\/api\/v1\/tokens/,
+      /^\/api\/v1\/webhooks/,
+      /^\/api\/v1\/admin\//,
+      /^\/api\/v1\/auth\/(password|two-factor|passkeys)/,
+      /^\/api\/v1\/oauth\/(client|authorize)$/,
     ];
     const loose = OPERATIONS.filter(
       (op) =>
@@ -135,13 +135,13 @@ describe("route protection", () => {
         op.auth !== "session" &&
         op.auth !== "admin" &&
         !(
-          op.path === "/api/auth/password-reset" ||
-          op.path === "/api/auth/password-reset/confirm"
+          op.path === "/api/v1/auth/password-reset" ||
+          op.path === "/api/v1/auth/password-reset/confirm"
         ),
     ).map((op) => `${op.method} ${op.path}`);
     expect(loose).toEqual([]);
     const email = OPERATIONS.find(
-      (op) => op.method === "put" && op.path === "/api/auth/me",
+      (op) => op.method === "put" && op.path === "/api/v1/auth/me",
     );
     expect(email?.auth).toBe("session");
   });
@@ -149,8 +149,8 @@ describe("route protection", () => {
   it("closes a route nobody declared", async () => {
     // Its own app, since a route cannot be added once one has answered.
     const fresh = await bootTestAppWith({});
-    fresh.app.get("/api/undeclared", (c) => c.text("open"));
-    const res = await fresh.request("/api/undeclared");
+    fresh.app.get("/api/v1/undeclared", (c) => c.text("open"));
+    const res = await fresh.request("/api/v1/undeclared");
     expect(res.status).toBe(403);
     expect(await res.text()).not.toBe("open");
     await fresh.close();
@@ -160,9 +160,12 @@ describe("route protection", () => {
     // Two routes on `user`: moving between them gains nothing.
     let last = 0;
     for (let i = 0; i < 301; i++) {
-      const res = await rig.request(i % 2 ? "/api/notes" : "/api/search?q=a", {
-        headers: authHeaders(member),
-      });
+      const res = await rig.request(
+        i % 2 ? "/api/v1/notes" : "/api/v1/search?q=a",
+        {
+          headers: authHeaders(member),
+        },
+      );
       last = res.status;
     }
     expect(last).toBe(429);
@@ -199,7 +202,7 @@ describe("features the host turned off", () => {
 
   /** What this app says for a route it does not have. */
   async function absent(rig: TestRig): Promise<string> {
-    const res = await rig.request("/api/no-such-route");
+    const res = await rig.request("/api/v1/no-such-route");
     expect(res.status).toBe(404);
     return res.text();
   }
@@ -274,13 +277,13 @@ describe("features the host turned off", () => {
     const { token } = await registerTestUser(rig, "alice");
     const nothing = await absent(rig);
     for (const [method, path] of [
-      ["DELETE", "/api/notes/x/shares/y"],
-      ["DELETE", "/api/notes/x/team-shares/y"],
-      ["GET", "/api/notes/x/team-shares"],
-      ["GET", "/api/auth/passkeys"],
-      ["DELETE", "/api/auth/passkeys/x"],
-      ["GET", "/api/auth/two-factor"],
-      ["POST", "/api/auth/two-factor/disable"],
+      ["DELETE", "/api/v1/notes/x/shares/y"],
+      ["DELETE", "/api/v1/notes/x/team-shares/y"],
+      ["GET", "/api/v1/notes/x/team-shares"],
+      ["GET", "/api/v1/auth/passkeys"],
+      ["DELETE", "/api/v1/auth/passkeys/x"],
+      ["GET", "/api/v1/auth/two-factor"],
+      ["POST", "/api/v1/auth/two-factor/disable"],
     ] as const) {
       const res = await rig.request(path, {
         method,
@@ -299,7 +302,7 @@ describe("features the host turned off", () => {
     const rig = await bootTestAppWith({});
     const { token: session } = await registerTestUser(rig, "alice");
     const mint = (kind: string) =>
-      rig.request("/api/tokens", {
+      rig.request("/api/v1/tokens", {
         method: "POST",
         headers: authHeaders(session),
         body: JSON.stringify({ name: kind, kind, password: "test-pass-12" }),
@@ -309,7 +312,7 @@ describe("features the host turned off", () => {
       ((await minted.json()) as ApiTokenCreatedResponse).secret,
     );
     const notes = () =>
-      rig.request("/api/notes", { headers: authHeaders(secret) });
+      rig.request("/api/v1/notes", { headers: authHeaders(secret) });
     expect((await notes()).status).toBe(200);
     // As the next start with `API_TOKENS=off` and `CALENDAR=off` would be.
     rig.cfg.apiTokens = false;
@@ -318,7 +321,7 @@ describe("features the host turned off", () => {
     expect((await mint("api")).status).toBe(403);
     expect((await mint("calendar")).status).toBe(403);
     // Listing and revoking stay open, so a token can always be taken back.
-    const list = await rig.request("/api/tokens", {
+    const list = await rig.request("/api/v1/tokens", {
       headers: authHeaders(session),
     });
     expect(list.status).toBe(200);

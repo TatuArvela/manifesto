@@ -71,7 +71,7 @@ export interface AccountKeys {
   wrappedPrivateKeys: WrappedPrivateKeys;
 }
 
-/** `GET /api/auth/keys`. */
+/** `GET /api/v1/auth/keys`. */
 export interface AccountKeysResponse {
   /** Null for an account that has not been set up yet. */
   keys: AccountKeys | null;
@@ -90,25 +90,25 @@ export interface RecoveryKeyWrap {
   recoveryVerifier: string;
 }
 
-/** `PUT /api/auth/keys`: an account's first keys, made in the browser. */
+/** `PUT /api/v1/auth/keys`: an account's first keys, made in the browser. */
 export interface AccountKeysSetupRequest extends RecoveryKeyWrap {
   wrappedBySecret: string;
   publicKeys: AccountPublicKeys;
   wrappedPrivateKeys: WrappedPrivateKeys;
 }
 
-/** `POST /api/auth/keys/secret`: a new secret key, with the password. */
+/** `POST /api/v1/auth/keys/secret`: a new secret key, with the password. */
 export interface SecretKeyReplaceRequest {
   password?: string;
   wrappedBySecret: string;
 }
 
-/** `POST /api/auth/keys/recovery`: a new recovery key, with the password. */
+/** `POST /api/v1/auth/keys/recovery`: a new recovery key, with the password. */
 export interface RecoveryKeyReplaceRequest extends RecoveryKeyWrap {
   password?: string;
 }
 
-/** `POST /api/auth/keys/recover`, and `POST /api/auth/recovery` with the
+/** `POST /api/v1/auth/keys/recover`, and `POST /api/v1/auth/recovery` with the
  * username beside it: the first step of using the recovery key. */
 export interface RecoveryOpenRequest {
   verifier: string;
@@ -126,7 +126,7 @@ export interface RecoveryOpenResponse {
 }
 
 /**
- * `POST /api/auth/keys/recover/complete`, and `POST /api/auth/recovery/complete`
+ * `POST /api/v1/auth/keys/recover/complete`, and `POST /api/v1/auth/recovery/complete`
  * with the username and a new password beside it: the second step, which puts
  * a new secret key and a new recovery key in place of the ones used.
  */

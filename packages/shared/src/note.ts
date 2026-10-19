@@ -150,7 +150,7 @@ export const MAX_IMAGE_DATA_URL_BYTES =
  * attachment store rather than inline: `attachment:` and the attachment's
  * ULID. The server turns every inline image it is sent into one of these
  * (see `docs/specification/features/attachments.md`), and serves the bytes at
- * `GET /api/attachments/:id`. Open mode never holds one, and an export never
+ * `GET /api/v1/attachments/:id`. Open mode never holds one, and an export never
  * contains one: both inline the bytes again.
  */
 export const ATTACHMENT_REF_PREFIX = "attachment:";

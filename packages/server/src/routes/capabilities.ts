@@ -27,10 +27,10 @@ import { VERSION } from "#/version.ts";
 import { MAX_WEBHOOKS_PER_USER } from "./webhooks.ts";
 
 /**
- * `GET /api/capabilities`: the one place a client or a script reads what this
+ * `GET /api/v1/capabilities`: the one place a client or a script reads what this
  * server offers, each value taken from what enforces it. Public, since the
  * sign-in screen needs it before there is anyone to ask as, and it says
- * nothing `/api/health` and the sign-in screen do not already show, beyond
+ * nothing `/api/v1/health` and the sign-in screen do not already show, beyond
  * the default preferences, which every new account is given anyway.
  */
 export function createCapabilitiesRoutes(cfg: ServerConfig) {

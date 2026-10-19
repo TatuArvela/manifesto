@@ -28,7 +28,7 @@ describe("audit log", () => {
   });
 
   const login = (username: string, password: string) =>
-    rig.request("/api/auth/login", {
+    rig.request("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
@@ -36,7 +36,7 @@ describe("audit log", () => {
 
   async function log(query = "") {
     await settle();
-    const res = await rig.request(`/api/admin/audit${query}`, {
+    const res = await rig.request(`/api/v1/admin/audit${query}`, {
       headers: authHeaders(admin.token),
     });
     expect(res.status).toBe(200);
@@ -46,7 +46,7 @@ describe("audit log", () => {
   it("records sign-ins, failed ones, and admin grants, newest first", async () => {
     await login("bob", "wrong-pass-00");
     await login("bob", "test-pass-12");
-    await rig.request(`/api/admin/users/${bob.userId}`, {
+    await rig.request(`/api/v1/admin/users/${bob.userId}`, {
       method: "PUT",
       headers: authHeaders(admin.token),
       body: JSON.stringify({ isAdmin: true }),
@@ -87,7 +87,7 @@ describe("audit log", () => {
   });
 
   it("is for admins only", async () => {
-    const res = await rig.request("/api/admin/audit", {
+    const res = await rig.request("/api/v1/admin/audit", {
       headers: authHeaders(bob.token),
     });
     expect(res.status).toBe(403);
@@ -95,7 +95,7 @@ describe("audit log", () => {
 
   async function activity(token: string) {
     await settle();
-    const res = await rig.request("/api/auth/me/activity", {
+    const res = await rig.request("/api/v1/auth/me/activity", {
       headers: authHeaders(token),
     });
     expect(res.status).toBe(200);
@@ -114,7 +114,7 @@ describe("audit log", () => {
 
   it("shows a user their own activity, and nobody else's", async () => {
     await withAddresses();
-    await rig.request("/api/auth/login", {
+    await rig.request("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...from("198.51.100.7") },
       body: JSON.stringify({ username: "bob", password: "wrong-pass-00" }),
@@ -132,7 +132,7 @@ describe("audit log", () => {
 
   it("tells a user what an admin did to their account, but not from where", async () => {
     await withAddresses();
-    await rig.request(`/api/admin/users/${bob.userId}`, {
+    await rig.request(`/api/v1/admin/users/${bob.userId}`, {
       method: "PUT",
       headers: { ...authHeaders(admin.token), ...from("203.0.113.9") },
       body: JSON.stringify({ isAdmin: true }),
@@ -146,13 +146,13 @@ describe("audit log", () => {
   });
 
   it("will not give a user's activity to an API token", async () => {
-    const created = await rig.request("/api/tokens", {
+    const created = await rig.request("/api/v1/tokens", {
       method: "POST",
       headers: authHeaders(bob.token),
       body: JSON.stringify({ name: "script", password: "test-pass-12" }),
     });
     const { secret } = (await created.json()) as { secret: string };
-    const res = await rig.request("/api/auth/me/activity", {
+    const res = await rig.request("/api/v1/auth/me/activity", {
       headers: authHeaders(secret),
     });
     expect(res.status).toBe(403);
@@ -168,7 +168,7 @@ describe("audit log", () => {
   });
 
   it("gives an admin the overview of what the server holds", async () => {
-    const res = await rig.request("/api/admin/overview", {
+    const res = await rig.request("/api/v1/admin/overview", {
       headers: authHeaders(admin.token),
     });
     expect(res.status).toBe(200);
@@ -184,7 +184,7 @@ describe("audit log", () => {
   });
 
   it("says whether a newer release is out, as far as it knows", async () => {
-    const res = await rig.request("/api/admin/update", {
+    const res = await rig.request("/api/v1/admin/update", {
       headers: authHeaders(admin.token),
     });
     expect(await res.json()).toMatchObject({ update: null });

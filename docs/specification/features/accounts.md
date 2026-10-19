@@ -149,7 +149,7 @@ sign-in, and asks twice: a first press opens the step that explains what goes, a
 the password (or, under single sign-on, a recent sign-in), as the other
 [confirmed changes](#confirming-a-change-from-a-session) do.
 
-`DELETE /api/auth/me` does it, from a session only, and is audited as `auth.account_deleted`. The
+`DELETE /api/v1/auth/me` does it, from a session only, and is audited as `auth.account_deleted`. The
 last admin is refused (`409`) and asked to make someone else an admin first. The browser it was done
 from is then left as signing out leaves it: the session, the offline copies of notes and the push
 subscription go. Under single sign-on with `OIDC_AUTO_REGISTER` on, signing in again makes a new,
@@ -179,7 +179,7 @@ the password any faster than the sign-in form can, and a name locked by either i
 
 An account that signs in only through an identity provider has no password to type. Its proof is a
 sign-in within the last 15 minutes. Past that, the form says to sign in again and links to the
-identity provider with `prompt=login` (`/api/auth/login?reauth=1`), which asks for real rather than
+identity provider with `prompt=login` (`/api/v1/auth/login?reauth=1`), which asks for real rather than
 reusing its own session; the action is then repeated from the fresh session.
 
 Changing the password asks for the current one, as it always has.
@@ -190,8 +190,8 @@ Deleting session rows stops the next HTTP request, but a WebSocket is authentica
 connects. A reset, a deletion or a password change therefore also closes the sockets those sessions
 opened:
 
-- `/api/ws` connections close with code `4401`, which the client reads as being signed out.
-- `/api/yjs` connections have their whole socket closed, not just one document's connection, since a
+- `/api/v1/ws` connections close with code `4401`, which the client reads as being signed out.
+- `/api/v1/yjs` connections have their whole socket closed, not just one document's connection, since a
   closed document connection is only a request the peer is free to ignore. The provider reconnects,
   and `onAuthenticate` refuses the ended session.
 
@@ -328,7 +328,7 @@ the address and mails a link to `APP_URL/#reset=<token>`, which opens a form for
 
 The same setting mails a share invitation to a recipient who has an address, in the recipient's
 language rather than the sharer's: each client reports the language it is set to
-(`PUT /api/auth/me/locale`) whenever it differs from what the server holds, and an account no client
+(`PUT /api/v1/auth/me/locale`) whenever it differs from what the server holds, and an account no client
 has reported for gets English. Mail is a convenience
 beside something that already happened, so a failure to send is logged and nothing else fails.
 One account mails another at most five invitations an hour; past that the invitation is still made
@@ -350,11 +350,11 @@ by `OIDC_ADMIN_GROUP`, email addresses changed, temporary passwords issued). Not
 recorded.
 
 Every signed-in user reads their own lines of it, where they are the actor or the target, on the
-**Activity** page of Settings (`GET /api/auth/me/activity`), so an admin's action on an account is
+**Activity** page of Settings (`GET /api/v1/auth/me/activity`), so an admin's action on an account is
 never hidden from its owner. There an address is shown only for what the user did and for failed
 sign-ins on their account; see [Privacy](privacy.md).
 
-Admins read it in the Users view's **Activity** tab, newest first, from `GET /api/admin/audit`
+Admins read it in the Users view's **Activity** tab, newest first, from `GET /api/v1/admin/audit`
 (`limit`, `before`, `userId`, `action`). The address is the socket peer, or the first `X-Forwarded-For`
 hop with `TRUST_PROXY` on. Actor and target are not foreign keys, so an entry about an account outlives
 the account. Entries are kept for `AUDIT_RETENTION_DAYS` (180 by default) and pruned hourly. Writing an
@@ -369,7 +369,7 @@ admins, issues a temporary password, makes an account an admin, or creates a new
 ## Server overview
 
 The Users view's **Overview** tab shows an admin what the server holds and how it is running, from
-`GET /api/admin/overview`: the version and uptime; totals of accounts, notes (and how many are in the
+`GET /api/v1/admin/overview`: the version and uptime; totals of accounts, notes (and how many are in the
 trash), shares, images and the bytes they take, and saved versions; the same per account, the largest
 first, with images counted under the owner of the notes they belong to; and every background job (trash,
 sessions, unused images, backups when on) with when it last ran, how long it took and its last error.
@@ -403,4 +403,4 @@ change, a link to the section of [Server Deployment](../server/deployment.md) th
   the admin a test message at their own address.
 
 HTTPS and `APP_URL` are judged in the browser, which alone knows the address it used; the rest comes
-from `GET /api/admin/checks`.
+from `GET /api/v1/admin/checks`.

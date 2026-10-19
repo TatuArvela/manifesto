@@ -34,7 +34,7 @@ describe("OpenAPI document", () => {
     await storage.close();
     return new Set(
       app.routes
-        .filter((r) => r.method !== "ALL" && r.path.startsWith("/api/"))
+        .filter((r) => r.method !== "ALL" && r.path.startsWith("/api/v1/"))
         .map((r) => `${r.method.toLowerCase()} ${r.path}`),
     );
   }
@@ -66,7 +66,7 @@ describe("OpenAPI document", () => {
     for (const [, name] of json.matchAll(/#\/components\/schemas\/(\w+)/g)) {
       expect(doc.components.schemas).toHaveProperty(defined(name));
     }
-    const create = defined(doc.paths["/api/notes"]).post as {
+    const create = defined(doc.paths["/api/v1/notes"]).post as {
       requestBody: {
         content: { "application/json": { schema: { required: string[] } } };
       };
@@ -74,7 +74,7 @@ describe("OpenAPI document", () => {
     expect(
       create.requestBody.content["application/json"].schema.required,
     ).toContain("title");
-    expect(Object.keys(doc.paths)).toContain(openApiPath("/api/notes/:id"));
+    expect(Object.keys(doc.paths)).toContain(openApiPath("/api/v1/notes/:id"));
   });
 
   it("leaves no reference a generator could not follow", () => {
@@ -102,11 +102,11 @@ describe("OpenAPI document", () => {
       (doc.paths[openApiPath(path)] as Record<string, Record<string, unknown>>)[
         method
       ]?.["x-stability"];
-    expect(stability("get", "/api/notes")).toBe("public");
-    expect(stability("post", "/api/mcp")).toBe("public");
-    expect(stability("get", "/api/calendar/:file")).toBe("public");
-    expect(stability("get", "/api/tokens")).toBe("client");
-    expect(stability("post", "/api/auth/login")).toBe("client");
+    expect(stability("get", "/api/v1/notes")).toBe("public");
+    expect(stability("post", "/api/v1/mcp")).toBe("public");
+    expect(stability("get", "/api/v1/calendar/:file")).toBe("public");
+    expect(stability("get", "/api/v1/tokens")).toBe("client");
+    expect(stability("post", "/api/v1/auth/login")).toBe("client");
     // Nothing a session alone may call is promised to anything but the client.
     expect(
       OPERATIONS.filter(
@@ -124,7 +124,7 @@ describe("OpenAPI document", () => {
       storage,
       authProvider: createAuthProvider(cfg, storage),
     });
-    const res = await app.request("/api/openapi.json");
+    const res = await app.request("/api/v1/openapi.json");
     expect(res.status).toBe(200);
     expect((await res.json()).openapi).toBe("3.1.0");
     await storage.close();

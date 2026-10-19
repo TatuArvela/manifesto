@@ -149,7 +149,7 @@ describe("the example webhook receiver", () => {
 
     it("mirrors notes to a folder as they are made, changed and deleted", async () => {
       const example = await loadExample();
-      const registered = await request("/api/auth/register", {
+      const registered = await request("/api/v1/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: "alice", password: "test-pass-12" }),
@@ -170,7 +170,7 @@ describe("the example webhook receiver", () => {
       // it carries the keys. The notes are written with it too, so that
       // they are sealed under keys it opens.
       const made = await keyedToken(user.id, "api");
-      const minted = await call("POST", "/api/tokens", {
+      const minted = await call("POST", "/api/v1/tokens", {
         name: "Receiver",
         password: "test-pass-12",
         ...made.fields,
@@ -192,7 +192,7 @@ describe("the example webhook receiver", () => {
       });
       receiver = front;
       const port = await listen(front);
-      const added = await call("POST", "/api/webhooks", {
+      const added = await call("POST", "/api/v1/webhooks", {
         url: `http://127.0.0.1:${port}/hook`,
         password: "test-pass-12",
       });
@@ -212,7 +212,7 @@ describe("the example webhook receiver", () => {
         ],
       });
 
-      const created = await script("POST", "/api/notes", baseNote);
+      const created = await script("POST", "/api/v1/notes", baseNote);
       expect(created.status).toBe(201);
       const note = ((await created.json()) as { note: Note }).note;
       await dispatcher.idle();
@@ -224,7 +224,7 @@ describe("the example webhook receiver", () => {
       expect(written).toContain('tags: ["home"]');
       expect(written).toContain("Body text");
 
-      await script("PUT", `/api/notes/${note.id}`, { title: "Renamed" });
+      await script("PUT", `/api/v1/notes/${note.id}`, { title: "Renamed" });
       await dispatcher.idle();
       await vi.waitFor(async () =>
         expect(await readFile(join(mirror, `${note.id}.md`), "utf8")).toContain(
@@ -232,7 +232,7 @@ describe("the example webhook receiver", () => {
         ),
       );
 
-      await script("DELETE", `/api/notes/${note.id}`);
+      await script("DELETE", `/api/v1/notes/${note.id}`);
       await dispatcher.idle();
       await vi.waitFor(async () => expect(await readdir(mirror)).toEqual([]));
       expect(deliveries).toEqual([
@@ -242,7 +242,7 @@ describe("the example webhook receiver", () => {
       ]);
 
       // The server's own verdict on the receiver: every delivery got a 2xx.
-      const listed = (await (await call("GET", "/api/webhooks")).json()) as {
+      const listed = (await (await call("GET", "/api/v1/webhooks")).json()) as {
         webhooks: { lastStatus: number | null; failureCount: number }[];
       };
       expect(listed.webhooks[0]).toMatchObject({
@@ -383,11 +383,11 @@ describe("the example webhook receiver", () => {
   /** The server's answer to a recipe reading a note, or null for any other
    * address. */
   const noteRead = (url: string, init?: RequestInit): Response | null => {
-    if (!url.startsWith(`${MANIFESTO_URL}/api/notes/`)) return null;
+    if (!url.startsWith(`${MANIFESTO_URL}/api/v1/notes/`)) return null;
     const bearer = new Headers(init?.headers).get("Authorization");
     if (bearer !== "Bearer mfp_test")
       return new Response(null, { status: 401 });
-    const note = served.get(url.slice(`${MANIFESTO_URL}/api/notes/`.length));
+    const note = served.get(url.slice(`${MANIFESTO_URL}/api/v1/notes/`.length));
     return note
       ? new Response(JSON.stringify({ note }))
       : new Response(null, { status: 404 });

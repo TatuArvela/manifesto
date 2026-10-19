@@ -59,18 +59,18 @@ describe("passkeys", () => {
   const login = (extra: object = {}) =>
     call(
       "POST",
-      "/api/auth/login",
+      "/api/v1/auth/login",
       { username: "alice", password: PASSWORD, ...extra },
       { as: null },
     );
 
   async function addPasskey(device = createSoftAuthenticator(ORIGIN)) {
-    const started = await call("POST", "/api/auth/passkeys/options", {
+    const started = await call("POST", "/api/v1/auth/passkeys/options", {
       password: PASSWORD,
     });
     expect(started.status).toBe(200);
     const { options } = (await started.json()) as PasskeyOptionsResponse;
-    const added = await call("POST", "/api/auth/passkeys", {
+    const added = await call("POST", "/api/v1/auth/passkeys", {
       name: "Laptop",
       response: device.create(options),
     });
@@ -79,7 +79,7 @@ describe("passkeys", () => {
   }
 
   async function signInOptions() {
-    const res = await call("POST", "/api/auth/passkey/options", undefined, {
+    const res = await call("POST", "/api/v1/auth/passkey/options", undefined, {
       as: null,
     });
     expect(res.status).toBe(200);
@@ -87,24 +87,24 @@ describe("passkeys", () => {
   }
 
   const passkeyLogin = (response: unknown) =>
-    call("POST", "/api/auth/passkey/login", { response }, { as: null });
+    call("POST", "/api/v1/auth/passkey/login", { response }, { as: null });
 
   it("adds a passkey, which turns two-factor on", async () => {
     const { added } = await addPasskey();
     expect(added.passkey).toMatchObject({ name: "Laptop", synced: true });
     const listed = (await (
-      await call("GET", "/api/auth/passkeys")
+      await call("GET", "/api/v1/auth/passkeys")
     ).json()) as PasskeysResponse;
     expect(listed.passkeys).toHaveLength(1);
     expect(listed.passkeys[0]).not.toHaveProperty("publicKey");
     const status = (await (
-      await call("GET", "/api/auth/two-factor")
+      await call("GET", "/api/v1/auth/two-factor")
     ).json()) as TwoFactorStatusResponse;
     expect(status).toEqual({ enabled: true, authenticator: false });
   });
 
   it("asks for the password before adding one", async () => {
-    const res = await call("POST", "/api/auth/passkeys/options", {
+    const res = await call("POST", "/api/v1/auth/passkeys/options", {
       password: "wrong-password",
     });
     expect(res.status).toBe(403);
@@ -140,25 +140,28 @@ describe("passkeys", () => {
     expect((await login({ passkey: answer })).status).toBe(200);
     expect(
       (
-        await call("POST", "/api/auth/passkeys/options", {
+        await call("POST", "/api/v1/auth/passkeys/options", {
           password: PASSWORD,
         })
       ).status,
     ).toBe(404);
     expect(
-      (await call("POST", "/api/auth/passkey/options", undefined, { as: null }))
-        .status,
+      (
+        await call("POST", "/api/v1/auth/passkey/options", undefined, {
+          as: null,
+        })
+      ).status,
     ).toBe(404);
     // The account can still see and remove it.
     const listed = (await (
-      await call("GET", "/api/auth/passkeys")
+      await call("GET", "/api/v1/auth/passkeys")
     ).json()) as PasskeysResponse;
     expect(listed.passkeys).toHaveLength(1);
   });
 
   it("offers no passkey challenge to a page elsewhere, whose passkeys are not these", async () => {
     await addPasskey();
-    const res = await rig.request("/api/auth/login", {
+    const res = await rig.request("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "alice", password: PASSWORD }),
@@ -180,7 +183,8 @@ describe("passkeys", () => {
     const body = (await res.json()) as AuthSuccessResponse;
     expect(body.user.id).toBe(userId);
     expect(
-      (await call("GET", "/api/notes", undefined, { as: body.token })).status,
+      (await call("GET", "/api/v1/notes", undefined, { as: body.token }))
+        .status,
     ).toBe(200);
     const stored = defined((await rig.storage.passkeys.listByUser(userId))[0]);
     expect(stored.counter).toBe(1);
@@ -220,7 +224,7 @@ describe("passkeys", () => {
   });
 
   it("refuses a ceremony from a page this server does not serve", async () => {
-    const res = await call("POST", "/api/auth/passkey/options", undefined, {
+    const res = await call("POST", "/api/v1/auth/passkey/options", undefined, {
       as: null,
       origin: "https://evil.example",
     });
@@ -229,29 +233,33 @@ describe("passkeys", () => {
 
   it("turns two-factor off with the last passkey, and keeps it on while one is left", async () => {
     const setup = (await (
-      await call("POST", "/api/auth/two-factor/setup", { password: PASSWORD })
+      await call("POST", "/api/v1/auth/two-factor/setup", {
+        password: PASSWORD,
+      })
     ).json()) as TwoFactorSetupResponse;
-    const enabled = await call("POST", "/api/auth/two-factor/enable", {
+    const enabled = await call("POST", "/api/v1/auth/two-factor/enable", {
       code: hotp(base32Decode(setup.secret), totpStep(Date.now()) - 1),
     });
     expect(enabled.status).toBe(204);
     const { added } = await addPasskey();
 
     // The authenticator goes; the passkey keeps two-factor on.
-    await call("POST", "/api/auth/two-factor/disable", { password: PASSWORD });
+    await call("POST", "/api/v1/auth/two-factor/disable", {
+      password: PASSWORD,
+    });
     let status = (await (
-      await call("GET", "/api/auth/two-factor")
+      await call("GET", "/api/v1/auth/two-factor")
     ).json()) as TwoFactorStatusResponse;
     expect(status).toEqual({ enabled: true, authenticator: false });
 
     const removed = await call(
       "DELETE",
-      `/api/auth/passkeys/${added.passkey.id}`,
+      `/api/v1/auth/passkeys/${added.passkey.id}`,
       { password: PASSWORD },
     );
     expect(removed.status).toBe(204);
     status = (await (
-      await call("GET", "/api/auth/two-factor")
+      await call("GET", "/api/v1/auth/two-factor")
     ).json()) as TwoFactorStatusResponse;
     expect(status).toEqual({ enabled: false, authenticator: false });
     expect((await login()).status).toBe(200);
@@ -262,7 +270,7 @@ describe("passkeys", () => {
     const bob = await registerTestUser(rig, "bob", PASSWORD);
     const started = await call(
       "POST",
-      "/api/auth/passkeys/options",
+      "/api/v1/auth/passkeys/options",
       { password: PASSWORD },
       { as: bob.token },
     );
@@ -272,16 +280,19 @@ describe("passkeys", () => {
       (
         await call(
           "POST",
-          "/api/auth/passkeys",
+          "/api/v1/auth/passkeys",
           { response: device.create(options) },
           { as: bob.token },
         )
       ).status,
     ).toBe(201);
-    const reset = await rig.request(`/api/admin/users/${bob.userId}/password`, {
-      method: "POST",
-      headers: authHeaders(token),
-    });
+    const reset = await rig.request(
+      `/api/v1/admin/users/${bob.userId}/password`,
+      {
+        method: "POST",
+        headers: authHeaders(token),
+      },
+    );
     expect(reset.status).toBe(200);
     expect(await rig.storage.passkeys.listByUser(bob.userId)).toEqual([]);
     expect((await passkeyLogin(device.get(await signInOptions()))).status).toBe(

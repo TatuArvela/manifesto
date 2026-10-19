@@ -95,7 +95,7 @@ describe("noteCodec", () => {
 
   const token = (body: unknown = {}) => request(body, { via: "api", keys });
 
-  /** A note written as a token's `POST /api/notes` writes it. */
+  /** A note written as a token's `POST /api/v1/notes` writes it. */
   async function stored(
     plain: Partial<typeof PLAIN> = {},
     as: { userId: string; keys: AccountSealKeys } = { userId, keys },

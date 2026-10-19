@@ -59,14 +59,14 @@ const noop = async () => {};
 
 /**
  * Routes that check their own caller, because what they take is not a
- * request with a header: `/api/ws` reads its token from the WebSocket
- * subprotocol and its scope by hand (`ws/appSocket.ts`). `/api/yjs` is
+ * request with a header: `/api/v1/ws` reads its token from the WebSocket
+ * subprotocol and its scope by hand (`ws/appSocket.ts`). `/api/v1/yjs` is
  * upgraded outside the app and never reaches this.
  */
-const SELF_AUTHENTICATED = new Set(["GET /api/ws"]);
+const SELF_AUTHENTICATED = new Set(["GET /api/v1/ws"]);
 
 /**
- * Every `/api/*` request's protection, from what `OPERATIONS` declares for
+ * Every `/api/v1/*` request's protection, from what `OPERATIONS` declares for
  * the route that will answer it: its address buckets, then who may call it
  * (nobody in particular, any credential, a session, an MCP token, an admin's
  * session), then its account buckets. Routers mount none of this themselves,
@@ -116,7 +116,7 @@ export function createProtection(deps: {
     // The route that will answer: not middleware (`ALL`), and not the
     // client's catch-all, which is no API route.
     const route = c.req.matchedRoutes.findLast(
-      (r) => r.method !== "ALL" && r.path.startsWith("/api/"),
+      (r) => r.method !== "ALL" && r.path.startsWith("/api/v1/"),
     );
     if (!route) return null;
     const key = `${route.method} ${route.path}`;

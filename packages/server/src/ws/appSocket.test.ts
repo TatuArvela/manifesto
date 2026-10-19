@@ -58,7 +58,7 @@ async function bootRig(heartbeatMs?: number, recheckMs?: number): Promise<Rig> {
     storage,
     server,
     baseUrl: `http://127.0.0.1:${port}`,
-    wsUrl: `ws://127.0.0.1:${port}/api/ws`,
+    wsUrl: `ws://127.0.0.1:${port}/api/v1/ws`,
     stopHeartbeat,
   };
 }
@@ -72,7 +72,7 @@ async function close(rig: Rig): Promise<void> {
 }
 
 async function signIn(rig: Rig, username: string): Promise<string> {
-  const res = await fetch(`${rig.baseUrl}/api/auth/login`, {
+  const res = await fetch(`${rig.baseUrl}/api/v1/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password: "password-1234" }),
@@ -82,7 +82,7 @@ async function signIn(rig: Rig, username: string): Promise<string> {
 }
 
 async function register(rig: Rig, username: string): Promise<string> {
-  const res = await fetch(`${rig.baseUrl}/api/auth/register`, {
+  const res = await fetch(`${rig.baseUrl}/api/v1/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password: "password-1234" }),
@@ -159,7 +159,7 @@ const baseNote = {
   reminder: null,
 };
 
-describe("application WebSocket /api/ws", () => {
+describe("application WebSocket /api/v1/ws", () => {
   let rig: Rig;
 
   beforeEach(async () => {
@@ -186,9 +186,9 @@ describe("application WebSocket /api/ws", () => {
     expect(closeCode).toBe(4401);
   });
 
-  it("rejects an MCP token, which is for /api/mcp alone (closes with 4401)", async () => {
+  it("rejects an MCP token, which is for /api/v1/mcp alone (closes with 4401)", async () => {
     const session = await register(rig, "alice");
-    const created = await fetch(`${rig.baseUrl}/api/tokens`, {
+    const created = await fetch(`${rig.baseUrl}/api/v1/tokens`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -210,7 +210,7 @@ describe("application WebSocket /api/ws", () => {
 
   it("rejects a token that may not read notes (closes with 4401)", async () => {
     const session = await register(rig, "alice");
-    const created = await fetch(`${rig.baseUrl}/api/tokens`, {
+    const created = await fetch(`${rig.baseUrl}/api/v1/tokens`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -239,7 +239,7 @@ describe("application WebSocket /api/ws", () => {
       ws.once("message", (data) => resolve(data.toString()));
     });
 
-    await authedPost<{ note: Note }>(rig, "/api/notes", token, baseNote);
+    await authedPost<{ note: Note }>(rig, "/api/v1/notes", token, baseNote);
 
     const raw = await received;
     const parsed = JSON.parse(raw);
@@ -262,7 +262,7 @@ describe("application WebSocket /api/ws", () => {
       aliceGot = data.toString();
     });
 
-    await authedPost<{ note: Note }>(rig, "/api/notes", bobToken, baseNote);
+    await authedPost<{ note: Note }>(rig, "/api/v1/notes", bobToken, baseNote);
 
     // give the loop a chance to deliver any (unwanted) message
     await new Promise((r) => setTimeout(r, 100));
@@ -275,7 +275,7 @@ describe("application WebSocket /api/ws", () => {
     const token = await register(rig, "alice");
     const { note } = await authedPost<{ note: Note }>(
       rig,
-      "/api/notes",
+      "/api/v1/notes",
       token,
       baseNote,
     );
@@ -315,7 +315,7 @@ describe("application WebSocket /api/ws", () => {
     const token = await register(rig, "alice");
     const { note } = await authedPost<{ note: Note }>(
       rig,
-      "/api/notes",
+      "/api/v1/notes",
       token,
       baseNote,
     );
@@ -357,7 +357,7 @@ describe("application WebSocket /api/ws", () => {
     const otherClosed = new Promise<number>((resolve) => {
       other.ws.once("close", (code) => resolve(code));
     });
-    const res = await fetch(`${rig.baseUrl}/api/auth/password`, {
+    const res = await fetch(`${rig.baseUrl}/api/v1/auth/password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -378,7 +378,7 @@ describe("application WebSocket /api/ws", () => {
 
   it("closes only the sockets a revoked API token opened", async () => {
     const session = await register(rig, "alice");
-    const created = await fetch(`${rig.baseUrl}/api/tokens`, {
+    const created = await fetch(`${rig.baseUrl}/api/v1/tokens`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -398,7 +398,7 @@ describe("application WebSocket /api/ws", () => {
     const scriptClosed = new Promise<number>((resolve) => {
       script.ws.once("close", (code) => resolve(code));
     });
-    const res = await fetch(`${rig.baseUrl}/api/tokens/${token.id}`, {
+    const res = await fetch(`${rig.baseUrl}/api/v1/tokens/${token.id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${session}` },
     });
@@ -412,7 +412,7 @@ describe("application WebSocket /api/ws", () => {
   async function registerWithId(
     username: string,
   ): Promise<{ token: string; userId: string }> {
-    const res = await fetch(`${rig.baseUrl}/api/auth/register`, {
+    const res = await fetch(`${rig.baseUrl}/api/v1/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password: "password-1234" }),
@@ -434,17 +434,17 @@ describe("application WebSocket /api/ws", () => {
     const bob = await registerWithId("bob");
     const { note } = await authedPost<{ note: Note }>(
       rig,
-      "/api/notes",
+      "/api/v1/notes",
       owner.token,
       baseNote,
     );
-    await authedPost(rig, `/api/notes/${note.id}/shares`, owner.token, {
+    await authedPost(rig, `/api/v1/notes/${note.id}/shares`, owner.token, {
       userId: alice.userId,
       role: "view",
     });
     await authedPost(
       rig,
-      `/api/invitations/${note.id}/accept`,
+      `/api/v1/invitations/${note.id}/accept`,
       alice.token,
       {},
     );
@@ -499,11 +499,11 @@ describe("application WebSocket /api/ws", () => {
     const alice = await registerWithId("alice");
     const { note } = await authedPost<{ note: Note }>(
       rig,
-      "/api/notes",
+      "/api/v1/notes",
       owner.token,
       baseNote,
     );
-    await authedPost(rig, `/api/notes/${note.id}/shares`, owner.token, {
+    await authedPost(rig, `/api/v1/notes/${note.id}/shares`, owner.token, {
       userId: alice.userId,
       role: "edit",
     });
@@ -537,7 +537,7 @@ describe("application WebSocket /api/ws", () => {
 
     await authedPost(
       rig,
-      `/api/invitations/${note.id}/accept`,
+      `/api/v1/invitations/${note.id}/accept`,
       alice.token,
       {},
     );
@@ -561,7 +561,7 @@ describe("application WebSocket /api/ws", () => {
     const { owner, alice, note, ownerSock } = await noteViewedByOwner();
     await authedPost(
       rig,
-      `/api/invitations/${note.id}/accept`,
+      `/api/v1/invitations/${note.id}/accept`,
       alice.token,
       {},
     );
@@ -577,7 +577,7 @@ describe("application WebSocket /api/ws", () => {
   });
 });
 
-describe("what /api/ws holds an open socket to", () => {
+describe("what /api/v1/ws holds an open socket to", () => {
   let rig: Rig;
 
   beforeEach(async () => {
@@ -625,7 +625,7 @@ describe("what /api/ws holds an open socket to", () => {
   });
 });
 
-describe("heartbeat on /api/ws", () => {
+describe("heartbeat on /api/v1/ws", () => {
   let rig: Rig;
 
   beforeEach(async () => {

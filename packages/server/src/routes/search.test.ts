@@ -21,7 +21,7 @@ describe("search route", () => {
 
   it("does not search for the app, which holds the only key", async () => {
     const { token } = await registerTestUser(rig, "alice");
-    const res = await rig.request("/api/search?q=milk", {
+    const res = await rig.request("/api/v1/search?q=milk", {
       headers: authHeaders(token),
     });
     expect(res.status).toBe(403);
@@ -35,7 +35,7 @@ describe("search route", () => {
         headers: authHeaders(as),
         ...(body !== undefined && { body: JSON.stringify(body) }),
       });
-    const minted = await call(token, "POST", "/api/tokens", {
+    const minted = await call(token, "POST", "/api/v1/tokens", {
       password: "test-pass-12",
       name: "script",
     });
@@ -44,7 +44,7 @@ describe("search route", () => {
     );
     const titles = ["Milk", "Bread", "Oat milk", "MILK again", "Eggs"];
     for (const title of titles) {
-      const made = await call(script, "POST", "/api/notes", {
+      const made = await call(script, "POST", "/api/v1/notes", {
         title,
         content: "",
         color: "default",
@@ -66,7 +66,11 @@ describe("search route", () => {
     let pages = 0;
     do {
       const at: string = cursor === null ? "" : `&cursor=${cursor}`;
-      const res = await call(script, "GET", `/api/search?q=milk&limit=2${at}`);
+      const res = await call(
+        script,
+        "GET",
+        `/api/v1/search?q=milk&limit=2${at}`,
+      );
       expect(res.status).toBe(200);
       const page = (await res.json()) as NotesResponse;
       expect(page.notes.length).toBeLessThanOrEqual(2);
@@ -80,6 +84,6 @@ describe("search route", () => {
   });
 
   it("wants a signed-in user", async () => {
-    expect((await rig.request("/api/search?q=milk")).status).toBe(401);
+    expect((await rig.request("/api/v1/search?q=milk")).status).toBe(401);
   });
 });

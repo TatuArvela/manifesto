@@ -15,7 +15,7 @@ import { noContent, notFound, type Operation, ok } from "./operation.ts";
 export const NOTE_OPERATIONS: Operation[] = [
   {
     method: "get",
-    path: "/api/notes",
+    path: "/api/v1/notes",
     tag: "Notes",
     summary: "One page of the user's notes, newest first, without images",
     auth: "any",
@@ -26,7 +26,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/notes",
+    path: "/api/v1/notes",
     tag: "Notes",
     summary: "Create a note",
     auth: "any",
@@ -37,7 +37,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/notes/import",
+    path: "/api/v1/notes/import",
     tag: "Notes",
     summary:
       "Import up to 100 notes, keeping their ids; the same one twice updates it",
@@ -49,7 +49,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "delete",
-    path: "/api/notes",
+    path: "/api/v1/notes",
     tag: "Notes",
     summary: "Delete every note the user owns (shared ones stay)",
     auth: "any",
@@ -59,7 +59,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/notes/:id",
+    path: "/api/v1/notes/:id",
     tag: "Notes",
     summary: "One note, with its images",
     auth: "any",
@@ -69,7 +69,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "put",
-    path: "/api/notes/:id",
+    path: "/api/v1/notes/:id",
     tag: "Notes",
     summary: "Change a note; send If-Match for a compare-and-set",
     auth: "any",
@@ -86,7 +86,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "put",
-    path: "/api/notes/:id/key",
+    path: "/api/v1/notes/:id/key",
     tag: "Notes",
     summary:
       "Put the note under a new key, after someone who held the old one stopped holding the note (owner); If-Match is required",
@@ -103,7 +103,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "delete",
-    path: "/api/notes/:id",
+    path: "/api/v1/notes/:id",
     tag: "Notes",
     summary: "Delete a note (a recipient leaves it instead)",
     auth: "any",
@@ -113,7 +113,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/notes/:id/versions",
+    path: "/api/v1/notes/:id/versions",
     tag: "Notes",
     summary: "The note's version history, newest first",
     auth: "any",
@@ -123,7 +123,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/notes/:id/versions",
+    path: "/api/v1/notes/:id/versions",
     tag: "Notes",
     summary: "Add a version (owner and editors)",
     auth: "any",
@@ -134,7 +134,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/calendar/:file",
+    path: "/api/v1/calendar/:file",
     tag: "Notes",
     summary:
       "The reminders as an iCalendar feed, at <calendar token>.ics; no header, the token is the address",
@@ -145,7 +145,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/sync",
+    path: "/api/v1/sync",
     tag: "Notes",
     summary:
       "The notes changed since a checkpoint, and on the last page every visible id and the next checkpoint",
@@ -161,7 +161,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/search",
+    path: "/api/v1/search",
     tag: "Notes",
     summary: "Notes whose title or content contains q, newest first",
     auth: "any",
@@ -172,7 +172,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/attachments",
+    path: "/api/v1/attachments",
     tag: "Notes",
     summary:
       "Upload an image sealed in the browser (its address in X-Attachment-Address); answers the attachment: reference",
@@ -186,7 +186,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/attachments/claim",
+    path: "/api/v1/attachments/claim",
     tag: "Notes",
     summary:
       "Make images the owner's of the note about to name them; answers the references to name instead",
@@ -202,7 +202,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/attachments/:id",
+    path: "/api/v1/attachments/:id",
     tag: "Notes",
     summary: "The sealed bytes of an image a note refers to as attachment:<id>",
     auth: "any",
@@ -215,7 +215,7 @@ export const NOTE_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/link-preview",
+    path: "/api/v1/link-preview",
     tag: "Notes",
     summary: "What the server could read from a linked page",
     auth: "any",

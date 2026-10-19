@@ -65,7 +65,7 @@ brings Milkdown in, from anywhere the board reaches, puts the whole editor back 
 with nothing failing to say so.
 
 Adding, removing or changing the attributes of a node or mark (a preset, a plugin, anything in
-`extensions/`) means raising `EDITOR_SCHEMA_VERSION` in `@manifesto/shared`. `/api/yjs` refuses an
+`extensions/`) means raising `EDITOR_SCHEMA_VERSION` in `@manifesto/shared`. `/api/v1/yjs` refuses an
 editor older than the server's, and the refused client locks the text behind a reload notice; an
 old editor left in the room drops the nodes it does not know from every participant's copy. No
 test can see a schema change, so this one is on whoever makes it.

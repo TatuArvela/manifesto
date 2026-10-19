@@ -28,7 +28,7 @@ contacting a third party, which an open-mode build's Content Security Policy del
 ## Connected Mode
 
 The card appears plain at once, then the client asks the server for the page with
-`GET /api/link-preview` (see [API](../api.md#link-previews)) and fills the card in when the answer
+`GET /api/v1/link-preview` (see [API](../api.md#link-previews)) and fills the card in when the answer
 comes back, whether or not the editor is still open. A page that cannot be read leaves the card
 plain, silently: a link to a site that is down is not an error.
 

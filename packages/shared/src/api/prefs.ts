@@ -13,12 +13,12 @@ export const MAX_ACCOUNT_PREFS_BYTES = 16_384;
  * value is a third larger than what it seals, and carries a nonce and a tag. */
 export const MAX_SEALED_ACCOUNT_PREFS_BYTES = 32_768;
 
-/** `GET /api/auth/me/prefs`, and the answer to a `PATCH`. */
+/** `GET /api/v1/auth/me/prefs`, and the answer to a `PATCH`. */
 export interface AccountPrefsResponse {
   prefs: AccountPrefs;
 }
 
-/** `PATCH /api/auth/me/prefs`: the keys to set; `null` removes one. */
+/** `PATCH /api/v1/auth/me/prefs`: the keys to set; `null` removes one. */
 export interface AccountPrefsUpdate {
   prefs: AccountPrefs;
 }

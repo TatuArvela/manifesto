@@ -149,10 +149,10 @@ export function createApp(deps: AppDeps): AppHandle {
   app.use("*", corsMiddleware(cfg));
   if (deps.logRequests) app.use("*", requestLog());
   app.onError(onError);
-  app.use("/api/*", recordClientAddress(cfg.trustProxy));
+  app.use("/api/v1/*", recordClientAddress(cfg.trustProxy));
   // Requests by method and status class, and the time they took. The route
   // is not a label: note ids in paths would make one series per note.
-  app.use("/api/*", async (c, next) => {
+  app.use("/api/v1/*", async (c, next) => {
     const started = performance.now();
     await next();
     const labels = {
@@ -179,7 +179,7 @@ export function createApp(deps: AppDeps): AppHandle {
     app.get("/metrics", metricsHandler(cfg, VERSION, true));
   }
 
-  // Cap request bodies on /api/*. Without this, an authenticated user could
+  // Cap request bodies on /api/v1/*. Without this, an authenticated user could
   // POST a multi-MB JSON body and exhaust server memory.
   //
   // Two caps. Image uploads are the one route that carries bulk, a raw file
@@ -197,16 +197,30 @@ export function createApp(deps: AppDeps): AppHandle {
     maxSize: MAX_IMAGE_SOURCE_BYTES + 64 * 1024,
     onError: onBodyTooLarge,
   });
-  app.use("/api/*", (c, next) =>
-    c.req.path === "/api/attachments"
+  app.use("/api/v1/*", (c, next) =>
+    c.req.path === "/api/v1/attachments"
       ? attachmentBodyLimit(c, next)
       : defaultBodyLimit(c, next),
   );
 
-  app.get("/api/health", (c) => c.json({ ok: true, version: VERSION }));
-  app.route("/api/capabilities", createCapabilitiesRoutes(cfg));
+  // Addresses kept outside this server from before the API was versioned:
+  // a calendar app's feed and an assistant's MCP server. Each is sent on to
+  // its place under /api/v1, with its method and body (308), so neither has
+  // to be set up again. Nothing else under the old /api/ answers.
+  for (const legacy of ["/api/calendar/*", "/api/mcp"]) {
+    app.all(legacy, (c) => {
+      const { pathname, search } = new URL(c.req.url);
+      return c.redirect(
+        `/api/v1${pathname.slice("/api".length)}${search}`,
+        308,
+      );
+    });
+  }
+
+  app.get("/api/v1/health", (c) => c.json({ ok: true, version: VERSION }));
+  app.route("/api/v1/capabilities", createCapabilitiesRoutes(cfg));
   let openApi: ReturnType<typeof buildOpenApiDocument> | undefined;
-  app.get("/api/openapi.json", (c) => {
+  app.get("/api/v1/openapi.json", (c) => {
     openApi ??= buildOpenApiDocument(VERSION);
     return c.json(openApi);
   });
@@ -214,17 +228,17 @@ export function createApp(deps: AppDeps): AppHandle {
   // Before the protection below, so it sees the 401 that refuses a request
   // without a token, and says where an assistant can sign in.
   if (offersMcpSignIn(cfg)) {
-    app.use("/api/mcp", resourceMetadataChallenge(cfg.trustProxy));
+    app.use("/api/v1/mcp", resourceMetadataChallenge(cfg.trustProxy));
   }
   // Who may call each route and how often, as `OPERATIONS` declares it, and
   // a 404 for the routes of a feature that is off (`features.ts`). Routers
   // mount none of this themselves.
-  app.use("/api/*", createProtection({ authProvider, storage, cfg }));
+  app.use("/api/v1/*", createProtection({ authProvider, storage, cfg }));
 
   // Provider-agnostic auth routes (/methods, /me) must be registered BEFORE
   // the provider's own router so Hono's longest-prefix matching reaches them.
   app.route(
-    "/api/auth",
+    "/api/v1/auth",
     createAuthSharedRoutes({
       cfg,
       storage,
@@ -235,7 +249,7 @@ export function createApp(deps: AppDeps): AppHandle {
     }),
   );
   app.route(
-    "/api/auth",
+    "/api/v1/auth",
     authProvider.router({
       revocations,
       mailer,
@@ -250,7 +264,7 @@ export function createApp(deps: AppDeps): AppHandle {
     }),
   );
   app.route(
-    "/api/notes",
+    "/api/v1/notes",
     createNotesRoutes({
       storage,
       noteEvents,
@@ -261,17 +275,17 @@ export function createApp(deps: AppDeps): AppHandle {
     }),
   );
   app.route(
-    "/api/invitations",
+    "/api/v1/invitations",
     createInvitationRoutes({
       storage,
       noteEvents,
       accessChanges,
     }),
   );
-  app.route("/api/users", createUsersRoutes({ cfg, storage }));
+  app.route("/api/v1/users", createUsersRoutes({ cfg, storage }));
 
   app.route(
-    "/api/tokens",
+    "/api/v1/tokens",
     createTokenRoutes({
       storage,
       revocations,
@@ -282,7 +296,7 @@ export function createApp(deps: AppDeps): AppHandle {
   if (offersMcpSignIn(cfg)) {
     app.route("/.well-known", createWellKnownRoutes(cfg));
     app.route(
-      "/api/oauth",
+      "/api/v1/oauth",
       createOAuthRoutes({
         storage,
         loginAttempts,
@@ -298,7 +312,7 @@ export function createApp(deps: AppDeps): AppHandle {
   // every check a request from the network does. With `MCP=off` the
   // protection answers 404 before any of it.
   app.route(
-    "/api/mcp",
+    "/api/v1/mcp",
     createMcpRoutes({
       corsOrigins: cfg.corsOrigins,
       serverVersion: VERSION,
@@ -309,31 +323,31 @@ export function createApp(deps: AppDeps): AppHandle {
   // the protection would answer them with the same 404 if they were.
   if (webhooks) {
     app.route(
-      "/api/webhooks",
+      "/api/v1/webhooks",
       createWebhookRoutes({ storage, loginAttempts, dispatcher: webhooks }),
     );
   }
   app.route(
-    "/api/attachments",
+    "/api/v1/attachments",
     createAttachmentRoutes({
       storage,
     }),
   );
-  app.route("/api/search", createSearchRoutes({ storage }));
-  app.route("/api/public", createPublicRoutes({ storage }));
-  app.route("/api/calendar", createCalendarRoutes({ storage, cfg }));
-  app.route("/api/push", createPushRoutes({ storage, sender: pushSender }));
-  app.route("/api/teams", createTeamRoutes({ storage }));
-  app.route("/api/sync", createSyncRoutes({ storage }));
+  app.route("/api/v1/search", createSearchRoutes({ storage }));
+  app.route("/api/v1/public", createPublicRoutes({ storage }));
+  app.route("/api/v1/calendar", createCalendarRoutes({ storage, cfg }));
+  app.route("/api/v1/push", createPushRoutes({ storage, sender: pushSender }));
+  app.route("/api/v1/teams", createTeamRoutes({ storage }));
+  app.route("/api/v1/sync", createSyncRoutes({ storage }));
   app.route(
-    "/api/link-preview",
+    "/api/v1/link-preview",
     createLinkPreviewRoutes({
       fetchPreview: deps.fetchLinkPreview ?? createLinkPreviewFetcher(),
     }),
   );
 
   app.route(
-    "/api/admin",
+    "/api/v1/admin",
     createAdminRoutes({
       cfg,
       teamShares,

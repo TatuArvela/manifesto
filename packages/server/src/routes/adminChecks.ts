@@ -38,7 +38,7 @@ export function proxyFinding(forwardedFor: string | undefined): ProxyFinding {
 }
 
 /**
- * `/api/admin/checks`: the facts behind the overview's setup checks, the ones
+ * `/api/v1/admin/checks`: the facts behind the overview's setup checks, the ones
  * that go wrong without anything saying so. Registered on the admin router.
  * The request itself is part of the answer: the proxy in front of the server
  * is judged by what it did to this one.

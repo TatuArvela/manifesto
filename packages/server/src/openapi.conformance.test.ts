@@ -148,7 +148,9 @@ describe("the OpenAPI document against the server's answers", () => {
     // A public link's page has no account and opens what it is sent with a
     // key from its own address, so its answers are held to the document as
     // the server gives them.
-    const send = path.startsWith("/api/public/") ? rig.rawRequest : rig.request;
+    const send = path.startsWith("/api/v1/public/")
+      ? rig.rawRequest
+      : rig.request;
     const res = await send(path, {
       method: method.toUpperCase(),
       headers: who
@@ -196,32 +198,38 @@ describe("the OpenAPI document against the server's answers", () => {
   it("gives every operation a name of its own", () => {
     const ids = OPERATIONS.map(operationId);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(operationId({ method: "get", path: "/api/notes/:id" })).toBe(
+    expect(operationId({ method: "get", path: "/api/v1/notes/:id" })).toBe(
       "getNotesById",
     );
     expect(
       operationId({
         method: "put",
-        path: "/api/notes/:id/team-shares/:teamId",
+        path: "/api/v1/notes/:id/team-shares/:teamId",
       }),
     ).toBe("putNotesByIdTeamSharesByTeamId");
-    expect(doc.paths["/api/notes"]?.get?.operationId).toBe("getNotes");
+    expect(doc.paths["/api/v1/notes"]?.get?.operationId).toBe("getNotes");
     for (const id of ids) expect(id).toMatch(/^[a-z][A-Za-z0-9]+$/);
   });
 
   it("describes the server, the account and its preferences", async () => {
-    await conforms(null, "get", "/api/health", "/api/health", 200);
-    await conforms(null, "get", "/api/capabilities", "/api/capabilities", 200);
-    await conforms(owner, "get", "/api/auth/me", "/api/auth/me", 200);
-    await conforms(owner, "put", "/api/auth/me", "/api/auth/me", 200, {
+    await conforms(null, "get", "/api/v1/health", "/api/v1/health", 200);
+    await conforms(
+      null,
+      "get",
+      "/api/v1/capabilities",
+      "/api/v1/capabilities",
+      200,
+    );
+    await conforms(owner, "get", "/api/v1/auth/me", "/api/v1/auth/me", 200);
+    await conforms(owner, "put", "/api/v1/auth/me", "/api/v1/auth/me", 200, {
       email: "olivia@example.com",
       password: "test-pass-12",
     });
     await conforms(
       owner,
       "get",
-      "/api/auth/me/prefs",
-      "/api/auth/me/prefs",
+      "/api/v1/auth/me/prefs",
+      "/api/v1/auth/me/prefs",
       200,
     );
   });
@@ -230,61 +238,92 @@ describe("the OpenAPI document against the server's answers", () => {
     const created = await conforms<{ note: { id: string } }>(
       owner,
       "post",
-      "/api/notes",
-      "/api/notes",
+      "/api/v1/notes",
+      "/api/v1/notes",
       201,
       baseNote,
     );
     const id = created.note.id;
-    await conforms(owner, "get", "/api/notes/{id}", `/api/notes/${id}`, 200);
-    await conforms(owner, "put", "/api/notes/{id}", `/api/notes/${id}`, 200, {
-      pinned: true,
-    });
-    await conforms(owner, "get", "/api/notes", "/api/notes?limit=10", 200);
-    await conforms(owner, "get", "/api/sync", "/api/sync", 200);
-    await conforms(owner, "get", "/api/notes/{id}", "/api/notes/nope", 404);
+    await conforms(
+      owner,
+      "get",
+      "/api/v1/notes/{id}",
+      `/api/v1/notes/${id}`,
+      200,
+    );
+    await conforms(
+      owner,
+      "put",
+      "/api/v1/notes/{id}",
+      `/api/v1/notes/${id}`,
+      200,
+      {
+        pinned: true,
+      },
+    );
+    await conforms(
+      owner,
+      "get",
+      "/api/v1/notes",
+      "/api/v1/notes?limit=10",
+      200,
+    );
+    await conforms(owner, "get", "/api/v1/sync", "/api/v1/sync", 200);
+    await conforms(
+      owner,
+      "get",
+      "/api/v1/notes/{id}",
+      "/api/v1/notes/nope",
+      404,
+    );
     await conforms(
       owner,
       "post",
-      "/api/notes/import",
-      "/api/notes/import",
+      "/api/v1/notes/import",
+      "/api/v1/notes/import",
       200,
       { notes: [{ ...baseNote, id, createdAt: "2026-01-01T00:00:00.000Z" }] },
     );
     await conforms(
       owner,
       "get",
-      "/api/notes/{id}/versions",
-      `/api/notes/${id}/versions`,
+      "/api/v1/notes/{id}/versions",
+      `/api/v1/notes/${id}/versions`,
       200,
     );
   });
 
   it("describes sharing: the lookup, the invitation, and who is on the note", async () => {
-    const created = await call(owner, "post", "/api/notes", baseNote);
+    const created = await call(owner, "post", "/api/v1/notes", baseNote);
     const id = (created.body as { note: { id: string } }).note.id;
 
-    await conforms(owner, "get", "/api/users", "/api/users?q=alice", 200);
+    await conforms(owner, "get", "/api/v1/users", "/api/v1/users?q=alice", 200);
     type Shared = {
       note: { sharing: { role: string; members: object[] } };
     };
     const shared = await conforms<Shared>(
       owner,
       "post",
-      "/api/notes/{id}/shares",
-      `/api/notes/${id}/shares`,
+      "/api/v1/notes/{id}/shares",
+      `/api/v1/notes/${id}/shares`,
       201,
       { userId: other.userId, role: "edit" },
     );
-    await conforms(other, "get", "/api/invitations", "/api/invitations", 200);
+    await conforms(
+      other,
+      "get",
+      "/api/v1/invitations",
+      "/api/v1/invitations",
+      200,
+    );
     const accepted = await conforms<Shared>(
       other,
       "post",
-      "/api/invitations/{noteId}/accept",
-      `/api/invitations/${id}/accept`,
+      "/api/v1/invitations/{noteId}/accept",
+      `/api/v1/invitations/${id}/accept`,
       200,
     );
-    await conforms(owner, "get", "/api/teams", "/api/teams", 200);
+    await conforms(owner, "get", "/api/v1/teams", "/api/v1/teams", 200);
     expect(shared.note.sharing.members).toHaveLength(1);
     expect(accepted.note.sharing.role).toBe("edit");
   });
@@ -292,16 +331,16 @@ describe("the OpenAPI document against the server's answers", () => {
   it("describes a note shared with a team, and the team on it", async () => {
     // The first account registered is the admin, and a note goes only to a
     // team its owner is in.
-    const team = await call(owner, "post", "/api/admin/teams", {
+    const team = await call(owner, "post", "/api/v1/admin/teams", {
       name: "Travellers",
       memberIds: [owner.userId, other.userId],
     });
     expect(team.status).toBe(201);
     const teamId = (team.body as { team: { id: string } }).team.id;
-    const created = await call(owner, "post", "/api/notes", baseNote);
+    const created = await call(owner, "post", "/api/v1/notes", baseNote);
     const id = (created.body as { note: { id: string } }).note.id;
-    const shares = `/api/notes/${id}/team-shares`;
-    const template = "/api/notes/{id}/team-shares";
+    const shares = `/api/v1/notes/${id}/team-shares`;
+    const template = "/api/v1/notes/{id}/team-shares";
 
     await conforms(owner, "post", template, shares, 201, {
       teamId,
@@ -321,8 +360,8 @@ describe("the OpenAPI document against the server's answers", () => {
     const invited = await conforms<{ invitations: { team?: object }[] }>(
       other,
       "get",
-      "/api/invitations",
-      "/api/invitations",
+      "/api/v1/invitations",
+      "/api/v1/invitations",
       200,
     );
     expect(invited.invitations[0]?.team).toEqual({
@@ -331,7 +370,7 @@ describe("the OpenAPI document against the server's answers", () => {
     });
     const note = await conforms<{
       note: { sharing: { members: { team?: object }[] } };
-    }>(owner, "get", "/api/notes/{id}", `/api/notes/${id}`, 200);
+    }>(owner, "get", "/api/v1/notes/{id}", `/api/v1/notes/${id}`, 200);
     expect(note.note.sharing.members[0]?.team).toEqual({
       id: teamId,
       name: "Travellers",
@@ -339,15 +378,15 @@ describe("the OpenAPI document against the server's answers", () => {
   });
 
   it("describes the comments beside a shared note", async () => {
-    const created = await call(owner, "post", "/api/notes", baseNote);
+    const created = await call(owner, "post", "/api/v1/notes", baseNote);
     const id = (created.body as { note: { id: string } }).note.id;
-    await call(owner, "post", `/api/notes/${id}/shares`, {
+    await call(owner, "post", `/api/v1/notes/${id}/shares`, {
       userId: other.userId,
       role: "edit",
     });
-    await call(other, "post", `/api/invitations/${id}/accept`);
-    const comments = `/api/notes/${id}/comments`;
-    const template = "/api/notes/{id}/comments";
+    await call(other, "post", `/api/v1/invitations/${id}/accept`);
+    const comments = `/api/v1/notes/${id}/comments`;
+    const template = "/api/v1/notes/{id}/comments";
 
     const written = await conforms<{ comment: { id: string } }>(
       other,
@@ -366,10 +405,13 @@ describe("the OpenAPI document against the server's answers", () => {
       { body: "Aisle seats?" },
     );
     // Once its author has left the note, a comment stays without a name.
-    const left = await rig.request(`/api/notes/${id}/shares/${other.userId}`, {
-      method: "DELETE",
-      headers: authHeaders(owner.token),
-    });
+    const left = await rig.request(
+      `/api/v1/notes/${id}/shares/${other.userId}`,
+      {
+        method: "DELETE",
+        headers: authHeaders(owner.token),
+      },
+    );
     expect(left.status).toBe(204);
     const listed = await conforms<{ comments: { author: object | null }[] }>(
       owner,
@@ -382,7 +424,7 @@ describe("the OpenAPI document against the server's answers", () => {
   });
 
   it("describes an upload and a link preview", async () => {
-    const res = await rig.request("/api/attachments", {
+    const res = await rig.request("/api/v1/attachments", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${owner.token}`,
@@ -391,7 +433,7 @@ describe("the OpenAPI document against the server's answers", () => {
       body: PNG,
     });
     expect(res.status).toBe(201);
-    const reference = referenceFor("post", "/api/attachments", 201);
+    const reference = referenceFor("post", "/api/v1/attachments", 201);
     const uploaded: unknown = await res.json();
     expect(parserFor(reference).safeParse(uploaded).success).toBe(true);
     expect(undeclared({ $ref: reference }, uploaded)).toEqual([]);
@@ -399,15 +441,15 @@ describe("the OpenAPI document against the server's answers", () => {
     const preview = await conforms<{ preview: LinkPreview | null }>(
       owner,
       "get",
-      "/api/link-preview",
-      `/api/link-preview?url=${encodeURIComponent(PREVIEW.url)}`,
+      "/api/v1/link-preview",
+      `/api/v1/link-preview?url=${encodeURIComponent(PREVIEW.url)}`,
       200,
     );
     expect(preview.preview).toEqual(PREVIEW);
   });
 
   it("notices an answer that says more than the document does", () => {
-    const reference = referenceFor("get", "/api/invitations", 200);
+    const reference = referenceFor("get", "/api/v1/invitations", 200);
     const invitation = {
       noteId: "n",
       owner: { id: "u", username: "o", displayName: "O", avatarColor: "red" },
@@ -417,43 +459,43 @@ describe("the OpenAPI document against the server's answers", () => {
       undeclared({ $ref: reference }, { invitations: [invitation], more: 1 }),
     ).toEqual([".invitations[0].nickname", ".more"]);
     // What is described as holding anything does.
-    const prefs = referenceFor("get", "/api/auth/me/prefs", 200);
+    const prefs = referenceFor("get", "/api/v1/auth/me/prefs", 200);
     expect(undeclared({ $ref: prefs }, { prefs: { theme: "dark" } })).toEqual(
       [],
     );
   });
 
   it("describes public links and the note they show", async () => {
-    const created = await call(owner, "post", "/api/notes", baseNote);
+    const created = await call(owner, "post", "/api/v1/notes", baseNote);
     const id = (created.body as { note: { id: string } }).note.id;
     const made = await conforms<{ link: { token: string } }>(
       owner,
       "post",
-      "/api/notes/{id}/links",
-      `/api/notes/${id}/links`,
+      "/api/v1/notes/{id}/links",
+      `/api/v1/notes/${id}/links`,
       201,
       { mode: "live", password: "test-pass-12" },
     );
     await conforms(
       owner,
       "get",
-      "/api/notes/{id}/links",
-      `/api/notes/${id}/links`,
+      "/api/v1/notes/{id}/links",
+      `/api/v1/notes/${id}/links`,
       200,
     );
     const { token } = made.link;
     await conforms(
       null,
       "get",
-      "/api/public/{token}",
-      `/api/public/${token}`,
+      "/api/v1/public/{token}",
+      `/api/v1/public/${token}`,
       401,
     );
     await conforms(
       null,
       "post",
-      "/api/public/{token}/unlock",
-      `/api/public/${token}/unlock`,
+      "/api/v1/public/{token}/unlock",
+      `/api/v1/public/${token}/unlock`,
       200,
       { password: "test-pass-12" },
     );
@@ -461,16 +503,16 @@ describe("the OpenAPI document against the server's answers", () => {
     const open = await conforms<{ link: { token: string } }>(
       owner,
       "post",
-      "/api/notes/{id}/links",
-      `/api/notes/${id}/links`,
+      "/api/v1/notes/{id}/links",
+      `/api/v1/notes/${id}/links`,
       201,
       { mode: "snapshot" },
     );
     await conforms(
       null,
       "get",
-      "/api/public/{token}",
-      `/api/public/${open.link.token}`,
+      "/api/v1/public/{token}",
+      `/api/v1/public/${open.link.token}`,
       200,
     );
   });

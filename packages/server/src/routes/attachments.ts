@@ -35,7 +35,7 @@ interface AttachmentDeps {
 const SEALED_TYPE = "application/octet-stream";
 
 /**
- * `/api/attachments`: the images notes refer to as `attachment:<id>`, each
+ * `/api/v1/attachments`: the images notes refer to as `attachment:<id>`, each
  * sealed in the browser before it arrives. The server stores bytes it cannot
  * read, and no longer says what kind of image one is: the note that names it
  * does, sealed, and the client that opens it checks.

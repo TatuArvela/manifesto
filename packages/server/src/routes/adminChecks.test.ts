@@ -54,7 +54,7 @@ describe("admin setup checks", () => {
     token: string,
     forwardedFor?: string,
   ): Promise<AdminChecksResponse> {
-    const res = await target.request("/api/admin/checks", {
+    const res = await target.request("/api/v1/admin/checks", {
       headers: {
         ...authHeaders(token),
         ...(forwardedFor !== undefined && { "X-Forwarded-For": forwardedFor }),
@@ -69,7 +69,7 @@ describe("admin setup checks", () => {
     server: { request: TestRig["request"] },
     email: string | null,
   ): Promise<string> {
-    const res = await server.request("/api/auth/register", {
+    const res = await server.request("/api/v1/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -104,7 +104,7 @@ describe("admin setup checks", () => {
     rig = await bootTestAppWith({});
     await registerTestUser(rig, "admin");
     const bob = await registerTestUser(rig, "bob");
-    const res = await rig.request("/api/admin/checks", {
+    const res = await rig.request("/api/v1/admin/checks", {
       headers: authHeaders(bob.token),
     });
     expect(res.status).toBe(403);
@@ -157,7 +157,7 @@ describe("admin setup checks", () => {
       lastFailedAt: null,
     });
 
-    const res = await server.request("/api/admin/checks/mail", {
+    const res = await server.request("/api/v1/admin/checks/mail", {
       method: "POST",
       headers: authHeaders(server.token),
     });
@@ -176,7 +176,7 @@ describe("admin setup checks", () => {
 
   it("remembers a message that could not go", async () => {
     const server = await withMail({ send: async () => false });
-    const res = await server.request("/api/admin/checks/mail", {
+    const res = await server.request("/api/v1/admin/checks/mail", {
       method: "POST",
       headers: authHeaders(server.token),
     });
@@ -191,14 +191,14 @@ describe("admin setup checks", () => {
   it("refuses a test message without mail, or to an account with no address", async () => {
     rig = await bootTestAppWith({});
     const admin = await registerTestUser(rig, "admin");
-    const noMail = await rig.request("/api/admin/checks/mail", {
+    const noMail = await rig.request("/api/v1/admin/checks/mail", {
       method: "POST",
       headers: authHeaders(admin.token),
     });
     expect(noMail.status).toBe(409);
 
     const server = await withMail(createMemoryMailer(), null);
-    const res = await server.request("/api/admin/checks/mail", {
+    const res = await server.request("/api/v1/admin/checks/mail", {
       method: "POST",
       headers: authHeaders(server.token),
     });

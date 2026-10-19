@@ -13,7 +13,7 @@ import {
 
 /**
  * The consent page an AI assistant sends the browser to when it signs in to
- * `/api/mcp` (OAuth): what it asked for, read from the address, and the two
+ * `/api/v1/mcp` (OAuth): what it asked for, read from the address, and the two
  * answers the user can give. The server checks the client and where it may
  * be sent back; this page only ever navigates to an address it confirmed.
  */

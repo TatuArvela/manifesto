@@ -48,7 +48,7 @@ const opensByLink = (user: User) =>
   user.passwordHash !== null && !user.mustChangePassword;
 
 /**
- * `/api/auth/sign-in-link`: signing in to a local account from a link sent to
+ * `/api/v1/auth/sign-in-link`: signing in to a local account from a link sent to
  * its address, with no password typed. Only on a server with `SMTP_URL`, and
  * switched by `MAGIC_LINKS`.
  *

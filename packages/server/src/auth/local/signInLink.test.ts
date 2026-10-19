@@ -48,7 +48,7 @@ describe("sign-in by a mailed link", () => {
       mailer,
     });
     request = async (path, init) => app.request(path, init);
-    const res = await post("/api/auth/register", {
+    const res = await post("/api/v1/auth/register", {
       username: "alice",
       password: PASSWORD,
       email: "alice@example.com",
@@ -59,7 +59,7 @@ describe("sign-in by a mailed link", () => {
 
   /** Asks for a link and reads its token out of the mail. */
   async function mailedToken(): Promise<string> {
-    const asked = await post("/api/auth/sign-in-link", {
+    const asked = await post("/api/v1/auth/sign-in-link", {
       email: "alice@example.com",
     });
     expect(asked.status).toBe(204);
@@ -75,7 +75,7 @@ describe("sign-in by a mailed link", () => {
   }
 
   const confirm = (token: string, extra: object = {}) =>
-    post("/api/auth/sign-in-link/confirm", { token, ...extra });
+    post("/api/v1/auth/sign-in-link/confirm", { token, ...extra });
 
   beforeEach(async () => {
     await boot();
@@ -86,7 +86,7 @@ describe("sign-in by a mailed link", () => {
   });
 
   it("mails a link that signs in once, and leaves other sessions alone", async () => {
-    const before = await post("/api/auth/login", {
+    const before = await post("/api/v1/auth/login", {
       username: "alice",
       password: PASSWORD,
     });
@@ -101,12 +101,12 @@ describe("sign-in by a mailed link", () => {
     const body = (await first.json()) as AuthSuccessResponse;
     expect(body.user.username).toBe("alice");
     expect(
-      (await request("/api/auth/me", { headers: authHeaders(body.token) }))
+      (await request("/api/v1/auth/me", { headers: authHeaders(body.token) }))
         .status,
     ).toBe(200);
     expect((await confirm(token)).status).toBe(410);
     expect(
-      (await request("/api/auth/me", { headers: authHeaders(oldSession) }))
+      (await request("/api/v1/auth/me", { headers: authHeaders(oldSession) }))
         .status,
     ).toBe(200);
 
@@ -122,7 +122,7 @@ describe("sign-in by a mailed link", () => {
   });
 
   it("answers the same for an address nobody has, and sends nothing", async () => {
-    const res = await post("/api/auth/sign-in-link", {
+    const res = await post("/api/v1/auth/sign-in-link", {
       email: "nobody@example.com",
     });
     expect(res.status).toBe(204);
@@ -132,7 +132,7 @@ describe("sign-in by a mailed link", () => {
 
   it("spaces links out, so an inbox cannot be flooded", async () => {
     await mailedToken();
-    await post("/api/auth/sign-in-link", { email: "alice@example.com" });
+    await post("/api/v1/auth/sign-in-link", { email: "alice@example.com" });
     await settle();
     expect(mailer.sent).toHaveLength(1);
   });
@@ -140,7 +140,7 @@ describe("sign-in by a mailed link", () => {
   it("keeps no link, and no wait, for a mail that could not be sent", async () => {
     const send = mailer.send;
     mailer.send = async () => false;
-    await post("/api/auth/sign-in-link", { email: "alice@example.com" });
+    await post("/api/v1/auth/sign-in-link", { email: "alice@example.com" });
     await settle();
     expect(await storage.signInLinks.latestFor((await alice()).id)).toBeNull();
     const entries = await storage.audit.list({ limit: 20 });
@@ -154,7 +154,7 @@ describe("sign-in by a mailed link", () => {
   });
 
   it("writes in the language asked for", async () => {
-    await post("/api/auth/sign-in-link", {
+    await post("/api/v1/auth/sign-in-link", {
       email: "alice@example.com",
       locale: "fi",
     });
@@ -178,14 +178,14 @@ describe("sign-in by a mailed link", () => {
 
     mailer.sent.length = 0;
     await storage.signInLinks.deleteExpired("2999-01-01T00:00:00.000Z");
-    await post("/api/auth/sign-in-link", { email: "alice@example.com" });
+    await post("/api/v1/auth/sign-in-link", { email: "alice@example.com" });
     await settle();
     expect(mailer.sent).toEqual([]);
   });
 
   /** Signs alice in with her password, for the routes that want a session. */
   async function sessionHeaders() {
-    const res = await post("/api/auth/login", {
+    const res = await post("/api/v1/auth/login", {
       username: "alice",
       password: PASSWORD,
     });
@@ -196,7 +196,7 @@ describe("sign-in by a mailed link", () => {
   async function enableTwoFactor() {
     const headers = await sessionHeaders();
     const setup = await post(
-      "/api/auth/two-factor/setup",
+      "/api/v1/auth/two-factor/setup",
       { password: PASSWORD },
       headers,
     );
@@ -204,8 +204,13 @@ describe("sign-in by a mailed link", () => {
     const codeAt = (offset: number) =>
       hotp(base32Decode(secret), totpStep(Date.now()) + offset);
     expect(
-      (await post("/api/auth/two-factor/enable", { code: codeAt(-1) }, headers))
-        .status,
+      (
+        await post(
+          "/api/v1/auth/two-factor/enable",
+          { code: codeAt(-1) },
+          headers,
+        )
+      ).status,
     ).toBe(204);
     return codeAt;
   }
@@ -215,7 +220,7 @@ describe("sign-in by a mailed link", () => {
   let addresses = 0;
   const signInFromElsewhere = (password: string) =>
     post(
-      "/api/auth/login",
+      "/api/v1/auth/login",
       { username: "alice", password },
       { "x-forwarded-for": `2001:db8:0:${(addresses++).toString(16)}::1` },
     );
@@ -231,7 +236,7 @@ describe("sign-in by a mailed link", () => {
   it("refuses a link sent before the password was changed", async () => {
     const token = await mailedToken();
     const changed = await post(
-      "/api/auth/password",
+      "/api/v1/auth/password",
       { currentPassword: PASSWORD, newPassword: "another-pass-34" },
       await sessionHeaders(),
     );
@@ -241,7 +246,7 @@ describe("sign-in by a mailed link", () => {
 
   it("refuses a link sent to an address the account has since left", async () => {
     const token = await mailedToken();
-    const moved = await request("/api/auth/me", {
+    const moved = await request("/api/v1/auth/me", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -307,12 +312,12 @@ describe("sign-in by a mailed link, switched off or without mail", () => {
       authProvider: createAuthProvider(config, storage),
       mailer: createMemoryMailer(),
     });
-    const res = await app.request("/api/auth/sign-in-link", {
+    const res = await app.request("/api/v1/auth/sign-in-link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: "a@b.c" }),
     });
-    const caps = await (await app.request("/api/capabilities")).json();
+    const caps = await (await app.request("/api/v1/capabilities")).json();
     await storage.close();
     return { status: res.status, offered: caps.auth.magicLink as boolean };
   };

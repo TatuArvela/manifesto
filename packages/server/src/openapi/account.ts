@@ -15,7 +15,7 @@ import { noContent, notFound, type Operation, ok } from "./operation.ts";
 export const ACCOUNT_OPERATIONS: Operation[] = [
   {
     method: "get",
-    path: "/api/tokens",
+    path: "/api/v1/tokens",
     tag: "Account",
     summary: "The user's personal API tokens, without secrets",
     auth: "session",
@@ -24,7 +24,7 @@ export const ACCOUNT_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/tokens",
+    path: "/api/v1/tokens",
     tag: "Account",
     summary: "Mint an API token; the secret is in this response only",
     auth: "session",
@@ -36,7 +36,7 @@ export const ACCOUNT_OPERATIONS: Operation[] = [
   },
   {
     method: "delete",
-    path: "/api/tokens/:id",
+    path: "/api/v1/tokens/:id",
     tag: "Account",
     summary: "Revoke an API token",
     auth: "session",
@@ -45,7 +45,7 @@ export const ACCOUNT_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/webhooks",
+    path: "/api/v1/webhooks",
     tag: "Account",
     summary: "The user's webhooks, without secrets",
     auth: "session",
@@ -55,7 +55,7 @@ export const ACCOUNT_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/webhooks",
+    path: "/api/v1/webhooks",
     tag: "Account",
     summary: "Add a webhook; the signing secret is in this response only",
     auth: "session",
@@ -68,7 +68,7 @@ export const ACCOUNT_OPERATIONS: Operation[] = [
   },
   {
     method: "put",
-    path: "/api/webhooks/:id",
+    path: "/api/v1/webhooks/:id",
     tag: "Account",
     summary: "Turn a webhook on or off",
     auth: "session",
@@ -79,7 +79,7 @@ export const ACCOUNT_OPERATIONS: Operation[] = [
   },
   {
     method: "delete",
-    path: "/api/webhooks/:id",
+    path: "/api/v1/webhooks/:id",
     tag: "Account",
     summary: "Remove a webhook",
     auth: "session",
@@ -89,7 +89,7 @@ export const ACCOUNT_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/webhooks/:id/test",
+    path: "/api/v1/webhooks/:id/test",
     tag: "Account",
     summary: "Send a ping and report what came back",
     auth: "session",
@@ -99,7 +99,7 @@ export const ACCOUNT_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/push/key",
+    path: "/api/v1/push/key",
     tag: "Account",
     summary: "The key a browser subscribes to push reminders with",
     auth: "session",
@@ -109,7 +109,7 @@ export const ACCOUNT_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/push/subscriptions",
+    path: "/api/v1/push/subscriptions",
     tag: "Account",
     summary: "Send this browser the account's reminders as push messages",
     auth: "session",
@@ -120,7 +120,7 @@ export const ACCOUNT_OPERATIONS: Operation[] = [
   },
   {
     method: "delete",
-    path: "/api/push/subscriptions",
+    path: "/api/v1/push/subscriptions",
     tag: "Account",
     summary: "Stop sending this browser push messages",
     auth: "session",

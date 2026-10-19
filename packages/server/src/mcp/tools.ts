@@ -12,7 +12,7 @@ import { z } from "zod";
 import { noteColorSchema } from "#/validation/noteSchemas.ts";
 
 /**
- * The tools `/api/mcp` offers an AI assistant. Each one is REST calls and
+ * The tools `/api/v1/mcp` offers an AI assistant. Each one is REST calls and
  * nothing else: `call` is handed a `RestCall` that runs the real route
  * in-process with the caller's token, so authentication, validation, sharing
  * roles, rate limits, the `If-Match` check, broadcasts and webhooks all apply
@@ -127,7 +127,7 @@ async function allNotes(rest: RestCall): Promise<Note[]> {
     const query = new URLSearchParams({ limit: String(MAX_NOTES_PAGE_SIZE) });
     if (cursor) query.set("cursor", cursor);
     const page: NotesResponse = expectOk(
-      await rest("GET", `/api/notes?${query}`),
+      await rest("GET", `/api/v1/notes?${query}`),
     );
     notes.push(...page.notes);
     cursor = page.nextCursor;
@@ -135,9 +135,9 @@ async function allNotes(rest: RestCall): Promise<Note[]> {
   return notes;
 }
 
-const notePath = (id: string) => `/api/notes/${encodeURIComponent(id)}`;
+const notePath = (id: string) => `/api/v1/notes/${encodeURIComponent(id)}`;
 
-// The alphabet `/api/notes/import` holds an id to. An id becomes a path
+// The alphabet `/api/v1/notes/import` holds an id to. An id becomes a path
 // segment, and `.` or `..` there would name another route, not a note.
 const idField = z
   .string()
@@ -239,7 +239,7 @@ export const MCP_TOOLS: readonly McpTool[] = [
       });
       if (cursor) params.set("cursor", cursor);
       const page: NotesResponse = expectOk(
-        await rest("GET", `/api/search?${params}`),
+        await rest("GET", `/api/v1/search?${params}`),
       );
       return ok({ notes: page.notes.map(brief), nextCursor: page.nextCursor });
     },
@@ -271,7 +271,7 @@ export const MCP_TOOLS: readonly McpTool[] = [
       const params = new URLSearchParams({ limit: String(limit ?? 20) });
       if (cursor) params.set("cursor", cursor);
       const page: NotesResponse = expectOk(
-        await rest("GET", `/api/notes?${params}`),
+        await rest("GET", `/api/v1/notes?${params}`),
       );
       const inView = VIEWS[view ?? "active"];
       const notes = page.notes.filter(
@@ -336,7 +336,7 @@ export const MCP_TOOLS: readonly McpTool[] = [
         POSITION_STEP,
       );
       const { note }: NoteResponse = expectOk(
-        await rest("POST", "/api/notes", {
+        await rest("POST", "/api/v1/notes", {
           body: {
             title: title ?? "",
             content,

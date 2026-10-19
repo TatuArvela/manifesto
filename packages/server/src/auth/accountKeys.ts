@@ -123,7 +123,7 @@ function recoveryOpened(user: User, stored: StoredAccountKeys) {
 }
 
 /**
- * `/api/auth/keys`: an account's keys, for its own sessions. Session-only
+ * `/api/v1/auth/keys`: an account's keys, for its own sessions. Session-only
  * throughout: a token is handed the keys it needs when it is made, never
  * these.
  */
@@ -400,7 +400,7 @@ async function spendRecoveryKey(
 }
 
 /**
- * `/api/auth/recovery`: signing in with the recovery key and the username,
+ * `/api/v1/auth/recovery`: signing in with the recovery key and the username,
  * for a local account that has lost everything else (the password, the
  * authenticator, the passkeys). The same two steps as above, with nobody
  * signed in: the second chooses a new password and answers with a session.

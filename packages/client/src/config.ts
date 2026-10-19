@@ -113,7 +113,7 @@ export function resolveServerUrl(fallback: string | undefined): string | null {
  * {@link resolveServerUrl} keeps whatever was configured, which may be
  * relative (`/`, or `/notes` behind a path-stripping proxy). That is the right
  * base for `fetch`, which resolves it against the page. It is not enough for
- * everything: `new WebSocket("/api/ws")` is not a thing, and the welcome
+ * everything: `new WebSocket("/api/v1/ws")` is not a thing, and the welcome
  * dialog has a host to name. Those callers take this instead.
  *
  * Null in open mode, and null when there is no document to resolve a relative

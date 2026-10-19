@@ -243,9 +243,9 @@ export function createPasskeySecondFactor(deps: {
 }
 
 /**
- * Passkeys for a local account: `/api/auth/passkeys` to list, add and remove
+ * Passkeys for a local account: `/api/v1/auth/passkeys` to list, add and remove
  * them (session only, the password asked again to add or remove one), and
- * `/api/auth/passkey/*` to sign in with one alone, with no name or password.
+ * `/api/v1/auth/passkey/*` to sign in with one alone, with no name or password.
  * A passkey made here is discoverable (a resident key), so the browser can
  * offer it at sign-in without being told whose account it is.
  */

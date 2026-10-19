@@ -37,7 +37,7 @@ lost factor, through `auth/accountKeys.ts`, on the same `loginAttempts` budget a
 `endUserSessions` takes `keepApiTokens` for the one caller that ends sessions without the
 password being in doubt, a new secret key.
 
-Personal API tokens (`mfp_`, `/api/tokens`) authenticate through the same `authenticateBySession`,
+Personal API tokens (`mfp_`, `/api/v1/tokens`) authenticate through the same `authenticateBySession`,
 and `AuthIdentity.via` says which credential it was. Anything that changes how an account is secured
 (tokens, password, email, the admin API) is declared `auth: "session"` (or `"admin"`), so a token
 handed to a script cannot take over its account. `endUserSessions` ends a user's tokens too;
@@ -46,9 +46,9 @@ A token reaches only what its scopes name (`API_TOKEN_SCOPES` in shared). Each o
 declared once, as `scope` in `OPERATIONS` (`openapi.ts`), and `createAuthMiddleware` looks it up from
 the route Hono matched (`c.req.matchedRoutes`), so a new token-reachable route needs a scope there or
 tokens are refused it; `openapi.test.ts` holds every `auth: "any"` operation to having one. The two
-sockets check theirs by hand (`/api/ws` `notes:read`, `/api/yjs` `notes:write`).
+sockets check theirs by hand (`/api/v1/ws` `notes:read`, `/api/v1/yjs` `notes:write`).
 An MCP token (`mfm_`, `kind: "mcp"`) is narrower again: `createAuthMiddleware` takes it only on
-`/api/mcp` (`mcpOnly`) and on the REST requests that endpoint's tools make in-process, whose `env`
+`/api/v1/mcp` (`mcpOnly`) and on the REST requests that endpoint's tools make in-process, whose `env`
 carries `MCP_FORWARDED`, a symbol no request from the network can set. It holds only note scopes,
 its tools are offered by the scope each names, and both sockets refuse it.
 
@@ -59,7 +59,7 @@ without one a sign-in within 15 minutes. A new action of that kind calls it too,
 uses `ConfirmPasswordField` and `ConfirmationError`.
 
 An account is deleted through `deleteAccount` (`sharing/deleteAccount.ts`), whoever asks: the admin's
-`DELETE /api/admin/users/:id` and the owner's own `DELETE /api/auth/me` (session only, with
+`DELETE /api/v1/admin/users/:id` and the owner's own `DELETE /api/v1/auth/me` (session only, with
 `requireConfirmation`). It reads the account's shares before the cascade takes them, so the people on
 the other end hear of it, and closes its sockets. A new table that holds something of an account's
 references `users(id) ON DELETE CASCADE` (or `SET NULL` where the row is someone else's, like a
@@ -72,7 +72,7 @@ catalogues, which `AuditLog.test.ts` checks. An entry's `detail` holds only what
 already knows about an account: a failed sign-in names the account it matched, never a name that
 matched none, since that is often a password typed into the wrong field. The request's address is keyed on `c.req`, never
 `c.req.raw`: `bodyLimit` replaces the raw request whenever there is a body. Each user reads their
-own lines on the Activity page of Settings (`/api/auth/me/activity`, built by the same `auditPage`
+own lines on the Activity page of Settings (`/api/v1/auth/me/activity`, built by the same `auditPage`
 as the admin's log), so an admin action that reaches into an account must be audited with that
 account as its target, or its owner never hears of it. An admin reads no account's notes: the
 server holds them sealed and has no export of them (spec: `docs/specification/features/privacy.md`).
@@ -96,7 +96,7 @@ on a press, never on mount (a mail scanner loads the page too), and `App` takes 
 address when someone is signed in already.
 
 Anything that checks a password from a session counts a wrong one in `loginAttempts`, the change of
-password (`/api/auth/password`) included: the address bucket alone refills for a stolen session that
+password (`/api/v1/auth/password`) included: the address bucket alone refills for a stolen session that
 moves. Under single sign-on an address is stored only when the provider sends `email_verified: true`
 (`pickEmail`), unless `OIDC_UNVERIFIED_EMAIL=accept`.
 

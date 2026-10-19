@@ -43,7 +43,7 @@ function absoluteExpiryOf(session: Session, days: number): string | null {
 }
 
 /**
- * A personal API token or MCP token (`POST /api/tokens`). It has no sliding
+ * A personal API token or MCP token (`POST /api/v1/tokens`). It has no sliding
  * expiry, only the one its owner chose, and records when it was last used so
  * a forgotten one can be found and revoked. Refused while its kind's feature
  * is off (`API_TOKENS`, `MCP`), which covers both sockets too, since they

@@ -11,7 +11,7 @@ export type UserLookupMode = "search" | "exact";
 /**
  * The features a host can turn off, each with an environment variable. The
  * server's registry (`features.ts`) says which variable and what each covers;
- * `GET /api/capabilities` reports them, so a client hides what is off.
+ * `GET /api/v1/capabilities` reports them, so a client hides what is off.
  */
 export const SERVER_FEATURES = [
   "sharing",
@@ -31,13 +31,13 @@ export const SERVER_FEATURES = [
 export type ServerFeature = (typeof SERVER_FEATURES)[number];
 
 /**
- * `GET /api/capabilities`: what this server is and offers, for a client to
+ * `GET /api/v1/capabilities`: what this server is and offers, for a client to
  * decide what to show before anyone signs in, and for a script to learn its
  * limits rather than find them. Public, and covered by the compatibility
  * policy, so fields are only ever added.
  */
 export interface CapabilitiesResponse {
-  /** The running version, as `/api/health` gives it. */
+  /** The running version, as `/api/v1/health` gives it. */
   version: string;
   auth: {
     /** Every way in: `local` (a password), `oidc` (single sign-on). */
@@ -61,7 +61,7 @@ export interface CapabilitiesResponse {
    * answers 404, as a route that does not exist would.
    */
   features: Record<ServerFeature, boolean> & {
-    /** Whether an assistant can connect to `/api/mcp` by signing in (OAuth). */
+    /** Whether an assistant can connect to `/api/v1/mcp` by signing in (OAuth). */
     mcpSignIn: boolean;
     /** How someone sharing a note finds the person to share it with. */
     userLookup: UserLookupMode;
@@ -74,7 +74,7 @@ export interface CapabilitiesResponse {
     imageBytes: number;
     imagesPerNote: number;
     linkPreviewsPerNote: number;
-    /** Notes in one page of `/api/notes` or `/api/search`. */
+    /** Notes in one page of `/api/v1/notes` or `/api/v1/search`. */
     notesPerPage: number;
     notesPerImport: number;
     /** Versions kept per note, and for how many days. */
@@ -86,7 +86,7 @@ export interface CapabilitiesResponse {
     publicLinkViews: number;
     accountPrefsBytes: number;
   };
-  /** The editor's schema version; `/api/yjs` refuses an editor older than
+  /** The editor's schema version; `/api/v1/yjs` refuses an editor older than
    * it (`EDITOR_SCHEMA_VERSION`). */
   editorSchemaVersion: number;
   /**

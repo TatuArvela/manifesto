@@ -16,14 +16,14 @@ paths:
 # Realtime and Conflict Resolution
 
 Server mode runs two sockets, and they carry different things. `realtime/appSocket.ts` holds
-`/api/ws` (note events and presence) and reconnects with exponential backoff to a 30s ceiling.
+`/api/v1/ws` (note events and presence) and reconnects with exponential backoff to a 30s ceiling.
 Every reconnect *after the first* catches up through `syncNotes`, because writes made on another
-device while this tab was offline arrive nowhere else. It asks `GET /api/sync` for what changed since
+device while this tab was offline arrive nowhere else. It asks `GET /api/v1/sync` for what changed since
 the checkpoint `loadNotes` left, and drops a held note missing from the returned ids only if it was
 held before the request went out. A membership change stamps `notes.members_changed_at`, never
 `updated_at` (the `If-Match` token), so a new way of joining or leaving a note must stamp it in both
 drivers or recipients' devices never hear of it (`storage/contracts/syncContract.ts`).
-`realtime/yjsProvider.ts` holds `/api/yjs`, one `HocuspocusProvider` per open note, with
+`realtime/yjsProvider.ts` holds `/api/v1/yjs`, one `HocuspocusProvider` per open note, with
 `y-indexeddb` underneath so an offline edit survives a reload. What both of those hold is a sealed
 log of the document's edits, not the document (`sealedDocument.ts`; see `encryption.md`). Those copies outlive the session, so the account menu signs out through `signOut`
 (`state/account/signOut.ts`), which deletes them (`realtime/localNoteCopies.ts`, plain IndexedDB so the
@@ -50,10 +50,10 @@ delay is armed once per outage, not once per status write, since `connecting` an
 all the way through one.
 
 Both server sockets bound what they read before anyone is authenticated: `ws` assembles a frame of
-up to 100 MiB otherwise. `/api/ws` takes `APP_SOCKET_MAX_PAYLOAD` (a client only says which note it
-is on) and `/api/yjs` `MAX_YJS_BYTES` (`ws/yjsExtension.ts`), which is also the most a note's stored
+up to 100 MiB otherwise. `/api/v1/ws` takes `APP_SOCKET_MAX_PAYLOAD` (a client only says which note it
+is on) and `/api/v1/yjs` `MAX_YJS_BYTES` (`ws/yjsExtension.ts`), which is also the most a note's stored
 state may weigh: past it `onStoreDocument` writes nothing and closes the document's sockets, since the
-state is the one part of a note no request schema sees. A message a client sends on `/api/ws` that
+state is the one part of a note no request schema sees. A message a client sends on `/api/v1/ws` that
 needs more room needs the constant raised with it. A credential that runs out closes its sockets
 through `ws/recheck.ts`, on a timer, since nothing announces it.
 

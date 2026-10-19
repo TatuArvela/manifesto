@@ -28,7 +28,7 @@ export interface NoteComment {
   editedAt: string | null;
 }
 
-/** `GET /api/notes/:id/comments`, oldest first. */
+/** `GET /api/v1/notes/:id/comments`, oldest first. */
 export interface NoteCommentsResponse {
   comments: NoteComment[];
 }
@@ -38,14 +38,14 @@ export interface NoteCommentResponse {
   comment: NoteComment;
 }
 
-/** `PUT /api/notes/:id/comments/:commentId`: the sealed text, and the note
+/** `PUT /api/v1/notes/:id/comments/:commentId`: the sealed text, and the note
  * key it is under. */
 export interface NoteCommentRequest {
   body: string;
   keyVersion: number;
 }
 
-/** `POST /api/notes/:id/comments`. The client chooses the id, which the
+/** `POST /api/v1/notes/:id/comments`. The client chooses the id, which the
  * sealed text is bound to. */
 export interface NoteCommentCreateRequest extends NoteCommentRequest {
   id: string;

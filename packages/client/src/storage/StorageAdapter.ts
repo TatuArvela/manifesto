@@ -31,7 +31,7 @@ export interface StorageAdapter {
   /**
    * The notes that changed since `since` (null for everything), or null when
    * this storage keeps no record of change and the caller should list it all.
-   * A server does (`GET /api/sync`); a browser's own storage has no one else
+   * A server does (`GET /api/v1/sync`); a browser's own storage has no one else
    * writing to it.
    */
   changesSince(since: string | null): Promise<NoteChanges | null>;
@@ -66,7 +66,7 @@ export interface StorageAdapter {
   loadImage(ref: string): Promise<Blob>;
   /**
    * Stores an image and resolves the reference to put in a note's `images`:
-   * uploaded in connected mode (`POST /api/attachments`, reporting progress
+   * uploaded in connected mode (`POST /api/v1/attachments`, reporting progress
    * as a fraction) for an `attachment:` reference, kept in IndexedDB in open
    * mode for a `local:` one. Rejects if it could not be stored.
    */

@@ -24,7 +24,7 @@ describe("requiredConnectOrigins", () => {
     // `VITE_MANIFESTO_SERVER=/` trims to the empty string, which is the
     // single-proxy deployment: `'self'` already covers it.
     expect(requiredConnectOrigins("")).toEqual([]);
-    expect(requiredConnectOrigins("/api")).toEqual([]);
+    expect(requiredConnectOrigins("/api/v1")).toEqual([]);
   });
 
   it("refuses anything that is not an http(s) address", () => {

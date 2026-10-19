@@ -8,7 +8,7 @@ import { markOidcFlow, takeOidcFlow } from "./oidcFlow.ts";
 
 export function buildOidcLoginUrl(): string | null {
   if (SERVER_URL === null) return null;
-  return `${SERVER_URL}/api/auth/login`;
+  return `${SERVER_URL}/api/v1/auth/login`;
 }
 
 export const oidcLoginUrl = buildOidcLoginUrl();
@@ -41,7 +41,7 @@ export const oidcRefusal = signal<OidcRefusal | null>(null);
 /**
  * After an OIDC callback the server redirects to the client with the session
  * token in the URL fragment (`#token=...`). Picks it up, fetches the current
- * user via /api/auth/me, populates the auth signals, and clears the fragment
+ * user via /api/v1/auth/me, populates the auth signals, and clears the fragment
  * from the address bar so refreshes don't re-trigger the flow.
  */
 export async function consumeOidcRedirect(): Promise<boolean> {
@@ -77,7 +77,9 @@ export async function consumeOidcRedirect(): Promise<boolean> {
   if (!takeOidcFlow()) return false;
 
   try {
-    const res = await requestWithoutSession("/api/auth/me", { bearer: token });
+    const res = await requestWithoutSession("/api/v1/auth/me", {
+      bearer: token,
+    });
     if (!res.ok) return false;
     const body = (await res.json()) as AuthMeResponse;
     adoptSession({ token, user: body.user });

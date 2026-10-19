@@ -47,17 +47,17 @@ describe("confirming an action from a session", () => {
   }
 
   const actions: [string, string, string, object][] = [
-    ["minting a token", "POST", "/api/tokens", { name: "script" }],
+    ["minting a token", "POST", "/api/v1/tokens", { name: "script" }],
     [
       "adding a webhook",
       "POST",
-      "/api/webhooks",
+      "/api/v1/webhooks",
       { url: "https://hooks.example/notes" },
     ],
     [
       "setting an email address",
       "PUT",
-      "/api/auth/me",
+      "/api/v1/auth/me",
       { email: "a@b.example" },
     ],
   ];
@@ -80,14 +80,17 @@ describe("confirming an action from a session", () => {
 
   it("counts wrong passwords against the same budget as signing in", async () => {
     for (let i = 0; i < MAX_LOGIN_FAILURES; i++) {
-      await send("POST", "/api/tokens", { name: "x", password: "not-it-00" });
+      await send("POST", "/api/v1/tokens", {
+        name: "x",
+        password: "not-it-00",
+      });
     }
-    const locked = await send("POST", "/api/tokens", {
+    const locked = await send("POST", "/api/v1/tokens", {
       name: "x",
       password: PASSWORD,
     });
     expect(locked.status).toBe(429);
-    const signIn = await rig.request("/api/auth/login", {
+    const signIn = await rig.request("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "alice", password: PASSWORD }),

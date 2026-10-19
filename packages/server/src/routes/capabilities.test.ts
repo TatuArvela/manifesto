@@ -4,10 +4,10 @@ import { describe, expect, it } from "vitest";
 import { bootTestAppWith } from "#/test/setup.ts";
 import { VERSION } from "#/version.ts";
 
-describe("GET /api/capabilities", () => {
+describe("GET /api/v1/capabilities", () => {
   async function capabilities(overrides = {}) {
     const rig = await bootTestAppWith(overrides);
-    const res = await rig.request("/api/capabilities");
+    const res = await rig.request("/api/v1/capabilities");
     expect(res.status).toBe(200);
     const body = (await res.json()) as CapabilitiesResponse;
     await rig.close();
@@ -93,9 +93,9 @@ describe("GET /api/capabilities", () => {
   it("refuses a request body over the limit it states", async () => {
     const rig = await bootTestAppWith({});
     const { limits } = (await (
-      await rig.request("/api/capabilities")
+      await rig.request("/api/v1/capabilities")
     ).json()) as CapabilitiesResponse;
-    const res = await rig.request("/api/auth/login", {
+    const res = await rig.request("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "x".repeat(limits.requestBytes) }),

@@ -119,7 +119,10 @@ describe("push reminders", () => {
     });
 
   async function addNote(overrides: Partial<NoteCreate>): Promise<Note> {
-    const res = await call("POST", "/api/notes", { ...baseNote, ...overrides });
+    const res = await call("POST", "/api/v1/notes", {
+      ...baseNote,
+      ...overrides,
+    });
     expect(res.status).toBe(201);
     return ((await res.json()) as { note: Note }).note;
   }
@@ -156,8 +159,11 @@ describe("push reminders", () => {
     );
 
   const reminderOf = async (id: string) =>
-    ((await (await call("GET", `/api/notes/${id}`)).json()) as { note: Note })
-      .note.reminder;
+    (
+      (await (await call("GET", `/api/v1/notes/${id}`)).json()) as {
+        note: Note;
+      }
+    ).note.reminder;
 
   beforeEach(async () => {
     service = await startTestPushService();
@@ -170,7 +176,7 @@ describe("push reminders", () => {
       // The push service is on loopback, which no real deployment may reach.
       pushAddressPolicy: (address) => address === "127.0.0.1",
     });
-    const res = await request("/api/auth/register", {
+    const res = await request("/api/v1/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "alice", password: "test-pass-12" }),
@@ -262,7 +268,7 @@ describe("push reminders", () => {
     await pass();
 
     const { publicKey } = (await (
-      await call("GET", "/api/push/key")
+      await call("GET", "/api/v1/push/key")
     ).json()) as PushKeyResponse;
     const header = String(service.received[0]?.headers.authorization);
     const match = /^vapid t=([\w-]+\.[\w-]+)\.([\w-]+), k=([\w-]+)$/.exec(
@@ -294,8 +300,11 @@ describe("push reminders", () => {
     expect(claims.sub).toBe("https://notes.example");
     // The same key on every call: it is made once and kept.
     expect(
-      ((await (await call("GET", "/api/push/key")).json()) as PushKeyResponse)
-        .publicKey,
+      (
+        (await (
+          await call("GET", "/api/v1/push/key")
+        ).json()) as PushKeyResponse
+      ).publicKey,
     ).toBe(publicKey);
   });
 
@@ -386,7 +395,7 @@ describe("push reminders", () => {
         ...storage.notes,
         listByUser: async (...args) => {
           const page = await storage.notes.listByUser(...args);
-          const res = await call("PUT", `/api/notes/${note.id}`, {
+          const res = await call("PUT", `/api/v1/notes/${note.id}`, {
             reminder: later,
           });
           expect(res.status).toBe(200);
@@ -438,7 +447,7 @@ describe("push reminders", () => {
   it("stops with the session the browser subscribed in", async () => {
     await addNote({ reminder: reminder() });
     await subscribe();
-    const res = await call("POST", "/api/auth/logout");
+    const res = await call("POST", "/api/v1/auth/logout");
     expect(res.status).toBe(204);
     await pass();
     expect(service.received).toEqual([]);
@@ -446,7 +455,7 @@ describe("push reminders", () => {
   });
 });
 
-describe("/api/push", () => {
+describe("/api/v1/push", () => {
   let storage: StorageDriver;
   let handle: AppHandle;
   let token: string;
@@ -459,7 +468,7 @@ describe("/api/push", () => {
       storage,
       authProvider: createAuthProvider(cfg, storage),
     });
-    const res = await handle.app.request("/api/auth/register", {
+    const res = await handle.app.request("/api/v1/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "alice", password: "test-pass-12" }),
@@ -491,11 +500,11 @@ describe("/api/push", () => {
   it("takes a browser's subscription, once per endpoint, and lets it go", async () => {
     await boot();
     const first = subscription("laptop");
-    expect((await call("POST", "/api/push/subscriptions", first)).status).toBe(
-      204,
-    );
     expect(
-      (await call("POST", "/api/push/subscriptions", subscription("laptop")))
+      (await call("POST", "/api/v1/push/subscriptions", first)).status,
+    ).toBe(204);
+    expect(
+      (await call("POST", "/api/v1/push/subscriptions", subscription("laptop")))
         .status,
     ).toBe(204);
     const held = await storage.pushSubscriptions.listByUser(userId);
@@ -504,7 +513,7 @@ describe("/api/push", () => {
 
     expect(
       (
-        await call("DELETE", "/api/push/subscriptions", {
+        await call("DELETE", "/api/v1/push/subscriptions", {
           endpoint: first.endpoint,
         })
       ).status,
@@ -515,10 +524,10 @@ describe("/api/push", () => {
   it("records a browser the account had not subscribed, and not its renewals", async () => {
     await boot();
     const laptop = subscription("laptop");
-    await call("POST", "/api/push/subscriptions", laptop);
+    await call("POST", "/api/v1/push/subscriptions", laptop);
     // The same browser at its next start.
-    await call("POST", "/api/push/subscriptions", laptop);
-    await call("POST", "/api/push/subscriptions", subscription("phone"));
+    await call("POST", "/api/v1/push/subscriptions", laptop);
+    await call("POST", "/api/v1/push/subscriptions", subscription("phone"));
     const subscribed = async () =>
       (await storage.audit.list({ limit: 20 })).filter(
         (entry) => entry.action === "push.subscribed",
@@ -536,7 +545,7 @@ describe("/api/push", () => {
     const good = subscription("x");
     expect(
       (
-        await call("POST", "/api/push/subscriptions", {
+        await call("POST", "/api/v1/push/subscriptions", {
           ...good,
           endpoint: "http://push.example/send/x",
         })
@@ -544,7 +553,7 @@ describe("/api/push", () => {
     ).toBe(422);
     expect(
       (
-        await call("POST", "/api/push/subscriptions", {
+        await call("POST", "/api/v1/push/subscriptions", {
           ...good,
           keys: { p256dh: "AAAA", auth: good.keys.auth },
         })
@@ -555,7 +564,7 @@ describe("/api/push", () => {
   it("keeps only the newest subscriptions of an account", async () => {
     await boot();
     for (let i = 0; i < 12; i++) {
-      await call("POST", "/api/push/subscriptions", subscription(`d${i}`));
+      await call("POST", "/api/v1/push/subscriptions", subscription(`d${i}`));
     }
     const held = await storage.pushSubscriptions.listByUser(userId);
     expect(held).toHaveLength(10);
@@ -565,25 +574,26 @@ describe("/api/push", () => {
 
   it("is for a session, not a token", async () => {
     await boot();
-    const minted = await call("POST", "/api/tokens", {
+    const minted = await call("POST", "/api/v1/tokens", {
       name: "script",
       password: "test-pass-12",
     });
     const { secret } = (await minted.json()) as { secret: string };
-    expect((await call("GET", "/api/push/key", undefined, secret)).status).toBe(
-      403,
-    );
+    expect(
+      (await call("GET", "/api/v1/push/key", undefined, secret)).status,
+    ).toBe(403);
   });
 
   it("is not there with WEB_PUSH off, though a subscription can still be removed", async () => {
     await boot({ ...TEST_CONFIG, pushReminders: false });
-    expect((await call("GET", "/api/push/key")).status).toBe(404);
+    expect((await call("GET", "/api/v1/push/key")).status).toBe(404);
     expect(
-      (await call("POST", "/api/push/subscriptions", subscription("x"))).status,
+      (await call("POST", "/api/v1/push/subscriptions", subscription("x")))
+        .status,
     ).toBe(404);
     expect(
       (
-        await call("DELETE", "/api/push/subscriptions", {
+        await call("DELETE", "/api/v1/push/subscriptions", {
           endpoint: "https://push.example/send/x",
         })
       ).status,

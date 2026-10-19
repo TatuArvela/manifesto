@@ -51,7 +51,7 @@ const IDLE: NoteYDoc = {
 };
 
 function wsUrl(): string | null {
-  return WS_ORIGIN === null ? null : `${WS_ORIGIN}/api/yjs`;
+  return WS_ORIGIN === null ? null : `${WS_ORIGIN}/api/v1/yjs`;
 }
 
 /**

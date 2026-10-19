@@ -21,7 +21,7 @@ function json(body: unknown): Response {
 /** Answers like the server: a GET gives the stored copy, a PATCH merges. */
 function serve(delayGet?: Promise<void>) {
   fetchMock.mockImplementation(async (url, init) => {
-    expect(String(url)).toBe(`${SERVER}/api/auth/me/prefs`);
+    expect(String(url)).toBe(`${SERVER}/api/v1/auth/me/prefs`);
     if (init?.method === "PATCH") {
       const { prefs } = JSON.parse(String(init.body));
       patches.push(prefs);

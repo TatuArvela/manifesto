@@ -7,7 +7,7 @@ import {
   type TestRig,
 } from "#/test/setup.ts";
 
-describe("DELETE /api/auth/me", () => {
+describe("DELETE /api/v1/auth/me", () => {
   let rig: TestRig;
   let admin: { token: string; userId: string };
   let bob: { token: string; userId: string };
@@ -27,7 +27,7 @@ describe("DELETE /api/auth/me", () => {
   });
 
   const deleteMe = (token: string, password?: string) =>
-    rig.request("/api/auth/me", {
+    rig.request("/api/v1/auth/me", {
       method: "DELETE",
       headers: authHeaders(token),
       body: JSON.stringify(password === undefined ? {} : { password }),
@@ -42,7 +42,7 @@ describe("DELETE /api/auth/me", () => {
   it("deletes the account, ends its sessions and frees the name", async () => {
     expect((await deleteMe(bob.token, "test-pass-12")).status).toBe(204);
     expect(await rig.storage.users.findById(bob.userId)).toBeNull();
-    const me = await rig.request("/api/auth/me", {
+    const me = await rig.request("/api/v1/auth/me", {
       headers: authHeaders(bob.token),
     });
     expect(me.status).toBe(401);
@@ -53,7 +53,7 @@ describe("DELETE /api/auth/me", () => {
     await deleteMe(bob.token, "test-pass-12");
     await settle();
     const res = await rig.request(
-      "/api/admin/audit?action=auth.account_deleted",
+      "/api/v1/admin/audit?action=auth.account_deleted",
       { headers: authHeaders(admin.token) },
     );
     const { entries } = (await res.json()) as AuditLogResponse;

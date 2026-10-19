@@ -21,7 +21,7 @@ function appFor(identity: Omit<AuthIdentity, "token">) {
   notes.get("/unlisted", (c) => c.text("reached"));
   const app = new Hono();
   app.onError(onError);
-  app.route("/api/notes", notes);
+  app.route("/api/v1/notes", notes);
   return app;
 }
 
@@ -38,16 +38,16 @@ const tokenWith = (scopes: ApiTokenScope[]) =>
 
 describe("token scopes in the auth middleware", () => {
   it("lets a token through where its scope is named", async () => {
-    expect((await get(tokenWith(["notes:read"]), "/api/notes")).status).toBe(
+    expect((await get(tokenWith(["notes:read"]), "/api/v1/notes")).status).toBe(
       200,
     );
-    expect((await get(tokenWith(["notes:write"]), "/api/notes")).status).toBe(
-      200,
-    );
+    expect(
+      (await get(tokenWith(["notes:write"]), "/api/v1/notes")).status,
+    ).toBe(200);
   });
 
   it("refuses a token without the scope, and says which it lacks", async () => {
-    const res = await get(tokenWith(["account:read"]), "/api/notes");
+    const res = await get(tokenWith(["account:read"]), "/api/v1/notes");
     expect(res.status).toBe(403);
     expect(((await res.json()) as { error: string }).error).toContain(
       "notes:read",
@@ -62,8 +62,10 @@ describe("token scopes in the auth middleware", () => {
       "account:read",
       "account:write",
     ];
-    expect((await get(tokenWith(all), "/api/notes/unlisted")).status).toBe(403);
+    expect((await get(tokenWith(all), "/api/v1/notes/unlisted")).status).toBe(
+      403,
+    );
     const session = appFor({ ...person, via: "session" });
-    expect((await get(session, "/api/notes/unlisted")).status).toBe(200);
+    expect((await get(session, "/api/v1/notes/unlisted")).status).toBe(200);
   });
 });

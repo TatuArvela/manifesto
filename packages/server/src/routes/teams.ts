@@ -41,7 +41,7 @@ function toTeam(team: StoredTeam): Team {
   };
 }
 
-/** `GET /api/teams`: the teams the signed-in user is in, to share with. */
+/** `GET /api/v1/teams`: the teams the signed-in user is in, to share with. */
 export function createTeamRoutes(deps: { storage: StorageDriver }) {
   const routes: AuthedApp = new Hono();
 
@@ -54,7 +54,7 @@ export function createTeamRoutes(deps: { storage: StorageDriver }) {
 }
 
 /**
- * `/api/notes/:id/team-shares`: the teams a note is shared with, managed by
+ * `/api/v1/notes/:id/team-shares`: the teams a note is shared with, managed by
  * its owner, who may share only with a team they are in. What that does for
  * each member is `sharing/teamShares.ts`.
  */
@@ -162,7 +162,7 @@ export function registerTeamShareRoutes(notes: AuthedApp, deps: TeamDeps) {
 }
 
 /**
- * `/api/admin/teams`: every team, made, renamed, filled and removed by an
+ * `/api/v1/admin/teams`: every team, made, renamed, filled and removed by an
  * admin. An `oidc` team's members are the identity provider's and cannot be
  * set here; it can be renamed only there, so not here either. Registered on
  * the admin router, behind its session-only admin check.

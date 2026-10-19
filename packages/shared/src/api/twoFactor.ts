@@ -1,6 +1,6 @@
 import type { ErrorResponse } from "./errors.ts";
 
-/** `GET /api/auth/two-factor`. */
+/** `GET /api/v1/auth/two-factor`. */
 export interface TwoFactorStatusResponse {
   /** Whether sign-in asks for a second factor: an authenticator app, a
    * passkey, or both. */
@@ -87,17 +87,17 @@ export interface Passkey {
   lastUsedAt: string | null;
 }
 
-/** `GET /api/auth/passkeys`. */
+/** `GET /api/v1/auth/passkeys`. */
 export interface PasskeysResponse {
   passkeys: Passkey[];
 }
 
-/** `POST /api/auth/passkeys/options`, with the password. */
+/** `POST /api/v1/auth/passkeys/options`, with the password. */
 export interface PasskeyOptionsResponse {
   options: PasskeyCreationOptions;
 }
 
-/** `POST /api/auth/passkeys`: the browser's answer, and what to call it. */
+/** `POST /api/v1/auth/passkeys`: the browser's answer, and what to call it. */
 export interface PasskeyAddRequest {
   name?: string;
   response: PasskeyRegistrationResponse;
@@ -108,7 +108,7 @@ export interface PasskeyAddedResponse {
   passkey: Passkey;
 }
 
-/** `POST /api/auth/passkey/options`: a challenge to sign in with a passkey. */
+/** `POST /api/v1/auth/passkey/options`: a challenge to sign in with a passkey. */
 export interface PasskeySignInOptionsResponse {
   options: PasskeyRequestOptions;
 }
@@ -126,7 +126,7 @@ export interface TwoFactorRequiredResponse extends ErrorResponse {
 }
 
 /**
- * `POST /api/auth/two-factor/setup`: the secret to put in an authenticator,
+ * `POST /api/v1/auth/two-factor/setup`: the secret to put in an authenticator,
  * as base32. The client builds the `otpauth://` link from it, since the
  * product name that labels it there is the client's to know.
  */

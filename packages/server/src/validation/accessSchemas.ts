@@ -10,7 +10,7 @@ import { confirmationPassword, sealed } from "./fields.ts";
 // Request bodies of what reaches an account from outside the app: API and
 // MCP tokens, an assistant's OAuth sign-in, and webhooks.
 
-/** `POST /api/tokens`. An MCP token's tools reach notes and nothing else,
+/** `POST /api/v1/tokens`. An MCP token's tools reach notes and nothing else,
  * so it takes only the note scopes. */
 export const apiTokenCreateSchema = z
   .object({
@@ -52,7 +52,7 @@ export const apiTokenCreateSchema = z
   );
 
 /**
- * `POST /api/oauth/register`, in the names RFC 7591 gives them. Unknown fields
+ * `POST /api/v1/oauth/register`, in the names RFC 7591 gives them. Unknown fields
  * are dropped; which redirect addresses are allowed is `redirectUriProblem`'s
  * to say, so the answer can use the error the RFC names.
  */
@@ -64,7 +64,7 @@ export const oauthRegisterSchema = z.object({
   response_types: z.array(z.string().max(100)).max(10).exactOptional(),
 });
 
-/** `POST /api/oauth/authorize`: the consent page's answer. */
+/** `POST /api/v1/oauth/authorize`: the consent page's answer. */
 export const oauthAuthorizeSchema = z
   .object({
     clientId: z.string().min(1).max(2000),
@@ -92,7 +92,7 @@ export const oauthAuthorizeSchema = z
     { message: "codeHash and wrappedKeys come together" },
   );
 
-/** `POST /api/webhooks`. Where it may point is checked on every delivery,
+/** `POST /api/v1/webhooks`. Where it may point is checked on every delivery,
  * against the resolved address; this only refuses what is never a webhook. */
 export const webhookCreateSchema = z.object({
   url: z
@@ -108,5 +108,5 @@ export const webhookCreateSchema = z.object({
   password: confirmationPassword,
 });
 
-/** `PUT /api/webhooks/:id`. */
+/** `PUT /api/v1/webhooks/:id`. */
 export const webhookUpdateSchema = z.object({ active: z.boolean() });

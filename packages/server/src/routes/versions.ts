@@ -29,7 +29,7 @@ export function versionTimestamp(
 }
 
 /**
- * `/api/notes/:id/versions`: connected mode's version history, the same for
+ * `/api/v1/notes/:id/versions`: connected mode's version history, the same for
  * everyone holding the note. Anyone who can read the note reads it; only
  * those who can change the text (owner, editors) add to it.
  */

@@ -159,7 +159,7 @@ services:
 docker compose up --build
 ```
 
-`/api/health` reports the server's version. The build context has no `.git`, so an image built this way reports the release number from `package.json` even when it is built from a later commit. To report the exact build, resolve the version on the host and pass it in as a build arg:
+`/api/v1/health` reports the server's version. The build context has no `.git`, so an image built this way reports the release number from `package.json` even when it is built from a later commit. To report the exact build, resolve the version on the host and pass it in as a build arg:
 
 ```bash
 docker build -f packages/server/Dockerfile \
@@ -192,7 +192,7 @@ have a table of their own, under [Turning features off](#turning-features-off).
 | `ARGON2_MEMORY_KIB` | `19456`                   | argon2id memory cost (local auth only)   |
 | `ARGON2_TIME_COST`  | `2`                       | argon2id time cost (local auth only)     |
 | `ARGON2_PARALLELISM` | `1`                      | argon2id parallelism (local auth only)   |
-| `REGISTRATION_ENABLED` | `true`                  | Allow public POST `/api/auth/register`. Set `false` when accounts should only come from an admin, who creates them from the Users view. Registering never makes anyone an admin. With it off, the login screen has no Create account tab. |
+| `REGISTRATION_ENABLED` | `true`                  | Allow public POST `/api/v1/auth/register`. Set `false` when accounts should only come from an admin, who creates them from the Users view. Registering never makes anyone an admin. With it off, the login screen has no Create account tab. |
 | `INITIAL_ADMIN_PASSWORD` | _(generated)_          | The temporary password for the initial `admin` account, instead of a generated one that is printed at boot. 8 to 256 characters. It still has to be changed at first sign-in. Local auth only. See [The initial admin](../features/accounts.md#the-initial-admin). |
 | `DEFAULT_PREFS`    | *(unset)*                  | The preferences every new account starts from, as one JSON object keyed by the client's preference names: `{"theme":"dark","boardTexture":"dots","noteCorners":"rounded"}`. Each is taken for a key the account has never stored, in place of the client's own default; an account changes it like any other setting, and changing this variable later reaches only keys an account still lacks. A value the client does not recognise falls back to its default. The names and values are in [Preferences](../features/preferences.md#defaults-from-the-server). Refused at boot when it is not a JSON object or is larger than 16 KB. |
 | `TRUST_PROXY`      | `false`                    | Honor `X-Forwarded-For` for IP-aware rate limiting. Set `true` only behind a trusted reverse proxy that overwrites the header, and make sure it does: the value is taken at its word. An IPv6 client is throttled on its /64 rather than its address, an IPv4 one on its address. |
@@ -215,7 +215,7 @@ Both `STORAGE_DRIVER` and `AUTH_PROVIDER` are validated at boot. An unknown valu
 Each of these features is switched by one variable, from one registry in the server
 (`packages/server/src/features.ts`). A feature that is off is not there: every route it has
 answers the same 404 as a route the server never had, before anyone is asked to sign in, and
-`GET /api/capabilities` reports it off, so the client hides it (its menu items, settings pages
+`GET /api/v1/capabilities` reports it off, so the client hides it (its menu items, settings pages
 and dialog sections). Open mode, with no server, is unaffected by any of them.
 
 Turning a feature off never takes away the way out of it. Removing a person or a team from a
@@ -225,13 +225,13 @@ has a second factor is still asked for it at every sign-in.
 
 | Variable        | Default  | What it switches |
 |-----------------|----------|------------------|
-| `SHARING`       | `on`     | [Sharing a note with other accounts](../features/sharing-with-people.md): invitations, finding people (`/api/users`), and changing what someone may do. Off, a note already shared stays shared; its owner can still take people off it, and they can still leave. |
+| `SHARING`       | `on`     | [Sharing a note with other accounts](../features/sharing-with-people.md): invitations, finding people (`/api/v1/users`), and changing what someone may do. Off, a note already shared stays shared; its owner can still take people off it, and they can still leave. |
 | `TEAMS`         | `on`     | [Teams](../features/sharing-with-people.md#teams): the admin's Teams page, single sign-on groups mirrored as teams, and sharing a note with a whole team. Needs `SHARING`. Off, sign-in no longer updates membership, and a note already shared with a team stays shared and can still be taken off it. |
 | `PUBLIC_LINKS`  | `on`     | Let owners publish a note by [public link](../features/sharing.md#public-links), readable by anyone holding it, with an optional expiry, password and view limit. Set `off` where nothing may be readable without an account; every link, those already made included, then answers 404 and the menu item is hidden. |
 | `LINK_PREVIEWS` | `on`     | Fetch linked pages to fill in [link previews](../features/link-previews.md). The server then makes outbound HTTP(S) requests to public addresses only. Set `off` where it has no internet access or should make no outbound requests; cards then stay plain. |
 | `CALENDAR`      | `on`     | The [reminders calendar feed](../features/reminders.md#calendar-feed), which a calendar app subscribes to by a secret address. Off, feeds already subscribed to answer 404 and Settings offers no new feed token. |
 | `API_TOKENS`    | `on`     | Personal API tokens for scripts and bots. Off, none can be made and those already made are refused wherever they are presented, both sockets included. MCP and calendar tokens follow `MCP` and `CALENDAR`. |
-| `MCP`           | `on`     | The [MCP endpoint](../features/mcp.md) for AI assistants, `/api/mcp`. It answers only a token a user mints for it in Settings or agrees to give an assistant that signs in through the browser, so on opens nothing by itself. Signing in is offered when the server knows where its client is (`APP_URL` or `CLIENT_DIR`). `off` removes the endpoint and the sign-in, refuses MCP tokens already made, and mints no more. |
+| `MCP`           | `on`     | The [MCP endpoint](../features/mcp.md) for AI assistants, `/api/v1/mcp`. It answers only a token a user mints for it in Settings or agrees to give an assistant that signs in through the browser, so on opens nothing by itself. Signing in is offered when the server knows where its client is (`APP_URL` or `CLIENT_DIR`). `off` removes the endpoint and the sign-in, refuses MCP tokens already made, and mints no more. |
 | `WEBHOOKS`      | `public` | Whether users may add [webhooks](../features/webhooks.md), and where they may point: `public` addresses only, `private` to also reach the local network (a Home Assistant or n8n beside the server), or `off`, which also stops every delivery. |
 | `PASSKEYS`      | `on`     | Adding [passkeys](../features/accounts.md#signing-in-with-a-passkey), and signing in with a passkey alone. Off, nobody can add one or sign in with one alone, but a passkey already added is still asked for as a second factor and can be removed. |
 | `MAGIC_LINKS`   | `on`     | [Signing in from a link](../features/accounts.md#signing-in-with-a-link) sent to a local account's address, with no password. It needs `SMTP_URL` and is absent without it. Off, no link is sent and links already sent are refused. An account with a second factor is asked for it either way. Set `off` where a mailbox alone must not open an account. |
@@ -337,7 +337,7 @@ All of these are required and validated at boot. The server only reads them when
 | `OIDC_ISSUER`               | Issuer URL (used for OIDC discovery, e.g. `https://idp.example.com`)       |
 | `OIDC_CLIENT_ID`            | Client ID registered with the IdP                                           |
 | `OIDC_CLIENT_SECRET`        | Client secret registered with the IdP                                       |
-| `OIDC_REDIRECT_URI`         | Server callback URL; must end in `/api/auth/callback`                      |
+| `OIDC_REDIRECT_URI`         | Server callback URL; must end in `/api/v1/auth/callback`                      |
 | `OIDC_POST_LOGIN_REDIRECT`  | Client-side URL to redirect to after successful login (token in fragment)   |
 | `OIDC_SCOPES`               | Comma-separated scopes (default `openid,profile,email`)                     |
 | `OIDC_GROUPS_CLAIM`         | The claim holding the user's groups (default `groups`). Read from the ID token, or from userinfo when the token leaves it out. A list, or one group as a string. |
@@ -349,14 +349,14 @@ All of these are required and validated at boot. The server only reads them when
 
 The login flow:
 
-1. The client fetches `GET /api/capabilities` and renders a "Continue with single sign-on" button when `auth.providers` includes `oidc`.
-2. The user clicks the button, navigating to `<server>/api/auth/login`. The server stores PKCE state server-side and redirects to the IdP authorization endpoint.
+1. The client fetches `GET /api/v1/capabilities` and renders a "Continue with single sign-on" button when `auth.providers` includes `oidc`.
+2. The user clicks the button, navigating to `<server>/api/v1/auth/login`. The server stores PKCE state server-side and redirects to the IdP authorization endpoint.
 3. After the user consents, the IdP redirects to `OIDC_REDIRECT_URI` with `code` and `state`.
 4. The server verifies state, exchanges the code (PKCE), reads ID-token claims, just-in-time provisions a user (keyed by `(provider, sub)`), and mints a Manifesto session token.
 5. The server redirects to `OIDC_POST_LOGIN_REDIRECT#token=<sessionToken>`.
-6. The client picks up the fragment on first paint, calls `GET /api/auth/me` with the bearer token to fetch the user record, populates its auth signals, and clears the fragment from the address bar. It does so only in the tab that started the sign-in (step 1 leaves a mark in that tab's `sessionStorage`, good for 15 minutes and spent once): a `#token=` in a link someone was sent is cleared and ignored, since it would sign them in to the sender's account.
+6. The client picks up the fragment on first paint, calls `GET /api/v1/auth/me` with the bearer token to fetch the user record, populates its auth signals, and clears the fragment from the address bar. It does so only in the tab that started the sign-in (step 1 leaves a mark in that tab's `sessionStorage`, good for 15 minutes and spent once): a `#token=` in a link someone was sent is cleared and ignored, since it would sign them in to the sender's account.
 
-The session token is then sent as `Authorization: Bearer <token>` against the rest of the API, identical to the local provider. Logout (`POST /api/auth/logout`) invalidates the local session; it does not perform IdP-side logout (RP-initiated logout is not implemented in v1).
+The session token is then sent as `Authorization: Bearer <token>` against the rest of the API, identical to the local provider. Logout (`POST /api/v1/auth/logout`) invalidates the local session; it does not perform IdP-side logout (RP-initiated logout is not implemented in v1).
 
 Set `OIDC_POST_LOGIN_REDIRECT` to the deployed client URL (e.g. `https://notes.example.com/`). The client app handles the `#token=...` fragment automatically, so no extra route is needed on the client side.
 
@@ -366,7 +366,7 @@ Set `OIDC_POST_LOGIN_REDIRECT` to the deployed client URL (e.g. `https://notes.e
 OIDC_ISSUER=https://auth.example.com/application/o/manifesto/
 OIDC_CLIENT_ID=manifesto
 OIDC_CLIENT_SECRET=<from Authentik provider page>
-OIDC_REDIRECT_URI=https://server.example.com/api/auth/callback
+OIDC_REDIRECT_URI=https://server.example.com/api/v1/auth/callback
 OIDC_POST_LOGIN_REDIRECT=https://notes.example.com/auth-callback
 OIDC_SCOPES=openid,profile,email
 AUTH_PROVIDER=oidc
@@ -493,7 +493,7 @@ reasons to choose it.
 
 ## Metrics
 
-`/api/health` answers "is it up". `GET /metrics` answers "is it well", in Prometheus's text format. It
+`/api/v1/health` answers "is it up". `GET /metrics` answers "is it well", in Prometheus's text format. It
 is off by default: with neither variable below set, nothing serves it. Two ways to turn it on:
 
 - **On a port of its own, `METRICS_PORT`** (say `9464`): a second listener serving `/metrics` and
@@ -525,7 +525,7 @@ scrape_configs:
 | `manifesto_http_requests_total{method,status}` | API requests by method and status class (`2xx`...). No route label: note ids in paths would make a series per note |
 | `manifesto_http_request_duration_seconds_sum{method,status}` | Time spent answering them; divide by the count for the mean |
 | `manifesto_rate_limited_total{limiter}` | Requests a rate limit refused |
-| `manifesto_app_sockets`, `manifesto_app_socket_users` | Open `/api/ws` sockets, and the accounts holding them |
+| `manifesto_app_sockets`, `manifesto_app_socket_users` | Open `/api/v1/ws` sockets, and the accounts holding them |
 | `manifesto_yjs_documents_open`, `manifesto_yjs_connections` | Collaborative editing |
 | `manifesto_webhook_deliveries_total{result}` | Webhook deliveries, `delivered` or `failed` |
 | `manifesto_job_last_run_failed{job}`, `..._timestamp_seconds`, `..._duration_seconds` | Each background job's last run; alert on a failure or a timestamp that stops moving |
@@ -534,7 +534,7 @@ scrape_configs:
 ## Reverse Proxy
 
 Run the server behind a reverse proxy that terminates HTTPS. It must pass
-WebSocket upgrades through for `/api/ws` (application events) and `/api/yjs`
+WebSocket upgrades through for `/api/v1/ws` (application events) and `/api/v1/yjs`
 (collaborative editing); most proxies do that on their own for a proxied route,
 so the two rarely need blocks of their own.
 
@@ -556,7 +556,7 @@ through it.
   Do **not** use `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`,
   which is the line most nginx tutorials give. `$proxy_add_x_forwarded_for` is
   defined as the incoming header plus `$remote_addr`, so it appends, and the
-  value the server then trusts is one the client chose. On `/api/auth/login`
+  value the server then trusts is one the client chose. On `/api/v1/auth/login`
   that makes the argon2 verify budget per attacker unbounded.
 - **Caddy**: `header_up X-Forwarded-For {http.request.remote.host}` inside
   `reverse_proxy`. Recent Caddy already replaces an untrusted client's header
@@ -583,9 +583,9 @@ should reach it over the compose network by service name.
 
 With the image serving the client itself ([One container](#one-container)), the proxy below only needs
 to terminate HTTPS and pass everything to the server. The longer setup, where the proxy serves a client
-bundle of its own and forwards `/api/*`, is for a client built separately (a rebranded one, say).
+bundle of its own and forwards `/api/v1/*`, is for a client built separately (a rebranded one, say).
 
-Serving the client bundle and proxying `/api/*` from **one** origin is the
+Serving the client bundle and proxying `/api/v1/*` from **one** origin is the
 recommended shape for a one-box deployment. It removes CORS from the picture
 entirely: no preflights, no `CORS_ORIGINS` list to keep in step with a rename,
 one certificate, one DNS record, and no published server port. Nothing in the
@@ -633,8 +633,8 @@ notes.example.com {
     }
 
     # Both WebSockets live under here. reverse_proxy passes an Upgrade
-    # through on its own, so /api/ws and /api/yjs need no separate block.
-    handle /api/* {
+    # through on its own, so /api/v1/ws and /api/v1/yjs need no separate block.
+    handle /api/v1/* {
         reverse_proxy manifesto-server:3001 {
             header_up X-Forwarded-For {http.request.remote.host}
         }

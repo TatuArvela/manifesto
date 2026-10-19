@@ -91,7 +91,7 @@ pnpm monorepo with three packages, plus one build tool:
 - **`packages/client`**: Preact + TypeScript SPA, built with Vite. Uses @preact/signals for state, Tailwind v4 (via `@tailwindcss/vite`, no config file) for styling, Vitest for tests.
 - **`packages/server`**: Node.js + TypeScript, Hono. Storage and authentication are pluggable behind `StorageDriver` and `AuthProvider` interfaces. Two storage drivers ship: SQLite (`better-sqlite3`, default) and Postgres (`pg`). Two auth providers ship: local (argon2 + sessions, default) and OIDC. The client also works standalone with localStorage in open mode, so the server is optional.
 - **`packages/build-version`**: build-time only, never shipped. Resolves the version a build
-  reports (Settings footer, `/api/health`): `0.1.5` on the release commit, `0.1.5+14.bf5a6dd`
+  reports (Settings footer, `/api/v1/health`): `0.1.5` on the release commit, `0.1.5+14.bf5a6dd`
   after it. It counts from the last commit to touch `.release-please-manifest.json`, not from the
   tag, because the tag is created by the Release workflow while the Pages build of the same push
   is already running. It needs full history, so a checkout that builds must set `fetch-depth: 0`;

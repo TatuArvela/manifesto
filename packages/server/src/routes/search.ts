@@ -13,7 +13,7 @@ import { readPageParams } from "#/validation/pageParams.ts";
 import { tokenKeys } from "./noteCodec.ts";
 
 /**
- * `/api/search`. The server cannot read a note, so it cannot search one: the
+ * `/api/v1/search`. The server cannot read a note, so it cannot search one: the
  * app searches the notes it has opened, in memory, and its session is
  * refused here. A token that carries keys is answered by doing the same on
  * the server for the length of the request: the account's notes are opened

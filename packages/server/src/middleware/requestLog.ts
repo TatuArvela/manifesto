@@ -6,8 +6,8 @@ import { logger } from "#/lib/logger.ts";
  *
  * Replaces `hono/logger`, which builds its line from `c.req.url` sliced at the
  * first path separator and therefore carries the query string into the log at
- * the default level. That string holds note content on `/api/search?q=` and a
- * single-use OIDC authorization code on `/api/auth/callback?code=`, neither of
+ * the default level. That string holds note content on `/api/v1/search?q=` and a
+ * single-use OIDC authorization code on `/api/v1/auth/callback?code=`, neither of
  * which belongs in operator-readable output. `c.req.path` is the same value
  * with the query removed, and Hono exposes no option to make its own logger
  * use it.

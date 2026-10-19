@@ -21,7 +21,7 @@ import { recheckSockets, SOCKET_RECHECK_MS } from "./recheck.ts";
 export const SUBPROTOCOL = "manifesto-session";
 
 /**
- * The largest frame `/api/ws` reads. A client only ever says which note it
+ * The largest frame `/api/v1/ws` reads. A client only ever says which note it
  * is looking at, and `ws` otherwise assembles frames of up to 100 MiB in
  * memory before anything here sees them, for a peer that has yet to be
  * authenticated.
@@ -65,7 +65,7 @@ interface AppSocketDeps {
   recheckMs?: number | undefined;
 }
 
-/** Wire `/api/ws` onto the app. Returns a function that stops its timers. */
+/** Wire `/api/v1/ws` onto the app. Returns a function that stops its timers. */
 export function attachAppSocket(deps: AppSocketDeps): () => void {
   const { app, ws, authProvider, broadcaster, revocations, storage } = deps;
 
@@ -78,12 +78,12 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
   ws.wss.options.maxPayload = APP_SOCKET_MAX_PAYLOAD;
 
   const connectionsByUser = new Map<string, Set<Connection>>();
-  gaugeMetric("manifesto_app_sockets", "Open /api/ws sockets.", () =>
+  gaugeMetric("manifesto_app_sockets", "Open /api/v1/ws sockets.", () =>
     [...connectionsByUser.values()].reduce((n, set) => n + set.size, 0),
   );
   gaugeMetric(
     "manifesto_app_socket_users",
-    "Accounts with at least one open /api/ws socket.",
+    "Accounts with at least one open /api/v1/ws socket.",
     () => connectionsByUser.size,
   );
   // For each note, how many of each user's connections are viewing it. We
@@ -318,7 +318,7 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
   }
 
   app.get(
-    "/api/ws",
+    "/api/v1/ws",
     ws.upgradeWebSocket((c) => {
       const protocols = c.req.header("Sec-WebSocket-Protocol") ?? "";
       const parts = protocols
@@ -341,7 +341,7 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
       return {
         async onOpen(_evt, socket) {
           const identity = await authProvider.authenticate(token);
-          // An MCP token is for `/api/mcp` alone, and a socket carries notes.
+          // An MCP token is for `/api/v1/mcp` alone, and a socket carries notes.
           if (
             !identity ||
             identity.via === "mcp-token" ||

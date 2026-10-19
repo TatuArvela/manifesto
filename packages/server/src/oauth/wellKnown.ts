@@ -7,7 +7,7 @@ import { GRANT_TYPES, MCP_OAUTH_SCOPES } from "./grants.ts";
 type WellKnownConfig = Pick<ServerConfig, "appUrl" | "trustProxy">;
 
 /**
- * `/.well-known/`: how an assistant that was given only `/api/mcp` finds out
+ * `/.well-known/`: how an assistant that was given only `/api/v1/mcp` finds out
  * how to sign in there (RFC 9728, then RFC 8414). The consent page is the
  * client's, so the authorization endpoint is on its address, not this one.
  */
@@ -16,21 +16,21 @@ export function createWellKnownRoutes(cfg: WellKnownConfig) {
   const protectedResource = (c: Context) => {
     const origin = publicOrigin(c, cfg.trustProxy);
     return c.json({
-      resource: `${origin}/api/mcp`,
+      resource: `${origin}/api/v1/mcp`,
       authorization_servers: [origin],
       scopes_supported: MCP_OAUTH_SCOPES,
       bearer_methods_supported: ["header"],
     });
   };
   routes.get("/oauth-protected-resource", protectedResource);
-  routes.get("/oauth-protected-resource/api/mcp", protectedResource);
+  routes.get("/oauth-protected-resource/api/v1/mcp", protectedResource);
   routes.get("/oauth-authorization-server", (c) => {
     const origin = publicOrigin(c, cfg.trustProxy);
     return c.json({
       issuer: origin,
       authorization_endpoint: `${cfg.appUrl ?? origin}/oauth/authorize`,
-      token_endpoint: `${origin}/api/oauth/token`,
-      registration_endpoint: `${origin}/api/oauth/register`,
+      token_endpoint: `${origin}/api/v1/oauth/token`,
+      registration_endpoint: `${origin}/api/v1/oauth/register`,
       scopes_supported: MCP_OAUTH_SCOPES,
       response_types_supported: ["code"],
       grant_types_supported: GRANT_TYPES,
@@ -43,7 +43,7 @@ export function createWellKnownRoutes(cfg: WellKnownConfig) {
 }
 
 /**
- * On `/api/mcp`: a 401 says where the metadata is, which is how an assistant
+ * On `/api/v1/mcp`: a 401 says where the metadata is, which is how an assistant
  * given only the address learns it can sign in (RFC 9728, section 5.1).
  */
 export function resourceMetadataChallenge(
@@ -55,7 +55,7 @@ export function resourceMetadataChallenge(
     const origin = publicOrigin(c, trustProxy);
     c.res.headers.set(
       "WWW-Authenticate",
-      `Bearer resource_metadata="${origin}/.well-known/oauth-protected-resource/api/mcp"`,
+      `Bearer resource_metadata="${origin}/.well-known/oauth-protected-resource/api/v1/mcp"`,
     );
   };
 }

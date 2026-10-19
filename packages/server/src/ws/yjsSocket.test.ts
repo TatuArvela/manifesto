@@ -110,7 +110,7 @@ async function register(
   rig: Rig,
   username: string,
 ): Promise<{ token: string; userId: string }> {
-  const res = await fetch(`${rig.baseUrl}/api/auth/register`, {
+  const res = await fetch(`${rig.baseUrl}/api/v1/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password: "password-1234" }),
@@ -121,7 +121,7 @@ async function register(
 }
 
 async function signIn(rig: Rig, username: string): Promise<string> {
-  const res = await fetch(`${rig.baseUrl}/api/auth/login`, {
+  const res = await fetch(`${rig.baseUrl}/api/v1/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password: "password-1234" }),
@@ -135,7 +135,7 @@ async function createNote(
   token: string,
   overrides: Partial<NoteCreate> = {},
 ): Promise<string> {
-  const res = await fetch(`${rig.baseUrl}/api/notes`, {
+  const res = await fetch(`${rig.baseUrl}/api/v1/notes`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -155,7 +155,7 @@ async function shareWith(
   recipient: { token: string; userId: string },
   role: "edit" | "view",
 ): Promise<void> {
-  const invited = await fetch(`${rig.baseUrl}/api/notes/${noteId}/shares`, {
+  const invited = await fetch(`${rig.baseUrl}/api/v1/notes/${noteId}/shares`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -165,7 +165,7 @@ async function shareWith(
   });
   expect(invited.status).toBe(201);
   const accepted = await fetch(
-    `${rig.baseUrl}/api/invitations/${noteId}/accept`,
+    `${rig.baseUrl}/api/v1/invitations/${noteId}/accept`,
     {
       method: "POST",
       headers: {
@@ -198,7 +198,7 @@ function connect(
 ): Client {
   const doc = new Y.Doc();
   const provider = new HocuspocusProvider({
-    url: `${rig.wsBase}/api/yjs${query}`,
+    url: `${rig.wsBase}/api/v1/yjs${query}`,
     name: noteId,
     document: doc,
     token: token ?? "",
@@ -267,7 +267,7 @@ function waitAuthFailed(client: Client, ms = 5000): Promise<boolean> {
   });
 }
 
-describe("Yjs collaboration socket /api/yjs", () => {
+describe("Yjs collaboration socket /api/v1/yjs", () => {
   let rig: Rig;
 
   beforeEach(async () => {
@@ -475,7 +475,7 @@ describe("Yjs collaboration socket /api/yjs", () => {
     expect(await waitSynced(own)).toBe(true);
 
     const otherRefused = waitAuthFailed(other, 8000);
-    const res = await fetch(`${rig.baseUrl}/api/auth/password`, {
+    const res = await fetch(`${rig.baseUrl}/api/v1/auth/password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -641,7 +641,7 @@ describe("Yjs collaboration socket /api/yjs", () => {
 
     const refused = waitAuthFailed(client, 8000);
     const res = await fetch(
-      `${rig.baseUrl}/api/notes/${noteId}/shares/${alice.userId}`,
+      `${rig.baseUrl}/api/v1/notes/${noteId}/shares/${alice.userId}`,
       {
         method: "PUT",
         headers: {
@@ -657,7 +657,7 @@ describe("Yjs collaboration socket /api/yjs", () => {
   }, 15_000);
 });
 
-describe("what /api/yjs holds an open socket to", () => {
+describe("what /api/v1/yjs holds an open socket to", () => {
   let rig: Rig;
 
   beforeEach(async () => {

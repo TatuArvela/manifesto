@@ -33,10 +33,15 @@ export function requestedScopes(scope: string | undefined): ApiTokenScope[] {
   return names.includes("notes:read") ? ["notes:read"] : [];
 }
 
-/** Whether a `resource` names `/api/mcp`, the one thing a grant reaches. */
+/**
+ * Whether a `resource` names `/api/v1/mcp`, the one thing a grant reaches,
+ * or `/api/mcp`, its address before the API was versioned, which an
+ * assistant connected then still names when it refreshes.
+ */
 export function namesMcp(resource: string): boolean {
   try {
-    return new URL(resource).pathname.replace(/\/+$/, "") === "/api/mcp";
+    const path = new URL(resource).pathname.replace(/\/+$/, "");
+    return path === "/api/v1/mcp" || path === "/api/mcp";
   } catch {
     return false;
   }

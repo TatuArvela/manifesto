@@ -5,9 +5,9 @@ In connected mode, several people can edit the same note simultaneously, with ch
 ## Behavior
 
 - When a user opens a note that another user is also editing, both see each other's changes live.
-- Text edits, checkbox toggles, list reordering, and other in-document changes propagate over the Yjs WebSocket (`/api/yjs`, see [API](../api.md)). The note id is the Hocuspocus document name.
+- Text edits, checkbox toggles, list reordering, and other in-document changes propagate over the Yjs WebSocket (`/api/v1/yjs`, see [API](../api.md)). The note id is the Hocuspocus document name.
 - Conflicting edits are resolved by the Yjs CRDT: concurrent insertions and deletions converge without data loss.
-- REST writes (`PUT /api/notes/<id>`) remain the authoritative path for note metadata (color, tags, archived/trashed). Optimistic concurrency on REST is enforced via `If-Match: <updatedAt>` and a 412 + 3-way merge on the client.
+- REST writes (`PUT /api/v1/notes/<id>`) remain the authoritative path for note metadata (color, tags, archived/trashed). Optimistic concurrency on REST is enforced via `If-Match: <updatedAt>` and a 412 + 3-way merge on the client.
 
 ## Sealed
 
@@ -100,7 +100,7 @@ arriving, or offline typing whose saves failed), and the document still wins.
   every awareness state a connection publishes with the authenticated user's id, display name and
   avatar colour, and drops any state for a client id that another connection already publishes, so
   one participant cannot label a cursor as someone else or move another person's cursor.
-- Presence updates flow through the application WebSocket (`/api/ws`) using `presence:join`, `presence:leave`, and `presence:update` events.
+- Presence updates flow through the application WebSocket (`/api/v1/ws`) using `presence:join`, `presence:leave`, and `presence:update` events.
 
 Cursors are sealed too, under a key of their own. What a client sends is its cursor as ciphertext;
 the server stamps each state with the account it authenticated and refuses one for a client id
@@ -121,7 +121,7 @@ the same shape or newer:
 
 - `EDITOR_SCHEMA_VERSION` (`@manifesto/shared`) numbers the document shape the editor writes. It is
   raised whenever a node or mark is added, removed or changes its attributes.
-- The client sends it as the `editor` query parameter of the `/api/yjs` URL. The server refuses a
+- The client sends it as the `editor` query parameter of the `/api/v1/yjs` URL. The server refuses a
   version lower than its own, and one it cannot read, with the refusal reason `editor-outdated`,
   before it checks the session. A client that sends none counts as version 1, the shape from before
   the check.

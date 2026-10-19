@@ -18,7 +18,7 @@ async function signIn(
   rig: TestRig,
   body: { username: string; password: string; newPassword?: string },
 ): Promise<Response> {
-  return rig.request("/api/auth/login", {
+  return rig.request("/api/v1/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -41,7 +41,7 @@ describe("admin routes", () => {
   });
 
   function adminRequest(path: string, init: RequestInit = {}) {
-    return rig.request(`/api/admin${path}`, {
+    return rig.request(`/api/v1/admin${path}`, {
       ...init,
       headers: authHeaders(admin.token),
     });
@@ -51,7 +51,7 @@ describe("admin routes", () => {
     const me = async (token: string) =>
       (
         (await (
-          await rig.request("/api/auth/me", { headers: authHeaders(token) })
+          await rig.request("/api/v1/auth/me", { headers: authHeaders(token) })
         ).json()) as AuthMeResponse
       ).user.isAdmin;
     expect(await me(admin.token)).toBe(true);
@@ -59,8 +59,8 @@ describe("admin routes", () => {
   });
 
   it("refuses anyone who is not signed in, and anyone who is not an admin", async () => {
-    expect((await rig.request("/api/admin/users")).status).toBe(401);
-    const res = await rig.request("/api/admin/users", {
+    expect((await rig.request("/api/v1/admin/users")).status).toBe(401);
+    const res = await rig.request("/api/v1/admin/users", {
       headers: authHeaders(bob.token),
     });
     expect(res.status).toBe(403);
@@ -169,7 +169,7 @@ describe("admin routes", () => {
     expect(((await grant.json()) as AdminUserResponse).user.isAdmin).toBe(true);
     expect(
       (
-        await rig.request("/api/admin/users", {
+        await rig.request("/api/v1/admin/users", {
           headers: authHeaders(bob.token),
         })
       ).status,
@@ -182,7 +182,7 @@ describe("admin routes", () => {
     expect(revoke.status).toBe(200);
     expect(
       (
-        await rig.request("/api/admin/users", {
+        await rig.request("/api/v1/admin/users", {
           headers: authHeaders(bob.token),
         })
       ).status,
@@ -231,7 +231,7 @@ describe("admin routes", () => {
       (await res.json()) as AdminTemporaryPasswordResponse;
     expect(user.mustChangePassword).toBe(true);
 
-    const stale = await rig.request("/api/notes", {
+    const stale = await rig.request("/api/v1/notes", {
       headers: authHeaders(bob.token),
     });
     expect(stale.status).toBe(401);
@@ -265,7 +265,7 @@ describe("admin routes", () => {
   });
 
   it("deletes an account along with its notes and sessions", async () => {
-    const note = await rig.request("/api/notes", {
+    const note = await rig.request("/api/v1/notes", {
       method: "POST",
       headers: authHeaders(bob.token),
       body: JSON.stringify({
@@ -297,7 +297,7 @@ describe("admin routes", () => {
     expect(await rig.storage.users.findById(bob.userId)).toBeNull();
     expect(
       (
-        await rig.request("/api/notes", {
+        await rig.request("/api/v1/notes", {
           headers: authHeaders(bob.token),
         })
       ).status,
@@ -318,7 +318,7 @@ describe("admin routes under single sign-on", () => {
         issuer: "https://idp.example.com",
         clientId: "manifesto",
         clientSecret: "secret",
-        redirectUri: "http://localhost:3001/api/auth/callback",
+        redirectUri: "http://localhost:3001/api/v1/auth/callback",
         postLoginRedirect: "http://localhost:5173/",
         scopes: ["openid"],
         groupsClaim: "groups",
@@ -357,26 +357,26 @@ describe("admin routes under single sign-on", () => {
   });
 
   it("lists accounts, and leaves creating them and their passwords to the identity provider", async () => {
-    const list = await rig.request("/api/admin/users", {
+    const list = await rig.request("/api/v1/admin/users", {
       headers: authHeaders(token),
     });
     expect(list.status).toBe(200);
     const { users } = (await list.json()) as AdminUsersResponse;
     expect(users.map((u) => u.provider)).toEqual(["oidc", "oidc"]);
 
-    const create = await rig.request("/api/admin/users", {
+    const create = await rig.request("/api/v1/admin/users", {
       method: "POST",
       headers: authHeaders(token),
       body: JSON.stringify({ username: "carol" }),
     });
     expect(create.status).toBe(404);
-    const reset = await rig.request("/api/admin/users/sso-bob/password", {
+    const reset = await rig.request("/api/v1/admin/users/sso-bob/password", {
       method: "POST",
       headers: authHeaders(token),
     });
     expect(reset.status).toBe(404);
 
-    const remove = await rig.request("/api/admin/users/sso-bob", {
+    const remove = await rig.request("/api/v1/admin/users/sso-bob", {
       method: "DELETE",
       headers: authHeaders(token),
     });

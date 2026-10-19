@@ -131,7 +131,7 @@ describe("PublicNotePage", () => {
     expect(host.querySelector("strong")?.textContent).toBe("Flour");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
-      `${SERVER}/api/public/${TOKEN}`,
+      `${SERVER}/api/v1/public/${TOKEN}`,
     );
   });
 
@@ -247,7 +247,7 @@ describe("PublicLinksDialog", () => {
     });
     expect(fetchMock.mock.calls[1]?.[1]?.method).toBe("DELETE");
     expect(String(fetchMock.mock.calls[1]?.[0])).toBe(
-      `${SERVER}/api/notes/n1/links/${TOKEN}`,
+      `${SERVER}/api/v1/notes/n1/links/${TOKEN}`,
     );
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("No public links yet");

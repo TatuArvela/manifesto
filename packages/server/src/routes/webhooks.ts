@@ -31,7 +31,7 @@ interface WebhookDeps {
 export const MAX_WEBHOOKS_PER_USER = 10;
 
 /**
- * `/api/webhooks`: where a user's note events are posted. Session-only like
+ * `/api/v1/webhooks`: where a user's note events are posted. Session-only like
  * API tokens: a webhook sends every note its owner holds to a URL, which is
  * not something a token handed to a script should be able to set up.
  */

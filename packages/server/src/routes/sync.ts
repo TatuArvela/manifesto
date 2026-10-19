@@ -68,7 +68,7 @@ function decodeSyncCursor(
 }
 
 /**
- * `GET /api/sync`: what changed since a checkpoint, so a client coming back
+ * `GET /api/v1/sync`: what changed since a checkpoint, so a client coming back
  * online reads what it missed rather than every note it has.
  *
  * Deletions are not recorded anywhere. The last page lists every id the user

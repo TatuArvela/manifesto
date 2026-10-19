@@ -28,7 +28,7 @@ interface McpDeps {
 export const MAX_BATCH = 50;
 
 /**
- * `/api/mcp`: the MCP endpoint, as the protocol's "Streamable HTTP"
+ * `/api/v1/mcp`: the MCP endpoint, as the protocol's "Streamable HTTP"
  * transport in its stateless form. A client POSTs one JSON-RPC message (or,
  * under protocol 2025-03-26, a batch) and gets the answer as JSON: 200 for a
  * request, 202 for what needs no answer. Nothing streams, so a GET for a

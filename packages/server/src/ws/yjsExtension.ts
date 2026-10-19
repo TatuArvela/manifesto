@@ -9,7 +9,7 @@ import type { YjsStore } from "#/storage/types.ts";
 
 /**
  * The most a note's collaborative state may weigh, and so the largest frame
- * `/api/yjs` reads. A note's text stops at 100,000 characters and its state
+ * `/api/v1/yjs` reads. A note's text stops at 100,000 characters and its state
  * is a small multiple of that, edit history included, so this is far above
  * any real note. Without it anyone who may edit a note could grow the row
  * its owner keeps it in without end: the state is the one part of a note no

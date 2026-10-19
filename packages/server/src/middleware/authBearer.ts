@@ -32,12 +32,12 @@ export interface AuthMiddlewareOptions {
    * is secured or reaches past it: passwords, tokens, the admin API.
    */
   sessionOnly?: boolean;
-  /** Take an MCP token and nothing else: `/api/mcp` itself. */
+  /** Take an MCP token and nothing else: `/api/v1/mcp` itself. */
   mcpOnly?: boolean;
 }
 
 /**
- * Set in the `env` of the REST requests `/api/mcp` makes in-process for its
+ * Set in the `env` of the REST requests `/api/v1/mcp` makes in-process for its
  * tools, and nowhere else: a request from the network carries only what the
  * Node adapter puts there. An MCP token is accepted on a REST route only
  * with it, so a secret taken from an assistant's settings can do what the
@@ -99,7 +99,7 @@ export function createAuthMiddleware(
         (c.env as Record<symbol, unknown> | undefined)?.[MCP_FORWARDED] ===
         true;
       if (!forwarded) {
-        throw new HttpError(403, "An MCP token works only at /api/mcp");
+        throw new HttpError(403, "An MCP token works only at /api/v1/mcp");
       }
     }
     if (sessionOnly && identity.via !== "session") {

@@ -5,7 +5,7 @@ import type { StorageDriver } from "#/storage/types.ts";
 import { claimed, heldKey } from "./claimed.ts";
 
 /**
- * What `GET /api/sync` reads, run against both drivers: which notes count as
+ * What `GET /api/v1/sync` reads, run against both drivers: which notes count as
  * changed since a time, and which ids a user can see. A driver that misses a
  * membership change leaves a recipient's device showing the wrong role, or a
  * note that is no longer theirs, until the next full reload.

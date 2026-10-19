@@ -165,7 +165,7 @@ export async function createBody(
 /**
  * The keys of the images a token's note names, for the ones the token
  * uploaded: each was kept wrapped under the account's notes key with the
- * attachment (`POST /api/attachments`), and is sealed into the note from
+ * attachment (`POST /api/v1/attachments`), and is sealed into the note from
  * here. A reference with no such key is left to sealing, which refuses it.
  */
 async function uploadedKeys(
@@ -191,7 +191,7 @@ async function uploadedKeys(
 
 /**
  * The changes with every image they name made the note owner's, as the app
- * does before it seals (`POST /api/attachments/claim`): an editor's token
+ * does before it seals (`POST /api/v1/attachments/claim`): an editor's token
  * names its own upload, and the write takes only the owner's reference. The
  * copy holds the same bytes, so the key kept with the upload opens it, and
  * goes into `imageKeys` under the reference the note will name.

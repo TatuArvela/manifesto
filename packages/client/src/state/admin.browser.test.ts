@@ -74,7 +74,7 @@ describe("admin actions", () => {
     expect(await loadAdminUsers()).toBe(true);
     expect(adminUsers.value?.map((u) => u.username)).toEqual(["bob"]);
     const [url, init] = fetchMock.mock.calls[0] ?? [];
-    expect(url).toBe(`${SERVER}/api/admin/users`);
+    expect(url).toBe(`${SERVER}/api/v1/admin/users`);
     expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer tok");
   });
 
@@ -82,7 +82,7 @@ describe("admin actions", () => {
     storageConnection.value = { serverUrl: "", token: "tok", onUnauthorized };
     fetchMock.mockResolvedValueOnce(json({ users: [user()] }));
     expect(await loadAdminUsers()).toBe(true);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/admin/users");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/admin/users");
   });
 
   it("adds a created account in order and holds its password to show once", async () => {
@@ -208,7 +208,7 @@ describe("setup checks", () => {
     );
     expect((await loadSetupChecks())?.proxy).toBe("untouched");
     const [url, init] = fetchMock.mock.calls[0] ?? [];
-    expect(url).toBe(`${SERVER}/api/admin/checks`);
+    expect(url).toBe(`${SERVER}/api/v1/admin/checks`);
     const headers = new Headers(init?.headers);
     expect(headers.get("X-Forwarded-For")).toBe(PROXY_PROBE_ADDRESS);
     expect(headers.get("Authorization")).toBe("Bearer tok");

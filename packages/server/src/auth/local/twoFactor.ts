@@ -47,7 +47,7 @@ export async function hasSecondFactor(
 }
 
 /**
- * `/api/auth/two-factor`: turning TOTP on and off for a local account. Every
+ * `/api/v1/auth/two-factor`: turning TOTP on and off for a local account. Every
  * step is session-only, and the ones that weaken or replace it ask for the
  * password again.
  */

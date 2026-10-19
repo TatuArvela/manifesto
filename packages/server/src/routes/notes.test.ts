@@ -45,7 +45,7 @@ async function createNote(
   token: string,
   overrides: Partial<NoteCreate> = {},
 ): Promise<Note> {
-  const res = await rig.request("/api/notes", {
+  const res = await rig.request("/api/v1/notes", {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify({ ...baseNote, ...overrides }),
@@ -61,7 +61,7 @@ async function putNote(
   id: string,
   changes: Record<string, unknown>,
 ): Promise<Note> {
-  const res = await rig.request(`/api/notes/${id}`, {
+  const res = await rig.request(`/api/v1/notes/${id}`, {
     method: "PUT",
     headers: authHeaders(token),
     body: JSON.stringify(changes),
@@ -87,7 +87,7 @@ describe("notes routes", () => {
     // A token is the one writer whose previews the server reads. A session
     // sends them sealed, and what opens them puts the host right
     // (`checkedLinkPreviews`).
-    const minted = await rig.request("/api/tokens", {
+    const minted = await rig.request("/api/v1/tokens", {
       method: "POST",
       headers: authHeaders(session.token),
       body: JSON.stringify({ name: "Script", password: "test-pass-12" }),
@@ -109,14 +109,14 @@ describe("notes routes", () => {
   });
 
   it("returns 401 when no token is supplied", async () => {
-    const res = await rig.request("/api/notes");
+    const res = await rig.request("/api/v1/notes");
     expect(res.status).toBe(401);
     expect(await res.json()).toMatchObject({ error: expect.any(String) });
   });
 
   it("returns an empty notes list for a fresh user", async () => {
     const { token } = await registerTestUser(rig, "alice");
-    const res = await rig.request("/api/notes", {
+    const res = await rig.request("/api/v1/notes", {
       headers: authHeaders(token),
     });
     expect(res.status).toBe(200);
@@ -141,7 +141,7 @@ describe("notes routes", () => {
   it("retrieves an existing note by id", async () => {
     const { token } = await registerTestUser(rig, "alice");
     const note = await createNote(rig, token, { title: "Found me" });
-    const res = await rig.request(`/api/notes/${note.id}`, {
+    const res = await rig.request(`/api/v1/notes/${note.id}`, {
       headers: authHeaders(token),
     });
     expect(res.status).toBe(200);
@@ -150,7 +150,7 @@ describe("notes routes", () => {
 
   it("returns 404 for unknown note ids", async () => {
     const { token } = await registerTestUser(rig, "alice");
-    const res = await rig.request("/api/notes/missing", {
+    const res = await rig.request("/api/v1/notes/missing", {
       headers: authHeaders(token),
     });
     expect(res.status).toBe(404);
@@ -162,12 +162,14 @@ describe("notes routes", () => {
 
     const aliceNote = await createNote(rig, alice, { title: "Alice's" });
 
-    const res = await rig.request(`/api/notes/${aliceNote.id}`, {
+    const res = await rig.request(`/api/v1/notes/${aliceNote.id}`, {
       headers: authHeaders(bob),
     });
     expect(res.status).toBe(404);
 
-    const list = await rig.request("/api/notes", { headers: authHeaders(bob) });
+    const list = await rig.request("/api/v1/notes", {
+      headers: authHeaders(bob),
+    });
     expect(await list.json()).toEqual({ notes: [], nextCursor: null });
   });
 
@@ -175,7 +177,7 @@ describe("notes routes", () => {
     const { token } = await registerTestUser(rig, "alice");
     const note = await createNote(rig, token, { title: "Old" });
     await new Promise((r) => setTimeout(r, 5));
-    const res = await rig.request(`/api/notes/${note.id}`, {
+    const res = await rig.request(`/api/v1/notes/${note.id}`, {
       method: "PUT",
       headers: authHeaders(token),
       body: JSON.stringify({ title: "New" }),
@@ -192,7 +194,7 @@ describe("notes routes", () => {
     const { token: alice } = await registerTestUser(rig, "alice");
     const { token: bob } = await registerTestUser(rig, "bob");
     const note = await createNote(rig, alice, { title: "Alice's" });
-    const res = await rig.request(`/api/notes/${note.id}`, {
+    const res = await rig.request(`/api/v1/notes/${note.id}`, {
       method: "PUT",
       headers: authHeaders(bob),
       body: JSON.stringify({ title: "Hacked" }),
@@ -203,12 +205,12 @@ describe("notes routes", () => {
   it("deletes a note and 404s on follow-up reads", async () => {
     const { token } = await registerTestUser(rig, "alice");
     const note = await createNote(rig, token);
-    const del = await rig.request(`/api/notes/${note.id}`, {
+    const del = await rig.request(`/api/v1/notes/${note.id}`, {
       method: "DELETE",
       headers: authHeaders(token),
     });
     expect(del.status).toBe(204);
-    const get = await rig.request(`/api/notes/${note.id}`, {
+    const get = await rig.request(`/api/v1/notes/${note.id}`, {
       headers: authHeaders(token),
     });
     expect(get.status).toBe(404);
@@ -216,7 +218,7 @@ describe("notes routes", () => {
 
   it("rejects invalid create bodies with 422", async () => {
     const { token } = await registerTestUser(rig, "alice");
-    const res = await rig.request("/api/notes", {
+    const res = await rig.request("/api/v1/notes", {
       method: "POST",
       headers: authHeaders(token),
       body: JSON.stringify({ title: "Just a title" }),
@@ -227,7 +229,7 @@ describe("notes routes", () => {
   it("rejects a sealed text past what the largest note seals to, with 422", async () => {
     const { token } = await registerTestUser(rig, "alice");
     // The server cannot count the characters inside, only the ciphertext.
-    const res = await rig.request("/api/notes", {
+    const res = await rig.request("/api/v1/notes", {
       method: "POST",
       headers: authHeaders(token),
       body: JSON.stringify({ ...baseNote, content: "x".repeat(400_001) }),
@@ -238,7 +240,7 @@ describe("notes routes", () => {
   it("rejects a reminder or a plugin source whose text has no bound", async () => {
     const { token } = await registerTestUser(rig, "alice");
     const post = (fields: Record<string, unknown>) =>
-      rig.request("/api/notes", {
+      rig.request("/api/v1/notes", {
         method: "POST",
         headers: authHeaders(token),
         body: JSON.stringify({ ...baseNote, ...fields }),
@@ -265,7 +267,7 @@ describe("notes routes", () => {
   it("refuses readable text where a ciphertext belongs", async () => {
     const { token } = await registerTestUser(rig, "alice");
     const post = (fields: object) =>
-      rig.rawRequest("/api/notes", {
+      rig.rawRequest("/api/v1/notes", {
         method: "POST",
         headers: authHeaders(token),
         body: JSON.stringify({ ...sealedCreate(baseNote), ...fields }),
@@ -284,7 +286,7 @@ describe("notes routes", () => {
     const { token } = await registerTestUser(rig, "alice");
     const note = await createNote(rig, token);
     const put = (changes: object) =>
-      rig.rawRequest(`/api/notes/${note.id}`, {
+      rig.rawRequest(`/api/v1/notes/${note.id}`, {
         method: "PUT",
         headers: authHeaders(token),
         body: JSON.stringify(changes),
@@ -300,7 +302,7 @@ describe("notes routes", () => {
   it("refuses a new note under an id that is taken", async () => {
     const { token } = await registerTestUser(rig, "alice");
     const note = await createNote(rig, token);
-    const res = await rig.rawRequest("/api/notes", {
+    const res = await rig.rawRequest("/api/v1/notes", {
       method: "POST",
       headers: authHeaders(token),
       body: JSON.stringify(sealedCreate(baseNote, note.id)),
@@ -321,14 +323,14 @@ describe("notes routes", () => {
     };
     const updated = await putNote(rig, token, note.id, { reminder });
     expect(updated.reminder).toEqual(reminder);
-    const read = await rig.request(`/api/notes/${note.id}`, {
+    const read = await rig.request(`/api/v1/notes/${note.id}`, {
       headers: authHeaders(token),
     });
     expect(((await read.json()) as { note: Note }).note.reminder).toEqual(
       reminder,
     );
     for (const day of [0, 32, 1.5]) {
-      const res = await rig.request(`/api/notes/${note.id}`, {
+      const res = await rig.request(`/api/v1/notes/${note.id}`, {
         method: "PUT",
         headers: authHeaders(token),
         body: JSON.stringify({ reminder: { ...reminder, day } }),
@@ -350,7 +352,7 @@ describe("notes routes", () => {
       ["local:0123abcd", "an open-mode reference"],
     ];
     for (const [image, why] of cases) {
-      const res = await rig.request("/api/notes", {
+      const res = await rig.request("/api/v1/notes", {
         method: "POST",
         headers: authHeaders(token),
         body: JSON.stringify({ ...baseNote, images: [image] }),
@@ -412,7 +414,7 @@ describe("notes routes", () => {
   it("PUT with matching If-Match succeeds", async () => {
     const { token } = await registerTestUser(rig, "alice");
     const note = await createNote(rig, token, { title: "Old" });
-    const res = await rig.request(`/api/notes/${note.id}`, {
+    const res = await rig.request(`/api/v1/notes/${note.id}`, {
       method: "PUT",
       headers: { ...authHeaders(token), "If-Match": note.updatedAt },
       body: JSON.stringify({ title: "New" }),
@@ -425,13 +427,13 @@ describe("notes routes", () => {
     const note = await createNote(rig, token, { title: "Original" });
 
     // Simulate a concurrent edit that bumps updatedAt.
-    await rig.request(`/api/notes/${note.id}`, {
+    await rig.request(`/api/v1/notes/${note.id}`, {
       method: "PUT",
       headers: authHeaders(token),
       body: JSON.stringify({ tags: ["concurrent"] }),
     });
 
-    const res = await rig.request(`/api/notes/${note.id}`, {
+    const res = await rig.request(`/api/v1/notes/${note.id}`, {
       method: "PUT",
       headers: { ...authHeaders(token), "If-Match": note.updatedAt },
       body: JSON.stringify({ title: "Renamed" }),
@@ -445,7 +447,7 @@ describe("notes routes", () => {
 
   describe("import", () => {
     async function importNotes(token: string, notes: unknown[]) {
-      const res = await rig.request("/api/notes/import", {
+      const res = await rig.request("/api/v1/notes/import", {
         method: "POST",
         headers: authHeaders(token),
         body: JSON.stringify({ notes }),
@@ -455,7 +457,7 @@ describe("notes routes", () => {
     }
 
     async function listIds(token: string): Promise<string[]> {
-      const res = await rig.request("/api/notes", {
+      const res = await rig.request("/api/v1/notes", {
         headers: authHeaders(token),
       });
       return ((await res.json()) as NotesResponse).notes.map((n) => n.id);
@@ -480,7 +482,7 @@ describe("notes routes", () => {
       );
 
       expect(await listIds(token)).toEqual([backup.id]);
-      const res = await rig.request(`/api/notes/${backup.id}`, {
+      const res = await rig.request(`/api/v1/notes/${backup.id}`, {
         headers: authHeaders(token),
       });
       const { note } = (await res.json()) as { note: Note };
@@ -509,7 +511,7 @@ describe("notes routes", () => {
       const sealedNow = async () =>
         (
           (await (
-            await rig.rawRequest(`/api/notes/${created.id}`, {
+            await rig.rawRequest(`/api/v1/notes/${created.id}`, {
               headers: authHeaders(token),
             })
           ).json()) as { note: SealedNote }
@@ -534,7 +536,7 @@ describe("notes routes", () => {
         reminder: null,
       };
       const send = async (key: string, keyVersion: number) => {
-        const res = await rig.rawRequest("/api/notes/import", {
+        const res = await rig.rawRequest("/api/v1/notes/import", {
           method: "POST",
           headers: authHeaders(token),
           body: JSON.stringify({ notes: [{ ...copy, key, keyVersion }] }),
@@ -569,7 +571,7 @@ describe("notes routes", () => {
 
     it("refuses more notes than one request may carry", async () => {
       const { token } = await registerTestUser(rig, "alice");
-      const res = await rig.request("/api/notes/import", {
+      const res = await rig.request("/api/v1/notes/import", {
         method: "POST",
         headers: authHeaders(token),
         body: JSON.stringify({
@@ -590,7 +592,7 @@ describe("notes routes", () => {
     await createNote(rig, alice.token);
     const kept = await createNote(rig, bob.token);
 
-    const res = await rig.request("/api/notes", {
+    const res = await rig.request("/api/v1/notes", {
       method: "DELETE",
       headers: authHeaders(alice.token),
     });
@@ -599,7 +601,7 @@ describe("notes routes", () => {
     const listed = async (token: string) =>
       (
         (await (
-          await rig.request("/api/notes", { headers: authHeaders(token) })
+          await rig.request("/api/v1/notes", { headers: authHeaders(token) })
         ).json()) as NotesResponse
       ).notes.map((n) => n.id);
     expect(await listed(alice.token)).toEqual([]);
@@ -613,7 +615,7 @@ describe("notes routes", () => {
       // The reason the endpoint is paged at all: an unpaged list of notes each
       // carrying its own pictures is a response with no upper bound.
       const { token } = await registerTestUser(rig, "alice");
-      const uploaded = await rig.request("/api/attachments", {
+      const uploaded = await rig.request("/api/v1/attachments", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -624,12 +626,12 @@ describe("notes routes", () => {
       const { ref: uploadedRef } = (await uploaded.json()) as { ref: string };
       await createNote(rig, token, { title: "Holiday", images: [uploadedRef] });
 
-      const res = await rig.request("/api/notes", {
+      const res = await rig.request("/api/v1/notes", {
         headers: authHeaders(token),
       });
       // The sealed list of images is small and travels with the note; the
       // references the server keeps for itself never do.
-      const raw = await rig.rawRequest("/api/notes", {
+      const raw = await rig.rawRequest("/api/v1/notes", {
         headers: authHeaders(token),
       });
       const [listed] = ((await raw.json()) as { notes: object[] }).notes;
@@ -638,12 +640,15 @@ describe("notes routes", () => {
       expect(body.notes[0]?.images).toEqual([uploadedRef]);
 
       // Reading the one note gives the reference, and that the bytes.
-      const one = await rig.request(`/api/notes/${defined(body.notes[0]).id}`, {
-        headers: authHeaders(token),
-      });
+      const one = await rig.request(
+        `/api/v1/notes/${defined(body.notes[0]).id}`,
+        {
+          headers: authHeaders(token),
+        },
+      );
       const [ref] = ((await one.json()) as { note: Note }).note.images;
       const bytes = await rig.request(
-        `/api/attachments/${attachmentIdOf(defined(ref))}`,
+        `/api/v1/attachments/${attachmentIdOf(defined(ref))}`,
         { headers: authHeaders(token) },
       );
       expect(bytes.headers.get("Content-Type")).toBe("image/png");
@@ -658,7 +663,7 @@ describe("notes routes", () => {
         await createNote(rig, token, { title: `Note ${i}` });
       }
 
-      const first = await rig.request("/api/notes?limit=2", {
+      const first = await rig.request("/api/v1/notes?limit=2", {
         headers: authHeaders(token),
       });
       const firstPage = (await first.json()) as NotesResponse;
@@ -666,7 +671,7 @@ describe("notes routes", () => {
       expect(firstPage.nextCursor).toBeTruthy();
 
       const second = await rig.request(
-        `/api/notes?limit=2&cursor=${encodeURIComponent(firstPage.nextCursor as string)}`,
+        `/api/v1/notes?limit=2&cursor=${encodeURIComponent(firstPage.nextCursor as string)}`,
         { headers: authHeaders(token) },
       );
       const secondPage = (await second.json()) as NotesResponse;
@@ -681,7 +686,7 @@ describe("notes routes", () => {
       await createNote(rig, token, { title: "One" });
 
       for (const query of ["?limit=0", "?limit=99999", "?limit=nonsense"]) {
-        const res = await rig.request(`/api/notes${query}`, {
+        const res = await rig.request(`/api/v1/notes${query}`, {
           headers: authHeaders(token),
         });
         expect(res.status, query).toBe(200);
@@ -693,7 +698,7 @@ describe("notes routes", () => {
       // Quietly restarting from the top would hand a paging client the first
       // page over and over, and look like a server with two notes on it.
       const { token } = await registerTestUser(rig, "alice");
-      const res = await rig.request("/api/notes?cursor=not-a-cursor", {
+      const res = await rig.request("/api/v1/notes?cursor=not-a-cursor", {
         headers: authHeaders(token),
       });
       expect(res.status).toBe(400);

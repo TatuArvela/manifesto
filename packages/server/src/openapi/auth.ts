@@ -20,7 +20,7 @@ import { noContent, type Operation, ok } from "./operation.ts";
 export const AUTH_OPERATIONS: Operation[] = [
   {
     method: "get",
-    path: "/api/auth/me",
+    path: "/api/v1/auth/me",
     tag: "Auth",
     summary: "The signed-in user",
     auth: "any",
@@ -30,7 +30,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "put",
-    path: "/api/auth/me",
+    path: "/api/v1/auth/me",
     tag: "Auth",
     summary: "Set or clear the signed-in user's email address",
     auth: "session",
@@ -40,7 +40,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "delete",
-    path: "/api/auth/me",
+    path: "/api/v1/auth/me",
     tag: "Auth",
     summary:
       "Delete the signed-in user's account and everything it holds, with the password",
@@ -51,7 +51,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/auth/me/activity",
+    path: "/api/v1/auth/me/activity",
     tag: "Auth",
     summary: "The signed-in user's own lines of the audit log, newest first",
     auth: "session",
@@ -64,7 +64,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/auth/me/prefs",
+    path: "/api/v1/auth/me/prefs",
     tag: "Auth",
     summary: "The signed-in user's preferences, as their clients sent them",
     auth: "any",
@@ -74,7 +74,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "patch",
-    path: "/api/auth/me/prefs",
+    path: "/api/v1/auth/me/prefs",
     tag: "Auth",
     summary: "Set some of the signed-in user's preferences; null removes one",
     auth: "any",
@@ -88,7 +88,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "put",
-    path: "/api/auth/me/locale",
+    path: "/api/v1/auth/me/locale",
     tag: "Auth",
     summary: "Record the language the signed-in user's client is set to",
     auth: "any",
@@ -99,7 +99,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/register",
+    path: "/api/v1/auth/register",
     tag: "Auth",
     summary: "Create an account (local sign-in, when registration is open)",
     auth: "none",
@@ -110,7 +110,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/login",
+    path: "/api/v1/auth/login",
     tag: "Auth",
     summary: "Sign in with a username and password",
     auth: "none",
@@ -121,7 +121,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/auth/login",
+    path: "/api/v1/auth/login",
     tag: "Auth",
     summary: "Start single sign-on (redirects to the identity provider)",
     auth: "none",
@@ -135,7 +135,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "get",
-    path: "/api/auth/callback",
+    path: "/api/v1/auth/callback",
     tag: "Auth",
     summary: "Where the identity provider returns to",
     auth: "none",
@@ -145,7 +145,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/logout",
+    path: "/api/v1/auth/logout",
     tag: "Auth",
     summary: "End this session",
     auth: "session",
@@ -154,7 +154,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/password",
+    path: "/api/v1/auth/password",
     tag: "Auth",
     summary: "Change the signed-in user's password; other sessions end",
     auth: "session",
@@ -165,7 +165,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/password-reset",
+    path: "/api/v1/auth/password-reset",
     tag: "Auth",
     summary: "Mail a reset link to a local account's address; always 204",
     auth: "none",
@@ -176,7 +176,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/password-reset/confirm",
+    path: "/api/v1/auth/password-reset/confirm",
     tag: "Auth",
     summary: "Set a new password with a link's token; ends every session",
     auth: "none",
@@ -190,7 +190,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/sign-in-link",
+    path: "/api/v1/auth/sign-in-link",
     tag: "Auth",
     summary: "Mail a sign-in link to a local account's address; always 204",
     auth: "none",
@@ -202,7 +202,7 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
-    path: "/api/auth/sign-in-link/confirm",
+    path: "/api/v1/auth/sign-in-link/confirm",
     tag: "Auth",
     summary:
       "Sign in with a link's token, and the second factor if the account has one",

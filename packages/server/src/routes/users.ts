@@ -28,7 +28,7 @@ function toDirectoryUser(user: User, withEmail: boolean): DirectoryUser {
 }
 
 /**
- * `GET /api/users?q=`: the accounts a note could be shared with.
+ * `GET /api/v1/users?q=`: the accounts a note could be shared with.
  *
  * Under `USER_LOOKUP=search` any part of a username, display name or email
  * address matches. Under `exact` only a whole username or address does, and

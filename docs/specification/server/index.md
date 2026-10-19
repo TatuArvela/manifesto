@@ -73,24 +73,24 @@ rather than stacking later steps on a schema it cannot describe.
 Authentication is abstracted as an `AuthProvider`. The provider:
 
 - Implements `authenticate(token)`, which turns a bearer token into an identity (used by HTTP middleware and both WebSocket handshakes).
-- Owns its own router, mounted under `/api/auth`. The local provider mounts `/register`, `/login`, `/logout`, `/password`. The OIDC provider mounts `/login` (302 to the IdP), `/callback`, and `/logout`. App-level services a route needs, such as session revocation, are handed to `router()` when it is mounted rather than to the provider when it is built.
+- Owns its own router, mounted under `/api/v1/auth`. The local provider mounts `/register`, `/login`, `/logout`, `/password`. The OIDC provider mounts `/login` (302 to the IdP), `/callback`, and `/logout`. App-level services a route needs, such as session revocation, are handed to `router()` when it is mounted rather than to the provider when it is built.
 
 Two implementations ship today:
 
 - **`local`** (default): username + argon2-hashed password, sessions stored server-side. Mounts `/register`, `/login`, `/logout`, `/password`.
 - **`oidc`**: OAuth 2.0 Authorization Code Flow with PKCE against any OpenID Connect IdP (Authentik, Keycloak, Google, Auth0, Okta, etc.). Mounts `/login` (redirect to IdP), `/callback` (code exchange + JIT user provisioning + session mint), `/logout`. The IdP is contacted only at login time; once a session is minted, `authenticate(token)` is identical to the local provider: pure session lookup, no IdP round-trip per request.
 
-The server also exposes provider-agnostic auth endpoints used by the client, `GET /api/auth/me` (bearer-protected, returns the current user; used after an OIDC callback when the client only has a token in the URL fragment). How to sign in is part of the public `GET /api/capabilities`, which the client reads to pick the login UI.
+The server also exposes provider-agnostic auth endpoints used by the client, `GET /api/v1/auth/me` (bearer-protected, returns the current user; used after an OIDC callback when the client only has a token in the URL fragment). How to sign in is part of the public `GET /api/v1/capabilities`, which the client reads to pick the login UI.
 
 The `users` schema supports both modes: `password_hash` is nullable, and `(provider, external_id)` is the IdP-stable identity. Local and SSO users coexist in the same table; account linking across providers is not supported in v1.
 
 ### REST API
 
-Implements the endpoints defined in [API](../api.md). The auth provider owns `/api/auth/*`; the rest of the surface is static.
+Implements the endpoints defined in [API](../api.md). The auth provider owns `/api/v1/auth/*`; the rest of the surface is static.
 
 ### Administration
 
-`/api/admin` (`src/routes/admin.ts`) lets admins list, create, reset, promote and delete accounts; see [Account Administration](../features/accounts.md). It is provider-agnostic, except that creating accounts and resetting passwords exist only under `AUTH_PROVIDER=local`.
+`/api/v1/admin` (`src/routes/admin.ts`) lets admins list, create, reset, promote and delete accounts; see [Account Administration](../features/accounts.md). It is provider-agnostic, except that creating accounts and resetting passwords exist only under `AUTH_PROVIDER=local`.
 
 The rules that must hold whatever calls them live in the `users` repository, so both drivers enforce them and a shared contract test (`src/storage/contracts/adminContract.ts`) runs against each:
 
@@ -122,24 +122,24 @@ accepted (`null` while it is an invitation), and their own copy of the personal 
   shared note looks different to each of them, and tells people who lost it (removed, or the note
   trashed or deleted) that it is gone.
 - **Sockets.** `src/sharing/accessChanges.ts` announces lost access the way `auth/revocations.ts`
-  announces ended sessions. `/api/yjs` closes the affected sockets; `/api/ws` stops showing the person
+  announces ended sessions. `/api/v1/yjs` closes the affected sockets; `/api/v1/ws` stops showing the person
   on the note and stops telling them who else is.
 - **Contract.** `src/storage/contracts/sharingContract.ts` runs the same rules against both drivers: an
   invitation grants nothing, personal fields stay apart, viewers cannot write the note, the owner's
   trash hides a note from recipients while a recipient's is their own, an expired recipient trash
   removes only their share, cascades take shares along.
 
-`USER_LOOKUP` decides what `GET /api/users` answers: only an exact username or address, never
+`USER_LOOKUP` decides what `GET /api/v1/users` answers: only an exact username or address, never
 showing the address (`exact`, the default), or matches as the owner types (`search`).
 
 ### Link previews
 
-`GET /api/link-preview` is the one route that makes the server reach out to the internet on a user's behalf, so it is built around not being turned against the server's own network. `src/linkPreview/safeFetch.ts` resolves the hostname, refuses unless every address is publicly routable (`addressPolicy.ts`), and then connects to that checked address through a pinned `lookup` rather than letting the HTTP client resolve the name a second time, which a hostname with a short TTL could answer differently. Redirects go back through the same check, and the body limit applies after decompression. `parseHtml.ts` reads the metadata with bounded regular expressions, and `fetchPreview.ts` identifies images by their leading bytes. Uses Node's own `http`, `https`, `dns` and `zlib`, with no dependency. See [Link Previews](../features/link-previews.md) for the rules and `LINK_PREVIEWS` to turn it off.
+`GET /api/v1/link-preview` is the one route that makes the server reach out to the internet on a user's behalf, so it is built around not being turned against the server's own network. `src/linkPreview/safeFetch.ts` resolves the hostname, refuses unless every address is publicly routable (`addressPolicy.ts`), and then connects to that checked address through a pinned `lookup` rather than letting the HTTP client resolve the name a second time, which a hostname with a short TTL could answer differently. Redirects go back through the same check, and the body limit applies after decompression. `parseHtml.ts` reads the metadata with bounded regular expressions, and `fetchPreview.ts` identifies images by their leading bytes. Uses Node's own `http`, `https`, `dns` and `zlib`, with no dependency. See [Link Previews](../features/link-previews.md) for the rules and `LINK_PREVIEWS` to turn it off.
 
 ### WebSockets
 
-- `/api/ws`: application JSON socket for `note:*`, `invitation:*` and `presence:*` events. Authenticates via the active auth provider. Token is passed in the `Sec-WebSocket-Protocol` header. A revoked session's connections are closed with `4401`. A `presence:update` is checked against the note's audience (its owner and accepted recipients) and relayed to that audience only.
-- `/api/yjs`: Hocuspocus-backed Yjs collaboration channel, multiplexing every note over one socket by document name. The `onAuthenticate` hook resolves the token via the active auth provider and then checks, against the joined document name, that the user may edit the note: its owner, or an accepted recipient who can edit. Persistence is delegated to `storage.yjs`, keyed by the note's owner, so Yjs state lives in whichever store is selected. A revoked session's whole socket is closed, and its reconnect fails authentication; so is the socket of someone who loses the right to edit a note (`4403`).
+- `/api/v1/ws`: application JSON socket for `note:*`, `invitation:*` and `presence:*` events. Authenticates via the active auth provider. Token is passed in the `Sec-WebSocket-Protocol` header. A revoked session's connections are closed with `4401`. A `presence:update` is checked against the note's audience (its owner and accepted recipients) and relayed to that audience only.
+- `/api/v1/yjs`: Hocuspocus-backed Yjs collaboration channel, multiplexing every note over one socket by document name. The `onAuthenticate` hook resolves the token via the active auth provider and then checks, against the joined document name, that the user may edit the note: its owner, or an accepted recipient who can edit. Persistence is delegated to `storage.yjs`, keyed by the note's owner, so Yjs state lives in whichever store is selected. A revoked session's whole socket is closed, and its reconnect fails authentication; so is the socket of someone who loses the right to edit a note (`4403`).
 
 ### Multi-User
 

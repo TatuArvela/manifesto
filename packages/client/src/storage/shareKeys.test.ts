@@ -46,7 +46,7 @@ function json(body: unknown, status = 200): Response {
 
 async function server(url: string, init?: RequestInit): Promise<Response> {
   const path = new URL(url, "http://server.test").pathname;
-  const keys = /^\/api\/users\/([^/]+)\/keys$/.exec(path);
+  const keys = /^\/api\/v1\/users\/([^/]+)\/keys$/.exec(path);
   if (keys) {
     const userId = decodeURIComponent(keys[1] ?? "");
     const publicKeys = publicKeysOf.get(userId);
@@ -54,23 +54,27 @@ async function server(url: string, init?: RequestInit): Promise<Response> {
       ? json({ userId, version: 1, publicKeys })
       : json({ error: "none" }, 404);
   }
-  if (path === "/api/auth/keys/seen") {
+  if (path === "/api/v1/auth/keys/seen") {
     return seenReadable ? json({ seen }) : json({ error: "down" }, 500);
   }
-  const put = /^\/api\/auth\/keys\/seen\/([^/]+)$/.exec(path);
+  const put = /^\/api\/v1\/auth\/keys\/seen\/([^/]+)$/.exec(path);
   if (put && init?.method === "PUT") {
     if (!seenWritable) return json({ error: "down" }, 500);
     const { sealed } = JSON.parse(String(init.body)) as { sealed: string };
     seen[decodeURIComponent(put[1] ?? "")] = sealed;
     return new Response(null, { status: 204 });
   }
-  if (held && path === `/api/notes/${held.id}`) return json({ note: held });
-  if (held && path === `/api/notes/${held.id}/links`) {
+  if (held && path === `/api/v1/notes/${held.id}`) return json({ note: held });
+  if (held && path === `/api/v1/notes/${held.id}/links`) {
     return linksStatus === 200
       ? json({ links: [] })
       : json({ error: "no" }, linksStatus);
   }
-  if (held && path === `/api/notes/${held.id}/key` && init?.method === "PUT") {
+  if (
+    held &&
+    path === `/api/v1/notes/${held.id}/key` &&
+    init?.method === "PUT"
+  ) {
     rekeyed = JSON.parse(String(init.body)) as NoteRekeyRequest;
     return json({ note: held });
   }

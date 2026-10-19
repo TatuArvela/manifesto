@@ -51,11 +51,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /** The body as the app would send it, or null to send it as given. */
 function sealedBody(method: string, path: string, body: unknown): unknown {
   if (!isRecord(body)) return null;
-  if (method === "POST" && path === "/api/notes") {
+  if (method === "POST" && path === "/api/v1/notes") {
     if ("key" in body) return null;
     return sealedCreate(body as unknown as NoteCreate);
   }
-  if (method === "POST" && path === "/api/notes/import") {
+  if (method === "POST" && path === "/api/v1/notes/import") {
     if (!Array.isArray(body.notes)) return null;
     return {
       notes: body.notes.map((note: unknown) => {
@@ -71,10 +71,10 @@ function sealedBody(method: string, path: string, body: unknown): unknown {
       }),
     };
   }
-  if (method === "PUT" && /^\/api\/notes\/[^/]+$/.test(path)) {
+  if (method === "PUT" && /^\/api\/v1\/notes\/[^/]+$/.test(path)) {
     return sealedUpdate(body as NoteUpdate);
   }
-  if (method === "POST" && /^\/api\/notes\/[^/]+\/versions$/.test(path)) {
+  if (method === "POST" && /^\/api\/v1\/notes\/[^/]+\/versions$/.test(path)) {
     if ("keyVersion" in body) return null;
     const { title, content, ...rest } = body;
     return {
@@ -85,7 +85,7 @@ function sealedBody(method: string, path: string, body: unknown): unknown {
       content: typeof content === "string" ? ciphertext(content) : content,
     };
   }
-  const comment = /^\/api\/notes\/[^/]+\/comments(\/[^/]+)?$/.exec(path);
+  const comment = /^\/api\/v1\/notes\/[^/]+\/comments(\/[^/]+)?$/.exec(path);
   if (comment && (method === "POST" || method === "PUT")) {
     if ("keyVersion" in body) return null;
     // Trimmed and held to its length here, as the app's sealing does, since
@@ -100,7 +100,7 @@ function sealedBody(method: string, path: string, body: unknown): unknown {
       body: ciphertext(text),
     };
   }
-  if (method === "PATCH" && path === "/api/auth/me/prefs") {
+  if (method === "PATCH" && path === "/api/v1/auth/me/prefs") {
     if (!isRecord(body.prefs)) return null;
     return {
       prefs: Object.fromEntries(
@@ -277,7 +277,7 @@ export function sealingClient(send: Fetch): Fetch {
   ): Promise<Record<string, unknown> | Response> {
     const refs = [...new Set(refsOf(note))];
     if (refs.length === 0 || "key" in note) return note;
-    const res = await send("/api/attachments/claim", {
+    const res = await send("/api/v1/attachments/claim", {
       method: "POST",
       headers: init.headers ?? {},
       body: JSON.stringify({ ...(noteId !== undefined && { noteId }), refs }),
@@ -298,7 +298,7 @@ export function sealingClient(send: Fetch): Fetch {
     const path = new URL(input, "http://test").pathname;
     const method = (init?.method ?? "GET").toUpperCase();
     let next = init;
-    if (method === "POST" && path === "/api/attachments" && init) {
+    if (method === "POST" && path === "/api/v1/attachments" && init) {
       next = sealedUpload(init) ?? init;
     }
     // A token that reaches notes is made by the app, which keeps its secret
@@ -308,7 +308,7 @@ export function sealingClient(send: Fetch): Fetch {
     let madeLink = false;
     if (
       method === "POST" &&
-      path === "/api/tokens" &&
+      path === "/api/v1/tokens" &&
       typeof init?.body === "string"
     ) {
       try {
@@ -318,7 +318,7 @@ export function sealingClient(send: Fetch): Fetch {
           (kind === "api" || kind === "mcp" || kind === "calendar") &&
           !("tokenHash" in body)
         ) {
-          const me = await send("/api/auth/me", {
+          const me = await send("/api/v1/auth/me", {
             headers: init.headers ?? {},
           });
           const userId = me.ok
@@ -336,7 +336,7 @@ export function sealingClient(send: Fetch): Fetch {
     }
     // Publishing: the app seals the link key for its owner and, for a
     // snapshot, a copy of the note as it stands.
-    const published = /^\/api\/notes\/([^/]+)\/links$/.exec(path);
+    const published = /^\/api\/v1\/notes\/([^/]+)\/links$/.exec(path);
     if (method === "POST" && published && typeof init?.body === "string") {
       try {
         const body = JSON.parse(init.body) as Record<string, unknown>;
@@ -345,7 +345,7 @@ export function sealingClient(send: Fetch): Fetch {
             sealedLinkKey: ciphertext("link key"),
           };
           if (body.mode === "snapshot") {
-            const got = await send(`/api/notes/${published[1]}`, {
+            const got = await send(`/api/v1/notes/${published[1]}`, {
               headers: init.headers ?? {},
             });
             if (got.ok) {
@@ -373,7 +373,7 @@ export function sealingClient(send: Fetch): Fetch {
         // Not JSON: sent as it is.
       }
     }
-    const accepted = /^\/api\/invitations\/([^/]+)\/accept$/.exec(path);
+    const accepted = /^\/api\/v1\/invitations\/([^/]+)\/accept$/.exec(path);
     if (
       method === "POST" &&
       accepted &&
@@ -381,7 +381,7 @@ export function sealingClient(send: Fetch): Fetch {
     ) {
       // The app opens the key it was offered and sends it back wrapped
       // under its own notes key; here, a value of that shape.
-      const list = await send("/api/invitations", {
+      const list = await send("/api/v1/invitations", {
         headers: init?.headers ?? {},
       });
       const invitations = list.ok
@@ -401,9 +401,9 @@ export function sealingClient(send: Fetch): Fetch {
     if (typeof init?.body === "string" && madeSecret === null && !madeLink) {
       try {
         let parsed: unknown = JSON.parse(init.body);
-        const noteId = /^\/api\/notes\/([^/]+)$/.exec(path)?.[1];
+        const noteId = /^\/api\/v1\/notes\/([^/]+)$/.exec(path)?.[1];
         const writesNote =
-          (method === "POST" && path === "/api/notes") ||
+          (method === "POST" && path === "/api/v1/notes") ||
           (method === "PUT" && noteId !== undefined);
         if (writesNote && isRecord(parsed)) {
           const owned = await claimed(init, parsed, noteId);

@@ -40,11 +40,11 @@ export const shareCreateSchema = z.object({
   key: offeredKeySchema.exactOptional(),
 });
 
-/** `PUT /api/auth/keys/seen/:userId`: someone's public keys as this account
+/** `PUT /api/v1/auth/keys/seen/:userId`: someone's public keys as this account
  * remembers them, sealed under its own key. */
 export const seenKeySchema = z.object({ sealed: sealed(1024) });
 
-/** `POST /api/invitations/:noteId/accept` and `PUT /api/notes/:id/held-key`. */
+/** `POST /api/v1/invitations/:noteId/accept` and `PUT /api/v1/notes/:id/held-key`. */
 export const heldKeySchema = z.object({
   key: wrappedKey,
   keyVersion: z.number().int().min(1),
@@ -55,13 +55,13 @@ export const shareUpdateSchema = z.object({ role: shareRoleSchema });
 const teamName = z.string().trim().min(1).max(100);
 const teamMemberIds = z.array(z.string().min(1).max(64)).max(1000);
 
-/** `POST /api/admin/teams`. */
+/** `POST /api/v1/admin/teams`. */
 export const adminTeamCreateSchema = z.object({
   name: teamName,
   memberIds: teamMemberIds.exactOptional(),
 });
 
-/** `PUT /api/admin/teams/:id`. */
+/** `PUT /api/v1/admin/teams/:id`. */
 export const adminTeamUpdateSchema = z
   .object({
     name: teamName.exactOptional(),
@@ -71,13 +71,13 @@ export const adminTeamUpdateSchema = z
     message: "Nothing to change",
   });
 
-/** `POST /api/notes/:id/team-shares`. */
+/** `POST /api/v1/notes/:id/team-shares`. */
 export const teamShareCreateSchema = z.object({
   teamId: z.string().min(1).max(64),
   role: shareRoleSchema,
 });
 
-/** `POST /api/notes/:id/links`. */
+/** `POST /api/v1/notes/:id/links`. */
 export const publicLinkCreateSchema = z
   .object({
     mode: z.enum(PUBLIC_LINK_MODES),
@@ -115,7 +115,7 @@ export const publicLinkCreateSchema = z
     { message: "A live link takes wrappedKey, a snapshot link takes snapshot" },
   );
 
-/** `POST /api/public/:token/unlock`. */
+/** `POST /api/v1/public/:token/unlock`. */
 export const publicLinkUnlockSchema = z.object({
   password: z.string().min(1).max(256),
 });

@@ -48,8 +48,8 @@ export const AUDIT_ACTIONS = [
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
 /**
- * One line of the audit log, as `GET /api/admin/audit` lists it, and
- * `GET /api/auth/me/activity` lists a user's own.
+ * One line of the audit log, as `GET /api/v1/admin/audit` lists it, and
+ * `GET /api/v1/auth/me/activity` lists a user's own.
  */
 export interface AuditEntry {
   id: string;

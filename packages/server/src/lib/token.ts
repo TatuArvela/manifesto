@@ -20,7 +20,7 @@ export function hashToken(token: string): string {
  */
 export const API_TOKEN_PREFIX = "mfp_";
 
-/** The same for a token only `/api/mcp` accepts, minted for an AI assistant. */
+/** The same for a token only `/api/v1/mcp` accepts, minted for an AI assistant. */
 export const MCP_TOKEN_PREFIX = "mfm_";
 
 /** The same for an OAuth grant's refresh token, which an assistant trades

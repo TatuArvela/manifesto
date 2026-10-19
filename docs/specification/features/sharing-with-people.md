@@ -9,7 +9,7 @@ This is separate from [sharing a note via URL](sharing.md), which copies a note 
 | | Owner | Can edit | Can view |
 |---|---|---|---|
 | Read the note, see live changes | Yes | Yes | Yes |
-| Change title, text, font, images, link previews | Yes | Yes, live over `/api/yjs` | No |
+| Change title, text, font, images, link previews | Yes | Yes, live over `/api/v1/yjs` | No |
 | Their own color, pin, archive, position, tags and reminder | Yes | Yes | Yes |
 | Invite people, change roles, remove people | Yes | No | No |
 | Trash, restore or delete the note for everyone | Yes | No | No |
@@ -97,9 +97,9 @@ A recipient cannot put the note in the owner's trash or delete it for anyone but
 
 ## Live updates
 
-Every change to a shared note, by anyone, reaches every participant over `/api/ws` as their own copy of it, with their personal fields and their role. See [API](../api.md#application-socket-apiws).
+Every change to a shared note, by anyone, reaches every participant over `/api/v1/ws` as their own copy of it, with their personal fields and their role. See [API](../api.md#application-socket-apiv1ws).
 
-- Editors join the note's Yjs document on `/api/yjs` and see each other's cursors. See [Collaborative Editing](collaborative-editing.md).
+- Editors join the note's Yjs document on `/api/v1/yjs` and see each other's cursors. See [Collaborative Editing](collaborative-editing.md).
 - Viewers never join the document. They read the note as it is saved, which happens within a second of an editor typing.
 - Presence (who is looking at the note) reaches everyone who can see it, and only them. Someone who accepts a note, or regains it when its owner restores it from the trash, sees at once who is already on it, as does a tab that opens while they are.
 
@@ -130,7 +130,7 @@ it, so a long thread leaves the note as it was; on anything narrower they open u
   sharing with the person again brings their name back.
 - **Trash and deletion.** While the note is in its owner's trash only the owner reaches its comments,
   as with the note. Deleting the note deletes its comments.
-- **Live.** A comment written, edited or deleted reaches everyone on the note over `/api/ws`
+- **Live.** A comment written, edited or deleted reaches everyone on the note over `/api/v1/ws`
   (`comment:created`, `comment:updated`, `comment:deleted`), so an open panel follows along.
   An open panel reads its comments again after the connection was lost, and when the people on the
   note change, so names follow who is on it. If they cannot be read the panel says so and offers to

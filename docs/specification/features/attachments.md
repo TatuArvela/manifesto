@@ -12,7 +12,7 @@ or image refers to them, and inlined again on export (where one that cannot be r
 kept, since it is a picture of the linked page rather than something the user attached).
 
 `data:` URLs appear only in export and import files. Inline, every note write, every conflict retry,
-every `GET /api/notes/:id` would carry the bytes of every image on the note, and in open mode a few
+every `GET /api/v1/notes/:id` would carry the bytes of every image on the note, and in open mode a few
 photos filled `localStorage`'s ~5 MB, after which every save failed, text included. Referred to, a note
 carries a few dozen bytes per image. `StoredImage` draws either kind through a `blob:` URL.
 
@@ -96,7 +96,7 @@ read ([Encryption](encryption.md#images)):
 
 ## How an image gets there
 
-The client uploads each image as it is attached: `POST /api/attachments` with the sealed bytes (no
+The client uploads each image as it is attached: `POST /api/v1/attachments` with the sealed bytes (no
 base64) and the image's address in `X-Attachment-Address`, answered with
 `{ ref: "attachment:<id>" }`. The editor draws the image at once from the local file, shows the
 upload's progress, and puts the reference in the note when it is stored. A failed upload stays in
@@ -112,7 +112,7 @@ is stored under the uploader, once for an address.
 
 ## Reading
 
-`GET /api/attachments/:id` returns the sealed bytes as `application/octet-stream`, to the owner and
+`GET /api/v1/attachments/:id` returns the sealed bytes as `application/octet-stream`, to the owner and
 to anyone holding an accepted share of a note of the owner's that refers to it, while the owner has
 not trashed that note. To anyone else it is a 404. The response is `Cache-Control: private, immutable`
 (an id names one set of bytes for good), `nosniff`, and carries a sandboxing CSP. It has its own
@@ -149,7 +149,7 @@ Every attachment a note refers to belongs to the note's owner, whose notes it is
 whose account it goes with. A readable note could have a reference rewritten under it; a sealed one
 cannot, so the image is made the owner's before the note is sealed:
 
-- **`POST /api/attachments/claim`** takes `{ noteId?, refs }` and answers `{ refs }`, the owner's own
+- **`POST /api/v1/attachments/claim`** takes `{ noteId?, refs }` and answers `{ refs }`, the owner's own
   reference for each in order. One the owner already holds comes back as it is. One held by another
   account (an editor's own upload, or an image copied out of a note shared with them) is stored again
   for the owner if the caller may read it, under a new id: the sealed bytes are the same, so the key

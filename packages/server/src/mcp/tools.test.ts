@@ -166,7 +166,7 @@ describe("the MCP tools", () => {
       };
       expect(listed.notes.map((n) => n.id)).toEqual(["a", "b"]);
       expect(listed.nextCursor).toBe("next");
-      expect(sent[0]?.path).toBe("/api/notes?limit=5&cursor=c1");
+      expect(sent[0]?.path).toBe("/api/v1/notes?limit=5&cursor=c1");
     });
 
     it("lists the trash only when asked", async () => {
@@ -198,8 +198,8 @@ describe("the MCP tools", () => {
       ],
     });
     expect(sent.map((s) => s.path)).toEqual([
-      `/api/notes?limit=${MAX_NOTES_PAGE_SIZE}`,
-      `/api/notes?limit=${MAX_NOTES_PAGE_SIZE}&cursor=p2`,
+      `/api/v1/notes?limit=${MAX_NOTES_PAGE_SIZE}`,
+      `/api/v1/notes?limit=${MAX_NOTES_PAGE_SIZE}&cursor=p2`,
     ]);
   });
 
@@ -211,7 +211,7 @@ describe("the MCP tools", () => {
     );
     await tool("create_note").call({ content: "- [ ] milk" }, rest);
     const created = sent.find((s) => s.method === "POST");
-    expect(created?.path).toBe("/api/notes");
+    expect(created?.path).toBe("/api/v1/notes");
     expect(created?.body).toMatchObject({
       title: "",
       content: "- [ ] milk",
@@ -239,13 +239,13 @@ describe("the MCP tools", () => {
       expect(sent).toEqual([
         {
           method: "PUT",
-          path: "/api/notes/n1",
+          path: "/api/v1/notes/n1",
           body: { title: "New" },
           ifMatch: "2026-04-01T00:00:00Z",
         },
         {
           method: "PUT",
-          path: "/api/notes/n1",
+          path: "/api/v1/notes/n1",
           body: { trashed: true },
           ifMatch: "2026-04-01T00:00:00Z",
         },

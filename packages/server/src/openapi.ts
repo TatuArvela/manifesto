@@ -15,7 +15,7 @@ import { noteCreateSchema } from "./validation/noteSchemas.ts";
 export { isPublicSurface, type Operation } from "./openapi/operation.ts";
 
 /**
- * The API as an OpenAPI 3.1 document, served at `GET /api/openapi.json`.
+ * The API as an OpenAPI 3.1 document, served at `GET /api/v1/openapi.json`.
  *
  * Request bodies are not described here: they are the zod schemas the routes
  * validate with, converted, so a change to what a route accepts changes the
@@ -197,7 +197,7 @@ function components() {
         type: "http",
         scheme: "bearer",
         description:
-          "A session token from signing in, or a personal API token (mfp_...), which reaches only the operations whose x-token-scope it was granted (a :write scope includes its :read). /api/mcp takes an MCP token (mfm_...) and nothing else, minted by hand or given to an assistant through /api/oauth, whose refresh token (mfr_...) is not a bearer token; a calendar token (mfc_...) is not a bearer token at all: it is the address of /api/calendar/<token>.ics.",
+          "A session token from signing in, or a personal API token (mfp_...), which reaches only the operations whose x-token-scope it was granted (a :write scope includes its :read). /api/v1/mcp takes an MCP token (mfm_...) and nothing else, minted by hand or given to an assistant through /api/v1/oauth, whose refresh token (mfr_...) is not a bearer token; a calendar token (mfc_...) is not a bearer token at all: it is the address of /api/v1/calendar/<token>.ics.",
       },
     },
     schemas: {
@@ -419,12 +419,12 @@ function components() {
 
 /**
  * The name a generated client gives an operation's method: the HTTP method and
- * the path's words, `getNotesById` for `GET /api/notes/:id`. Derived, so it
+ * the path's words, `getNotesById` for `GET /api/v1/notes/:id`. Derived, so it
  * exists for every operation and changes only when its route does.
  */
 export function operationId(op: Pick<Operation, "method" | "path">): string {
   const words = op.path
-    .replace(/^\/api\//, "")
+    .replace(/^\/api\/v1\//, "")
     .split(/[/.\-_]/)
     .filter(Boolean)
     .map((part) => (part.startsWith(":") ? `By ${part.slice(1)}` : part))
@@ -436,7 +436,7 @@ export function operationId(op: Pick<Operation, "method" | "path">): string {
 /** Query parameters that are numbers; the rest are strings. */
 const INTEGER_QUERY = new Set(["limit"]);
 
-/** `/api/notes/:id` in the document's `{id}` form. */
+/** `/api/v1/notes/:id` in the document's `{id}` form. */
 export function openApiPath(path: string): string {
   return path.replace(/:([A-Za-z]+)/g, "{$1}");
 }
@@ -525,7 +525,7 @@ export function buildOpenApiDocument(version: string) {
               schema: embeddable(
                 toSchema(op.body, "input"),
                 hoisted,
-                // `__schema0` of `PATCH /api/auth/me/prefs` becomes
+                // `__schema0` of `PATCH /api/v1/auth/me/prefs` becomes
                 // `PatchAuthMePrefsSchema0`: unique, and stable.
                 (key) => {
                   const id = operationId(op);
@@ -561,7 +561,7 @@ export function buildOpenApiDocument(version: string) {
       title: "Manifesto API",
       version,
       description:
-        "The REST API of a Manifesto server. Two WebSockets sit beside it: /api/ws (note events and presence) and /api/yjs (collaborative editing); see docs/specification/api.md. Operations marked x-session-only refuse a personal API token; /api/mcp (x-mcp-only) is the Model Context Protocol endpoint, see docs/specification/features/mcp.md. An operation marked x-feature belongs to a feature the host can turn off, and answers 404 while it is (features in /api/capabilities). x-stability says whether the compatibility policy in docs/specification/api.md will cover an operation from 1.0.0 (public) or it is the web client's own (client); before 1.0.0 any of it may change.",
+        "The REST API of a Manifesto server. Two WebSockets sit beside it: /api/v1/ws (note events and presence) and /api/v1/yjs (collaborative editing); see docs/specification/api.md. Operations marked x-session-only refuse a personal API token; /api/v1/mcp (x-mcp-only) is the Model Context Protocol endpoint, see docs/specification/features/mcp.md. An operation marked x-feature belongs to a feature the host can turn off, and answers 404 while it is (features in /api/v1/capabilities). x-stability says whether the compatibility policy in docs/specification/api.md will cover an operation from 1.0.0 (public) or it is the web client's own (client); before 1.0.0 any of it may change.",
       license: { name: "MIT" },
     },
     servers: [{ url: "/" }],

@@ -134,7 +134,7 @@ export class SealedServer {
         ? (JSON.parse(init.body) as Record<string, unknown>)
         : {};
 
-    if (path === "/api/attachments/claim" && method === "POST") {
+    if (path === "/api/v1/attachments/claim" && method === "POST") {
       // Every note here is the account's own, so anything held by someone
       // else is stored again for it.
       const refs = (body.refs as string[]).map((ref) => {
@@ -144,7 +144,7 @@ export class SealedServer {
       });
       return json({ refs });
     }
-    const attachment = /^\/api\/attachments\/([^/]+)$/.exec(path);
+    const attachment = /^\/api\/v1\/attachments\/([^/]+)$/.exec(path);
     if (attachment && method === "GET") {
       const held = this.attachments.get(attachment[1] ?? "");
       if (!held) return json({ error: "Attachment not found" }, 404);
@@ -152,10 +152,10 @@ export class SealedServer {
         headers: { "Content-Type": "application/octet-stream" },
       });
     }
-    if (path === "/api/notes" && method === "GET") {
+    if (path === "/api/v1/notes" && method === "GET") {
       return json({ notes: [...this.notes.values()], nextCursor: null });
     }
-    if (path === "/api/sync" && method === "GET") {
+    if (path === "/api/v1/sync" && method === "GET") {
       return json({
         notes: [...this.notes.values()],
         nextCursor: null,
@@ -163,7 +163,7 @@ export class SealedServer {
         checkpoint: "c1",
       });
     }
-    if (path === "/api/notes" && method === "POST") {
+    if (path === "/api/v1/notes" && method === "POST") {
       const problem = shapeProblem(body);
       if (problem) return json({ error: `${problem}: not sealed` }, 422);
       const create = body as unknown as SealedNoteCreate;
@@ -171,7 +171,7 @@ export class SealedServer {
       this.remember(create.id, body);
       return json({ note: this.stored(create) }, 201);
     }
-    if (path === "/api/notes/import" && method === "POST") {
+    if (path === "/api/v1/notes/import" && method === "POST") {
       const taken: string[] = [];
       const stale: string[] = [];
       let created = 0;
@@ -209,7 +209,7 @@ export class SealedServer {
         ...(stale.length > 0 && { stale }),
       });
     }
-    const versions = /^\/api\/notes\/([^/]+)\/versions$/.exec(path);
+    const versions = /^\/api\/v1\/notes\/([^/]+)\/versions$/.exec(path);
     if (versions) {
       const noteId = versions[1] ?? "";
       const list = this.versions.get(noteId) ?? [];
@@ -229,7 +229,7 @@ export class SealedServer {
       this.versions.set(noteId, list);
       return new Response(null, { status: 201 });
     }
-    const one = /^\/api\/notes\/([^/]+)$/.exec(path);
+    const one = /^\/api\/v1\/notes\/([^/]+)$/.exec(path);
     if (one) {
       const id = one[1] ?? "";
       const note = this.notes.get(id);

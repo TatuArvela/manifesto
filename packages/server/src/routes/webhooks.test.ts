@@ -95,7 +95,7 @@ describe("webhooks", () => {
   });
 
   async function signUp(username: string): Promise<string> {
-    const res = await request("/api/auth/register", {
+    const res = await request("/api/v1/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password: "test-pass-12" }),
@@ -111,7 +111,7 @@ describe("webhooks", () => {
     });
 
   async function addWebhook(token: string, body: object = {}) {
-    const res = await call(token, "POST", "/api/webhooks", {
+    const res = await call(token, "POST", "/api/v1/webhooks", {
       url: receiverUrl,
       password: "test-pass-12",
       ...body,
@@ -123,10 +123,10 @@ describe("webhooks", () => {
   it("posts a signed note event for each change", async () => {
     const token = await signUp("alice");
     const { secret } = await addWebhook(token);
-    const created = await call(token, "POST", "/api/notes", baseNote);
+    const created = await call(token, "POST", "/api/v1/notes", baseNote);
     const note = ((await created.json()) as { note: Note }).note;
-    await call(token, "PUT", `/api/notes/${note.id}`, { title: "Renamed" });
-    await call(token, "DELETE", `/api/notes/${note.id}`);
+    await call(token, "PUT", `/api/v1/notes/${note.id}`, { title: "Renamed" });
+    await call(token, "DELETE", `/api/v1/notes/${note.id}`);
     await dispatcher.idle();
 
     const events = received.map((r) => JSON.parse(r.body) as WebhookPayload);
@@ -158,10 +158,10 @@ describe("webhooks", () => {
     const alice = await signUp("alice");
     const bob = await signUp("bob");
     await addWebhook(alice, { events: ["note.deleted"] });
-    const res = await call(alice, "POST", "/api/notes", baseNote);
+    const res = await call(alice, "POST", "/api/v1/notes", baseNote);
     const note = ((await res.json()) as { note: Note }).note;
-    await call(bob, "POST", "/api/notes", baseNote);
-    await call(alice, "DELETE", `/api/notes/${note.id}`);
+    await call(bob, "POST", "/api/v1/notes", baseNote);
+    await call(alice, "DELETE", `/api/v1/notes/${note.id}`);
     await dispatcher.idle();
     expect(received.map((r) => JSON.parse(r.body).event)).toEqual([
       "note.deleted",
@@ -173,11 +173,11 @@ describe("webhooks", () => {
     const { webhook } = await addWebhook(token);
     status = 500;
     for (let i = 0; i < WEBHOOK_DISABLE_AFTER; i++) {
-      await call(token, "POST", "/api/notes", baseNote);
+      await call(token, "POST", "/api/v1/notes", baseNote);
     }
     await dispatcher.idle();
     const listed = (await (
-      await call(token, "GET", "/api/webhooks")
+      await call(token, "GET", "/api/v1/webhooks")
     ).json()) as WebhooksResponse;
     expect(listed.webhooks[0]).toMatchObject({
       id: webhook.id,
@@ -187,9 +187,14 @@ describe("webhooks", () => {
     });
     expect(JSON.stringify(listed)).not.toContain("whsec_");
 
-    const reenabled = await call(token, "PUT", `/api/webhooks/${webhook.id}`, {
-      active: true,
-    });
+    const reenabled = await call(
+      token,
+      "PUT",
+      `/api/v1/webhooks/${webhook.id}`,
+      {
+        active: true,
+      },
+    );
     expect(
       ((await reenabled.json()) as { webhook: { active: boolean } }).webhook
         .active,
@@ -199,31 +204,39 @@ describe("webhooks", () => {
   it("sends a test ping and says how it went", async () => {
     const token = await signUp("alice");
     const { webhook } = await addWebhook(token);
-    const res = await call(token, "POST", `/api/webhooks/${webhook.id}/test`);
+    const res = await call(
+      token,
+      "POST",
+      `/api/v1/webhooks/${webhook.id}/test`,
+    );
     expect(await res.json()).toEqual({ status: 204, error: null });
     expect(JSON.parse(defined(received[0]).body).event).toBe("ping");
   });
 
   it("refuses to reach an address the policy does not allow", async () => {
     const token = await signUp("alice");
-    const res = await call(token, "POST", "/api/webhooks", {
+    const res = await call(token, "POST", "/api/v1/webhooks", {
       url: "http://10.0.0.1/hook",
       password: "test-pass-12",
     });
     const { webhook } = (await res.json()) as WebhookCreatedResponse;
-    const ping = await call(token, "POST", `/api/webhooks/${webhook.id}/test`);
+    const ping = await call(
+      token,
+      "POST",
+      `/api/v1/webhooks/${webhook.id}/test`,
+    );
     const outcome = (await ping.json()) as { error: string | null };
     expect(outcome.error).toMatch(/not public/i);
   });
 
   it("is session-only", async () => {
     const token = await signUp("alice");
-    const minted = await call(token, "POST", "/api/tokens", {
+    const minted = await call(token, "POST", "/api/v1/tokens", {
       name: "x",
       password: "test-pass-12",
     });
     const { secret } = (await minted.json()) as { secret: string };
-    expect((await call(secret, "GET", "/api/webhooks")).status).toBe(403);
+    expect((await call(secret, "GET", "/api/v1/webhooks")).status).toBe(403);
   });
 });
 
@@ -236,8 +249,10 @@ describe("webhooks switched off", () => {
       storage,
       authProvider: createAuthProvider(cfg, storage),
     });
-    expect((await app.request("/api/webhooks")).status).toBe(404);
-    const { features } = await (await app.request("/api/capabilities")).json();
+    expect((await app.request("/api/v1/webhooks")).status).toBe(404);
+    const { features } = await (
+      await app.request("/api/v1/capabilities")
+    ).json();
     expect(features.webhooks).toBe(false);
     await storage.close();
   });

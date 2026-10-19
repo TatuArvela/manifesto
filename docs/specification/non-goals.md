@@ -60,7 +60,7 @@ rests on changes. A proposal to revisit one should say what changed.
   choice makes two kinds of note, and every feature that touches a note's content (sharing,
   collaboration, previews, reminders, tokens, webhooks) would be built and kept working twice.
 - **Loading notes on demand, with search moved to the server**: the client drains every page of
-  `/api/notes`, because tag counts, the tag list and the filter chain are computed over the whole
+  `/api/v1/notes`, because tag counts, the tag list and the filter chain are computed over the whole
   list, and open mode has no server to search on. Paging bounds a response and images load as they
   are scrolled to; the notes themselves stay in memory. A board of sticky notes is not an archive of
   hundreds of thousands of documents.

@@ -39,7 +39,7 @@ interface TokenDeps {
 }
 
 /**
- * `/api/tokens`: a user's personal API tokens, for scripts, shortcuts and
+ * `/api/v1/tokens`: a user's personal API tokens, for scripts, shortcuts and
  * bots that should not hold a password. Managed with a session only, so a
  * token cannot mint more of itself or outlive its own revocation.
  *

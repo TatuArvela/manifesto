@@ -113,14 +113,14 @@ the host resolves to is checked, and the connection is pinned to the checked one
 |---|---|
 | `public` (default) | Public addresses only, on any port |
 | `private` | Also the local network: private ranges, carrier-grade NAT (Tailscale), loopback and IPv6 ULA, for automation running beside the server. Link-local stays out, since cloud metadata services answer there |
-| `off` | Nothing; `/api/webhooks` answers 404 and the menu item is hidden |
+| `off` | Nothing; `/api/v1/webhooks` answers 404 and the menu item is hidden |
 
 ## API
 
 | Method | Path | |
 |---|---|---|
-| `GET` | `/api/webhooks` | `WebhooksResponse` |
-| `POST` | `/api/webhooks` | `WebhookCreateRequest`; answers `WebhookCreatedResponse` with the secret |
-| `PUT` | `/api/webhooks/:id` | `{ active }` |
-| `DELETE` | `/api/webhooks/:id` | |
-| `POST` | `/api/webhooks/:id/test` | Sends a `ping`; answers `{ status, error }` |
+| `GET` | `/api/v1/webhooks` | `WebhooksResponse` |
+| `POST` | `/api/v1/webhooks` | `WebhookCreateRequest`; answers `WebhookCreatedResponse` with the secret |
+| `PUT` | `/api/v1/webhooks/:id` | `{ active }` |
+| `DELETE` | `/api/v1/webhooks/:id` | |
+| `POST` | `/api/v1/webhooks/:id/test` | Sends a `ping`; answers `{ status, error }` |

@@ -61,7 +61,7 @@ function replaceWith(body: RecoveryCompleteRequest): Response {
 }
 
 async function server(input: string, init?: RequestInit): Promise<Response> {
-  const path = input.replace("https://notes.example/api", "");
+  const path = input.replace("https://notes.example/api/v1", "");
   const method = init?.method ?? "GET";
   const body = init?.body ? JSON.parse(init.body as string) : undefined;
   requests.push({ method, path, body });

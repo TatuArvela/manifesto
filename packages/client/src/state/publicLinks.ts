@@ -226,7 +226,7 @@ async function publicFetch(
   const { serverUrl } = storageConnection.value;
   if (serverUrl === null) return null;
   try {
-    return await fetch(`${serverUrl}/api/public/${path}`, init);
+    return await fetch(`${serverUrl}/api/v1/public/${path}`, init);
   } catch {
     return null;
   }

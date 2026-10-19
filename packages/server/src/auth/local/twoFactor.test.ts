@@ -34,7 +34,7 @@ describe("two-factor sign-in", () => {
     });
 
   const login = (extra: object = {}) =>
-    rig.request("/api/auth/login", {
+    rig.request("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "alice", password: PASSWORD, ...extra }),
@@ -45,13 +45,13 @@ describe("two-factor sign-in", () => {
 
   /** Turns two-factor on; returns the secret. */
   async function turnOn() {
-    const setup = await call("POST", "/api/auth/two-factor/setup", {
+    const setup = await call("POST", "/api/v1/auth/two-factor/setup", {
       password: PASSWORD,
     });
     expect(setup.status).toBe(200);
     const { secret } = (await setup.json()) as TwoFactorSetupResponse;
     // One step back, so the sign-in in the tests can use the current one.
-    const enabled = await call("POST", "/api/auth/two-factor/enable", {
+    const enabled = await call("POST", "/api/v1/auth/two-factor/enable", {
       code: codeAt(secret, -1),
     });
     expect(enabled.status).toBe(204);
@@ -69,7 +69,7 @@ describe("two-factor sign-in", () => {
 
   it("never asks a wrong password for a code", async () => {
     await turnOn();
-    const res = await rig.request("/api/auth/login", {
+    const res = await rig.request("/api/v1/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "alice", password: "wrong-pass-00" }),
@@ -85,12 +85,12 @@ describe("two-factor sign-in", () => {
     expect((await login()).status).toBe(403);
     expect((await login({ otp: codeAt(secret) })).status).toBe(200);
     // Nobody can turn it on,
-    const setup = await call("POST", "/api/auth/two-factor/setup", {
+    const setup = await call("POST", "/api/v1/auth/two-factor/setup", {
       password: PASSWORD,
     });
     expect(setup.status).toBe(404);
     // but the account that has it can turn it off.
-    const off = await call("POST", "/api/auth/two-factor/disable", {
+    const off = await call("POST", "/api/v1/auth/two-factor/disable", {
       password: PASSWORD,
     });
     expect(off.status).toBe(204);
@@ -107,7 +107,7 @@ describe("two-factor sign-in", () => {
   it("says it is on, and with what", async () => {
     await turnOn();
     const status = (await (
-      await call("GET", "/api/auth/two-factor")
+      await call("GET", "/api/v1/auth/two-factor")
     ).json()) as TwoFactorStatusResponse;
     expect(status).toEqual({ enabled: true, authenticator: true });
   });
@@ -116,14 +116,14 @@ describe("two-factor sign-in", () => {
     await turnOn();
     expect(
       (
-        await call("POST", "/api/auth/two-factor/disable", {
+        await call("POST", "/api/v1/auth/two-factor/disable", {
           password: "wrong-pass-00",
         })
       ).status,
     ).toBe(403);
     expect(
       (
-        await call("POST", "/api/auth/two-factor/disable", {
+        await call("POST", "/api/v1/auth/two-factor/disable", {
           password: PASSWORD,
         })
       ).status,
@@ -132,8 +132,8 @@ describe("two-factor sign-in", () => {
   });
 
   it("refuses a wrong confirmation code and stays off", async () => {
-    await call("POST", "/api/auth/two-factor/setup", { password: PASSWORD });
-    const res = await call("POST", "/api/auth/two-factor/enable", {
+    await call("POST", "/api/v1/auth/two-factor/setup", { password: PASSWORD });
+    const res = await call("POST", "/api/v1/auth/two-factor/enable", {
       code: "000000",
     });
     expect(res.status).toBe(422);
@@ -141,13 +141,13 @@ describe("two-factor sign-in", () => {
   });
 
   it("is refused to an API token", async () => {
-    const minted = await call("POST", "/api/tokens", {
+    const minted = await call("POST", "/api/v1/tokens", {
       name: "x",
       password: PASSWORD,
     });
     const { secret } = (await minted.json()) as { secret: string };
     expect(
-      (await call("GET", "/api/auth/two-factor", undefined, secret)).status,
+      (await call("GET", "/api/v1/auth/two-factor", undefined, secret)).status,
     ).toBe(403);
   });
 
@@ -160,7 +160,7 @@ describe("two-factor sign-in", () => {
     const alice = await rig.storage.users.findByUsername("alice");
     const reset = await call(
       "POST",
-      `/api/admin/users/${alice?.id}/password`,
+      `/api/v1/admin/users/${alice?.id}/password`,
       undefined,
       bob,
     );

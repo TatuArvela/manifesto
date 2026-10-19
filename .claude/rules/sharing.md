@@ -40,7 +40,7 @@ different `sharing.role`, and the sockets and webhooks both hear what the broadc
 `biome-plugins/noteEvents.grit` refuses one of those events built anywhere else. Anything that takes a note
 away from someone (removal, a role drop to `view`, the owner trashing it) also goes through
 `sharing/accessChanges.ts`, for the same reason as `endUserSessions`: sockets authorized at connect
-stay open otherwise. A viewer never joins `/api/yjs`; `onAuthenticate` refuses them.
+stay open otherwise. A viewer never joins `/api/v1/yjs`; `onAuthenticate` refuses them.
 `storage/contracts/sharingContract.ts` runs the rules against both drivers.
 An invitation's mail is counted per sender and recipient (`INVITATION_MAILS_PER_HOUR` in
 `routes/shares.ts`); anything new that mails someone at another account's bidding needs a bound too.

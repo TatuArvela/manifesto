@@ -43,7 +43,7 @@ const USER = {
 let stored: (AccountKeysSetupRequest & { version: number }) | null;
 
 async function server(input: string, init?: RequestInit): Promise<Response> {
-  const path = input.replace("https://notes.example/api", "");
+  const path = input.replace("https://notes.example/api/v1", "");
   const body = init?.body ? JSON.parse(init.body as string) : undefined;
   const json = (value: unknown) =>
     new Response(JSON.stringify(value), {

@@ -60,21 +60,26 @@ describe("comments beside a shared note", () => {
   }
 
   async function share(who: Account, role: "edit" | "view") {
-    const invited = await call(owner, "POST", `/api/notes/${noteId}/shares`, {
-      userId: who.userId,
-      role,
-    });
+    const invited = await call(
+      owner,
+      "POST",
+      `/api/v1/notes/${noteId}/shares`,
+      {
+        userId: who.userId,
+        role,
+      },
+    );
     expect(invited.status).toBe(201);
     const accepted = await call(
       who,
       "POST",
-      `/api/invitations/${noteId}/accept`,
+      `/api/v1/invitations/${noteId}/accept`,
     );
     expect(accepted.status).toBe(200);
   }
 
   const path = (commentId?: string) =>
-    `/api/notes/${noteId}/comments${commentId ? `/${commentId}` : ""}`;
+    `/api/v1/notes/${noteId}/comments${commentId ? `/${commentId}` : ""}`;
 
   async function write(who: Account, body: string): Promise<NoteComment> {
     const res = await call(who, "POST", path(), { body });
@@ -101,7 +106,7 @@ describe("comments beside a shared note", () => {
     editor = await registerTestUser(rig, "eddie");
     viewer = await registerTestUser(rig, "vera");
     stranger = await registerTestUser(rig, "sam");
-    const created = await call(owner, "POST", "/api/notes", baseNote);
+    const created = await call(owner, "POST", "/api/v1/notes", baseNote);
     noteId = ((await created.json()) as { note: Note }).note.id;
     await share(editor, "edit");
     await share(viewer, "view");
@@ -167,11 +172,11 @@ describe("comments beside a shared note", () => {
 
   it("leaves the note itself untouched", async () => {
     const before = (await (
-      await call(owner, "GET", `/api/notes/${noteId}`)
+      await call(owner, "GET", `/api/v1/notes/${noteId}`)
     ).json()) as { note: Note };
     await write(editor, "Beside, not inside");
     const after = (await (
-      await call(owner, "GET", `/api/notes/${noteId}`)
+      await call(owner, "GET", `/api/v1/notes/${noteId}`)
     ).json()) as { note: Note };
     expect(after.note.updatedAt).toBe(before.note.updatedAt);
     expect(after.note.content).toBe(before.note.content);
@@ -213,9 +218,9 @@ describe("comments beside a shared note", () => {
 
   it("does not reach a comment through another note", async () => {
     const comment = await write(editor, "Here");
-    const other = await call(editor, "POST", "/api/notes", baseNote);
+    const other = await call(editor, "POST", "/api/v1/notes", baseNote);
     const otherId = ((await other.json()) as { note: Note }).note.id;
-    const through = `/api/notes/${otherId}/comments/${comment.id}`;
+    const through = `/api/v1/notes/${otherId}/comments/${comment.id}`;
     expect((await call(editor, "DELETE", through)).status).toBe(404);
     expect((await call(editor, "PUT", through, { body: "x" })).status).toBe(
       404,
@@ -229,7 +234,7 @@ describe("comments beside a shared note", () => {
     const removed = await call(
       owner,
       "DELETE",
-      `/api/notes/${noteId}/shares/${editor.userId}`,
+      `/api/v1/notes/${noteId}/shares/${editor.userId}`,
     );
     expect(removed.status).toBe(204);
 
@@ -253,7 +258,7 @@ describe("comments beside a shared note", () => {
     await call(
       viewer,
       "DELETE",
-      `/api/notes/${noteId}/shares/${viewer.userId}`,
+      `/api/v1/notes/${noteId}/shares/${viewer.userId}`,
     );
     await rig.storage.users.delete(editor.userId);
 
@@ -265,16 +270,20 @@ describe("comments beside a shared note", () => {
 
   it("lets the owner delete a comment whose author is gone", async () => {
     const comment = await write(editor, "Orphan");
-    await call(owner, "DELETE", `/api/notes/${noteId}/shares/${editor.userId}`);
+    await call(
+      owner,
+      "DELETE",
+      `/api/v1/notes/${noteId}/shares/${editor.userId}`,
+    );
     expect((await call(owner, "DELETE", path(comment.id))).status).toBe(204);
   });
 
   it("hides the comments with a note in its owner's trash, and removes them with the note", async () => {
     const comment = await write(editor, "Still here?");
     const note = (await (
-      await call(owner, "GET", `/api/notes/${noteId}`)
+      await call(owner, "GET", `/api/v1/notes/${noteId}`)
     ).json()) as { note: Note };
-    await rig.request(`/api/notes/${noteId}`, {
+    await rig.request(`/api/v1/notes/${noteId}`, {
       method: "PUT",
       headers: { ...authHeaders(owner.token), "If-Match": note.note.updatedAt },
       body: JSON.stringify({ trashed: true }),
@@ -286,7 +295,7 @@ describe("comments beside a shared note", () => {
     await write(owner, "Only I see this");
     expect(commentEvents(editor)).toEqual([]);
 
-    await call(owner, "DELETE", `/api/notes/${noteId}`);
+    await call(owner, "DELETE", `/api/v1/notes/${noteId}`);
     expect(await rig.storage.comments.get(comment.id)).toBeNull();
   });
 
@@ -310,7 +319,7 @@ describe("comments beside a shared note", () => {
   });
 
   it("lets a token that carries keys read and write comments in plain words, sealed at rest", async () => {
-    const minted = await call(owner, "POST", "/api/tokens", {
+    const minted = await call(owner, "POST", "/api/v1/tokens", {
       name: "Script",
       password: "test-pass-12",
     });
@@ -320,10 +329,10 @@ describe("comments beside a shared note", () => {
       userId: owner.userId,
     };
     // A note the token wrote, so it is sealed under keys the token opens.
-    const made = await call(script, "POST", "/api/notes", baseNote);
+    const made = await call(script, "POST", "/api/v1/notes", baseNote);
     const own = ((await made.json()) as { note: Note }).note.id;
     const at = (commentId?: string) =>
-      `/api/notes/${own}/comments${commentId ? `/${commentId}` : ""}`;
+      `/api/v1/notes/${own}/comments${commentId ? `/${commentId}` : ""}`;
 
     const posted = await call(script, "POST", at(), { body: "  Booked.  " });
     expect(posted.status).toBe(201);

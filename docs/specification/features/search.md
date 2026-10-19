@@ -21,5 +21,5 @@ every note it can read (see [API](../api.md#paging-the-list-endpoints)), and in 
 is the only place they can be searched, since the server stores them
 [sealed](encryption.md). Each note's text is folded once and kept until the note changes.
 
-`GET /api/search?q=` (see [API](../api.md#search)) answers the app's own session `403`. It is for
+`GET /api/v1/search?q=` (see [API](../api.md#search)) answers the app's own session `403`. It is for
 API clients and the MCP `search_notes` tool, whose tokens carry a key.

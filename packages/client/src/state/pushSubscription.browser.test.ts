@@ -68,7 +68,7 @@ beforeEach(() => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const path = String(input).replace(`${SERVER}/api`, "");
+      const path = String(input).replace(`${SERVER}/api/v1`, "");
       requests.push({
         method: init?.method ?? "GET",
         path,

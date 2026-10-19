@@ -99,7 +99,7 @@ export interface ServerConfig extends FeatureToggles {
    * proxy that overwrites the header; otherwise an attacker can rotate the
    * value to defeat per-IP throttling. */
   trustProxy: boolean;
-  /** When false, POST /api/auth/register returns 403. Defaults to true to
+  /** When false, POST /api/v1/auth/register returns 403. Defaults to true to
    * preserve open-signup behavior; set to false for managed-mode deployments
    * where accounts are provisioned out-of-band. */
   registrationEnabled: boolean;
@@ -112,7 +112,7 @@ export interface ServerConfig extends FeatureToggles {
   webhooks: WebhookMode;
   /**
    * The client's public address (`APP_URL`), without a trailing slash, or
-   * null. Mail links point at it, and an assistant signing in to `/api/mcp`
+   * null. Mail links point at it, and an assistant signing in to `/api/v1/mcp`
    * is sent to its consent page there. With `CLIENT_DIR` and no `APP_URL`
    * the client is this server's own origin.
    */
@@ -466,7 +466,7 @@ export function loadConfig(): ServerConfig {
 }
 
 /**
- * Whether an assistant can connect to `/api/mcp` by signing in through the
+ * Whether an assistant can connect to `/api/v1/mcp` by signing in through the
  * browser (OAuth): MCP is on, and the client, whose page asks the user, is
  * somewhere this server can send them (`APP_URL`, or served here).
  */
