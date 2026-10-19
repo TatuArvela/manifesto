@@ -16,6 +16,7 @@ paths:
   - "packages/client/src/styles/**"
   - "packages/client/index.html"
   - "packages/client/public/theme-init.js"
+  - "packages/client/public/splash-brand.js"
 ---
 
 # Layout and Loading
@@ -95,6 +96,18 @@ browser chrome to look at while it loads.
   fades at `SPLASH_CAP_MS` after the start, in all cases.
 - A timer removes it, and `transitionend` also removes it. The reason is that the event never comes
   in a background tab.
+
+The markup of the splash is the usual app brand. A second blocking file, `splash-brand.js`, is
+immediately after it. It draws the splash again from the branding meta tags:
+
+- It shows the brand of the top bar (`HEADER_BRAND`): the logo and name of the instance, or those of
+  the app with the name of the instance under them. It also shows the dark variant of each logo.
+- Thus, it copies the rules of `config.ts` and `BrandLogo` by hand. When they change, change it too.
+- It reads the meta tags, not the build values. Thus, it also follows a release bundle that a person
+  edited.
+- `launchImage.ts` draws from the splash after that script ran. Thus, it reads the variants and the
+  lines from the markup (`data-light`, `data-dark`, `data-invert`, `data-secondary`), not from the
+  config.
 
 ## Phone sheets
 

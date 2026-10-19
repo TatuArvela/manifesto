@@ -140,6 +140,8 @@ Where each one shows:
 | Header (Notes view), `app` brand | yes | yes | adjacent to the name, muted. On a phone, it is the first item to go | |
 | Header (Notes view), `instance` brand | | | its logo and name, in place of those of the app | |
 | Browser tab icon, `instance` brand | | | its logo, if it has one, in place of `favicon.svg` | |
+| Loading screen, `app` brand | yes | yes | under the name, muted | |
+| Loading screen, `instance` brand | | | its logo and name, in place of those of the app | |
 | Sign-in screen | heading | yes | under the heading | logo and name at the bottom |
 | Settings → About | yes | yes, with the version | logo and name, under the app | logo and name |
 | Authenticator app entry (two-factor) | yes | | as "Manifesto (Foo QA project)" | |
@@ -147,7 +149,8 @@ Where each one shows:
 
 `VITE_HEADER_BRAND=instance` gives the top bar to the instance: its logo, if it has one, and its
 name, in place of the mark and name of the app. It needs an instance name. Without one, the app
-shows. The logo of the instance then also becomes the icon of the browser tab. The icon of the
+shows. The loading screen shows the same brand as the top bar. The logo of the instance then also
+becomes the icon of the browser tab. The icon of the
 installed app (`icon-1024.png`) does not change. Settings → About still names the app, with its mark
 and version.
 

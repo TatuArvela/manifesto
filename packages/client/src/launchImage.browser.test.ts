@@ -49,7 +49,7 @@ beforeEach(() => {
   splash.id = "splash";
   splash.style.cssText =
     "position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.9rem";
-  splash.innerHTML = `<img src="${LOGO}" alt="" style="width:76px;height:76px" /><p style="margin:0;font-weight:600">Manifesto</p><div style="height:3px"></div>`;
+  splash.innerHTML = `<img src="${LOGO}" alt="" data-invert style="width:76px;height:76px" /><p style="margin:0;font-weight:600">Manifesto</p><div style="height:3px"></div>`;
   document.body.appendChild(splash);
 });
 
@@ -114,6 +114,55 @@ describe("the launch image", () => {
 
     expect((await pixel(dark.href, x, y)).rgb).toEqual([255, 255, 255]);
     expect((await pixel(dark.href, 1, 1)).rgb).toEqual([0x17, 0x17, 0x17]);
+  });
+
+  it("draws a logo's dark variant in the dark, as it is", async () => {
+    setStandalone(false);
+    // A black logo with a red dark variant. An inversion of the black logo or
+    // of the red variant does not give red.
+    const red = LOGO.replace("black", "red");
+    const logo = defined(splash.querySelector("img") ?? undefined, "logo");
+    logo.removeAttribute("data-invert");
+    logo.setAttribute("data-light", "");
+    const variant = document.createElement("img");
+    variant.src = red;
+    variant.setAttribute("data-dark", "");
+    variant.style.cssText = "display:none;width:76px;height:76px";
+    logo.after(variant);
+    const logoBox = logo.getBoundingClientRect();
+    const box = splash.getBoundingClientRect();
+
+    offerLaunchImage(0);
+    await expect.poll(() => launchLinks().length).toBe(4);
+    const [lightLink, , darkLink] = launchLinks();
+    const scale = window.devicePixelRatio;
+    const width = Math.min(screen.width, screen.height);
+    const height = Math.max(screen.width, screen.height);
+    const x = Math.round(
+      (width / 2 +
+        logoBox.left +
+        logoBox.width / 2 -
+        (box.left + box.width / 2)) *
+        scale,
+    );
+    const y = Math.round(
+      (height / 2 +
+        logoBox.top +
+        logoBox.height / 2 -
+        (box.top + box.height / 2)) *
+        scale,
+    );
+    const light = defined(lightLink, "light launch image");
+    const dark = defined(darkLink, "dark launch image");
+    expect((await pixel(light.href, x, y)).rgb).toEqual([0, 0, 0]);
+    expect((await pixel(dark.href, x, y)).rgb).toEqual([255, 0, 0]);
+  });
+
+  it("is drawn without a logo when the splash has none", async () => {
+    setStandalone(false);
+    splash.querySelector("img")?.remove();
+    offerLaunchImage(0);
+    await expect.poll(() => launchLinks().length).toBe(4);
   });
 
   it("is not drawn inside an app already on the home screen", async () => {

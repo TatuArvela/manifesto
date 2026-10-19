@@ -45,6 +45,10 @@ logo variables are files. The build publishes them as `app-logo.<ext>`, `instanc
 variant from the `.dark` class of the app. It inverts only the logo of the app, and only when that
 logo has no dark variant.
 
+The loading screen is the one exception, because it shows before the bundle.
+`public/splash-brand.js` applies the same rules to it from the meta tags. Thus, when you change how
+`HEADER_BRAND` or a logo resolves, change that file too.
+
 ## Other parameters in index.html
 
 The app reads three more deployment parameters from `index.html`:
