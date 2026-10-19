@@ -72,8 +72,10 @@ is removed on a timer as well as `transitionend`, since that event never arrives
 tab.
 
 On a phone, an open note, the composer and a note's history are laid out *in the page*, not fixed
-over it, and go through `NoteSheet`. `utils/phoneSheets.ts` pins `.app-shell` (the board) in place
-while one is up, so the page scrolls the note. That is the one arrangement where iOS keeps the caret
+over it, and go through `NoteSheet`. `.app-shell` (the board) is `fixed` to the screen, so the page
+scrolls the note and the board stays put under it. It is fixed always, not only while a sheet is up:
+a home-screen app on iOS blurs what lies under the status bar unless a fixed or sticky bar is there,
+and the board's header, in the flow of a page that never scrolls, was not. That is the one arrangement where iOS keeps the caret
 above the keyboard by scrolling the page rather than sliding the visible area over a fixed sheet.
 Nothing reads `visualViewport`, and that is deliberate: sizing a sheet to it left a sliver of note
 (Safari in a tab reports it too short), padding for the keyboard added blank room past the end, and

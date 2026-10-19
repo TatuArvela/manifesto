@@ -32,7 +32,7 @@ const open = (el: HTMLElement) => releases.push(openSheet(el));
 
 beforeEach(() => {
   shell = document.createElement("div");
-  shell.className = "app-shell relative h-dvh overflow-hidden";
+  shell.className = "app-shell overflow-hidden";
   document.body.prepend(shell);
 });
 
@@ -81,12 +81,13 @@ describe("on a phone", () => {
     expect(window.scrollY).toBe(400);
   });
 
-  it("puts the board back once the last sheet has gone", () => {
+  it("leaves the board where it was once the last sheet has gone", () => {
     const el = sheet(2000);
     const close = openSheet(el);
     close();
     el.remove();
-    expect(getComputedStyle(shell).position).toBe("relative");
+    expect(getComputedStyle(shell).position).toBe("fixed");
+    expect(shell.getBoundingClientRect().top).toBe(0);
   });
 });
 
@@ -124,10 +125,10 @@ describe("the page's background", () => {
 describe("on a wider screen", () => {
   beforeEach(() => page.viewport(1024, 700));
 
-  it("leaves the dialog fixed over a board that stays put", () => {
+  it("leaves the dialog fixed over a board fixed in place", () => {
     const el = sheet(300);
     open(el);
-    expect(getComputedStyle(shell).position).toBe("relative");
+    expect(getComputedStyle(shell).position).toBe("fixed");
     expect(getComputedStyle(el).position).toBe("fixed");
   });
 });

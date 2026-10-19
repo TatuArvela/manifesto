@@ -260,17 +260,24 @@
   margin: 0;
 }
 
+/* The board and its top bar are fixed to the screen, on every width and
+   whether or not a sheet is open. A home-screen app on iOS lays the page
+   under the status bar, and WebKit blurs whatever is there unless it finds a
+   fixed or sticky bar at the top to take a colour from. A header in the flow
+   of a page that never scrolls is neither, so the board's top was blurred
+   under the clock. Fixed, the shell is also what keeps the board where it
+   stands under a phone's sheets (below), which used to pin it only then. */
+.app-shell {
+  position: fixed;
+  inset: 0;
+}
+
 /* The phone's full-screen sheets (an open note, the composer, a note's
    history) are laid out in the page, and the page is what scrolls them; see
-   utils/phoneSheets.ts, which sets the attributes. The board
-   is pinned where it stands underneath, and a sheet covered by a newer one
-   is pinned over it. A wider screen's dialog is fixed as ever. */
+   utils/phoneSheets.ts, which sets the attributes. The board stays where it
+   stands underneath, and a sheet covered by a newer one is pinned over it. A
+   wider screen's dialog is fixed as ever. */
 @media (width < 40rem) {
-  html.sheet-open .app-shell {
-    position: fixed;
-    inset: 0;
-  }
-
   .note-sheet[data-sheet="flow"] {
     position: relative;
   }
