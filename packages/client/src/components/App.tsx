@@ -224,7 +224,7 @@ function MainApp() {
 
   return (
     <>
-      <div class="app-shell relative flex flex-col h-dvh overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
+      <div class="app-shell flex flex-col overflow-hidden pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
         {/* On a phone with the top bar set to scroll away, it lies over the
           board and `useScrollAwayBar` moves it up as the board scrolls. */}
         <div
