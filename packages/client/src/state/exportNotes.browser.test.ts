@@ -47,6 +47,7 @@ describe("exportArchive in open mode", () => {
     expect(zip).not.toBeNull();
     const entries = await readZip(zip as Blob);
     expect(entries.map((e) => e.name)).toEqual([
+      "manifest.json",
       "notes.json",
       "notes/Plan.md",
       "notes/Plan (2).md",

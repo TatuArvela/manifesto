@@ -200,11 +200,29 @@ export const attachmentsClaimSchema = z.object({
   refs: attachmentRefs(MAX_ATTACHMENTS_PER_CLAIM),
 });
 
+/**
+ * The format of a note's words (`noteFormat.ts` in shared). Any the server
+ * has not heard of is taken: it stores ciphertext, and a newer app than the
+ * server may write one.
+ */
+const noteFormat = z.number().int().min(1).max(1_000_000);
+
+/** The sealed fields a format covers. */
+const WORD_FIELDS = [
+  "title",
+  "content",
+  "excerpt",
+  "font",
+  "images",
+  "linkPreviews",
+] as const;
+
 /** `POST /api/notes` from the app. */
 export const sealedNoteCreateSchema = z.object({
   id: noteIdSchema,
   key: wrappedKey,
   keyVersion: z.number().int().min(1),
+  format: noteFormat,
   ...sealedNoteFields,
 });
 
@@ -232,7 +250,15 @@ export const sealedNoteUpdateSchema = z
     // note's, so a change sealed under a key since replaced is refused
     // and not stored where nobody could open it.
     keyVersion: z.number().int().min(1).exactOptional(),
+    // The format the words are in; see `formatCondition`.
+    format: noteFormat.exactOptional(),
   })
+  .refine(
+    (body) =>
+      body.format !== undefined ||
+      WORD_FIELDS.every((field) => body[field] === undefined),
+    { message: "Words come with the format they are in" },
+  )
   .refine(
     (body) =>
       (body.images === undefined) === (body.imageRefs === undefined) &&
@@ -273,6 +299,7 @@ export const noteRekeySchema = z.object({
 export const sealedVersionCreateSchema = z.object({
   id: noteIdSchema,
   keyVersion: z.number().int().min(1),
+  format: noteFormat,
   title: sealed(SEALED_FIELD_MAX.title),
   content: sealed(SEALED_FIELD_MAX.content),
   timestamp: z.string().max(40).exactOptional(),

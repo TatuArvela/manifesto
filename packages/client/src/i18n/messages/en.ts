@@ -237,6 +237,11 @@ export const en = {
     other:
       "{count} notes are not shown: their keys have not arrived or do not open on this device.",
   },
+  "notes.newerFormat": {
+    one: "{count} note is not shown: it was saved by a newer version of {appName}. Reload the page to see it.",
+    other:
+      "{count} notes are not shown: they were saved by a newer version of {appName}. Reload the page to see them.",
+  },
   "editor.metadata.created": "Created {date}",
   "editor.metadata.edited": "Edited {date}",
   "editor.deleteImage": "Delete image",
@@ -520,6 +525,8 @@ export const en = {
     other: "Imported {count} notes",
   },
   "settings.data.importFailed": "Import failed: invalid file",
+  "settings.data.importNewer":
+    "Import failed: the file was exported by a newer version of {appName}. Reload the page and try again.",
   "settings.data.importedSingle": "Imported note",
   "settings.data.deleted": "All notes deleted",
   "settings.autoNotes.empty.title": "Notes that write themselves",
@@ -1041,6 +1048,8 @@ export const en = {
   // Toasts / errors
   "toast.dismiss": "Dismiss",
   "error.loadFailed": "Failed to load notes. Please refresh the page.",
+  "error.newerFormat":
+    "Your notes were saved by a newer version of {appName}. Reload the page before making changes.",
   "error.createFailed": "Failed to create note.",
   "error.saveFailed": "Failed to save changes.",
   "error.deleteFailed": "Failed to delete note.",
@@ -1211,6 +1220,8 @@ export const en = {
     "This link does not open a note. It may have expired or been revoked.",
   "publicLink.page.failed":
     "The note could not be loaded. Check your connection and try again.",
+  "publicLink.page.newer":
+    "This note was saved by a newer version of {appName}. Reload the page to see it.",
   "publicLink.page.passwordPrompt": "This note is protected by a password",
   "publicLink.page.wrongPassword": "That password is not right.",
   "publicLink.page.tooMany": "Too many attempts. Try again later.",

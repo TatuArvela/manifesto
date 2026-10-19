@@ -269,6 +269,7 @@ function components() {
           note: exact({
             id: { type: "string" },
             keyVersion: { type: "integer" },
+            format: { type: "integer" },
             title: { type: "string" },
             content: { type: "string" },
             font: { type: "string" },

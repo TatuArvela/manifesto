@@ -3,6 +3,7 @@ import {
   type Note,
   type NoteCreate,
   NoteLimitError,
+  upgradeNoteWords,
 } from "@manifesto/shared";
 import { batch, effect, signal, untracked } from "@preact/signals";
 import { ulid } from "ulid";
@@ -128,13 +129,17 @@ function keep(owner: OfflineOwner, entry: UnsentNote): Promise<boolean> {
   return keepOffline(owner, "unsent", entry.id, record);
 }
 
-function fromRecord(id: string, raw: unknown): UnsentNote | null {
+function fromRecord(
+  id: string,
+  raw: unknown,
+  format: number,
+): UnsentNote | null {
   if (typeof raw !== "object" || raw === null) return null;
   const record = raw as Partial<Record<keyof KeptUnsent, unknown>>;
   if (typeof record.note !== "object" || record.note === null) return null;
   const note = record.note as Record<string, unknown>;
   restoreImageKeys(record.imageKeys);
-  const { imageAlts, ...fields } = keptFields(note);
+  const { imageAlts, ...fields } = upgradeNoteWords(keptFields(note), format);
   return {
     id,
     note: noteCreateFrom({
@@ -373,7 +378,7 @@ async function load(): Promise<void> {
   if (run !== generation) return;
   const kept: UnsentNote[] = [];
   for (const record of records) {
-    const entry = fromRecord(record.id, record.value);
+    const entry = fromRecord(record.id, record.value, record.format);
     if (entry) kept.push(entry);
   }
   // In the order they were written, which a ULID's order is.

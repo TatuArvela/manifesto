@@ -689,7 +689,11 @@ describe("handing a shared note's key on", () => {
     const edit = await rig.rawRequest(`/api/notes/${id}`, {
       method: "PUT",
       headers: authHeaders(bob.token),
-      body: JSON.stringify({ title: ciphertext("Bob's edit"), keyVersion: 1 }),
+      body: JSON.stringify({
+        title: ciphertext("Bob's edit"),
+        keyVersion: 1,
+        format: 1,
+      }),
     });
     expect(edit.status).toBe(200);
     expect((await rekey(owner, id, rekeyed(2), read)).status).toBe(412);
@@ -723,6 +727,7 @@ describe("handing a shared note's key on", () => {
       body: JSON.stringify({
         title: ciphertext("Under the old key"),
         keyVersion: 1,
+        format: 1,
       }),
     });
     expect(stale.status).toBe(409);
@@ -758,6 +763,7 @@ describe("handing a shared note's key on", () => {
       body: JSON.stringify({
         title: ciphertext("Under the new key"),
         keyVersion: 2,
+        format: 1,
       }),
     });
     expect(fresh.status).toBe(200);

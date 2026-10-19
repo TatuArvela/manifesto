@@ -1,4 +1,11 @@
-import { associatedData, seal, unsealText, utf8 } from "@manifesto/shared";
+import {
+  associatedData,
+  currentNoteFormat,
+  isNewerNoteFormat,
+  seal,
+  unsealText,
+  utf8,
+} from "@manifesto/shared";
 import { accountSubkey } from "#/utils/keyMaterial.ts";
 import type { StorageKeys } from "./sealing.ts";
 
@@ -58,12 +65,19 @@ interface StoredRecord {
   id: string;
   /** Sealed in connected mode; JSON in open mode. */
   value: string;
+  /**
+   * The format the note's words in it are in (`noteFormat.ts` in shared).
+   * Absent in a record kept before formats were recorded, which is format 1.
+   */
+  format?: number;
 }
 
-/** A record as kept, opened. */
+/** A record as kept, opened. Whoever reads its value brings the words in it
+ * from `format` up to date. */
 export interface OfflineRecord {
   id: string;
   value: unknown;
+  format: number;
 }
 
 function available(): boolean {
@@ -112,7 +126,8 @@ function isStoredRecord(value: unknown): value is StoredRecord {
     typeof v.owner === "string" &&
     (v.kind === "draft" || v.kind === "unsent") &&
     typeof v.id === "string" &&
-    typeof v.value === "string"
+    typeof v.value === "string" &&
+    (v.format === undefined || typeof v.format === "number")
   );
 }
 
@@ -192,6 +207,7 @@ export async function keepOffline(
       kind,
       id,
       value: await sealOffline(owner, kind, id, value),
+      format: currentNoteFormat(),
     };
     await run("readwrite", (store) => store.put(record));
     return true;
@@ -202,7 +218,8 @@ export async function keepOffline(
 
 /**
  * The owner's records of `kind` that open. One that does not (sealed under a
- * key the account no longer has) is left out and left in place.
+ * key the account no longer has), and one a newer version of the app kept,
+ * which this one would misread, is left out and left in place.
  */
 export async function readOffline(
   owner: OfflineOwner,
@@ -219,8 +236,10 @@ export async function readOffline(
   for (const record of all) {
     if (!isStoredRecord(record)) continue;
     if (record.owner !== owner.id || record.kind !== kind) continue;
+    const format = record.format ?? 1;
+    if (isNewerNoteFormat(format)) continue;
     const value = await openOffline(owner, kind, record.id, record.value);
-    if (value !== null) out.push({ id: record.id, value });
+    if (value !== null) out.push({ id: record.id, value, format });
   }
   return out;
 }

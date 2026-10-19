@@ -222,6 +222,7 @@ export class SealedServer {
         id: sent.id,
         noteId,
         keyVersion: sent.keyVersion,
+        format: sent.format,
         title: sent.title,
         content: sent.content,
         timestamp: sent.timestamp ?? this.now(),
@@ -255,6 +256,23 @@ export class SealedServer {
         // Sealed under a key the note has since left.
         if (keyVersion !== undefined && keyVersion !== note.keyVersion) {
           return json({ error: "The note is under another key now" }, 409);
+        }
+        // Words older than the note's, or a part of them in a newer format.
+        const { format } = changes;
+        if (format !== undefined && format < note.format) {
+          return json(
+            { error: "Saved by a newer app", code: "note_format_newer" },
+            409,
+          );
+        }
+        const whole = SEALED.every(
+          (field) => field === "excerpt" || changes[field] !== undefined,
+        );
+        if (format !== undefined && format > note.format && !whole) {
+          return json(
+            { error: "Not every word", code: "note_format_incomplete" },
+            409,
+          );
         }
         const next = { ...note, ...changes, updatedAt: this.now() };
         this.notes.set(id, next);
