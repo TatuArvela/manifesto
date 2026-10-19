@@ -58,7 +58,8 @@ export function CardSelectButton({
       <button
         type="button"
         class={clsx(
-          "w-5 h-5 rounded-full flex items-center justify-center transition-all shadow-sm",
+          // 20px drawn, 24px to press (WCAG 2.5.8).
+          "relative w-5 h-5 rounded-full flex items-center justify-center transition-all shadow-sm after:absolute after:-inset-0.5",
           isSelected
             ? "bg-blue-500 text-white hover:bg-blue-600"
             : "bg-white dark:bg-neutral-200 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-white hover:scale-110 border border-neutral-300",

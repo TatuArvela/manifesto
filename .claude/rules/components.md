@@ -69,6 +69,9 @@ paths:
   on a note can go, so a dimmer look (ticked, past) is a line through or a position, never a paler
   step or an `opacity-*`. `boardCard` and `boardLabel` (the board's section headings) are opaque
   for the same reason: a translucent surface lets a dark board pull grey text under 4.5:1.
+- **Targets** are at least 24 by 24 px (WCAG 2.5.8). One drawn smaller keeps its look and reaches
+  the size unseen: an `after:absolute after:-inset-*` on a `relative` button, or for a checkbox a
+  `<label>` around it with padding and the same negative margin.
 - **Keyboard focus** is one ring for the whole app, `:focus-visible` in `styles/setup.css`. A
   control that draws its own uses `outline-none` with a `ring`, which wins because the default sits
   in the base layer; one that removes the outline and draws nothing leaves no focus to see.

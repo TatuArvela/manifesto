@@ -36,7 +36,7 @@ export function Toasts() {
           <span class="flex-1">{toast.message}</span>
           <button
             type="button"
-            class="p-0.5 rounded hover:bg-white/20 shrink-0 cursor-pointer"
+            class="-m-0.5 p-1 rounded hover:bg-white/20 shrink-0 cursor-pointer"
             onClick={() => dismissToast(toast.id)}
             aria-label={t("toast.dismiss")}
           >

@@ -54,7 +54,7 @@ export function ReminderChip({
   const clear = onClear && (
     <button
       type="button"
-      class="ml-1 p-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer"
+      class="relative ml-1 p-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer after:absolute after:-inset-1"
       onClick={(e) => {
         e.stopPropagation();
         onClear(e);
