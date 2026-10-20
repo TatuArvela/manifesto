@@ -311,41 +311,11 @@
  * attribute if the change fails, which brings the card back. Each duration is
  * `LEAVE_MS` there.
  *
- * Trashed or deleted, the card is crumpled into a ball and thrown. It is
- * squeezed and twisted where it is, then thrown up and over in an arc, and it
- * continues to turn. The card itself becomes round and darker as the ball,
- * while its wrapper carries the throw.
+ * Trashed or deleted, the card becomes smaller to its centre until it is gone.
  */
 @keyframes note-leave {
-  0% {
-    transform: none;
-    opacity: 1;
-  }
-  30% {
-    transform: scale(0.6, 0.55) rotate(-14deg);
-    opacity: 1;
-  }
-  45% {
-    transform: scale(0.38) rotate(-32deg);
-  }
-  75% {
-    transform: translate(40px, -70px) scale(0.22) rotate(140deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(80px, -20px) scale(0.12) rotate(280deg);
-    opacity: 0;
-  }
-}
-
-@keyframes note-crumple-surface {
-  45%,
-  100% {
-    border-radius: 45%;
-    box-shadow:
-      inset 6px 8px 14px rgb(0 0 0 / 0.18),
-      inset -6px -4px 10px rgb(255 255 255 / 0.25);
-    filter: brightness(0.94);
+  to {
+    transform: scale(0);
   }
 }
 
@@ -404,11 +374,8 @@
 }
 
 .note-leaving[data-leaving="discard"] {
-  animation: note-leave 0.48s cubic-bezier(0.45, 0, 0.55, 1) forwards;
-}
-
-.note-leaving[data-leaving="discard"] .note-surface {
-  animation: note-crumple-surface 0.48s ease-in forwards;
+  animation: note-leave 0.25s cubic-bezier(0.4, 0, 1, 1) forwards;
+  transform-origin: center;
 }
 
 .note-leaving[data-leaving="undelete"] {

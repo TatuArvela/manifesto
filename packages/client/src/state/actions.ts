@@ -54,7 +54,7 @@ import {
 /**
  * How a card goes out of the grid, one look for each kind of departure:
  *
- * - `discard`: trashed or deleted. It is crumpled into a ball and thrown.
+ * - `discard`: trashed or deleted. It becomes smaller to its centre and goes.
  * - `archive`: put away. It is lifted up and off the board.
  * - `undelete`: back among the notes from the trash. It ascends: it glows, and
  *   floats up out of the Trash into the light.
@@ -72,7 +72,7 @@ export const leavingNotes = signal<ReadonlyMap<string, LeaveStyle>>(new Map());
 
 /** How long `.note-leaving` runs for each, as `note-cards.css` has it. */
 const LEAVE_MS: Record<LeaveStyle, number> = {
-  discard: 480,
+  discard: 250,
   archive: 200,
   undelete: 600,
   restore: 200,
