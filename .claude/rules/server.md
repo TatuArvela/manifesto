@@ -19,7 +19,12 @@ The server has two pluggable layers. Env vars select both when the server starts
 - The two schemas are the same on purpose. SQLite uses `INTEGER` booleans and `BLOB`s. Postgres uses
   native `BOOLEAN` and `BYTEA`. But the typed `Note`, `User` and other shapes that callers get are
   the same.
-- The tests of the Postgres driver run against `pg-mem`. Thus, CI does not need a real Postgres.
+- The tests of the Postgres driver run against PGlite, real Postgres in memory (`testDb.ts`).
+  Thus, CI does not need a Postgres server. All pools of a test file share one PGlite instance, and
+  each pool works in a schema. A storage test gets the shared migrated schema with its tables empty
+  (`newMigratedTestPool`), and a migration test gets a new empty schema (`newTestPool`). A test that
+  reads the catalogue reads `current_schema()`, not `public`. PGlite has one connection. Thus, a
+  query on the pool while the code holds a client never ends.
 - The construction of the storage is async (`await createStorage(cfg)`), because the Postgres
   migrations need a query round-trip.
 

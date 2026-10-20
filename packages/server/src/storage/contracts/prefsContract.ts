@@ -16,15 +16,10 @@ async function withUser(storage: StorageDriver, id = "u1") {
   });
 }
 
-/**
- * The preferences of an account, merged in the same way by both drivers.
- * `locks: false` skips the case where two writers race, for pg-mem, which does
- * not implement `FOR UPDATE`. Real Postgres does, and puts them in sequence.
- */
+/** The preferences of an account, merged in the same way by both drivers. */
 export function describePrefsContract(
   name: string,
   boot: () => Promise<StorageDriver>,
-  { locks = true }: { locks?: boolean } = {},
 ): void {
   describe(`${name}: preferences`, () => {
     it("starts empty, merges, and removes a key set to null", async () => {
@@ -51,7 +46,7 @@ export function describePrefsContract(
       });
     });
 
-    it.skipIf(!locks)("keeps both of two patches sent at once", async () => {
+    it("keeps both of two patches sent at once", async () => {
       const storage = await boot();
       await withUser(storage);
       await Promise.all([
