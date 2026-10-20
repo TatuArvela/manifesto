@@ -70,8 +70,7 @@ describe("both drivers declare the same migrations", () => {
   // step of one driver and forgotten in the step of the other passes all tests
   // that run on the first, and fails in production on the second. Columns by
   // name, not by their types or nullability: the types are different on purpose
-  // (`INTEGER` booleans against `BOOLEAN`), and pg-mem reports each column as
-  // `NOT NULL`.
+  // (`INTEGER` booleans against `BOOLEAN`).
   it("builds the same tables with the same columns", async () => {
     const sqlite = new Database(":memory:");
     runSqliteMigrations(sqlite);
@@ -94,7 +93,7 @@ describe("both drivers declare the same migrations", () => {
       table_name: string;
       column_name: string;
     }>(
-      "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public'",
+      "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = current_schema()",
     );
     const pg: Record<string, string[]> = {};
     for (const { table_name, column_name } of rows) {

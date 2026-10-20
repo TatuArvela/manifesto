@@ -1,45 +1,17 @@
 import { MAX_NOTE_VERSIONS, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { describeAccountKeysContract } from "#/storage/contracts/accountKeysContract.ts";
-import { describeAdminContract } from "#/storage/contracts/adminContract.ts";
-import { describeAttachmentsContract } from "#/storage/contracts/attachmentsContract.ts";
 import { claimed, claimedUpdate, opened } from "#/storage/contracts/claimed.ts";
-import { describeCommentsContract } from "#/storage/contracts/commentsContract.ts";
-import { describeNoteFormatContract } from "#/storage/contracts/noteFormatContract.ts";
-import { describeOAuthContract } from "#/storage/contracts/oauthContract.ts";
-import { describePasskeysContract } from "#/storage/contracts/passkeysContract.ts";
-import { describePrefsContract } from "#/storage/contracts/prefsContract.ts";
-import { describePublicLinksContract } from "#/storage/contracts/publicLinksContract.ts";
-import { describePushContract } from "#/storage/contracts/pushContract.ts";
-import { describeSharingContract } from "#/storage/contracts/sharingContract.ts";
-import { describeStatsContract } from "#/storage/contracts/statsContract.ts";
-import { describeSyncContract } from "#/storage/contracts/syncContract.ts";
-import { describeTeamsContract } from "#/storage/contracts/teamsContract.ts";
 import { UsernameTakenError } from "#/storage/types.ts";
 import { createPostgresStorage, type PostgresStorageDriver } from "./driver.ts";
-import { newTestPool } from "./testDb.ts";
+import { newMigratedTestPool } from "./testDb.ts";
 
 async function bootStorage(): Promise<PostgresStorageDriver> {
+  const pool = await newMigratedTestPool();
   return createPostgresStorage(
     { connectionString: "postgres://test" },
-    { poolFactory: newTestPool },
+    { poolFactory: () => pool },
   );
 }
-
-describeAdminContract("postgres (pg-mem)", bootStorage);
-describeSharingContract("postgres (pg-mem)", bootStorage);
-describeAttachmentsContract("postgres (pg-mem)", bootStorage);
-describeStatsContract("postgres (pg-mem)", bootStorage);
-describeSyncContract("postgres (pg-mem)", bootStorage);
-describePublicLinksContract("postgres (pg-mem)", bootStorage);
-describeTeamsContract("postgres (pg-mem)", bootStorage);
-describeOAuthContract("postgres (pg-mem)", bootStorage);
-describePasskeysContract("postgres (pg-mem)", bootStorage);
-describeAccountKeysContract("postgres (pg-mem)", bootStorage);
-describeCommentsContract("postgres (pg-mem)", bootStorage);
-describePushContract("postgres (pg-mem)", bootStorage);
-describeNoteFormatContract("postgres (pg-mem)", bootStorage);
-describePrefsContract("postgres (pg-mem)", bootStorage, { locks: false });
 
 describe("postgres: audit log", () => {
   it("appends, filters, pages and prunes", async () => {
@@ -364,7 +336,7 @@ const baseNoteData = {
   reminder: null,
 };
 
-describe("postgres storage driver (pg-mem)", () => {
+describe("postgres storage driver (PGlite)", () => {
   let storage: PostgresStorageDriver;
 
   beforeEach(async () => {

@@ -38,7 +38,7 @@ export interface PostgresStorageDriver extends StorageDriver {
 export interface CreatePostgresStorageOptions {
   poolFactory?: PostgresOpenOptions["poolFactory"];
   // Skip migrations. This is useful for tests that seeded the schema before the
-  // storage is made (for example, through pg-mem).
+  // storage is made.
   skipMigrations?: boolean;
 }
 
