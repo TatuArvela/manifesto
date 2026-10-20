@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.8.0](https://github.com/TatuArvela/manifesto/compare/v0.7.0...v0.8.0) (2026-10-20)
+
+
+### Features
+
+* **client:** a deleted note shrinks away to its centre ([#163](https://github.com/TatuArvela/manifesto/issues/163)) ([dcbdd8c](https://github.com/TatuArvela/manifesto/commit/dcbdd8cec3f5b380c74b84124efdb0ca0129ddae))
+* **client:** the loading screen carries the instance's brand ([#164](https://github.com/TatuArvela/manifesto/issues/164)) ([e783856](https://github.com/TatuArvela/manifesto/commit/e78385624bf42945633b28318fb72a186013a22a))
+* notes record the format they are in, and an older app never writes over a newer one ([#152](https://github.com/TatuArvela/manifesto/issues/152)) ([509827b](https://github.com/TatuArvela/manifesto/commit/509827b5c4c16ad646f2a0beb3ec03b8d552bf3f))
+* the API moves under /api/v1, and a calendar feed or an assistant set up before still connects ([#154](https://github.com/TatuArvela/manifesto/issues/154)) ([6958245](https://github.com/TatuArvela/manifesto/commit/6958245bf5427cdd0cf83ab62cc980e9ecba7aec))
+
+
+### Bug Fixes
+
+* **client:** closing a note no longer throws from the editor ([#158](https://github.com/TatuArvela/manifesto/issues/158)) ([1c596e9](https://github.com/TatuArvela/manifesto/commit/1c596e9a62efe96e13a6750d9c5cd31e05878efa))
+* **client:** readable grey text on every note colour, 24px targets, and focus kept clear of bars ([#157](https://github.com/TatuArvela/manifesto/issues/157)) ([42c1ab3](https://github.com/TatuArvela/manifesto/commit/42c1ab31a53c7c4270a41cf7196171e183cd88a8))
+* **client:** the board's top is no longer blurred in the iOS app ([#156](https://github.com/TatuArvela/manifesto/issues/156)) ([7c134cb](https://github.com/TatuArvela/manifesto/commit/7c134cbd3d7fa606cf07cee3bd8b9f55f0c5f8d7))
+* **client:** the editor's menu keeps its border and shadow on iOS ([#155](https://github.com/TatuArvela/manifesto/issues/155)) ([9680eee](https://github.com/TatuArvela/manifesto/commit/9680eee6867a183530d0b7ba66f944234803a2d1))
+
 ## [0.7.0](https://github.com/TatuArvela/manifesto/compare/v0.6.0...v0.7.0) (2026-10-19)
 
 
