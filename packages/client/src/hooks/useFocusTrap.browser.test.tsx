@@ -5,10 +5,10 @@ import { userEvent } from "vitest/browser";
 import { holdFocus, useFocusTrap } from "./useFocusTrap.ts";
 
 /**
- * Real Tab presses through the browser, because the whole behaviour under test
- * is the browser's own sequential navigation. A synthesised `keydown` moves
- * focus nowhere, so a trap could be missing entirely and every assertion would
- * still pass.
+ * Real Tab presses through the browser, because the full behavior that the test
+ * checks is the own sequential navigation of the browser. A synthetic `keydown`
+ * moves focus nowhere. Thus, a trap could be fully missing, and each assertion
+ * would still pass.
  */
 
 let host: HTMLDivElement;
@@ -28,7 +28,7 @@ function Trapped({
   );
 }
 
-/** A page with a control before and after the modal, as a real one has. */
+/** A page with a control before and after the modal, as a real page has. */
 function Page({ active = true }: { active?: boolean }) {
   return (
     <>
@@ -55,9 +55,9 @@ const tab = () => userEvent.keyboard("{Tab}");
 const shiftTab = () => userEvent.keyboard("{Shift>}{Tab}{/Shift}");
 
 /**
- * Puts focus on a known control by clicking it. A real key press goes to the
- * *page*, and test files share one, so without first taking focus here, a Tab
- * meant for this document can land in another file's frame.
+ * Puts focus on a known control with a click. A real key press goes to the
+ * *page*, and test files share one page. Thus, without the focus here first, a
+ * Tab for this document can go into the frame of a different file.
  */
 async function focusOn(id: string) {
   const el = document.getElementById(id);
@@ -83,8 +83,8 @@ describe("useFocusTrap", () => {
   });
 
   it("leaves focus where it is if the modal already has it", () => {
-    // The note editor focuses its own content as it mounts; taking that away
-    // would put the caret in the title field of every note opened.
+    // The note editor focuses its own content when it mounts. If the trap took
+    // that away, the caret would be in the title field of each note that opens.
     function SelfFocusing() {
       return (
         <Trapped>
@@ -106,8 +106,8 @@ describe("useFocusTrap", () => {
     expect(focusedId()).toBe("first");
     await focusOn("last");
 
-    // Without the trap this is `after`, and Tab walks on through the grid
-    // behind the modal, where the cards are focusable and still open notes.
+    // Without the trap, this is `after`, and Tab goes on through the grid
+    // behind the modal, where the cards can get focus and still open notes.
     await tab();
     expect(focusedId()).toBe("first");
   });
@@ -121,8 +121,8 @@ describe("useFocusTrap", () => {
   });
 
   it("lets Tab move normally between stops inside the modal", async () => {
-    // Only the two ends are intercepted, so Tab keeps its meaning everywhere
-    // else; inside ProseMirror it still indents a list item.
+    // Only the two ends are intercepted. Thus, Tab keeps its meaning in all
+    // other places. Inside ProseMirror, it still indents a list item.
     render(
       <Trapped>
         <button type="button" id="a">
@@ -146,9 +146,10 @@ describe("useFocusTrap", () => {
   });
 
   it("reaches a popover portalled out of the modal", async () => {
-    // `CardPopover` renders into `document.body`, so a reminder picker opened
-    // from inside the editor is not a descendant of the trapped container.
-    // Scoping the trap to the container alone would make it unreachable.
+    // `CardPopover` renders into `document.body`. Thus, a reminder picker
+    // opened from inside the editor is not a descendant of the trapped
+    // container. If the trap applied only to the container, nobody could reach
+    // the picker.
     const popover = document.createElement("div");
     popover.className = "card-popover";
     popover.innerHTML = '<button type="button" id="in-popover">picker</button>';
@@ -183,10 +184,10 @@ describe("useFocusTrap", () => {
   });
 
   it("leaves a stand-in holding focus, and returns focus past it", () => {
-    // NoteInput focuses a hidden input inside the tap so iOS opens the
-    // keyboard. Moving focus off it onto the first button dropped the keyboard
-    // before the editor could take it over, and handing focus back to it on
-    // close raised the keyboard over the page.
+    // NoteInput focuses a hidden input inside the tap, so that iOS opens the
+    // keyboard. When focus moved off it onto the first button, the keyboard
+    // closed before the editor could take it. When focus went back to it on
+    // close, the keyboard opened over the page.
     function WithStandIn({ active }: { active: boolean }) {
       return (
         <>
@@ -208,7 +209,7 @@ describe("useFocusTrap", () => {
   });
 
   it("does not chase an opener that has left the page", () => {
-    // Archiving a note from its editor removes the card that opened it.
+    // When you archive a note from its editor, the card that opened it goes.
     render(<Page active={false} />, host);
     const opener = document.getElementById("before");
     opener?.focus();

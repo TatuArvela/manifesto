@@ -17,7 +17,7 @@ import { ApiTokensSettings } from "./ApiTokensSettings.tsx";
 
 let host: HTMLDivElement;
 
-/** Presses the button that opens the form for a new token. */
+/** Pushes the button that opens the form for a new token. */
 async function openForm() {
   const open = await vi.waitFor(() => {
     const button = [...host.querySelectorAll("button")].find(
@@ -84,7 +84,8 @@ describe("ApiTokensSettings", () => {
     ) as HTMLInputElement;
     name.value = "Shortcut";
     name.dispatchEvent(new Event("input", { bubbles: true }));
-    // Let the typed name render, as it has long before anyone can press Create.
+    // Let the typed name render, as it does long before a person can push
+    // Create.
     await new Promise((r) => requestAnimationFrame(r));
     host
       .querySelector("form")
@@ -283,7 +284,7 @@ describe("ApiTokensSettings", () => {
     await vi.waitFor(() =>
       expect(host.textContent).toContain(t("tokens.scopeSharing")),
     );
-    // Every scope starts ticked; keep reading notes and sharing only.
+    // All scopes start ticked. Keep only reading notes and sharing.
     for (const label of host.querySelectorAll("fieldset label")) {
       const keep = [t("tokens.scopeNotesRead"), t("tokens.scopeSharing")];
       if (!keep.includes(label.textContent ?? "")) {

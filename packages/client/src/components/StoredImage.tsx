@@ -4,10 +4,11 @@ import { useEffect, useState } from "preact/hooks";
 import { attachmentObjectUrl } from "#/state/attachments.ts";
 
 /**
- * An `<img>` for one of a note's images, or a link preview's, whichever way
- * it is held: inline as a `data:` URL, or as a reference to the server's
- * attachment store, which is fetched with the session's credentials first. Until then it is an empty box
- * of the same shape, so a card does not jump.
+ * An `<img>` for one of the images of a note, or of a link preview, in either
+ * of its forms: inline as a `data:` URL, or as a reference to the attachment
+ * store of the server, which the code first gets with the credentials of the
+ * session. Until then, it is an empty box of the same shape. Thus, a card does
+ * not jump.
  */
 export function StoredImage({
   src,
@@ -17,8 +18,10 @@ export function StoredImage({
 }: {
   src: string;
   alt: string;
-  /** The empty box's own classes, besides the image's; the default suits a
-   * gallery image, not a small icon. */
+  /**
+   * The own classes of the empty box, in addition to those of the image. The
+   * default is correct for a gallery image, not for a small icon.
+   */
   placeholderClass?: string;
 } & Omit<
   PartialImgHTMLAttributes<HTMLImageElement>,

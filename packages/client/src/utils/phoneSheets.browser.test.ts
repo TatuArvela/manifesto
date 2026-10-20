@@ -4,8 +4,8 @@ import { openSheet, openSheetCount } from "./phoneSheets.ts";
 import "#/styles.css";
 
 /**
- * Real CSS in a real viewport: the point is where the browser lays things out
- * and what the page can scroll, which only computed layout shows.
+ * Real CSS in a real viewport. The purpose is where the browser lays out
+ * elements, and what the page can scroll, which only computed layout shows.
  */
 
 let shell: HTMLElement;
@@ -53,7 +53,7 @@ describe("on a phone", () => {
     open(el);
     expect(getComputedStyle(shell).position).toBe("fixed");
     expect(getComputedStyle(el).position).toBe("relative");
-    // The page is what scrolls a long note.
+    // The page scrolls a long note.
     window.scrollTo(0, 500);
     expect(window.scrollY).toBe(500);
     expect(shell.getBoundingClientRect().top).toBe(0);
@@ -101,7 +101,7 @@ describe("keyboard focus under the sheet's bars", () => {
     const top = document.createElement("div");
     top.className = "note-sheet-top";
     top.style.height = "80px";
-    // Where Tab starts from: fixed between the bars, so it needs no scroll.
+    // Where Tab starts: fixed between the bars. Thus, it needs no scroll.
     const before = document.createElement("button");
     before.textContent = "before";
     before.style.cssText = "position: fixed; top: 300px";
@@ -154,7 +154,7 @@ describe("the page's background", () => {
   const surfaceOf = (el: HTMLElement) =>
     el.querySelector<HTMLElement>(".note-sheet-surface") as HTMLElement;
 
-  // What iOS shows past the foot of the page with the keyboard up.
+  // What iOS shows past the bottom of the page when the keyboard is up.
   it("takes the open note's colour, and follows a change of it", async () => {
     const before = pageColour();
     const el = sheet(100);

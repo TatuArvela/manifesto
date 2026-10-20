@@ -8,17 +8,17 @@ import { sharedAgreement } from "#/realtime/contentAgreement.ts";
 import type { NoteYDoc } from "#/realtime/yjsProvider.ts";
 
 /**
- * The gate: `NoteCardEditor` must withhold `collab` from the editor until the
- * provider reports `synced`. Binding early is silent data loss: `ySyncPlugin`
- * adopts whatever the shared fragment holds, and before the server's state
- * arrives that is nothing, so the note reads as blank and the blank is what
- * gets saved.
+ * The gate: `NoteCardEditor` must not give `collab` to the editor until the
+ * provider reports `synced`. An early binding is a silent loss of data.
+ * `ySyncPlugin` adopts what the shared fragment contains. Before the state of
+ * the server arrives, that is nothing. Thus, the note reads as blank, and the
+ * app saves the blank.
  *
- * The provider is the one thing mocked here; a real one would need a server,
- * and the server side of this is already covered end to end by
- * `ws/yjsSocket.test.ts`. Everything below the hook (the remount keyed on
- * `collab`, the fragment seeding, the editor itself) is real, because the
- * three of them together are what the gate has to get right.
+ * The provider is the only mock here. A real provider would need a server, and
+ * `ws/yjsSocket.test.ts` already covers the server side of this from end to
+ * end. All parts below the hook (the remount with `collab` as the key, the fill
+ * of the fragment, the editor itself) are real, because the gate must get the
+ * three of them correct together.
  */
 
 const provided = { current: null as NoteYDoc | null };
@@ -77,7 +77,10 @@ function synced(ydoc: Y.Doc): NoteYDoc {
 
 let host: HTMLDivElement;
 
-/** Renders (or re-renders) the editor against whatever `provided` now holds. */
+/**
+ * Renders (or renders again) the editor against the current value of
+ * `provided`.
+ */
 function show(note: Note) {
   render(<NoteCardEditor note={note} onClose={() => {}} />, host);
 }
@@ -93,10 +96,11 @@ beforeEach(() => {
   document.body.appendChild(host);
 });
 
-// Milkdown's listener plugin serializes the document on a 200ms debounce, and
-// its serializers read the editor view out of the context as they run. Tearing
-// down inside that window leaves the timer to fire against a destroyed editor
-// and throw where nothing can catch it, so let the debounce drain first.
+// The listener plugin of Milkdown serializes the document after a 200ms
+// debounce, and its serializers read the editor view out of the context while
+// they run. A teardown inside that window leaves the timer to fire against a
+// destroyed editor, and to throw where nothing can catch it. Thus, let the
+// debounce complete first.
 const LISTENER_DEBOUNCE_MS = 250;
 
 afterEach(async () => {
@@ -108,7 +112,7 @@ afterEach(async () => {
   localStorage.clear();
 });
 
-/** Seeds the note where both the signal and the storage adapter look for it. */
+/** Seeds the note where the signal and the storage adapter both look for it. */
 function storeNote(note: Note) {
   notes.value = [note];
   localStorage.setItem("manifesto:notes", JSON.stringify([note]));
@@ -126,9 +130,9 @@ describe("NoteCardEditor collaboration gate", () => {
       expect(editorText()).toContain("Milk, eggs, coffee");
     });
 
-    // A `Y.Doc` exists and is connecting, but the editor must not be bound to
-    // it yet. An empty fragment at this point means "the server has not spoken
-    // yet", and writing into it is how a note gets blanked.
+    // A `Y.Doc` exists and connects, but the editor must not bind to it yet. An
+    // empty fragment at this time means "the server did not answer yet", and a
+    // write into it makes a note blank.
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(fragment(ydoc).length).toBe(0);
   });
@@ -147,8 +151,9 @@ describe("NoteCardEditor collaboration gate", () => {
     provided.current = synced(ydoc);
     show(note);
 
-    // The editor is keyed on `collab`, so this is a fresh instance: the note
-    // has to survive the remount, in the shared document as well as on screen.
+    // The editor has `collab` as its key. Thus, this is a new instance. The
+    // note must stay after the remount, in the shared document and on the
+    // screen.
     await vi.waitFor(() => {
       expect(fragment(ydoc).toString()).toContain("Milk, eggs, coffee");
     });
@@ -156,9 +161,10 @@ describe("NoteCardEditor collaboration gate", () => {
   });
 
   it("shows the server's document rather than the note row it was opened with", async () => {
-    // The row this client rendered from can be behind: another session edited
-    // the note after the list was fetched. Once the provider syncs, the shared
-    // document is the authority, and the stale row must not be written over it.
+    // The row from which this client rendered can be behind: a different
+    // session edited the note after the list loaded. After the provider syncs,
+    // the shared document is the authority, and the old row must not be written
+    // over it.
     const note = makeNote("Milk, eggs, coffee");
     storeNote(note);
     const ydoc = new Y.Doc();
@@ -184,8 +190,8 @@ describe("NoteCardEditor collaboration gate", () => {
   });
 
   it("stays solo when there is no provider at all", async () => {
-    // Open mode: no server, so `useNoteYDoc` reports an idle document and the
-    // editor has to work anyway.
+    // Open mode: no server. Thus, `useNoteYDoc` reports an idle document, and
+    // the editor must still work.
     const note = makeNote("Milk, eggs, coffee");
     storeNote(note);
     provided.current = {
@@ -204,8 +210,8 @@ describe("NoteCardEditor collaboration gate", () => {
   });
 
   it("locks the text and asks for a reload when the server refuses this editor", async () => {
-    // Saving over REST instead would write this build's reading of the note
-    // over content a newer editor put there.
+    // A save over REST would write the reading of this build over content that
+    // a newer editor put there.
     const note = makeNote("Milk, eggs, coffee");
     storeNote(note);
     provided.current = {
@@ -231,10 +237,10 @@ describe("NoteCardEditor collaboration gate", () => {
 });
 
 /**
- * A row written from outside the document: an assistant's `update_note`, a
- * script on the REST API, a restored version. None of them touch Yjs, so the
- * document still holds the text from before, and without these the editor
- * showed that and saved it back over the change.
+ * A row written from outside the document: the `update_note` of an assistant, a
+ * script on the REST API, a restored version. None of them changes Yjs. Thus,
+ * the document still contains the old text. Without these, the editor showed
+ * that, and saved it back over the change.
  */
 describe("NoteCardEditor with a row written from outside the document", () => {
   const SAVED_AT = "2026-01-01T00:00:00.000Z";
@@ -271,13 +277,13 @@ describe("NoteCardEditor with a row written from outside the document", () => {
       expect(editorText()).toContain("and oat milk");
     });
     expect(fragment(ydoc).toString()).toContain("and oat milk");
-    // The document held nothing unsaved, so there was nothing to keep.
+    // The document contained nothing unsaved. Thus, there was nothing to keep.
     expect(versionsSaved()).toBe(false);
   });
 
   it("keeps the document when the row is a text it sent itself", async () => {
-    // Another tab's save that reached the row, claimed before it was sent,
-    // while this document has moved on since.
+    // The save of a different tab that reached the row, claimed before it was
+    // sent, while this document moved on since then.
     const ydoc = savedDocument("Milk, eggs, coffee, and rye bread");
     sharedAgreement(ydoc, null).claim("Milk, eggs, coffee");
     const note = writtenLater("Milk, eggs, coffee");
@@ -318,7 +324,7 @@ describe("NoteCardEditor with a row written from outside the document", () => {
     storeNote(note);
     const ydoc = savedDocument("Milk, eggs, coffee");
     const awareness = new Awareness(ydoc);
-    // Another client with the document open, and a lower id.
+    // A different client with the document open, and a lower id.
     awareness.states.set(ydoc.clientID - 1, {});
     provided.current = { ...synced(ydoc), awareness };
 
@@ -351,13 +357,13 @@ describe("NoteCardEditor with a row written from outside the document", () => {
   });
 
   it("never takes its own saves for outside writes while typing", async () => {
-    // Each save changes the row under the editor, which by then has moved on.
-    // Taken in, it would undo whatever was typed after it.
+    // Each save changes the row under the editor, which by then moved on. If
+    // the code took it in, it would undo what was typed after it.
     const note = makeNote("Milk, eggs, coffee");
     storeNote(note);
     const ydoc = savedDocument("Milk, eggs, coffee");
     provided.current = synced(ydoc);
-    // As the board does: the card hands the editor the row as it now stands.
+    // As the board does: the card gives the editor the current row.
     function Live() {
       const row = notes.value.find((n) => n.id === NOTE_ID);
       return row ? <NoteCardEditor note={row} onClose={() => {}} /> : null;
@@ -369,9 +375,9 @@ describe("NoteCardEditor with a row written from outside the document", () => {
 
     const view = host.querySelector(".ProseMirror") as HTMLElement;
     view.focus();
-    // One word, saved, and then steady typing: the auto-save waits for a
-    // pause, so the row stands still while the document runs ahead of it,
-    // and the row is judged in the middle of that.
+    // One word, saved, and then steady typing. The auto-save waits for a pause.
+    // Thus, the row stays still while the document goes ahead of it, and the
+    // code judges the row in the middle of that.
     document.execCommand("insertText", false, "and ");
     await new Promise((resolve) => setTimeout(resolve, 700));
     for (const char of "rye bread ") {
@@ -380,8 +386,8 @@ describe("NoteCardEditor with a row written from outside the document", () => {
     }
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    // The caret starts where the focus left it; what matters is that every
-    // word is still there, on screen and in the row.
+    // The caret starts where the focus left it. The important result is that
+    // each word is still there, on the screen and in the row.
     for (const text of [editorText(), notes.value[0]?.content]) {
       expect(text).toMatch(/and\s+rye\s+bread/);
       expect(text).toContain("Milk, eggs, coffee");
@@ -389,7 +395,7 @@ describe("NoteCardEditor with a row written from outside the document", () => {
   });
 
   it("takes in a restored version with no shared document at all", async () => {
-    // Open mode, or a viewer: the editor's own records, kept in memory.
+    // Open mode, or a viewer: the own records of the editor, kept in memory.
     const note = makeNote("Milk, eggs, coffee");
     storeNote(note);
     provided.current = {
@@ -401,8 +407,8 @@ describe("NoteCardEditor with a row written from outside the document", () => {
       unreadable: 0,
     };
     show(note);
-    // Restored before the editor has even been built, so nothing but the row
-    // it was opened with can say this one is newer.
+    // Restored before the editor was built. Thus, only the row with which it
+    // opened can tell that this one is newer.
     const restored = writtenLater("Milk");
     notes.value = [restored];
     show(restored);

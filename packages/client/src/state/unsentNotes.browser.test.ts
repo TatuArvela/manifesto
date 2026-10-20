@@ -24,17 +24,19 @@ import {
 } from "./unsentNotes.ts";
 
 /**
- * The queue of new notes against a server that keeps what it is sent, with
- * the connection cut and restored under it. Sealing is handed through here
- * (`test/plainSealing.ts`), so the server reads readable notes; what is kept
- * on the device is sealed for real, under keys made for each test.
+ * The queue of new notes against a server that keeps what it gets, with the
+ * connection cut and restored under it. The seal is skipped here
+ * (`test/plainSealing.ts`). Thus, the server reads readable notes. What is kept
+ * on the device is really sealed, under keys made for each test.
  */
 
 const SERVER = "http://server.test";
 
 type Fetch = typeof fetch;
 
-/** Stores each note under the id it is sent with, as the real server does. */
+/**
+ * Stores each note under the id with which it comes, as the real server does.
+ */
 class NoteServer {
   readonly notes = new Map<string, Note>();
   readonly requests: string[] = [];
@@ -99,7 +101,7 @@ beforeEach(async () => {
   vi.stubGlobal("fetch", ((input, init) => reach(input, init)) as Fetch);
   notes.value = [];
   storageConnection.value = { serverUrl: SERVER, token: "tok" };
-  // An account of its own for each test: test files share one IndexedDB.
+  // Each test has its own account, because test files share one IndexedDB.
   keys = await newKeys();
   storageKeys.value = keys;
   await sendUnsent();
@@ -140,7 +142,7 @@ describe("queueNote", () => {
     await sendUnsent();
     expect(unsentNotes.value).toEqual([]);
     expect(notes.value.map((n) => n.title)).toEqual(["Written on the train"]);
-    // Under the id it was queued with.
+    // Under the id with which it was queued.
     expect(server.notes.has(waiting?.id ?? "")).toBe(true);
   });
 
@@ -167,7 +169,7 @@ describe("queueNote", () => {
     await queueNote({ title: "Kept before" });
     await sendUnsent();
 
-    // Format 2 after the reload: every title in capitals.
+    // Format 2 after the reload: each title in capitals.
     setNoteFormatStepsForTests([
       (words) =>
         words.title === undefined ? {} : { title: words.title.toUpperCase() },

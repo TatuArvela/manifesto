@@ -36,9 +36,10 @@ function mergeLinkPreviews(
   for (const preview of desired) {
     const before = baseByUrl.get(preview.url);
     if (before) {
-      // Only a preview this writer changed (a stub filled in, a title edited)
-      // overwrites the server's copy. One it kept as it was must not: the
-      // other writer may have filled it in, and the stale copy would undo that.
+      // Only a preview that this writer changed (a stub filled, a title edited)
+      // writes over the copy of the server. A preview that it kept as it was
+      // must not. The other writer can have filled it, and the stale copy would
+      // undo that.
       if (sameValue(before, preview)) continue;
       const idx = result.findIndex((p) => p.url === preview.url);
       if (idx !== -1) result[idx] = preview;
@@ -50,9 +51,10 @@ function mergeLinkPreviews(
 }
 
 /**
- * Each image's description after a merge: the one this writer gave it where
- * they changed it, the server's otherwise. Keyed by image, so it follows the
- * merged list whatever either writer added, removed or moved.
+ * The description of each image after a merge: the description that this writer
+ * gave it where they changed it, and that of the server otherwise. The key is
+ * the image. Thus, it follows the merged list, whatever either writer added,
+ * removed or moved.
  */
 function mergeImageAlts(
   base: Note,
@@ -82,16 +84,16 @@ function mergeImageAlts(
 /**
  * 3-way merge for a NoteUpdate that lost the optimistic-concurrency race.
  *
- * - `base`: the snapshot the user was looking at when they triggered the
- *   update (the local cached note before the optimistic mutation).
- * - `desired`: the partial change set the user requested.
- * - `current`: the latest server state returned in the 412 response.
+ * - `base`: the snapshot that the user saw when they started the update (the
+ *   local cached note before the optimistic change).
+ * - `desired`: the partial set of changes that the user requested.
+ * - `current`: the latest server state that the 412 response returned.
  *
- * Scalars in `desired` overwrite the server value (client wins). Array
- * fields (`tags`, `images`, `linkPreviews`) are merged 3-way: items
- * the user added survive concurrent additions; items the user removed
- * are removed from the current state; items added by the other writer
- * are preserved. `imageAlts` is merged by image, beside the merged list.
+ * Scalars in `desired` write over the server value (the client wins). Array
+ * fields (`tags`, `images`, `linkPreviews`) are merged 3-way. Items that the
+ * user added stay with concurrent additions. Items that the user removed are
+ * removed from the current state. Items that the other writer added stay.
+ * `imageAlts` is merged by image, next to the merged list.
  */
 export function mergeNoteUpdate(
   base: Note,
@@ -109,12 +111,12 @@ export function mergeNoteUpdate(
       current.images,
     );
   }
-  // The descriptions are sealed inside the image list, so they go with it.
+  // The descriptions are sealed inside the image list. Thus, they go with it.
   if (desired.images !== undefined || desired.imageAlts !== undefined) {
     const images = merged.images ?? current.images;
     merged.images = images;
     const alts = mergeImageAlts(base, desired, current, images);
-    // Left out when there is nothing to keep and nothing to clear.
+    // Not included when there is nothing to keep and nothing to clear.
     if (
       alts.length > 0 ||
       desired.imageAlts !== undefined ||

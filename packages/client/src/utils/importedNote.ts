@@ -20,21 +20,22 @@ import {
 } from "./frontmatter.ts";
 import { parseLinkPreviews } from "./linkPreview.ts";
 
-// Turning what a file holds into notes: a Markdown file, this app's JSON (one
-// note or an array), and the versions of an export. Every value is the file's
-// word only, so each is checked and anything unrecognised falls back.
+// The change of the content of a file into notes: a Markdown file, the JSON of
+// this app (one note or an array), and the versions of an export. Each value is
+// only what the file says. Thus, the code checks each one, and an unknown value
+// falls back.
 
 export type ImportResult =
   | { kind: "single"; note: Partial<NoteCreate> }
   | { kind: "bulk"; notes: Note[] };
 
 /**
- * One Markdown file as a note. YAML frontmatter, as Obsidian and other
- * Markdown note apps write it (and this app's own export), can give the
- * title, `tags` (or `tag`) and the pinned / archived flags. A `title` there
- * wins, even an empty one: a leading heading is then the note's own content,
- * and is dropped only when it repeats the title. With no `title`, a leading
- * `# ` heading is the title and leaves the body.
+ * One Markdown file as a note. YAML frontmatter, as Obsidian and other Markdown
+ * note apps write it (and the own export of this app), can give the title,
+ * `tags` (or `tag`) and the pinned and archived flags. A `title` there wins,
+ * also an empty one. A leading heading is then the own content of the note, and
+ * is dropped only when it repeats the title. With no `title`, a leading `# `
+ * heading is the title, and goes out of the body.
  */
 export function parseMarkdownToNote(text: string): Partial<NoteCreate> {
   const { data, body } = splitFrontmatter(text.replace(/^\uFEFF/, ""));
@@ -63,9 +64,9 @@ export function parseMarkdownToNote(text: string): Partial<NoteCreate> {
 
 /**
  * A Markdown file from a folder of notes. Such apps name the note after the
- * file rather than heading it, so the file name is the fallback title, and
- * the folders it sits in (Nextcloud Notes' categories, an Obsidian vault's
- * directories) become tags.
+ * file, and do not give it a heading. Thus, the file name is the fallback
+ * title, and the folders in which it is (the categories of Nextcloud Notes, the
+ * directories of an Obsidian vault) become tags.
  */
 export function markdownFileToNote(
   path: string,
@@ -74,8 +75,8 @@ export function markdownFileToNote(
 ): Note {
   const note = parseMarkdownToNote(text);
   const { data } = splitFrontmatter(text.replace(/^\uFEFF/, ""));
-  // An empty `title:` says the note has none, as this app's export writes an
-  // untitled note; only a file that does not say is named after itself.
+  // An empty `title:` says that the note has none, as the export of this app
+  // writes an untitled note. Only a file that does not tell gets its own name.
   const titled = typeof data.title === "string";
   const segments = path.split("/").filter((s) => s !== "");
   const file = segments.pop() ?? "";
@@ -100,7 +101,9 @@ export function markdownFileToNote(
 const NOTE_COLORS = new Set<string>(Object.values(NoteColor));
 const NOTE_FONTS = new Set<string>(Object.values(NoteFont));
 const RECURRENCES = new Set<string>(REMINDER_RECURRENCES);
-/** What the server holds an imported note's id to (`notesImportSchema`). */
+/**
+ * What the server requires of the id of an imported note (`notesImportSchema`).
+ */
 const NOTE_ID = /^[0-9A-Za-z_-]{1,64}$/;
 
 function parseReminder(raw: unknown): NoteReminder | null {
@@ -133,15 +136,16 @@ function parseStringArray(raw: unknown): string[] {
 }
 
 /**
- * Coerces a shape-checked import item into a complete, renderable `Note`.
+ * Changes an import item whose shape passed the check into a complete `Note`
+ * that can render.
  *
- * An unknown `color` must never reach storage: it would reach
- * `noteColorMap[...]` as `undefined` and throw inside `NoteCard` on every load
- * after it was persisted. `isValidNoteShape` has checked that the identity
- * fields are strings, and no more than that: an id that could not be one of
- * ours (it becomes a path segment and a storage key) is replaced, and a date
- * that is not a date becomes the time of the import. Everything else is
- * validated and falls back to a safe default.
+ * An unknown `color` must never reach storage. It would reach
+ * `noteColorMap[...]` as `undefined`, and throw inside `NoteCard` on each load
+ * after it was persisted. `isValidNoteShape` checked that the identity fields
+ * are strings, and no more than that. The code replaces an id that could not be
+ * one of ours (it becomes a path segment and a storage key). A date that is not
+ * a date becomes the time of the import. All other values are validated, and
+ * fall back to a safe default.
  */
 export function normalizeImportedNote(
   raw: Record<string, unknown>,
@@ -170,7 +174,7 @@ export function normalizeImportedNote(
     pinned: raw.pinned === true,
     archived: raw.archived === true,
     trashed,
-    // A trashed note with no date it was trashed on would never expire.
+    // A trashed note with no trash date would never expire.
     trashedAt: trashed ? (date(raw.trashedAt) ?? now) : null,
     position:
       typeof raw.position === "number" && Number.isFinite(raw.position)
@@ -187,8 +191,9 @@ export function normalizeImportedNote(
 }
 
 /**
- * A file's descriptions of its note's images, one for each image: "" for one
- * that is missing, not text, or too long. Undefined when none is left.
+ * The descriptions of the images of the note in a file, one for each image: ""
+ * for a description that is missing, is not text, or is too long. Undefined
+ * when none is left.
  */
 function parseImageAlts(raw: unknown, count: number): string[] | undefined {
   if (!Array.isArray(raw)) return undefined;
@@ -272,8 +277,9 @@ export function parseNoteJson(text: string): ImportResult {
 }
 
 /**
- * A version from an export's `versions.json`, which is only the file's word:
- * anything not shaped like one is dropped rather than filed.
+ * A version from the `versions.json` of an export, which is only what the file
+ * says. The code drops all that does not have the shape of a version, and does
+ * not file it.
  */
 export function isNoteVersion(value: unknown): value is NoteVersion {
   if (typeof value !== "object" || value === null) return false;

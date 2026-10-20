@@ -11,15 +11,15 @@ import { blobToDataUrl } from "#/utils/dataUrl.ts";
 import { shrinkImage } from "#/utils/shrinkImage.ts";
 
 /**
- * Images the server keeps in its attachment store reach a note as
- * `attachment:<id>` references. The bytes need the session's credentials, so
- * an `<img>` cannot point at them; they are fetched once and shown through a
- * `blob:` URL (which the page's CSP allows), kept for the session. An id
- * names one set of bytes for good, so a cached copy never goes stale.
+ * Images that the server keeps in its attachment store reach a note as
+ * `attachment:<id>` references. The bytes need the credentials of the session.
+ * Thus, an `<img>` cannot point to them. They load one time, and show through a
+ * `blob:` URL (which the CSP of the page permits), kept for the session. An id
+ * always names one set of bytes. Thus, a cached copy never becomes stale.
  */
 const objectUrls = new Map<string, Promise<string | null>>();
 
-// The bytes behind each URL are the image opened, so they leave with the
+// The bytes behind each URL are the opened image. Thus, they go with the
 // session and the keys that opened them, as the notes do (`notesStore.ts`).
 let cachedFor: { token: string | null; userId: string | null } | null = null;
 effect(() => {
@@ -34,7 +34,10 @@ effect(() => {
   }
 });
 
-/** A `blob:` URL showing the attachment, or null if it could not be read. */
+/**
+ * A `blob:` URL that shows the attachment, or null if the client could not read
+ * it.
+ */
 export function attachmentObjectUrl(ref: string): Promise<string | null> {
   let pending = objectUrls.get(ref);
   if (!pending) {
@@ -42,7 +45,7 @@ export function attachmentObjectUrl(ref: string): Promise<string | null> {
       .loadImage(ref)
       .then((blob) => URL.createObjectURL(blob))
       .catch(() => {
-        // Not cached: the next card to ask tries again.
+        // Not cached: the next card that asks tries again.
         objectUrls.delete(ref);
         return null;
       });
@@ -52,10 +55,11 @@ export function attachmentObjectUrl(ref: string): Promise<string | null> {
 }
 
 /**
- * The images with every reference replaced by its bytes as a `data:` URL, for
- * anything that leaves this session: an export, a JSON download. A file that
- * named attachments would be unreadable anywhere else. Null if any could not
- * be read, since a backup quietly missing a picture is worse than none.
+ * The images, with each reference replaced by its bytes as a `data:` URL, for
+ * all data that goes out of this session: an export, a JSON download. A file
+ * that named attachments would be unreadable in all other places. Null if the
+ * code could not read one of them, because a backup that silently does not
+ * include a picture is worse than no backup.
  */
 export async function inlineImages(images: string[]): Promise<string[] | null> {
   const out: string[] = [];
@@ -76,9 +80,10 @@ export async function inlineImages(images: string[]): Promise<string[] | null> {
 }
 
 /**
- * The previews with each thumbnail and favicon inlined, for the same reason as
- * `inlineImages`. One that cannot be read is dropped and the card kept: it is
- * a picture of the linked page, not something the user attached.
+ * The previews, with each thumbnail and favicon inlined, for the same reason as
+ * `inlineImages`. The code drops one that it cannot read and keeps the card,
+ * because it is a picture of the linked page, not something that the user
+ * attached.
  */
 export async function inlinePreviewImages(
   previews: LinkPreview[],
@@ -101,12 +106,12 @@ export class ImageTooLargeError extends Error {
 }
 
 /**
- * Makes an attached file into something a note can hold: shrunk to a
- * sensible size, checked against the limit, and stored (uploaded, in
- * connected mode, reporting progress). The bytes are remembered under the
- * reference, so the image the user just attached is drawn from them rather
- * than fetched straight back. Rejects with `ImageTooLargeError`, an upload
- * error, or an `AbortError` when `signal` fires.
+ * Makes an attached file into something that a note can contain: shrunk to a
+ * usable size, checked against the limit, and stored (uploaded in connected
+ * mode, with progress reports). The bytes are kept under the reference. Thus,
+ * the image that the user just attached is drawn from them, and is not loaded
+ * back immediately. Rejects with `ImageTooLargeError`, an upload error, or an
+ * `AbortError` when `signal` fires.
  */
 export async function attachImage(
   file: Blob,
@@ -117,11 +122,11 @@ export async function attachImage(
 ): Promise<string> {
   const { signal } = options;
   const image = await shrinkImage(file);
-  // Shrinking takes a while, and the editor may have closed meanwhile.
+  // The shrink takes some time, and the editor can have closed in the meantime.
   signal?.throwIfAborted();
   if (image.size > MAX_IMAGE_SOURCE_BYTES) throw new ImageTooLargeError();
   const stored = await storage.putImage(image, options);
-  // Not every adapter can stop a write once it has begun.
+  // Not each adapter can stop a write after it started.
   signal?.throwIfAborted();
   if (isStoredImageRef(stored) && !objectUrls.has(stored)) {
     objectUrls.set(stored, Promise.resolve(URL.createObjectURL(image)));
@@ -129,8 +134,10 @@ export async function attachImage(
   return stored;
 }
 
-/** Lets go of every image shown so far. Also a test seam: the cache is
- * module state and outlives a test. */
+/**
+ * Releases each image shown so far. Also a test seam: the cache is module
+ * state, and stays after a test.
+ */
 export function forgetAttachmentUrls(): void {
   for (const pending of objectUrls.values()) {
     void pending.then((url) => {

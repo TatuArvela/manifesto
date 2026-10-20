@@ -2,11 +2,11 @@ import { type MessageKey, t } from "#/i18n/index.ts";
 import type { SettingsTab } from "#/state/ui.ts";
 
 /**
- * What a search in Settings can find: each setting by the label its row
- * shows, on the page it is on. A setting added to a page gets a line here, or
- * the search does not know it; the page itself is always found by its name.
- * The label is how the result finds its row again (`findSettingRow`), so it
- * is the key the row is drawn with.
+ * What a search in Settings can find: each setting by the label that its row
+ * shows, on its page. A setting added to a page gets a line here. If not, the
+ * search does not know it. The search always finds the page itself by its name.
+ * The result finds its row again by the label (`findSettingRow`). Thus, the
+ * label is the key with which the row is drawn.
  */
 export const SETTINGS_INDEX: readonly {
   tab: SettingsTab;
@@ -43,19 +43,19 @@ export const SETTINGS_INDEX: readonly {
 
 export interface SettingsHit {
   tab: SettingsTab;
-  /** The setting's label, or null for the page itself. */
+  /** The label of the setting, or null for the page itself. */
   label: string | null;
 }
 
-/** Lower case with the accents taken off, so "kayttaytyminen" finds "Käyttäytyminen". */
+/** Lowercase without accents. Thus, "kayttaytyminen" finds "Käyttäytyminen". */
 function folded(text: string): string {
   return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 }
 
 /**
- * The settings and pages whose names hold every word of `query`, among the
- * pages this user has (`tabs`, with each page's name). A page found by name
- * comes before the settings on it.
+ * The settings and pages whose names contain each word of `query`, among the
+ * pages that this user has (`tabs`, with the name of each page). A page found
+ * by name comes before the settings on it.
  */
 export function searchSettings(
   query: string,
@@ -80,8 +80,8 @@ export function searchSettings(
 }
 
 /**
- * The row on the page in `pane` that shows `label`: a row's heading, a
- * group's title or a button, whose text is the label.
+ * The row on the page in `pane` that shows `label`: the heading of a row, the
+ * title of a group, or a button whose text is the label.
  */
 export function findSettingRow(
   pane: HTMLElement,

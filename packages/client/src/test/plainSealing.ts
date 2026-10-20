@@ -9,11 +9,11 @@ import { signal } from "@preact/signals";
 import type { NoteSealing } from "#/storage/sealing.ts";
 
 /**
- * Sealing that seals nothing, for tests of what sits above the storage
- * layer: a fake server in such a test answers with readable notes and reads
- * readable requests, as servers did before notes were sealed, and the test
- * stays about the store, the socket or the screen it is for. What sealing
- * itself does is tested with the real `Sealer` (`sealing.test.ts`,
+ * A sealing that seals nothing, for tests of the code above the storage layer.
+ * A fake server in such a test answers with readable notes and reads readable
+ * requests, as servers did before notes were sealed. Thus, the test stays about
+ * the store, the socket or the screen for which it is. The real `Sealer` tests
+ * what the seal itself does (`sealing.test.ts`,
  * `RestApiAdapter.sealed.test.ts`).
  */
 export const plainSealing: NoteSealing = {
@@ -61,13 +61,13 @@ export const plainSealing: NoteSealing = {
   sealVersion: async (_noteId, version) =>
     version as unknown as SealedNoteVersionCreateRequest,
   openVersions: async (_noteId, sealed) => sealed as unknown as NoteVersion[],
-  // No link key: the link is its token alone.
+  // No link key: the link is only its token.
   publish: async () => null,
   openLinkKey: async () => null,
-  // No keys to carry: the server makes the token, as it does for one that
+  // No keys to carry. The server makes the token, as it does for a token that
   // reaches no note.
   newToken: async () => null,
-  // No key: the shared document is synced as it is.
+  // No key: the shared document syncs as it is.
   documentKey: async () => null,
   sealComment: async (_noteId, _id, body) => ({ body, keyVersion: 1 }),
   openComments: async (_noteId, sealed) => sealed,

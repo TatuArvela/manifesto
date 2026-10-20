@@ -19,7 +19,7 @@ const canvas = () => host.querySelector("canvas") as HTMLCanvasElement;
 const button = (label: string) =>
   host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
 
-/** The colour of the drawing at a point given as fractions of the paper. */
+/** The color of the drawing at a point, given as fractions of the paper. */
 function inkAt(fx: number, fy: number, from = canvas()): string {
   const ctx = from.getContext("2d") as CanvasRenderingContext2D;
   const [r, g, b] = ctx.getImageData(
@@ -81,8 +81,9 @@ beforeEach(async () => {
   requestDrawing((file) => saved.push(file));
   render(<DrawingPad />, host);
   await settled();
-  // The last test's pad took its entry off with a `history.back()` that may
-  // not have landed yet, and this pad's entry is only pushed once it has.
+  // The pad of the last test removed its entry with a `history.back()` that
+  // possibly did not complete yet. The entry of this pad is pushed only after
+  // it completed.
   await new Promise<void>((resolve) => afterHistorySettles(resolve));
 });
 
@@ -97,7 +98,7 @@ describe("DrawingPad", () => {
   it("starts as blank paper that no page gesture can take a stroke from", () => {
     expect(inkAt(0.5, 0.5)).toBe(PAPER);
     expect(getComputedStyle(canvas()).touchAction).toBe("none");
-    // Shown at the drawing's own shape, whatever room there is.
+    // Shown in the own shape of the drawing, whatever the space.
     const rect = canvas().getBoundingClientRect();
     expect(rect.width / rect.height).toBeCloseTo(
       DRAWING_WIDTH / DRAWING_HEIGHT,
@@ -133,7 +134,7 @@ describe("DrawingPad", () => {
         ...screenPoint(0.2, 0.2),
       }),
     );
-    // A palm lands while the first finger is down.
+    // A palm touches the screen while the first finger is down.
     canvas().dispatchEvent(
       new PointerEvent("pointerdown", {
         pointerId: 2,
@@ -177,7 +178,7 @@ describe("DrawingPad", () => {
     canvas().dispatchEvent(new PointerEvent("pointercancel", at([0.6, 0.7])));
     await settled();
     expect(inkAt(0.4, 0.7)).not.toBe(PAPER);
-    // And the pad takes the next stroke: nothing is left half-drawn.
+    // Also, the pad accepts the next stroke. Nothing stays half drawn.
     drawLine([0.2, 0.9], [0.6, 0.9]);
     await settled();
     expect(inkAt(0.4, 0.9)).not.toBe(PAPER);
@@ -264,7 +265,7 @@ describe("DrawingPad", () => {
     history.back();
     await pop;
     await vi.waitFor(() => expect(confirmRequest.value).not.toBeNull());
-    // The pad is still up, so its entry is back for the next press to pop.
+    // The pad is still open. Thus, its entry is back for the next press.
     expect(history.state).toEqual(padEntry);
     answerConfirmation(false);
     await settled();
@@ -339,13 +340,13 @@ describe("DrawingPad", () => {
     expect(drawingRequest.value).not.toBeNull();
     expect(inkAt(0.5, 0.5)).toBe("23,23,23");
 
-    // And the second try goes through.
+    // Also, the second try works.
     button(t("editor.done"))?.click();
     await vi.waitFor(() => expect(saved).toHaveLength(1));
   });
 
   it("opens an image as the paper, at its own shape, and saves the lines over it", async () => {
-    // A tall, plain blue picture, as the note would hold it.
+    // A tall, plain blue picture, as the note would contain it.
     const picture = document.createElement("canvas");
     picture.width = 300;
     picture.height = 600;
@@ -374,7 +375,7 @@ describe("DrawingPad", () => {
     const rect = canvas().getBoundingClientRect();
     expect(rect.width / rect.height).toBeCloseTo(0.5, 1);
 
-    // Nothing drawn: the note's image is left as it is.
+    // Nothing drawn: the image of the note does not change.
     button(t("editor.done"))?.click();
     await settled();
     expect(saved).toEqual([]);
@@ -385,7 +386,7 @@ describe("DrawingPad", () => {
     drawLine([0.2, 0.5], [0.8, 0.5]);
     await settled();
     expect(pixel(canvas(), 0.5, 0.5)).toBe("23,23,23");
-    // Undo takes the line and leaves the picture.
+    // Undo removes the line, and keeps the picture.
     button(t("editor.undo"))?.click();
     await settled();
     expect(pixel(canvas(), 0.5, 0.5)).toBe(BLUE);
@@ -438,7 +439,7 @@ describe("DrawingPad", () => {
       filler.remove();
 
       expect(inkAt(0.5, 0.5)).not.toBe(PAPER);
-      // A vertical drag on anything else would have scrolled the page.
+      // A vertical drag on any other element would have scrolled the page.
       expect(window.scrollY).toBe(0);
     } finally {
       await session().send("Emulation.setTouchEmulationEnabled", {

@@ -15,11 +15,11 @@ import { buttonClass } from "./buttonClasses.ts";
 import { ContentPreview } from "./ContentPreview.tsx";
 
 /**
- * The notes written here that the server has not taken yet: kept on this
- * device and sent when it can be reached. They are not on the board, since
- * they are not stored anywhere else yet; each can be taken back into the
- * composer to be changed, or discarded. A note sent in a moment is never
- * shown, only one whose first try has failed.
+ * The notes written here that the server did not accept yet. They are kept on
+ * this device, and sent when the server is available. They are not on the
+ * board, because no other place stores them yet. You can take each one back
+ * into the composer to change it, or discard it. A note that is sent in a
+ * moment never shows. Only a note whose first try failed shows.
  */
 export function UnsentNotes() {
   const settled = settledNoteIds.value;
@@ -54,7 +54,7 @@ function UnsentCard({ entry }: { entry: UnsentNote }) {
 
   const act = async (action: (id: string) => Promise<boolean>) => {
     setBusy(true);
-    // One that worked is gone from the list, and nothing here outlives it.
+    // A note that worked goes out of the list, and nothing here stays after it.
     await action(entry.id);
     setBusy(false);
   };

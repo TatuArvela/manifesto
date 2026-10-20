@@ -14,7 +14,7 @@ import { exitSelectMode } from "#/state/selection.ts";
 import { type AppView, activeTag, activeView, selectMode } from "#/state/ui.ts";
 import { Tooltip } from "./Tooltip.tsx";
 
-/** Sidebar width when collapsed (icon-only) */
+/** The width of the sidebar when collapsed (only icons). */
 const COLLAPSED_W = 56;
 
 function activateView(view: AppView) {
@@ -85,9 +85,9 @@ function MobileNavItem({
 }
 
 /**
- * Whether the Users view is one of the places to go: an admin, on a server.
- * The same test `App` puts in front of `/admin`, so the entry and the view
- * appear and disappear together.
+ * If the Users view is one of the destinations: an admin, on a server. This is
+ * the same test that `App` puts in front of `/admin`. Thus, the entry and the
+ * view show and go together.
  */
 function showsAdmin(): boolean {
   return isServerMode && currentUser.value?.isAdmin === true;

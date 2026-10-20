@@ -1,11 +1,11 @@
 /**
- * The board textures that are pictures rather than gradients: the paper
- * grain, which is SVG turbulence, and the stars, hearts, confetti, bubbles
- * and sawtooth. Every texture is a mask over one layer behind the board, which
- * takes the pattern's colour as its background and the pattern's opacity as
- * its own (`.board-frame::before` in preferences.css). So these are drawn
- * once, in opaque black, and handed to the stylesheet as they are: only their
- * shape is read, and neither the colour nor the opacity redraws them.
+ * The board textures that are pictures, not gradients: the paper grain, which
+ * is SVG turbulence, and the stars, hearts, confetti, bubbles and sawtooth.
+ * Each texture is a mask over one layer behind the board, which takes the color
+ * of the pattern as its background, and the opacity of the pattern as its own
+ * (`.board-frame::before` in preferences.css). Thus, these are drawn one time,
+ * in opaque black, and given to the stylesheet as they are. Only their shape is
+ * read, and neither the color nor the opacity draws them again.
  */
 
 export type PictureTexture =
@@ -17,8 +17,9 @@ export type PictureTexture =
   | "sawtooth";
 
 /**
- * The colourful pattern colours, as the note colours' vivid shades: drawn
- * translucent like a custom colour, so one shade reads on light and dark.
+ * The colorful pattern colors, as the vivid shades of the note colors. Drawn
+ * translucent, as a custom color is. Thus, one shade is visible on light and
+ * dark.
  */
 export const INK_COLORS = {
   red: "#ef4444",
@@ -33,21 +34,21 @@ export const INK_COLORS = {
 
 export type InkColor = keyof typeof INK_COLORS;
 
-/** Every pattern colour but the theme's own. */
+/** Each pattern color other than the own color of the theme. */
 export type PickedInkChoice = "white" | "black" | InkColor | "custom";
 
 /**
- * The pattern's opacity, in percent: one value for every texture, gradient or
- * picture, and every colour, so the slider in Settings means the same thing
- * whichever is chosen.
+ * The opacity of the pattern, in percent: one value for each texture, gradient
+ * or picture, and each color. Thus, the slider in Settings means the same,
+ * whichever is selected.
  */
 export const MIN_TEXTURE_OPACITY = 0;
 export const MAX_TEXTURE_OPACITY = 100;
 export const DEFAULT_TEXTURE_OPACITY = 10;
 
 /**
- * The colour a picked pattern colour draws in, as `#rrggbb`. `customHex` is
- * a validated `#rrggbb`.
+ * The color in which a selected pattern color draws, as `#rrggbb`. `customHex`
+ * is a validated `#rrggbb`.
  */
 export function inkHex(choice: PickedInkChoice, customHex: string): string {
   if (choice === "white") return "#ffffff";
@@ -66,17 +67,21 @@ const NOISE: Record<"paper", Noise> = {
 };
 
 /**
- * The alpha row of the grain's colour matrix: noise alpha times the slope,
- * plus the offset, which cuts the faintest grain away. The noise sits about
- * the middle, so the grain runs from nothing to fully drawn and is half
- * drawn on average: a mask of it, unlike one of shapes, has every degree.
+ * The alpha row of the color matrix of the grain: noise alpha times the slope,
+ * plus the offset, which cuts away the faintest grain. The noise is
+ * approximately at the middle. Thus, the grain goes from nothing to fully
+ * drawn, and is half drawn on average. A mask of it, as a mask of shapes is
+ * not, has all degrees.
  */
 const GRAIN_SLOPE = 2;
 const GRAIN_OFFSET = -0.5;
 
 const round = (n: number) => Number(n.toFixed(3));
 
-/** Confetti's tile, in px: wide, so the eye does not find it repeating. */
+/**
+ * The tile of the confetti, in px: wide, so that the eye does not see it
+ * repeat.
+ */
 export const CONFETTI_TILE = 320;
 
 interface ConfettiPiece {
@@ -88,18 +93,18 @@ interface ConfettiPiece {
 }
 
 /**
- * The sawtooth is the logo itself, in rows turned 45° up from the level: its
- * 1080-unit square laid edge to edge, so its notches make teeth along both
- * sides of each row, and between the rows a line about the logo's stroke
- * wide with the notches as barbs on it, like barbed wire. The logo repeats
- * every 540 units along a row.
+ * The sawtooth is the logo itself, in rows turned 45° up from level. Its
+ * 1080-unit square is put edge to edge. Thus, its notches make teeth along both
+ * sides of each row. Between the rows, there is a line approximately as wide as
+ * the stroke of the logo, with the notches as barbs on it, as on barbed wire.
+ * The logo repeats each 540 units along a row.
  *
- * A turned pattern repeats on a level tile only when going across it and
- * down it both land on whole teeth and whole rows, which at 45° takes rows
+ * A turned pattern repeats on a level tile only when a move across it and a
+ * move down it both end on whole teeth and whole rows. At 45°, that needs rows
  * a whole fraction of a tooth apart. Five halves of one makes the line 270
- * units wide, against the 253.622 of the logo's straight columns, and
- * repeats every 5 teeth and 2 rows: a tile 2700√2 units square, drawn at
- * 81px a logo as 286px. Each row is one path, so no seam shows within it.
+ * units wide, against the 253.622 of the straight columns of the logo, and
+ * repeats each 5 teeth and 2 rows: a tile 2700√2 units square, drawn at 81px a
+ * logo as 286px. Each row is one path. Thus, no seam shows in it.
  */
 const SAWTOOTH_TURN = -45;
 const SAWTOOTH_TOOTH = 540;
@@ -110,11 +115,17 @@ const SAWTOOTH_UNITS = {
 } as const;
 export const SAWTOOTH_TILE = { width: 286, height: 286 } as const;
 
-/** One tooth of the logo along a row's top edge, then back along its foot. */
+/**
+ * One tooth of the logo along the top edge of a row, then back along its
+ * bottom.
+ */
 const TOOTH_TOP = "l286.378-286.378h253.622v286.378";
 const TOOTH_FOOT = "h-253.622v-286.378l-286.378 286.378";
 
-/** A small seeded generator, so the confetti falls the same way every load. */
+/**
+ * A small seeded generator. Thus, the confetti falls in the same way on each
+ * load.
+ */
 function seeded(seed: number): () => number {
   let state = seed;
   return () => {
@@ -125,19 +136,20 @@ function seeded(seed: number): () => number {
   };
 }
 
-/** The shortest way from `b` to `a` along one axis of a tile, signed. */
+/** The shortest signed distance from `b` to `a` along one axis of a tile. */
 function across(a: number, b: number, tile = CONFETTI_TILE): number {
   return ((((a - b + tile / 2) % tile) + tile) % tile) - tile / 2;
 }
 
 /**
- * Where the confetti lies, measured around the tile's edges throughout, so a
- * seam is as evenly covered as the middle and the tile does not show. Each
- * piece first goes in the best of a growing number of random spots, the one
- * farthest from those already down, which spreads it with no grid to see.
- * That still leaves holes, so the pieces then push off their neighbours for
- * a few rounds: enough to close them (the largest falls from 43px to 31px,
- * against 27px for a perfect lattice), not so many that a lattice appears.
+ * Where the confetti is, measured around the edges of the tile in all places.
+ * Thus, a seam is as evenly covered as the middle, and the tile does not show.
+ * Each piece first goes in the best of an increasing number of random
+ * positions, the position farthest from the pieces already placed, which
+ * spreads it with no visible grid. That still leaves holes. Thus, the pieces
+ * then push away from their neighbors for a few rounds: sufficient to close
+ * them (the largest goes from 43px to 31px, against 27px for a perfect
+ * lattice), but not so many that a lattice shows.
  */
 function scatterConfetti(count: number): ConfettiPiece[] {
   const random = seeded(20261016);
@@ -189,10 +201,13 @@ function scatterConfetti(count: number): ConfettiPiece[] {
   }));
 }
 
-/** Exported for its test, which holds the scatter free of holes. */
+/** Exported for its test, which makes sure that the scatter has no holes. */
 export const CONFETTI: readonly ConfettiPiece[] = scatterConfetti(52);
 
-/** A piece as SVG, and again past each edge it comes near, so it is never cut. */
+/**
+ * A piece as SVG, and again past each edge that it comes near. Thus, it is
+ * never cut.
+ */
 function confettiPiece({ x, y, strip, turn }: ConfettiPiece): string {
   const reach = 6;
   const xs = [x];

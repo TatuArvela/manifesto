@@ -25,16 +25,16 @@ export type { TextEdit } from "./formatTypes.ts";
 /**
  * The formatting toolbar in raw mode.
  *
- * Raw mode edits the note's markdown in a textarea while the rich editor sits
- * hidden beside it, rebuilt from the textarea's text on the way back. The
- * toolbar must not talk to that hidden editor, whose document is about to be
- * thrown away, so here the same buttons are expressed as edits to the markdown
- * itself: what the toolbar reports and what it changes are both the text the
- * user is looking at.
+ * Raw mode edits the Markdown of the note in a textarea, while the rich editor
+ * is hidden next to it, and is built again from the text of the textarea on the
+ * way back. The toolbar must not talk to that hidden editor, whose document the
+ * code will soon discard. Thus, here the same buttons are edits to the Markdown
+ * itself. What the toolbar reports and what it changes are both the text that
+ * the user sees.
  *
- * Everything but {@link applyTextEdit} is pure string work (the inline
- * formats in `rawInlineFormatting.ts`, the line ones in
- * `rawLineFormatting.ts`, whole blocks in `rawBlockFormatting.ts`), so it is
+ * All code other than {@link applyTextEdit} is only string operations (the
+ * inline formats in `rawInlineFormatting.ts`, the line formats in
+ * `rawLineFormatting.ts`, whole blocks in `rawBlockFormatting.ts`). Thus, it is
  * tested in the Node project.
  */
 
@@ -42,7 +42,7 @@ export type { TextEdit } from "./formatTypes.ts";
 
 const LINK_RE = /\[([^\]\n]*)\]\((<[^>\n]*>|[^)\s]*)\)/g;
 
-/** The `[text](url)` the selection sits inside, if any. */
+/** The `[text](url)` inside which the selection is, if any. */
 function enclosingLink(
   value: string,
   start: number,
@@ -53,7 +53,7 @@ function enclosingLink(
   for (const m of line.matchAll(LINK_RE)) {
     const from = lineFrom + (m.index ?? 0);
     const to = from + m[0].length;
-    // A caret on either outer edge is beside the link, not in it.
+    // A caret on one of the outer edges is next to the link, not in it.
     const inside =
       start === end ? start > from && start < to : start >= from && end <= to;
     if (inside) return { from, to, text: m[1] ?? "" };
@@ -80,7 +80,7 @@ export function applyRawLink(
   };
 }
 
-/** Unwraps the link around the selection, keeping its text. */
+/** Unwraps the link around the selection, and keeps its text. */
 export function removeRawLink(
   value: string,
   start: number,
@@ -97,22 +97,23 @@ export function removeRawLink(
 
 // --- Clearing ---
 
-/** A private-use character, which no note's markup is made of. */
+/** A private-use character, which no markup of a note contains. */
 const CARET = "\uE000";
 const TAG_RE = /<\/?(?:u|sub|sup)>/g;
-// A run of markers that opens a span: at a line's start or after a space or
-// bracket, and before text. A `* ` bullet is followed by a space, so stays.
+// A sequence of markers that opens a span: at the start of a line or after a
+// space or bracket, and before text. A `* ` bullet has a space after it. Thus,
+// it stays.
 const OPENING_RE = /(^|[\s([{])[*_~`]+(?=[^\s*_~`])/gm;
-// One that closes a span: after text, and before a line's end, a space or
-// punctuation. An underscore inside `snake_case` is neither.
+// A sequence that closes a span: after text, and before the end of a line, a
+// space or punctuation. An underscore inside `snake_case` is neither.
 const CLOSING_RE = /([^\s*_~`])[*_~`]+(?=$|[\s)\]}.,;:!?])/gm;
 const HEADING_RE =
   /^([ \t]*(?:> ?)*(?:(?:[-*+]|\d+[.)]) +)?(?:\[[ xX]\] )?)#{1,6}(?: +|$)/gm;
 
 /**
- * Takes the marks off the selection, or the caret's line, and a heading back
- * to text: what the rich editor's Clear formatting does. Links stay, since
- * where they go is part of the text.
+ * Removes the marks from the selection, or from the line of the caret, and
+ * changes a heading back to text, as Clear formatting of the rich editor does.
+ * Links stay, because their target is part of the text.
  */
 function clearRawFormatting(
   value: string,
@@ -122,8 +123,8 @@ function clearRawFormatting(
   const [from, to] =
     start === end ? lineRange(value, start, end) : [start, end];
   const lineStart = start === end || from === 0 || value[from - 1] === "\n";
-  // The caret rides through the cleaning as a character of its own, so it
-  // stays on the letter it was beside however much markup goes before it.
+  // The caret goes through the cleanup as a character of its own. Thus, it
+  // stays on the letter next to it, however much markup goes before it.
   let text =
     start === end
       ? value.slice(from, start) + CARET + value.slice(start, to)
@@ -146,7 +147,7 @@ function clearRawFormatting(
 
 // --- Public API ---
 
-/** An empty table, the size the rich editor makes one. */
+/** An empty table, of the size that the rich editor makes. */
 const RAW_TABLE = [
   "|   |   |   |",
   "| - | - | - |",
@@ -213,9 +214,9 @@ export function getRawActiveFormats(
     underline: inline("underline"),
     subscript: inline("subscript"),
     superscript: inline("superscript"),
-    // The table button is a menu of row and column changes while it reads
-    // as on, and those are the rich editor's alone: in the text, a row is a
-    // line to type.
+    // The table button is a menu of row and column changes while it shows as
+    // on, and only the rich editor has those. In the text, a row is a line to
+    // type.
     table: false,
     codeBlock: inRawCodeBlock(value, start),
   };
@@ -223,14 +224,14 @@ export function getRawActiveFormats(
 
 /**
  * Writes `edit` into the textarea as a single change to its native undo
- * history, so Cmd+Z takes back a toolbar press the way it takes back typing.
+ * history. Thus, Cmd+Z undoes a toolbar press as it undoes typing.
  *
- * Only the span that differs is replaced: `insertText` over the whole value
- * would also work, but would scroll the textarea to the caret's far end and
- * make the undo step a wholesale replacement. `execCommand` is deprecated
- * in name only for this; it is still the one way to edit a text field that
- * the browser's undo stack records. Where it declines, the value is set
- * directly and an `input` event raised so the owner still hears of it.
+ * Only the span that is different is replaced. `insertText` over the full value
+ * would also work, but would scroll the textarea to the far end of the caret,
+ * and would make the undo step a full replacement. `execCommand` is deprecated
+ * only in name for this. It is still the one way to edit a text field that the
+ * undo stack of the browser records. Where it refuses, the code sets the value
+ * directly and sends an `input` event. Thus, the owner still learns of it.
  */
 export function applyTextEdit(textarea: HTMLTextAreaElement, edit: TextEdit) {
   const old = textarea.value;

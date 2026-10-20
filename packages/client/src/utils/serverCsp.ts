@@ -1,21 +1,20 @@
 /**
- * Does this page's own Content Security Policy allow it to reach the server
- * it is configured for?
+ * Does the own Content Security Policy of this page let it reach the server for
+ * which it is configured?
  *
  * The question exists because a connected deployment is two settings in one
- * `index.html`: the server's address, and the `connect-src` that lets the
- * browser dial it. A build from source writes both (`vite.config.ts` derives
- * the CSP from `VITE_MANIFESTO_SERVER`), but someone pointing a release
- * bundle at a server edits them by hand, and the second is the one that gets
- * forgotten. Without this check the symptom is a login screen that never
- * works and a console full of CSP violations, which says nothing about the
- * edit that was missed.
+ * `index.html`: the address of the server, and the `connect-src` that lets the
+ * browser connect to it. A build from source writes both (`vite.config.ts`
+ * derives the CSP from `VITE_MANIFESTO_SERVER`). But a person who points a
+ * release bundle at a server edits them manually, and frequently forgets the
+ * second. Without this check, the symptom is a login screen that never works
+ * and a console full of CSP violations, which tells nothing about the missing
+ * edit.
  *
- * Everything here is deliberately fail-open. A page with no CSP of its own,
- * or none that mentions `connect-src`, is not a page this can judge, and a
- * false alarm would take down a deployment that works. The case worth
- * catching is unambiguous: a server on another origin against the shipped
- * `connect-src 'self'`.
+ * All here is intentionally fail-open. This cannot decide about a page with no
+ * CSP of its own, or with none that mentions `connect-src`, and a false alarm
+ * would stop a deployment that works. The case to catch is clear: a server on a
+ * different origin against the shipped `connect-src 'self'`.
  */
 
 export type ServerSetupProblem =
@@ -34,15 +33,16 @@ function splitOrigin(origin: string): Origin | null {
 }
 
 /**
- * The origins a client must be allowed to connect to in order to talk to
- * `serverUrl`: the HTTP one for REST, and the `ws(s)` one for `/api/v1/ws` and
- * `/api/v1/yjs`. Empty when the server is this page's own origin and `'self'`
- * already covers it. Null when the value is not a server address at all.
+ * The origins to which a client must be permitted to connect to talk to
+ * `serverUrl`: the HTTP origin for REST, and the `ws(s)` origin for
+ * `/api/v1/ws` and `/api/v1/yjs`. Empty when the server is the own origin of
+ * this page and `'self'` already covers it. Null when the value is not a server
+ * address.
  */
 export function requiredConnectOrigins(serverUrl: string): string[] | null {
-  // A relative value (`VITE_MANIFESTO_SERVER=/`, or the empty string it trims
-  // to) asks for no origin the policy has to name: it resolves against this
-  // page, which `'self'` already permits. That is the single-proxy shape.
+  // A relative value (`VITE_MANIFESTO_SERVER=/`, or the empty string that it
+  // becomes) asks for no origin that the policy must name. It resolves against
+  // this page, which `'self'` already permits. That is the single-proxy shape.
   if (serverUrl === "" || serverUrl.startsWith("/")) return [];
   let url: URL;
   try {

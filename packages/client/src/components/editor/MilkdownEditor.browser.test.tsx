@@ -13,12 +13,12 @@ import { MilkdownEditor } from "./MilkdownEditor.tsx";
 
 /**
  * The collaborative half of the editor is a three-way handshake between a
- * `Y.XmlFragment`, ProseMirror's document, and the `content` prop, and every
- * way of getting it wrong loses a note rather than showing an error: bind to an
- * empty fragment and the note blanks, push the prop into a populated one and
- * whatever the other client wrote is gone. So these run against a real editor
- * and a real `Y.Doc`, because a mock of either would be a mock of the thing under
- * test.
+ * `Y.XmlFragment`, the document of ProseMirror, and the `content` prop. Each
+ * way to do it incorrectly loses a note, and shows no error. If you bind to an
+ * empty fragment, the note becomes blank. If you push the prop into a fragment
+ * that has content, what the other client wrote is gone. Thus, these tests run
+ * against a real editor and a real `Y.Doc`, because a mock of either would be a
+ * mock of the thing that the test checks.
  */
 
 const hosts: HTMLDivElement[] = [];
@@ -30,10 +30,10 @@ function mountHost(): HTMLDivElement {
   return host;
 }
 
-// Milkdown's listener plugin serializes on a 200ms debounce. Tearing down
-// inside that window used to leave a timer that threw against a dismantled
-// context, so this teardown had to drain the debounce first; `MilkdownEditor`
-// now disarms the listener before destroy, and the test below holds it to that.
+// The listener plugin of Milkdown serializes after a 200ms debounce. A teardown
+// inside that window left a timer that threw against a removed context. Thus,
+// this teardown had to let the debounce complete first. Now `MilkdownEditor`
+// disarms the listener before destroy, and the test below checks that.
 afterEach(() => {
   for (const host of hosts.splice(0)) {
     render(null, host);
@@ -52,7 +52,10 @@ async function mountEditor(
   return () => host.querySelector(".ProseMirror")?.textContent ?? "";
 }
 
-/** The fragment as `y-prosemirror` writes it: one paragraph holding one text. */
+/**
+ * The fragment as `y-prosemirror` writes it: one paragraph that contains one
+ * text.
+ */
 function docContaining(text: string): Y.Doc {
   const ydoc = new Y.Doc();
   const paragraph = new Y.XmlElement("paragraph");
@@ -66,11 +69,11 @@ const fragmentText = (ydoc: Y.Doc) =>
 
 describe("MilkdownEditor collaborative binding", () => {
   it("seeds an empty shared fragment from the note", async () => {
-    // The note has never been opened collaboratively, so the server has no
-    // fragment either. See the `synced` gate in NoteCardEditor, which is what
-    // lets an empty fragment here mean "empty everywhere" rather than "not
-    // arrived yet". Without the seeding, ySyncPlugin adopts the empty fragment
-    // and the note reads as blank.
+    // The note was never opened collaboratively. Thus, the server also has no
+    // fragment. See the `synced` control in NoteCardEditor. Because of it, an
+    // empty fragment here means "empty in all places", not "not arrived yet".
+    // Without the seed, ySyncPlugin adopts the empty fragment, and the note
+    // reads as blank.
     const ydoc = new Y.Doc();
     const onChange = vi.fn();
     const editorText = await mountEditor({
@@ -83,17 +86,16 @@ describe("MilkdownEditor collaborative binding", () => {
       expect(fragmentText(ydoc)).toContain("Groceries and other business");
     });
     expect(editorText()).toContain("Groceries and other business");
-    // The blanking would surface as an empty document reported upward and
-    // auto-saved over the note, so assert on the reports too, not just the end
-    // state.
+    // The blank would show as an empty document reported up and auto-saved over
+    // the note. Thus, check the reports too, not only the end state.
     expect(onChange.mock.calls.map(([md]) => md)).not.toContain("");
   });
 
   it("leaves a populated fragment alone, even when the note is stale", async () => {
-    // The shared document is the authority once it exists: this client's
-    // `content` came from a REST row that another session may have edited past.
-    // Pushing it into the fragment would delete the other session's work on
-    // every device at once.
+    // The shared document is the authority after it exists. The `content` of
+    // this client came from a REST row that a different session possibly edited
+    // after that. If the code pushed it into the fragment, it would delete the
+    // work of the other session on all devices at the same time.
     const ydoc = docContaining("What the other session wrote");
     const editorText = await mountEditor({
       content: "What this client last saw",
@@ -108,8 +110,8 @@ describe("MilkdownEditor collaborative binding", () => {
   });
 
   it("leaves an empty note's fragment empty", async () => {
-    // A blank new note must not commit a paragraph the user never typed:
-    // whoever opens it next would inherit it as the shared state.
+    // A blank new note must not commit a paragraph that the user never typed.
+    // The next person who opens it would get it as the shared state.
     const ydoc = new Y.Doc();
     await mountEditor({ content: "", onChange: () => {}, collab: { ydoc } });
 
@@ -118,9 +120,10 @@ describe("MilkdownEditor collaborative binding", () => {
   });
 
   it("carries raw-mode edits back into the editor on toggle", async () => {
-    // The raw-mode effect is the one that used to overwrite the shared
-    // fragment on mount, because `editor` is in its dep array and arriving is
-    // not a toggle. Skipping the arrival must not cost us the toggle itself.
+    // The raw-mode effect is the effect that overwrote the shared fragment on
+    // mount, because `editor` is in its dependency array, and its arrival is
+    // not a toggle. The skip of the arrival must not also skip the toggle
+    // itself.
     const host = mountHost();
     const props = { content: "Written in rich mode", onChange: () => {} };
 
@@ -129,8 +132,8 @@ describe("MilkdownEditor collaborative binding", () => {
     expect(textarea.value).toBe("Written in rich mode");
 
     typeInto(textarea, "Edited as markdown");
-    // Yield a macrotask so Preact commits the state the handler queued;
-    // toggling before that would push the value it replaced.
+    // Wait for a macrotask, so that Preact commits the state that the handler
+    // queued. A toggle before that would push the value that it replaced.
     await new Promise((resolve) => setTimeout(resolve, 0));
     render(<MilkdownEditor {...props} />, host);
 
@@ -142,7 +145,7 @@ describe("MilkdownEditor collaborative binding", () => {
   });
 });
 
-/** The raw textarea once the editor behind it is up and it accepts typing. */
+/** The raw textarea, after the editor behind it is up and it accepts typing. */
 async function rawTextareaReady(host: HTMLElement) {
   return await vi.waitFor(() => {
     const el = host.querySelector("textarea");
@@ -157,7 +160,10 @@ function typeInto(textarea: HTMLTextAreaElement, value: string) {
   textarea.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-/** A second paragraph, written into the fragment as another client would. */
+/**
+ * A second paragraph, written into the fragment as a different client would
+ * write it.
+ */
 function appendRemoteParagraph(ydoc: Y.Doc, text: string) {
   const fragment = ydoc.getXmlFragment(DEFAULT_FRAGMENT_NAME);
   const paragraph = new Y.XmlElement("paragraph");
@@ -166,12 +172,12 @@ function appendRemoteParagraph(ydoc: Y.Doc, text: string) {
 }
 
 describe("MilkdownEditor raw mode with a shared document", () => {
-  // Raw mode used to keep its text to itself until toggled back, and then
-  // wrote it over the whole document. In collab that lost work both ways:
-  // a note closed in raw mode never reached the fragment, so its next opening
-  // showed the old text and saved it back; and looking at a note in raw mode
-  // overwrote whatever a collaborator wrote meanwhile. With raw mode as a
-  // default, those became the ordinary path rather than an edge.
+  // Before, raw mode kept its text to itself until it was toggled back, and
+  // then wrote it over the full document. In collab, that lost work in both
+  // directions. A note closed in raw mode never reached the fragment. Thus, its
+  // next open showed the old text, and saved it back. Also, a look at a note in
+  // raw mode overwrote what a collaborator wrote in the meantime. With raw mode
+  // as a default, those became the usual path, not an edge case.
 
   it("opens on the shared document's text, not the note's stale copy", async () => {
     const ydoc = docContaining("What the other session wrote");
@@ -206,7 +212,7 @@ describe("MilkdownEditor raw mode with a shared document", () => {
     );
     const textarea = await rawTextareaReady(host);
     typeInto(textarea, "Milk and honey");
-    // No toggle and no close: the edit has to be out already.
+    // No toggle and no close: the edit must already be out.
     await vi.waitFor(() =>
       expect(fragmentText(ydoc)).toContain("Milk and honey"),
     );
@@ -251,8 +257,8 @@ describe("MilkdownEditor raw mode with a shared document", () => {
   });
 
   it("keeps a collaborator's edit that lands just before a keystroke", async () => {
-    // The listener reports the collaborator's edit on a debounce, so a
-    // keystroke inside that window is pushed from text that lacks it.
+    // The listener reports the edit of the collaborator after a debounce. Thus,
+    // a keystroke inside that window is pushed from text that does not have it.
     const ydoc = docContaining("Shopping list for the weekend");
     const host = mountHost();
     render(
@@ -278,9 +284,9 @@ describe("MilkdownEditor raw mode with a shared document", () => {
 });
 
 describe("MilkdownEditor undo with a shared document", () => {
-  // A collaborative editor has y-prosemirror's undo in place of Milkdown's
-  // history, which brings no keys and which the toolbar used to look past:
-  // undo did nothing at all in a connected instance.
+  // A collaborative editor has the undo of y-prosemirror in place of the
+  // history of Milkdown. It brings no keys, and the toolbar did not see it
+  // before. Thus, undo did nothing in a connected instance.
   it("undoes this session's typing from the keyboard and the toolbar's check", async () => {
     const ydoc = docContaining("Shared start");
     let editor: Editor | null = null;
@@ -308,14 +314,16 @@ describe("MilkdownEditor undo with a shared document", () => {
       });
 
     await vi.waitFor(() => expect(editorText()).toContain("Shared start"));
-    // The editor's DOM is there before `onEditorReady` runs, from an effect a
-    // render later. Without the editor, `canUndo` is false for no reason and
-    // `caretToEnd` focuses nothing, so the typing goes to the page.
+    // The DOM of the editor is there before `onEditorReady` runs, from an
+    // effect one render later. Without the editor, `canUndo` is false for no
+    // reason, and `caretToEnd` focuses nothing. Thus, the typing goes to the
+    // page.
     await vi.waitFor(() => expect(editor).not.toBeNull());
     expect(canUndo()).toBe(false);
 
-    // The caret goes to the end directly: the key for it differs by platform
-    // (Ctrl+End, but Cmd+Down on a Mac), and the keys are not what this tests.
+    // The caret goes directly to the end. The key for it is different for each
+    // platform (Ctrl+End, but Cmd+Down on a Mac), and this test is not about
+    // the keys.
     caretToEnd();
     expect(document.activeElement?.classList.contains("ProseMirror")).toBe(
       true,
@@ -365,7 +373,7 @@ describe("MilkdownEditor teardown", () => {
     expect(status?.textContent).toBe("");
 
     view.focus();
-    // A result is offered once the "=" is typed.
+    // A result shows after you type the "=".
     document.execCommand("insertText", false, "200+300=");
 
     await vi.waitFor(() => {
@@ -378,9 +386,9 @@ describe("MilkdownEditor teardown", () => {
 
   it("does not throw when destroyed inside the listener debounce", async () => {
     // `@milkdown/plugin-listener` gives no way to cancel its pending
-    // serialization, and the timer runs where no caller can catch it: the
-    // throw reaches `window.onerror` and, in the app, the console of a user
-    // who did nothing stranger than close a note straight after typing.
+    // serialization, and the timer runs where no caller can catch it. The throw
+    // reaches `window.onerror` and, in the app, the console of a user who only
+    // closed a note immediately after they typed.
     const seen: unknown[] = [];
     const onError = (e: ErrorEvent) => seen.push(e.error ?? e.message);
     window.addEventListener("error", onError);
@@ -391,13 +399,14 @@ describe("MilkdownEditor teardown", () => {
       expect(host.querySelector(".ProseMirror")).toBeTruthy();
     });
 
-    // A keystroke arms the debounce; `insertText` goes through ProseMirror's
-    // own input handling, so the transaction is the one the plugin listens for.
+    // A keystroke starts the debounce. `insertText` goes through the own input
+    // handling of ProseMirror. Thus, the transaction is the transaction for
+    // which the plugin listens.
     const view = host.querySelector(".ProseMirror") as HTMLElement;
     view.focus();
     document.execCommand("insertText", false, "y");
 
-    // Unmount well inside the 200ms window, then outlast it.
+    // Unmount well inside the 200ms window, then wait longer than it.
     render(null, host);
     host.remove();
     hosts.splice(hosts.indexOf(host), 1);
@@ -408,8 +417,8 @@ describe("MilkdownEditor teardown", () => {
   });
 
   it("tells its parent when the editor it handed over is gone", async () => {
-    // A parent keeping the destroyed editor read it on its next render, and
-    // every read threw `Context "editorState" not found`.
+    // A parent that kept the destroyed editor read it on its next render, and
+    // each read threw `Context "editorState" not found`.
     const ready = vi.fn();
     const gone = vi.fn();
     const host = mountHost();
@@ -425,7 +434,7 @@ describe("MilkdownEditor teardown", () => {
     await vi.waitFor(() => expect(ready).toHaveBeenCalledOnce());
     expect(gone).not.toHaveBeenCalled();
 
-    // Preact 11 runs an effect's cleanup a frame after the unmount.
+    // Preact 11 runs the cleanup of an effect one frame after the unmount.
     render(null, host);
     await vi.waitFor(() => expect(gone).toHaveBeenCalledOnce());
   });
@@ -480,7 +489,8 @@ describe("MilkdownEditor links", () => {
   });
 
   it("does not offer to open a link that is not a web or mail address", async () => {
-    // A note's markdown decides the target; `javascript:` would run in the app.
+    // The markdown of a note decides the target. `javascript:` would run in the
+    // app.
     const { host, link } = await mountWithLink(
       "Bad [js](javascript:void) link",
     );

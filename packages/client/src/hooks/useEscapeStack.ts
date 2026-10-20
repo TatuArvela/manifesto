@@ -1,29 +1,30 @@
 import { useLayoutEffect, useRef } from "preact/hooks";
 
 /**
- * One document-level Escape listener, dispatching to the most recently
- * registered handler and to no other.
+ * One Escape listener at document level. It sends each press to the handler
+ * that registered most recently, and to no other.
  *
- * A listener per layer would hand one key press to all of them at once, so
- * Escape with the colour picker open would also close the editor underneath.
+ * A listener for each layer would give one key press to all of them at the same
+ * time. Thus, Escape with the color picker open would also close the editor
+ * under it.
  *
- * The layer that became active last owns the key. That is the order things
- * appear on screen, because each layer is opened by an action on the one below
- * it: a click opens the picker over the editor, in its own render. `active`
- * is what moves a layer that stays mounted (the settings panel, a dropdown)
- * in and out of the stack.
+ * The layer that became active last owns the key. That is the order in which
+ * items show on the screen, because an action on the layer below opens each
+ * layer: a click opens the picker over the editor, in its own render. `active`
+ * moves a layer that stays mounted (the settings panel, a dropdown) in and out
+ * of the stack.
  *
- * The one arrangement this cannot order is a layer that becomes active in the
- * *same* render as one it sits inside: Preact runs a child's effects before
- * its parent's, so the ancestor would register last and end up on top. Nothing
- * opens that way (a layer is always opened by an interaction with the one
- * below), and `useLayoutEffect` at least keeps registration synchronous with
- * the commit, so a press in the same frame as an opening modal reaches it.
+ * This cannot put one arrangement in order: a layer that becomes active in the
+ * *same* render as a layer that contains it. Preact runs the effects of a child
+ * before those of its parent. Thus, the ancestor would register last, and be on
+ * top. Nothing opens in that way (an interaction with the layer below always
+ * opens a layer). `useLayoutEffect` keeps the registration synchronous with the
+ * commit. Thus, a press in the same frame as an opening modal reaches it.
  */
 
 interface Entry {
   run: () => void;
-  /** Hands the press on to the layer below as well, as a tooltip does. */
+  /** Also sends the press on to the layer below, as a tooltip does. */
   passThrough: boolean;
 }
 
@@ -31,7 +32,8 @@ const stack: Entry[] = [];
 
 function onKeyDown(event: KeyboardEvent) {
   if (event.key !== "Escape") return;
-  // A copy: a handler can take its own layer, or others, off the stack.
+  // A copy. A handler can remove its own layer, or other layers, from the
+  // stack.
   for (const entry of [...stack].reverse()) {
     entry.run();
     if (!entry.passThrough) return;
@@ -50,10 +52,10 @@ function unregister(entry: Entry) {
 }
 
 /**
- * `passThrough` is for something that only sits over the page rather than
- * being a layer of it: a tooltip. Escape puts it away and still reaches the
- * layer below, so a keyboard user in the note editor, where a focused button
- * always shows its tooltip, is not made to press Escape twice to close it.
+ * `passThrough` is for an element that is only over the page, not a layer of
+ * it: a tooltip. Escape removes it, and still reaches the layer below. Thus, a
+ * keyboard user in the note editor, where a focused button always shows its
+ * tooltip, does not have to push Escape two times to close it.
  */
 export function useEscapeStack(
   active: boolean,
@@ -65,15 +67,18 @@ export function useEscapeStack(
 
   useLayoutEffect(() => {
     if (!active) return;
-    // Called through the ref: a handler that closes over state has a new
-    // identity every render, and re-registering it would jump the queue.
+    // Called through the ref. A handler that closes over state has a new
+    // identity on each render, and a new registration would put it before the
+    // others in the queue.
     const entry: Entry = { run: () => handler.current(), passThrough };
     register(entry);
     return () => unregister(entry);
   }, [active, passThrough]);
 }
 
-/** Test seam: the stack is module state and outlives an unmounted component. */
+/**
+ * Test seam: the stack is module state, and stays after a component unmounts.
+ */
 export function escapeStackDepth(): number {
   return stack.length;
 }

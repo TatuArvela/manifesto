@@ -10,10 +10,11 @@ import { ulid } from "ulid";
 import { parseLinkPreviews } from "#/utils/linkPreview.ts";
 
 /**
- * Google Keep, as Google Takeout exports it: one JSON file per note in
+ * Google Keep, as Google Takeout exports it: one JSON file for each note in
  * `Takeout/Keep/`, with its attachments as sibling files named by
- * `attachments[].filePath`. The format is undocumented, so every field is
- * optional here and a file is recognised by the fields only Keep writes.
+ * `attachments[].filePath`. The format has no documentation. Thus, each field
+ * is optional here, and the code identifies a file by the fields that only Keep
+ * writes.
  */
 
 const KEEP_COLORS: Record<string, NoteColor> = {
@@ -24,7 +25,7 @@ const KEEP_COLORS: Record<string, NoteColor> = {
   GREEN: NoteColor.Green,
   TEAL: NoteColor.Teal,
   BLUE: NoteColor.Blue,
-  // Keep's darker blue ("Storm"); the palette has one blue.
+  // The darker blue of Keep ("Storm"). The palette has one blue.
   CERULEAN: NoteColor.Blue,
   PURPLE: NoteColor.Purple,
   PINK: NoteColor.Pink,
@@ -46,7 +47,9 @@ export function isKeepNote(data: unknown): boolean {
   );
 }
 
-/** Looks up an attachment's bytes by the name Keep recorded for it. */
+/**
+ * Looks up the bytes of an attachment by the name that Keep recorded for it.
+ */
 export type AttachmentLookup = (
   filePath: string,
 ) => Promise<Uint8Array | null> | Uint8Array | null;
@@ -61,9 +64,9 @@ function usecToIso(raw: unknown, fallback: string): string {
 }
 
 /**
- * Keep's checklist items become a GFM task list, the form the editor already
- * renders as checkboxes. Line breaks inside one item would split it into
- * several, so they fold to spaces.
+ * The checklist items of Keep become a GFM task list, the form that the editor
+ * already renders as checkboxes. Line breaks inside one item would split it
+ * into several items. Thus, they become spaces.
  */
 function listToMarkdown(items: unknown[]): string {
   const lines: string[] = [];
@@ -104,8 +107,8 @@ async function attachmentsToImages(
     ) {
       continue;
     }
-    // Keep also attaches voice recordings (audio/3gp); only images have a
-    // place on a note.
+    // Keep also attaches voice recordings (audio/3gp). Only images have a place
+    // on a note.
     const match = /^image\/([a-z0-9+.-]+)$/i.exec(attachment.mimetype);
     const subtype = match?.[1]?.toLowerCase();
     if (!subtype || !IMAGE_SUBTYPES.has(subtype)) continue;
@@ -160,8 +163,8 @@ export async function keepNoteToNote(
     pinned: data.isPinned === true,
     archived: data.isArchived === true,
     trashed,
-    // Keep does not record when a note was trashed. Starting the 30 days now
-    // gives the user the full window to change their mind after importing.
+    // Keep does not record when a note was trashed. When the 30 days start now,
+    // the user gets the full period to change their mind after the import.
     trashedAt: trashed ? now : null,
     position: -(Date.parse(createdAt) || Date.now()),
     tags,

@@ -1,7 +1,8 @@
 /**
- * A privacy notice's address as a link may carry it: an `http(s):` URL, or a
- * path on this site. Anything else (a `javascript:` URL, a typo) is no link
- * at all rather than one that does something other than open a page.
+ * The address of a privacy notice, as a link can carry it: an `http(s):` URL,
+ * or a path on this site. All other values (a `javascript:` URL, a typing
+ * error) are no link, and not a link that does something other than open a
+ * page.
  */
 export function resolvePrivacyUrl(value: string | null): string | null {
   if (value === null) return null;

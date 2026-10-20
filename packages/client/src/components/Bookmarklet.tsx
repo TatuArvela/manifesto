@@ -5,15 +5,15 @@ import { t } from "#/i18n/index.ts";
 import { bookmarkletHref } from "#/shareTarget.ts";
 
 /**
- * The link to drag to the bookmarks bar, a section of Settings' Features
- * page under its own heading. Clicked on any page, it opens a new note here
- * with the page's title, address and selected text. The share
- * sheet does the same on a phone with the app installed; this is for the
- * browsers it does not reach.
+ * The link to drag to the bookmarks bar, a section of the Features page of
+ * Settings under its own heading. When you click it on any page, it opens a new
+ * note here with the title, the address and the selected text of the page. The
+ * share sheet does the same on a phone with the app installed. This is for the
+ * browsers that the share sheet does not reach.
  *
- * Clicking it here does nothing (this page's CSP runs no `javascript:` URL,
- * and it would only share the app with itself), so a click says where it goes
- * instead.
+ * A click on it here does nothing (the CSP of this page runs no `javascript:`
+ * URL, and it would only share the app with itself). Thus, a click tells where
+ * it goes.
  */
 export function Bookmarklet() {
   const [hinted, setHinted] = useState(false);

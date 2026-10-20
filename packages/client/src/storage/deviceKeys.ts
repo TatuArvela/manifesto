@@ -1,22 +1,23 @@
 /**
- * The keys a signed-in device holds, in IndexedDB: the secret key, so that
- * Settings can show it to bring another device in, and the account key as a
- * `CryptoKey` the page (and the service worker) can use and cannot read out.
- * IndexedDB rather than `localStorage` because only it stores such a key.
+ * The keys that a signed-in device has, in IndexedDB. The secret key is there,
+ * so that Settings can show it to bring in a different device. The account key
+ * is there as a `CryptoKey` that the page (and the service worker) can use, and
+ * cannot read out. IndexedDB, not `localStorage`, because only it stores such a
+ * key.
  *
- * A device holds them for as long as it is signed in and no longer: whoever
- * ends the session removes them (`state/account/accountKeys.ts`), and
- * `endsAt` is the day the session runs out at the latest, so a device that
- * was off when that happened removes them itself the next time it starts.
+ * A device keeps them only while it is signed in. The code that ends the
+ * session removes them (`state/account/accountKeys.ts`). `endsAt` is the latest
+ * day on which the session ends. Thus, a device that was off when that occurred
+ * removes them itself the next time it starts.
  *
- * Nothing here rejects. A browser that refuses IndexedDB (some private
- * windows) leaves the keys in the page's memory alone, and the secret key is
- * asked for again on the next visit.
+ * Nothing here rejects. A browser that refuses IndexedDB (some private windows)
+ * keeps the keys only in the memory of the page, and asks for the secret key
+ * again on the next visit.
  */
 
 const DB_NAME = "manifesto-keys";
 const STORE = "keys";
-/** One account is signed in at a time, so there is one record. */
+/** One account is signed in at a time. Thus, there is one record. */
 const RECORD = "account";
 
 export interface DeviceKeys {
@@ -25,7 +26,7 @@ export interface DeviceKeys {
   version: number;
   secretKey: string;
   accountKey: CryptoKey;
-  /** ISO time after which the keys are not to be used. */
+  /** The ISO time after which the keys must not be used. */
   endsAt: string;
 }
 
@@ -76,7 +77,7 @@ function isDeviceKeys(value: unknown): value is DeviceKeys {
   );
 }
 
-/** Keeps the keys on this device; false when the browser would not. */
+/** Keeps the keys on this device. False when the browser would not. */
 export async function saveDeviceKeys(keys: DeviceKeys): Promise<boolean> {
   if (!available()) return false;
   try {
@@ -104,6 +105,6 @@ export async function clearDeviceKeys(): Promise<void> {
   try {
     await run("readwrite", (store) => store.delete(RECORD));
   } catch {
-    // Nothing to remove them from.
+    // Nothing from which to remove them.
   }
 }

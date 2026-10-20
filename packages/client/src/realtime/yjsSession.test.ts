@@ -12,10 +12,10 @@ import { joinSealedDocument } from "./sealedDocument.ts";
 import { createYjsSession, type YjsSessionOptions } from "./yjsSession.ts";
 
 /**
- * The socket and the offline copy stand in here, so what is checked is the
- * wiring `createYjsSession` does between them: which document goes on the
- * wire, when the editor is told it has synced, and the order things close.
- * The sealing itself is `sealedDocument.test.ts`.
+ * The socket and the offline copy are replaced here. Thus, the test checks the
+ * connections that `createYjsSession` makes between them: which document goes
+ * on the wire, when the editor learns that it synced, and the order of the
+ * closes. `sealedDocument.test.ts` tests the seal itself.
  */
 
 interface FakeProvider {

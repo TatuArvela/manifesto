@@ -5,7 +5,7 @@ import {
   type Transaction,
 } from "@milkdown/kit/prose/state";
 
-// The toolbar's Code block button in the rich editor. Raw mode's is
+// The Code block button of the toolbar in the rich editor. That of raw mode is
 // `toggleRawCodeBlock` in `utils/rawBlockFormatting.ts`.
 
 /** A line break inside a paragraph is a line of code, not nothing. */
@@ -13,13 +13,14 @@ const leafText = (leaf: ProseNode) =>
   leaf.type.name === "hardbreak" ? "\n" : "";
 
 /**
- * Turns the selected blocks into one code block, a line for each paragraph,
- * or the code block the caret is in back into a paragraph for each line.
+ * Changes the selected blocks into one code block, with one line for each
+ * paragraph. Or, it changes the code block that contains the caret back into
+ * one paragraph for each line.
  *
- * Making a block type of each paragraph, as `setBlockType` does, gave every
- * selected line a code block of its own. The blocks taken in are the ones
- * whose nearest common container can hold a code block, so a selection across
- * list items takes in the whole list, as text. Marks do not survive, since
+ * When the code gave each paragraph a block type, as `setBlockType` does, each
+ * selected line got its own code block. The blocks that are included are those
+ * whose nearest common container can contain a code block. Thus, a selection
+ * across list items includes the full list, as text. Marks do not stay, because
  * code has none.
  */
 export function toggleCodeBlock(state: EditorState): Transaction | null {

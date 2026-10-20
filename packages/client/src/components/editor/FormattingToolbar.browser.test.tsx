@@ -6,8 +6,8 @@ import { page } from "vitest/browser";
 import { t } from "#/i18n/index.ts";
 import { FormattingToolbar } from "./FormattingToolbar.tsx";
 import { MilkdownEditor } from "./MilkdownEditor.tsx";
-// The real stylesheet: unstyled, a tooltip is a popover in the middle of the
-// page that takes the click meant for the button under it.
+// The real stylesheet. Without styles, a tooltip is a popover in the middle of
+// the page, which takes the click for the button under it.
 import "#/styles.css";
 
 const hosts: HTMLDivElement[] = [];
@@ -21,9 +21,10 @@ afterEach(() => {
 
 describe("FormattingToolbar in raw mode", () => {
   it("formats the textarea's text, not the hidden rich editor", async () => {
-    // Raw mode keeps the rich editor mounted behind the textarea. The toolbar
-    // used to go on driving it, so Bold lit up and changed a document nobody
-    // could see, which was then overwritten on the way back to rich mode.
+    // Raw mode keeps the rich editor mounted behind the textarea. Before, the
+    // toolbar continued to control it. Thus, Bold became lit and changed a
+    // document that nobody could see, which was then overwritten on the way
+    // back to rich mode.
     const host = document.createElement("div");
     document.body.appendChild(host);
     hosts.push(host);
@@ -71,8 +72,8 @@ describe("FormattingToolbar in raw mode", () => {
 });
 
 describe("FormattingToolbar's floating bar", () => {
-  // A wide screen's: a phone has these in the fold, and the default viewport
-  // is a phone's width.
+  // That of a wide screen. A phone has these in the fold, and the default
+  // viewport has the width of a phone.
   beforeEach(async () => {
     await page.viewport(1024, 768);
   });
@@ -112,7 +113,9 @@ describe("FormattingToolbar's floating bar", () => {
     };
   }
 
-  /** Whether the bar's panel is open; it stays in the page while closed. */
+  /**
+   * If the panel of the bar is open. It stays in the page while it is closed.
+   */
   const barOpen = (toolbarHost: HTMLElement) =>
     toolbarHost
       .querySelector('[role="toolbar"]')
@@ -145,7 +148,7 @@ describe("FormattingToolbar's floating bar", () => {
   });
 
   it("takes a quote off with real clicks, not nesting it", async () => {
-    // Reported twice from the app: Quote pressed in quoted text nested it.
+    // Reported two times from the app: Quote pushed in quoted text nested it.
     const note = [
       "- Ccc",
       "",

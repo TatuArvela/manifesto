@@ -1,16 +1,16 @@
 import { signal } from "@preact/signals";
 
 /**
- * The drawing pad, when one is open, and what to do with the picture it
- * makes. One for the whole app, asked for by whichever editor is open and
- * rendered by `App` beside its other dialogs rather than inside the editor:
- * an open note is laid out in the page on a phone, and a layer over it has to
- * be a sibling of the app shell, as the confirmation is.
+ * The drawing pad, when one is open, and what to do with the picture that it
+ * makes. One for the full app. The open editor asks for it, and `App` renders
+ * it next to its other dialogs, not inside the editor. On a phone, an open note
+ * is part of the page layout, and a layer over it must be a sibling of the app
+ * shell, as the confirmation is.
  */
 export const drawingRequest = signal<{
-  /** Called with the finished drawing, an image file. */
+  /** Called with the completed drawing, an image file. */
   onDone: (file: File) => void;
-  /** One of the note's images to draw over, as the note holds it. */
+  /** One of the images of the note to draw over, as the note has it. */
   base?: string | undefined;
 } | null>(null);
 

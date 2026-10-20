@@ -25,13 +25,13 @@ import {
 } from "./taskListStructure.ts";
 
 // Dates on checklist items in the editor (see `utils/itemDate.ts`). The token
-// stays ordinary text in the item, so the schema is untouched; a decoration
-// draws it as the chip the card shows.
+// stays usual text in the item. Thus, the schema does not change. A decoration
+// draws it as the chip that the card shows.
 
 /**
- * The date token in a task item's own text, with its offsets from the item's
- * position, or null. Text marked as code is quoted, and an item nested in
- * this one answers for itself.
+ * The date token in the own text of a task item, with its offsets from the
+ * position of the item, or null. Text marked as code is quoted. An item nested
+ * in this one answers for itself.
  */
 export function itemDateOf(
   item: ProseNode,
@@ -79,7 +79,8 @@ const chipPlugin = new Plugin<DecorationSet>({
   key: itemDatesKey,
   state: {
     init: (_config, state) => chips(state.doc),
-    // Ticking an item changes the document too, so this is the only trigger.
+    // A tick of an item also changes the document. Thus, this is the only
+    // trigger.
     apply: (tr, old) => (tr.docChanged ? chips(tr.doc) : old),
   },
   props: {
@@ -91,7 +92,7 @@ export const itemDatesPlugin: MilkdownPlugin = (ctx) => () => {
   ctx.update(prosePluginsCtx, (plugins) => [...plugins, chipPlugin]);
 };
 
-/** Whether the document holds a dated checklist item. */
+/** If the document contains a checklist item with a date. */
 export function docHasDatedItems(doc: ProseNode): boolean {
   let found = false;
   doc.descendants((node) => {
@@ -103,8 +104,8 @@ export function docHasDatedItems(doc: ProseNode): boolean {
 }
 
 /**
- * Puts the checklist items of the editor's document in date order, each among
- * its siblings, as `sortChecklistByDate` does for Markdown.
+ * Puts the checklist items of the document of the editor in date order, each
+ * among its siblings, as `sortChecklistByDate` does for Markdown.
  */
 export function sortItemsByDateIn(view: EditorView): void {
   const { tr } = view.state;
@@ -117,10 +118,10 @@ export function sortItemsByDateIn(view: EditorView): void {
 }
 
 /**
- * Gives the checklist item around the caret the date `date` (`YYYY-MM-DD`),
- * in place of any it had. A new token goes at the end of the item's own line,
- * a space from its text, and carries no mark from beside it: a code mark would
- * quote it, and it would no longer be a date.
+ * Gives the checklist item around the caret the date `date` (`YYYY-MM-DD`), in
+ * place of its previous date. A new token goes at the end of the own line of
+ * the item, one space after its text. It gets no mark from the text next to it.
+ * A code mark would quote it, and it would not be a date then.
  */
 export function setItemDate(
   state: EditorState,

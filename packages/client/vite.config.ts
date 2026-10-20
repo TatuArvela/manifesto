@@ -14,8 +14,8 @@ import { VitePWA } from "vite-plugin-pwa";
 import { resolveBuildVersion } from "../build-version/src/index.ts";
 
 /**
- * GitHub Pages serves `404.html` for any unknown path, so we copy the built
- * `index.html` under that name to give the SPA a clean-URL fallback.
+ * GitHub Pages serves `404.html` for each unknown path. Thus, we copy the built
+ * `index.html` under that name, to give the SPA a clean-URL fallback.
  */
 function githubPagesSpaFallback(): Plugin {
   let outDir = "dist";
@@ -34,11 +34,11 @@ function githubPagesSpaFallback(): Plugin {
 }
 
 /**
- * Extends the index.html CSP `connect-src` directive with the configured
- * `VITE_MANIFESTO_SERVER` origin (and its ws(s):// equivalent) so the client
- * can reach the Manifesto server's REST + WebSocket endpoints. When the env
- * var is unset, the CSP stays at `connect-src 'self'` and the client runs in
- * pure local mode.
+ * Extends the CSP `connect-src` directive of index.html with the configured
+ * `VITE_MANIFESTO_SERVER` origin (and its ws(s):// equivalent). Thus, the
+ * client can reach the REST and WebSocket endpoints of the Manifesto server.
+ * When the env var is not set, the CSP stays at `connect-src 'self'`, and the
+ * client runs in pure local mode.
  */
 function cspForServer(serverUrl: string | undefined): Plugin {
   const extras: string[] = [];
@@ -397,8 +397,8 @@ export default defineConfig(({ mode }) => {
           "../shared/src/index.ts",
         ),
       },
-      // Shared's own `#/` imports, read from source for the same reason: its
-      // import map sends anyone without this condition to `dist/`.
+      // The own `#/` imports of shared, read from source for the same reason.
+      // Its import map sends each caller without this condition to `dist/`.
       conditions: [...defaultClientConditions, "manifesto-source"],
     },
     ssr: {
@@ -419,12 +419,12 @@ export default defineConfig(({ mode }) => {
         injectRegister: false,
         manifest: false,
         injectManifest: {
-          // Workbox's default, plus the Latin subset of each note font, so a
-          // note opened offline keeps its face on a device that never showed
-          // it online. `[0-9]` stops at the weight, which leaves out
-          // `latin-ext`; that and the other scripts still load on demand.
-          // And the manifest, which the worker reads the app's name from
-          // (`installedName` in `sw.ts`).
+          // The default of Workbox, plus the Latin subset of each note font.
+          // Thus, a note opened offline keeps its face on a device that never
+          // showed it online. `[0-9]` stops at the weight, which does not
+          // include `latin-ext`. That and the other scripts still load on
+          // demand. The manifest is also included, because the worker reads the
+          // name of the app from it (`installedName` in `sw.ts`).
           globPatterns: [
             "**/*.{js,wasm,css,html}",
             "assets/*-latin-[0-9]*.woff2",
@@ -443,12 +443,12 @@ export default defineConfig(({ mode }) => {
       brandLogos(branding),
     ],
     test: {
-      // Two projects, chosen by filename. Most of what we test is pure
-      // (parsers, mergers, schedulers, formatters), and running those through
-      // Playwright cost a browser launch per run for nothing. A test that
+      // Two projects, selected by filename. Most of what we test is pure
+      // (parsers, mergers, schedulers, formatters), and when those ran through
+      // Playwright, each run cost a browser launch for nothing. A test that
       // needs a DOM (real CSS, `localStorage`, history, an iframe, DOMPurify)
-      // says so by being named `*.browser.test.ts`, so a new test lands in
-      // the right project without anyone editing this file.
+      // tells so with the name `*.browser.test.ts`. Thus, a new test goes into
+      // the correct project, and nobody has to edit this file.
       projects: [
         {
           extends: true,

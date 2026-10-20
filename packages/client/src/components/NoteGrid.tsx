@@ -20,8 +20,8 @@ export function NoteGrid() {
   if (pinned.length === 0 && unpinned.length === 0) {
     const isSearch = activeView.value === "search";
     if (!isSearch && !notesLoaded.value) return null;
-    // An empty Notes view with notes kept out by a hidden tag is not "no
-    // notes yet", and saying so would send someone looking for lost notes.
+    // An empty Notes view, with notes that a hidden tag keeps out, is not "no
+    // notes yet". To say so would make a person look for lost notes.
     const hiddenByTag =
       activeView.value === "active" ? notesHiddenByTag.value : 0;
     return <EmptyBoard view={activeView.value} hiddenByTag={hiddenByTag} />;

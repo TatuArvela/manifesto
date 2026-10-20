@@ -1,38 +1,46 @@
 import type { Note, NoteUpdate } from "@manifesto/shared";
 
 /**
- * Writes shown to the user before storage has acknowledged them.
+ * Writes that show to the user before storage acknowledged them.
  *
- * The change goes into the signal on the click and the request follows it, so
- * a pin, a colour or a ticked box shows at once rather than after a round
- * trip, and a selection archived together leaves together.
+ * The change goes into the signal on the click, and the request follows it.
+ * Thus, a pin, a color or a ticked box shows immediately, not after a round
+ * trip, and a selection archived together goes out together.
  *
- * What comes back afterwards then has to be folded in without undoing
- * anything newer. Every note the server sends (the response to a write, a
- * `note:updated` from another device, a whole listing after a reconnect) is
- * its last word on that note, and {@link PendingWrites.replay} puts the
- * writes still outstanding back on top of it. A response that lands after a
- * second click cannot revert that click, and a write that fails falls back to
- * the note as it stood with the later ones still applied.
+ * What comes back after that must then be folded in without an undo of anything
+ * newer. Each note that the server sends (the response to a write, a
+ * `note:updated` from a different device, a full listing after a reconnect) is
+ * its last word on that note. {@link PendingWrites.replay} puts the writes that
+ * are not complete back on top of it. A response that arrives after a second
+ * click cannot undo that click. A write that fails goes back to the note as it
+ * was, with the later writes still applied.
  *
- * A write is identified by the `changes` object itself, so {@link
- * PendingWrites.settle} must be handed the same one {@link
- * PendingWrites.begin} was given, whatever was eventually sent: a conflict
- * retry sends a merged set of changes and still settles the write it retried.
+ * The `changes` object itself identifies a write. Thus, {@link
+ * PendingWrites.settle} must get the same object that {@link
+ * PendingWrites.begin} got, whatever the code sent at the end. A conflict retry
+ * sends a merged set of changes, and still settles the write that it tried
+ * again.
  */
 export interface PendingWrites {
-  /** Record a write about to be sent, and return the note to show meanwhile. */
+  /**
+   * Record a write that is about to go, and return the note to show in the
+   * meantime.
+   */
   begin(note: Note, changes: NoteUpdate): Note;
-  /** Forget a write storage has answered, whether it succeeded or failed. */
+  /** Forget a write that storage answered, whether it succeeded or failed. */
   settle(id: string, changes: NoteUpdate): void;
-  /** `truth` with every write still outstanding for that note replayed on it. */
+  /**
+   * `truth`, with each write for that note that is not complete applied on it
+   * again.
+   */
   replay(truth: Note): Note;
-  /** Whether any write for this note is still outstanding. */
+  /** If a write for this note is not complete. */
   pending(id: string): boolean;
 }
 
 export function createPendingWrites(): PendingWrites {
-  // Per note, oldest first: replaying in order leaves the newest write on top.
+  // For each note, oldest first. When the writes apply again in order, the
+  // newest write is on top.
   const queues = new Map<string, NoteUpdate[]>();
 
   return {

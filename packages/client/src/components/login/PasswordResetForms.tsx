@@ -8,7 +8,7 @@ import { locale } from "#/state/prefs.ts";
 import { showSuccess } from "#/state/ui.ts";
 import { inputClass, quietClass, submitClass } from "./loginFormClasses.ts";
 
-/** Asks for a reset link by mail; says the same whatever the address. */
+/** Asks for a reset link by mail. It says the same, whatever the address. */
 export function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "failed">(

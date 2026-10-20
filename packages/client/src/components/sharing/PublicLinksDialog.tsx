@@ -23,12 +23,13 @@ const iconButtonClass =
 const fieldClass =
   "w-full min-w-0 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
 
-/** The expiries offered, in days; 0 is never. */
+/** The available expiries, in days. 0 is never. */
 const EXPIRY_DAYS = [0, 1, 7, 30] as const;
 
 /**
- * The one public links dialog, mounted by `App` and opened by setting
- * `publicLinksDialog`. A note that disappears while it is open closes it.
+ * The one public links dialog, mounted by `App`, and opened when
+ * `publicLinksDialog` is set. A note that disappears while it is open closes
+ * it.
  */
 export function PublicLinksDialogHost() {
   const open = publicLinksDialog.value;
@@ -49,9 +50,11 @@ export function PublicLinksDialogHost() {
   );
 }
 
-/** Copies a link's whole address: the link, and the key that opens what it
- * shows. A link just made comes with its address; an older one's key is
- * opened from the copy the server keeps for its owner. */
+/**
+ * Copies the full address of a link: the link, and the key that opens what it
+ * shows. A new link comes with its address. For an older link, the code opens
+ * the key from the copy that the server keeps for its owner.
+ */
 async function copyLink(link: PublicLink, known?: string) {
   try {
     const address = known ?? (await publicLinkAddress(link));
@@ -64,8 +67,8 @@ async function copyLink(link: PublicLink, known?: string) {
 }
 
 /**
- * A note's public links: made here, listed with how often each was opened,
- * and revoked here, which stops a link at once.
+ * The public links of a note: made here, listed with how frequently each one
+ * opened, and revoked here, which stops a link immediately.
  */
 function PublicLinksDialog({
   note,

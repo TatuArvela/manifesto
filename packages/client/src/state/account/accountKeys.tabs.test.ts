@@ -8,9 +8,9 @@ vi.mock("#/config.ts", async (original) => ({
   resolveServerOrigin: () => "https://notes.example",
 }));
 
-// The device's copy, which every tab of a browser shares. Node has no
-// IndexedDB, so it is kept here, and read back as another object each time,
-// as a stored `CryptoKey` is.
+// The copy of the device, which all tabs of a browser share. Node has no
+// IndexedDB. Thus, it is kept here, and read back as a different object each
+// time, as a stored `CryptoKey` is.
 let device: DeviceKeys | null = null;
 /** False for a browser that refuses IndexedDB: nothing is kept or read. */
 let deviceKeeps = true;
@@ -76,14 +76,17 @@ async function server(input: string, init?: RequestInit): Promise<Response> {
 const state = (kind: string) =>
   vi.waitFor(() => expect(keys.keyState.value).toBe(kind));
 
-/** What another tab of this browser says, after writing the device's copy. */
+/**
+ * What a different tab of this browser says after it writes the copy of the
+ * device.
+ */
 function anotherTabSays(said: string): void {
   const tab = new BroadcastChannel("manifesto:keys");
   tab.postMessage(said);
   tab.close();
 }
 
-/** Long enough for a message to arrive and be acted on. */
+/** Sufficiently long for a message to arrive and for the tab to act on it. */
 const heard = () => new Promise((resolve) => setTimeout(resolve, 50));
 
 describe("account keys across tabs", () => {
@@ -116,8 +119,8 @@ describe("account keys across tabs", () => {
     anotherTabSays("held");
     await heard();
     stop();
-    // Never locked, never checking: the app stayed up, and storage seals
-    // with the key it had, so the notes and images it opened stay open.
+    // Never locked, never in a check. The app stayed up, and storage seals with
+    // the key that it had. Thus, the notes and images that it opened stay open.
     expect(seen).toEqual(["unlocked"]);
     expect(storageKeys.value).toBe(before);
   });
@@ -130,7 +133,7 @@ describe("account keys across tabs", () => {
     await heard();
     expect(keys.keyState.value).toBe("unlocked");
     expect(storageKeys.value).toBe(before);
-    // What Settings shows to bring a device in is the key that works now.
+    // To bring in a device, Settings shows the key that works now.
     globalThis.fetch = vi.fn(
       async () => new Response(null, { status: 204 }),
     ) as typeof fetch;

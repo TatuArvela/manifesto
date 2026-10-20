@@ -3,7 +3,7 @@ import { EditorState, TextSelection } from "@milkdown/kit/prose/state";
 import { describe, expect, it } from "vitest";
 import { setItemDate } from "./itemDates.ts";
 
-// The list nodes as Milkdown's presets have them: a task is an item whose
+// The list nodes as the presets of Milkdown have them: a task is an item whose
 // `checked` is set. `code` is the inline code mark, which quotes a token.
 const schema = new Schema({
   nodes: {
@@ -25,7 +25,7 @@ const task = (text: string, ...rest: ProseNode[]) =>
   schema.node("list_item", { checked: false }, [p(text), ...rest]);
 const list = (...items: ProseNode[]) => schema.node("bullet_list", null, items);
 
-/** A state with the caret in the first text block holding `at`. */
+/** A state with the caret in the first text block that contains `at`. */
 function stateWith(doc: ProseNode, at: string): EditorState {
   let pos = -1;
   doc.descendants((node, offset) => {
@@ -38,7 +38,7 @@ function stateWith(doc: ProseNode, at: string): EditorState {
   return state.apply(state.tr.setSelection(TextSelection.create(doc, pos)));
 }
 
-/** The text of each paragraph, after `setItemDate` has run. */
+/** The text of each paragraph, after `setItemDate` ran. */
 function dated(state: EditorState, date: string): string[] | null {
   let result: string[] | null = null;
   setItemDate(state, date, (tr) => {

@@ -44,8 +44,9 @@ export function RoleSelect({
 }
 
 /**
- * A person's key: its fingerprint while the dialog is comparing keys, and
- * always the warning when it is not the key this account remembers for them.
+ * The key of a person: its fingerprint while the dialog compares keys, and
+ * always the warning when it is not the key that this account remembers for
+ * them.
  */
 function PersonKey({
   person,
@@ -58,8 +59,8 @@ function PersonKey({
     { fingerprint: string; changed: boolean } | null | undefined
   >(undefined);
   const [busy, setBusy] = useState(false);
-  // A key this session met and could not use, because it is not the one
-  // remembered: said whether or not keys are being compared.
+  // A key that this session found and could not use, because it is not the
+  // remembered key. Shown whether keys are compared or not.
   const changed = changedKeys.value.has(person.id);
   const wanted = showing || changed;
 
@@ -72,7 +73,7 @@ function PersonKey({
     return () => {
       cancelled = true;
     };
-    // Read again once a changed key is trusted.
+    // Read again after a changed key is trusted.
   }, [person.id, wanted, changed]);
 
   if (!wanted || status === undefined) return null;
@@ -187,7 +188,8 @@ export function MemberRow({
           <RoleSelect
             value={member.role}
             label={t("sharing.role.label", { name })}
-            // Sharing off on the server: people can be taken off, not changed.
+            // Sharing is off on the server: people can be removed, but not
+            // changed.
             disabled={busy || !serverFeature("sharing")}
             onChange={(role) =>
               act(() => setShareRole(note.id, member.id, role))

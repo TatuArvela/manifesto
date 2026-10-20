@@ -44,8 +44,8 @@ describe("toAutoNoteResults", () => {
   });
 
   it("drops a colour or font it doesn't", () => {
-    // These index `noteColorMap` / `noteFontFamilies`, and an unrecognized
-    // string reaches `undefined` there and throws while a card renders.
+    // These are keys of `noteColorMap` / `noteFontFamilies`. An unknown string
+    // gives `undefined` there, and throws while a card renders.
     const [note] = toAutoNoteResults([
       { ...NOTE, color: "hotpink", font: "wingdings" },
     ]);
@@ -64,7 +64,7 @@ describe("toAutoNoteResults", () => {
   });
 
   it("drops a position that isn't a finite number", () => {
-    // Sorted on: one NaN scrambles the order of everything around it.
+    // The sort uses it. One NaN puts all values around it in a random order.
     expect(
       toAutoNoteResults([{ ...NOTE, position: Number.NaN }])[0]?.position,
     ).toBeUndefined();

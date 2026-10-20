@@ -16,19 +16,19 @@ import { showError } from "./ui.ts";
 
 /**
  * Link previews arrive in two steps. A plain card (the URL and its domain) is
- * added the moment a link is pasted, in either mode. In connected mode the
- * server is then asked for the page's title, description, image and favicon,
- * and the card is filled in when that answer comes back. Open mode stops at
- * the plain card; see `LocalStorageAdapter.fetchLinkPreview`.
+ * added at the moment when a link is pasted, in both modes. In connected mode,
+ * the client then asks the server for the title, description, image and favicon
+ * of the page. The card is filled when that answer comes back. Open mode stops
+ * at the plain card. See `LocalStorageAdapter.fetchLinkPreview`.
  */
 
 const inflight = new Map<string, Promise<LinkPreview | null>>();
 
 /**
- * The filled-in preview for a URL, or null when there is nothing to add to the
- * plain card. Never rejects: a page that cannot be previewed is an ordinary
- * outcome, and the plain card already on the note is the right result, so it
- * is not reported to the user.
+ * The filled preview for a URL, or null when there is nothing to add to the
+ * plain card. Never rejects. A page that cannot have a preview is a usual
+ * result, and the plain card already on the note is the correct result. Thus,
+ * the user does not get a report.
  */
 export function resolveLinkPreview(url: string): Promise<LinkPreview | null> {
   let pending = inflight.get(url);
@@ -63,10 +63,10 @@ async function loadLinkPreview(url: string): Promise<LinkPreview | null> {
 }
 
 /**
- * A fetched preview image, shrunk and stored like any attachment, as the
- * reference a preview holds; null to go without it. Stored rather than kept
- * inline, previews add only their text to a note, which travels in every
- * listing and every write.
+ * A loaded preview image, shrunk and stored as each attachment is, as the
+ * reference that a preview has. Null to continue without it. Previews are
+ * stored, not kept inline. Thus, they add only their text to a note, which goes
+ * in each listing and each write.
  */
 async function storePreviewImage(
   source: string,
@@ -94,8 +94,8 @@ function samePreview(a: LinkPreview, b: LinkPreview): boolean {
 }
 
 /**
- * Puts resolved previews into a saved note, replacing the cards for the same
- * URLs. A card the user removed while its preview was loading stays removed.
+ * Puts resolved previews into a saved note, and replaces the cards for the same
+ * URLs. A card that the user removed while its preview loaded stays removed.
  */
 export async function applyLinkPreviews(
   noteId: string,
@@ -106,7 +106,7 @@ export async function applyLinkPreviews(
   );
   if (resolved.length === 0) return true;
   const byUrl = new Map(resolved.map((p) => [p.url, p]));
-  // Read after the wait, not before: the note may have changed meanwhile.
+  // Read after the wait, not before. The note can have changed in the meantime.
   const current = notes.value.find((n) => n.id === noteId);
   if (!current) return false;
   let changed = false;
@@ -120,7 +120,9 @@ export async function applyLinkPreviews(
   return await updateNote(noteId, { linkPreviews });
 }
 
-/** Tells the user a note is full, when a paste tried to go past the cap. */
+/**
+ * Tells the user that a note is full, when a paste tried to go past the limit.
+ */
 export function reportPreviewOverflow(overflow: boolean) {
   if (overflow) {
     showError(t("linkPreview.tooMany", { max: MAX_LINK_PREVIEWS_PER_NOTE }));
@@ -128,9 +130,9 @@ export function reportPreviewOverflow(overflow: boolean) {
 }
 
 /**
- * Adds cards for the URLs to a saved note in one write, then fills them in,
- * unless the user has turned the cards off (`linkPreviewCards`). Resolves
- * false if either write failed; `updateNote` has already said so.
+ * Adds cards for the URLs to a saved note in one write, then fills them, unless
+ * the user turned the cards off (`linkPreviewCards`). Resolves false if one of
+ * the writes failed. `updateNote` already told the user.
  */
 export async function addLinkPreviews(
   noteId: string,

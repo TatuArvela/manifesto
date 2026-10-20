@@ -7,20 +7,22 @@ import {
   useDraftLinkPreviews,
 } from "./useDraftLinkPreviews.ts";
 
-/** What the composer holds apart from its link previews, which load later. */
+/**
+ * The contents of the composer other than its link previews, which load later.
+ */
 export type ComposerFields = Omit<ComposerDraft, "linkPreviews">;
 
 type FieldsChange =
   | Partial<ComposerFields>
   | ((fields: ComposerFields) => Partial<ComposerFields>);
 
-/** The note being written in the new-note composer, before it is a note. */
+/** The note that you write in the new-note composer, before it is a note. */
 export interface ComposerNote {
   fields: ComposerFields;
   linkPreviews: DraftLinkPreviews;
   /** Changes some fields. A change that changes nothing renders nothing. */
   update(change: FieldsChange): void;
-  /** All of it, link previews included, as a draft is kept. */
+  /** All of it, with the link previews, as a draft is kept. */
   draft(): ComposerDraft;
   /** Empties the composer for the next note, in `color` and `font`. */
   reset(color: NoteColor, font: NoteFont): void;
@@ -59,7 +61,8 @@ export function useComposerFields(
   const [fields, setFields] = useState(() => emptyFields(color(), font()));
   const linkPreviews = useDraftLinkPreviews();
 
-  // Stable, so an effect that changes a field need not run again for it.
+  // Stable. Thus, an effect that changes a field does not have to run again for
+  // it.
   const update = useCallback(
     (change: FieldsChange) =>
       setFields((current) => {

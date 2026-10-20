@@ -14,10 +14,10 @@ import { importFiles } from "./importExport.ts";
 import { markdownFileToNote } from "./importedNote.ts";
 
 /**
- * An export's Markdown files are written by `@manifesto/shared` and read back
- * by this package's Markdown import, which is how a note leaves for another
- * tool and comes home again. The server's test checks what is written; these
- * check that what is written reads back as the same note.
+ * `@manifesto/shared` writes the Markdown files of an export, and the Markdown
+ * import of this package reads them back. That is how a note goes to a
+ * different tool and comes back again. The test of the server checks what is
+ * written. These tests check that what is written reads back as the same note.
  */
 
 function note(overrides: Partial<Note> = {}): Note {
@@ -125,7 +125,7 @@ describe("exportArchiveFiles", () => {
       "versions.json",
     ]);
     expect(JSON.parse(defined(files[0]).text)).toEqual({ format: 1 });
-    // The trash still travels whole in notes.json.
+    // The trash still goes fully in notes.json.
     expect(JSON.parse(defined(files[1]).text)).toHaveLength(3);
   });
 
@@ -252,7 +252,7 @@ describe("exportArchiveFiles", () => {
 });
 
 describe("an export's format", () => {
-  // Format 2 while a test runs: every title in capitals.
+  // Format 2 while a test runs: each title in capitals.
   const shout = (words: { title?: string }) =>
     words.title === undefined ? {} : { title: words.title.toUpperCase() };
 

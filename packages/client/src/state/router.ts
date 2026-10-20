@@ -7,7 +7,10 @@ export interface Route {
   tag: string | null;
 }
 
-/** Vite's `BASE_URL` (e.g. `/` in dev, `/manifesto/` on GitHub Pages). */
+/**
+ * The `BASE_URL` of Vite (for example `/` in dev, `/manifesto/` on GitHub
+ * Pages).
+ */
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const VIEW_PATHS: Record<AppView, string> = {
@@ -40,13 +43,13 @@ function stripBase(pathname: string): string {
   return pathname || "/";
 }
 
-/** Parse a URL pathname into a route, or null if the path isn't recognized. */
+/** Parse a URL pathname into a route, or null if the path is not known. */
 export function parsePath(pathname: string): Route | null {
   const path = stripBase(pathname);
   if (path === "/") return { view: "active", tag: null };
   if (path.startsWith("/tags/")) {
-    // A nested tag is a path of its own (`/tags/work/clients`), each part
-    // encoded by itself. A link from before, with the whole tag in one part
+    // A nested tag is its own path (`/tags/work/clients`), with each part
+    // encoded separately. A link from before, with the full tag in one part
     // (`work%2Fclients`), decodes to the same tag.
     const parts = path.slice("/tags/".length).split("/").filter(Boolean);
     if (parts.length === 0) return { view: "tags", tag: null };
@@ -61,7 +64,7 @@ export function parsePath(pathname: string): Route | null {
   return { view, tag: null };
 }
 
-/** Serialize a route into a full URL pathname (base-prefixed). */
+/** Serialize a route into a full URL pathname (with the base prefix). */
 export function buildPath(route: Route): string {
   if (route.view === "tags" && route.tag) {
     return `${BASE}/tags/${route.tag.split("/").map(encodeURIComponent).join("/")}`;
@@ -75,9 +78,9 @@ let disposeEffect: (() => void) | null = null;
 let popListener: (() => void) | null = null;
 
 /**
- * Sync `activeView` and `activeTag` with `location.pathname`. Safe to call
- * multiple times; subsequent calls are no-ops. Returns a cleanup function
- * primarily intended for tests.
+ * Sync `activeView` and `activeTag` with `location.pathname`. You can call it
+ * many times. Later calls do nothing. Returns a cleanup function, mainly for
+ * tests.
  */
 export function initRouter(): () => void {
   if (disposeEffect) return stopRouter;
@@ -96,8 +99,8 @@ export function initRouter(): () => void {
       return;
     }
     if (window.location.pathname === next) return;
-    // After a closing sheet's own `history.back()`, or that would go back
-    // from this entry instead of its own.
+    // After the own `history.back()` of a sheet that closes. If not, that would
+    // go back from this entry, not from its own.
     afterHistorySettles(() => {
       if (window.location.pathname !== next) history.pushState(null, "", next);
     });

@@ -8,10 +8,13 @@ import { showShortcuts } from "#/state/ui.ts";
 import { Backdrop } from "./Backdrop.tsx";
 import { buttonClass } from "./buttonClasses.ts";
 
-/** How long the fade-out runs; matches the `duration-150` classes below. */
+/**
+ * The duration of the fade-out. It agrees with the `duration-150` classes
+ * below.
+ */
 const CLOSE_MS = 150;
 
-/** The `?` sheet: every board shortcut and what it does. */
+/** The `?` sheet: each board shortcut and what it does. */
 export function ShortcutsDialog() {
   const [closing, setClosing] = useState(false);
 

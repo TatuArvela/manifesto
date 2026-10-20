@@ -5,8 +5,10 @@ import {
   sealImage,
 } from "@manifesto/shared";
 
-/** An image that is not one of the kinds a note may hold, whatever the file
- * was called. */
+/**
+ * An image that is not one of the kinds that a note can contain, whatever the
+ * name of the file was.
+ */
 export class ImageKindError extends Error {
   constructor() {
     super("Not a PNG, JPEG, GIF, WebP or AVIF image");
@@ -18,25 +20,29 @@ export class ImageKindError extends Error {
 export interface ImageUpload {
   body: Blob;
   headers: Record<string, string>;
-  /** What opens it, to keep once the server has named it; null when it was
-   * sent as it is. */
+  /**
+   * What opens it, to keep after the server named it. Null when it was sent as
+   * it is.
+   */
   key: ImageKey | null;
 }
 
 /**
- * What opens each image this device has met, by its reference: from every
- * note opened, and every image uploaded. A note in the app names its images
- * by reference alone, and this is where their keys wait to be sealed back
- * into it. The `Sealer` holds one for the unlocked account.
+ * What opens each image that this device saw, by its reference: from each note
+ * opened, and each image uploaded. A note in the app names its images only by
+ * reference, and their keys wait here to be sealed back into it. The `Sealer`
+ * has one for the unlocked account.
  */
 export class ImageKeyRing {
-  /** The keys by reference, as sealing a note reads them. */
+  /** The keys by reference, as the seal of a note reads them. */
   readonly byRef = new Map<string, ImageKey>();
 
   constructor(private readonly source: Promise<ImageKeySource>) {}
 
-  /** An image sealed for upload. Rejects with `ImageKindError` for a file
-   * that is not an image a note may hold. */
+  /**
+   * An image sealed for upload. Rejects with `ImageKindError` for a file that
+   * is not an image that a note can contain.
+   */
   async seal(image: Blob): Promise<ImageUpload> {
     const sealed = await sealImage(
       await this.source,
@@ -53,34 +59,39 @@ export class ImageKeyRing {
     };
   }
 
-  /** Keeps what opens the image the server has just named `ref`. */
+  /** Keeps what opens the image that the server just named `ref`. */
   keep(ref: string, key: ImageKey | null): void {
     if (key) this.byRef.set(ref, key);
   }
 
-  /** Keeps every key a note that was just opened carries. */
+  /** Keeps each key that a note that just opened carries. */
   keepAll(keys: Iterable<[string, ImageKey]>): void {
     for (const [ref, key] of keys) this.byRef.set(ref, key);
   }
 
   /**
-   * What opens the image `ref` names, or null when this device has none: for
-   * what keeps a note on the device before it is sent, since a reference
-   * alone opens nothing after a reload.
+   * What opens the image that `ref` names, or null when this device has none.
+   * For the code that keeps a note on the device before it is sent, because a
+   * reference alone opens nothing after a reload.
    */
   keyOf(ref: string): ImageKey | null {
     return this.byRef.get(ref) ?? null;
   }
 
-  /** `to` is the same sealed image as `from`, stored again for a note's
-   * owner: the same key opens it. */
+  /**
+   * `to` is the same sealed image as `from`, stored again for the owner of a
+   * note. The same key opens it.
+   */
   same(from: string, to: string): void {
     const key = this.byRef.get(from);
     if (key) this.byRef.set(to, key);
   }
 
-  /** The image `ref` names, from its sealed bytes. Rejects when this device
-   * has no key for it, or it does not open as the image its note says. */
+  /**
+   * The image that `ref` names, from its sealed bytes. Rejects when this device
+   * has no key for it, or when it does not open as the image that its note
+   * says.
+   */
   async open(ref: string, sealed: Blob): Promise<Blob> {
     const key = this.byRef.get(ref);
     const image = key

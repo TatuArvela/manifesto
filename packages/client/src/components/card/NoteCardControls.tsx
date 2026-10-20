@@ -32,7 +32,7 @@ import { refreshAutoNotes } from "#/state/autoNotes.ts";
 import { confirmDeletion } from "#/state/confirm.ts";
 import type { CardPopoverKind } from "./NoteCardPopovers.tsx";
 
-/** The round button at a card's top-left corner that selects it. */
+/** The round button at the top-left corner of a card that selects it. */
 export function CardSelectButton({
   isSelected,
   isSelectMode,
@@ -46,9 +46,9 @@ export function CardSelectButton({
     <div
       class={clsx(
         "note-select absolute -top-2.5 -left-2.5 z-10",
-        // Revealed by keyboard focus anywhere in the card as well as by
-        // hover: these controls are in the tab order either way, and a
-        // focus ring on something invisible leaves nothing to look at.
+        // Shown by keyboard focus anywhere in the card, and also by hover.
+        // These controls are in the tab order in both cases, and a focus ring
+        // on something invisible gives nothing to look at.
         isSelectMode || isSelected
           ? "opacity-100"
           : "opacity-0 group-hover:opacity-100 group-data-popover-open:opacity-100 group-has-[:focus-visible]:opacity-100",
@@ -58,7 +58,7 @@ export function CardSelectButton({
       <button
         type="button"
         class={clsx(
-          // 20px drawn, 24px to press (WCAG 2.5.8).
+          // Drawn at 20px, 24px to press (WCAG 2.5.8).
           "relative w-5 h-5 rounded-full flex items-center justify-center transition-all shadow-sm after:absolute after:-inset-0.5",
           isSelected
             ? "bg-blue-500 text-white hover:bg-blue-600"
@@ -86,8 +86,7 @@ export function CardSelectButton({
   );
 }
 
-/** The top-right corner of a card: the pin, what state it is in, and who is
- * looking at it. */
+/** The top-right corner of a card: the pin, its state, and who looks at it. */
 export function CardStatusBar({
   note,
   isTrashView,
@@ -105,16 +104,16 @@ export function CardStatusBar({
     <div
       class={clsx(
         "absolute top-2 right-2 z-10 flex items-center gap-0.5 transition-[color,opacity,visibility] duration-200",
-        // A card whose whole face is an image or a link hero has no
-        // note colour up here to darken against, and the picture
-        // underneath can be any shade, so the icons go white with a
-        // shadow of their own rather than joining the neutral ramp.
+        // A card whose full face is an image or a link hero has no note color
+        // up here to make darker. The picture under it can be any shade. Thus,
+        // the icons become white with their own shadow, and do not use the
+        // neutral ramp.
         overlay
           ? "text-white [filter:drop-shadow(0_1px_2px_rgb(0_0_0/0.7))]"
           : "text-neutral-500 dark:text-neutral-400 group-hover:text-neutral-800 dark:group-hover:text-neutral-200 group-data-popover-open:text-neutral-800 dark:group-data-popover-open:text-neutral-200 group-has-[:focus-visible]:text-neutral-800 dark:group-has-[:focus-visible]:text-neutral-200 touch:text-neutral-800 dark:touch:text-neutral-200",
-        // Faded rather than switched, both ways. Visibility is in the
-        // transition so it waits for the fade out, and still hides the
-        // buttons from Tab once it has finished.
+        // Faded, not switched, in both directions. Visibility is in the
+        // transition. Thus, it waits for the fade out, and still hides the
+        // buttons from Tab after it completes.
         isSelectMode && "invisible opacity-0",
       )}
       onClick={(e) => e.stopPropagation()}
@@ -157,9 +156,11 @@ export function CardStatusBar({
   );
 }
 
-/** The row of buttons along a card's foot, in the editor toolbar's order:
- * colour, font, reminder, pictures, tags and the menu; or
- * restore and delete in the trash. */
+/**
+ * The row of buttons at the bottom of a card, in the order of the editor
+ * toolbar: color, font, reminder, pictures, tags and the menu. In the trash:
+ * restore and delete.
+ */
 export function CardActions({
   note,
   isTrashView,
@@ -188,18 +189,17 @@ export function CardActions({
   reminderBtnRef: preact.Ref<HTMLButtonElement>;
   tagsBtnRef: preact.Ref<HTMLButtonElement>;
   menuBtnRef: preact.Ref<HTMLButtonElement>;
-  /** Which of the card's panels is open, for its button's `aria-expanded`. */
+  /** Which panel of the card is open, for the `aria-expanded` of its button. */
   openPopover: CardPopoverKind | null;
   onToggleColorPicker: () => void;
-  /** Left out where the note's font is not this reader's to change. */
+  /** Not given where this reader cannot change the font of the note. */
   onToggleFontPicker?: (() => void) | undefined;
   onToggleReminder: () => void;
   onToggleTags: () => void;
   onToggleMenu: () => void;
   /**
-   * Adds the pictures and the drawing buttons, which open the editor with
-   * what was picked or drawn on its way in. Left out where the note cannot
-   * take images.
+   * Adds the pictures and the drawing buttons, which open the editor with what
+   * you selected or drew. Not given where the note cannot have images.
    */
   onAttach?: ((files: File[]) => void) | undefined;
   onDraw?: (() => void) | undefined;

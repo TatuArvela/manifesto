@@ -64,7 +64,7 @@ describe("confetti", () => {
         widest = Math.max(widest, nearest);
       }
     }
-    // A perfect lattice of this many pieces leaves 27.5px at most.
+    // A perfect lattice of this many pieces leaves a maximum of 27.5px.
     expect(widest).toBeLessThan(34);
   });
 });
@@ -95,8 +95,8 @@ describe.each(Object.entries(SCATTERS))("the scattered %s", (name, shapes) => {
         widest = Math.max(widest, nearest);
       }
     }
-    // The scatters leave 21px to 31px; a seam left bare, as a scatter kept
-    // inside its tile did, would show here first.
+    // The scatters leave 21px to 31px. A bare seam, as a scatter kept inside
+    // its tile left, would show here first.
     expect(widest).toBeLessThan(34);
   });
 

@@ -29,9 +29,9 @@ describe("seal", () => {
   it("is shaped as the server expects a ciphertext to be", async () => {
     const sealed = await seal(await keyFor("a"), text("Shopping list"), data);
     expect(isCiphertext(sealed, 1024)).toBe(true);
-    // Eight letters the random base64url text holds by chance about once in
-    // several trillion runs; the "xx" asked about before came up about once
-    // in a hundred.
+    // Eight letters that the random base64url text contains by chance
+    // approximately one time in several trillion runs. The "xx" that the test
+    // asked about before came up approximately one time in a hundred.
     expect(sealed).not.toContain("Shopping");
   });
 
@@ -73,8 +73,9 @@ describe("seal", () => {
   it("does not open once changed, and never throws", async () => {
     const key = await keyFor("a");
     const sealed = await seal(key, text("x"), data);
-    // A character in the middle: the last one carries bits that are not
-    // part of any byte, so changing it can leave the ciphertext as it was.
+    // A character in the middle. The last character carries bits that are not
+    // part of any byte. Thus, a change to it can leave the ciphertext as it
+    // was.
     const at = 20;
     const flipped = `${sealed.slice(0, at)}${sealed[at] === "A" ? "B" : "A"}${sealed.slice(at + 1)}`;
     expect(await unseal(key, flipped, data)).toBeNull();

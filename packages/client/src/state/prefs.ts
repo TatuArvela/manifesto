@@ -81,7 +81,7 @@ function loadPrefs(): LoadedPrefs {
   }
 }
 
-/** Whether this browser had no preferences of its own when the page loaded. */
+/** If this browser had no preferences of its own when the page loaded. */
 const freshDevice = (() => {
   try {
     return localStorage.getItem(PREFS_KEY) === null;
@@ -93,7 +93,7 @@ const freshDevice = (() => {
 const loaded = loadPrefs();
 const prefSignals: Partial<Record<PrefKey, Signal<unknown>>> = {};
 
-/** The signal for one preference, registered for saving and adopting. */
+/** The signal for one preference, registered for save and adoption. */
 function pref<K extends PrefKey>(key: K): Signal<LoadedPrefs[K]> {
   const s = signal(loaded[key]);
   prefSignals[key] = s as Signal<unknown>;
@@ -146,28 +146,30 @@ function prefSignal(key: PrefKey): Signal<unknown> {
   return prefSignals[key] as Signal<unknown>;
 }
 
-/** Never throws: storage that refuses (a private window, a full quota)
- * leaves the signals holding the preferences for this session. */
+/**
+ * Never throws. When storage refuses (a private window, a full quota), the
+ * signals keep the preferences for this session.
+ */
 function savePrefs() {
   const blob: Record<string, unknown> = {};
   for (const key of PREF_KEYS) blob[key] = prefSignal(key).value;
   try {
     localStorage.setItem(PREFS_KEY, JSON.stringify(blob));
   } catch {
-    // Kept in memory only.
+    // Kept only in memory.
   }
 }
 
-/** The preset "random" stands for in this tab; see `randomBoardTexture`. */
+/** The preset that "random" means in this tab. See `randomBoardTexture`. */
 const randomBoardColor = signal<BoardColor>(rollBoardColor());
 
-/** The colour choice actually on the board, with "random" resolved. */
+/** The color choice that is really on the board, with "random" resolved. */
 export const resolvedBoardColor = computed<Exclude<BoardColorChoice, "random">>(
   () =>
     boardColor.value === "random" ? randomBoardColor.value : boardColor.value,
 );
 
-/** Picks another random colour, never the one showing now. */
+/** Selects a different random color, never the color that shows now. */
 export function rerollBoardColor() {
   const current = randomBoardColor.peek();
   let next = rollBoardColor();
@@ -175,20 +177,21 @@ export function rerollBoardColor() {
   randomBoardColor.value = next;
 }
 /**
- * The texture "random" stands for in this tab. Rolled once per page load,
- * so the board changes between visits but never under the user mid-session,
- * and again by `rerollBoardTexture`. Not persisted: a fresh roll is the point.
+ * The texture that "random" means in this tab. Selected one time for each page
+ * load. Thus, the board changes between visits, but never under the user during
+ * a session. `rerollBoardTexture` selects again. Not persisted, because a new
+ * selection is the purpose.
  */
 const randomBoardTexture = signal<BoardTexture>(rollBoardTexture());
 
-/** The texture actually on the board, with "random" resolved. */
+/** The texture that is really on the board, with "random" resolved. */
 export const resolvedBoardTexture = computed<BoardTexture>(() =>
   boardTexture.value === "random"
     ? randomBoardTexture.value
     : boardTexture.value,
 );
 
-/** Picks another random texture, never the one showing now. */
+/** Selects a different random texture, never the texture that shows now. */
 export function rerollBoardTexture() {
   const current = randomBoardTexture.peek();
   let next = rollBoardTexture();
@@ -196,7 +199,9 @@ export function rerollBoardTexture() {
   randomBoardTexture.value = next;
 }
 
-/** A preset for the gradient's "random", never the board's own colour. */
+/**
+ * A preset for the "random" of the gradient, never the own color of the board.
+ */
 function rollBoardGradient(except: string | undefined): BoardColor {
   const color = resolvedBoardColor.peek();
   const first = color === "none" || color === "custom" ? undefined : color;
@@ -206,12 +211,13 @@ function rollBoardGradient(except: string | undefined): BoardColor {
 }
 
 /**
- * The preset the gradient's "random" stands for in this tab, rolled like
- * `randomBoardColor` and never the same as it, or the board would be flat.
+ * The preset that the "random" of the gradient means in this tab. Selected as
+ * `randomBoardColor` is, and never the same as it. If it were, the board would
+ * be flat.
  */
 const randomBoardGradient = signal<BoardColor>(rollBoardGradient(undefined));
 
-/** The colour the board actually fades to, with "random" resolved. */
+/** The color to which the board really fades, with "random" resolved. */
 export const resolvedBoardGradient = computed<
   Exclude<BoardGradientChoice, "random">
 >(() =>
@@ -220,20 +226,24 @@ export const resolvedBoardGradient = computed<
     : boardGradient.value,
 );
 
-/** Picks another random gradient colour, never the one showing now. */
+/**
+ * Selects a different random gradient color, never the color that shows now.
+ */
 export function rerollBoardGradient() {
   randomBoardGradient.value = rollBoardGradient(randomBoardGradient.peek());
 }
 
-/** The colourful preset the pattern colour's "random" stands for in this tab. */
+/**
+ * The colorful preset that the "random" of the pattern color means in this tab.
+ */
 const randomBoardInk = signal<BoardColor>(pickOne(BOARD_COLORS));
 
-/** The pattern colour actually drawn in, with "random" resolved. */
+/** The pattern color that is really drawn, with "random" resolved. */
 export const resolvedBoardInk = computed<Exclude<BoardInk, "random">>(() =>
   boardInk.value === "random" ? randomBoardInk.value : boardInk.value,
 );
 
-/** Picks another random pattern colour, never the one showing now. */
+/** Selects a different random pattern color, never the color that shows now. */
 export function rerollBoardInk() {
   const current = randomBoardInk.peek();
   randomBoardInk.value = pickOne(
@@ -241,12 +251,12 @@ export function rerollBoardInk() {
   );
 }
 
-/** The direction "random" stands for in this tab. */
+/** The direction that "random" means in this tab. */
 const randomBoardGradientDirection = signal<BoardGradientDirection>(
   pickOne(BOARD_GRADIENT_DIRECTIONS),
 );
 
-/** The direction the board actually fades in, with "random" resolved. */
+/** The direction in which the board really fades, with "random" resolved. */
 export const resolvedBoardGradientDirection = computed<BoardGradientDirection>(
   () =>
     boardGradientDirection.value === "random"
@@ -254,7 +264,7 @@ export const resolvedBoardGradientDirection = computed<BoardGradientDirection>(
       : boardGradientDirection.value,
 );
 
-/** Picks another random direction, never the one showing now. */
+/** Selects a different random direction, never the direction that shows now. */
 export function rerollBoardGradientDirection() {
   const current = randomBoardGradientDirection.peek();
   randomBoardGradientDirection.value = pickOne(
@@ -263,10 +273,10 @@ export function rerollBoardGradientDirection() {
 }
 
 /**
- * The board's choices set to "random" that show now, as the reroll of each:
- * a direction counts only with a gradient to point, a pattern colour only
- * with a pattern to draw in it. The colour comes before the gradient, which
- * rolls away from it.
+ * The choices of the board set to "random" that show now, as the reroll of
+ * each. A direction counts only with a gradient to point. A pattern color
+ * counts only with a pattern to draw in it. The color comes before the
+ * gradient, which selects a value different from it.
  */
 export const boardRerolls = computed<readonly (() => void)[]>(() => {
   const rerolls: (() => void)[] = [];
@@ -285,14 +295,17 @@ export const boardRerolls = computed<readonly (() => void)[]>(() => {
   return rerolls;
 });
 
-/** Picks again for every choice of the board's set to "random". */
+/** Selects again for each choice of the board that is set to "random". */
 export function rerollBoardBackground() {
   batch(() => {
     for (const reroll of boardRerolls.peek()) reroll();
   });
 }
 
-/** Returns the concrete decimal separator, resolving "auto" via current locale. */
+/**
+ * Returns the concrete decimal separator. Resolves "auto" through the current
+ * locale.
+ */
 export function resolvedDecimalSeparator(): "." | "," {
   if (decimalSeparator.value !== "auto") return decimalSeparator.value;
   return locale.value === "fi" ? "," : ".";
@@ -305,35 +318,35 @@ const RANDOM_NOTE_FONTS = Object.values(NoteFont).filter(
   (f) => f !== NoteFont.Default,
 );
 
-/** The colour a new note gets, with "random" resolved. */
+/** The color that a new note gets, with "random" resolved. */
 export function pickDefaultColor(): NoteColor {
   const choice = defaultNoteColor.value;
   return choice === "random" ? pickOne(RANDOM_NOTE_COLORS) : choice;
 }
 
-/** The font a new note gets, with "random" resolved. */
+/** The font that a new note gets, with "random" resolved. */
 export function pickDefaultFont(): NoteFont {
   const choice = defaultNoteFont.value;
   return choice === "random" ? pickOne(RANDOM_NOTE_FONTS) : choice;
 }
 
 /**
- * True while another tab's preferences are being applied. Every pref is
- * written back as one blob, so a tab that adopts a remote change and then
- * saves would send the same content around again; worse, a tab that never
- * adopted it would overwrite the change with its own stale copy on the next
- * unrelated toggle: change the theme in one tab, switch view mode in
- * another, and the theme is back.
+ * True while the preferences of a different tab are applied. Each pref is
+ * written back as one blob. Thus, a tab that adopts a remote change and then
+ * saves would send the same content around again. Worse, a tab that never
+ * adopted it would write its own stale copy over the change on the next
+ * unrelated toggle. Change the theme in one tab, change the view mode in a
+ * different tab, and the theme is back.
  */
 let applyingRemotePrefs = false;
 
 /**
- * Whether the account's preferences come from the server (`prefsSync.ts`,
- * while signed in). Every tab then hears each change on its own socket, so
- * another tab's blob is taken for the device's preferences alone. Taken
- * whole, it put back a value this tab had just changed: the other tab saves
- * whenever it adopts the server's copy, and an echo of an earlier change,
- * heard late there, carries the value from before.
+ * If the preferences of the account come from the server (`prefsSync.ts`, while
+ * signed in). Each tab then gets each change on its own socket. Thus, the code
+ * takes the blob of a different tab only for the preferences of the device.
+ * When the code took it fully, it put back a value that this tab had just
+ * changed. The other tab saves each time it adopts the copy of the server, and
+ * a late echo there of an earlier change carries the value from before.
  */
 let accountPrefsFromServer = false;
 
@@ -345,7 +358,7 @@ const DEVICE_PREF_KEYS = PREF_KEYS.filter(
   (key) => !ACCOUNT_PREF_KEYS.includes(key),
 );
 
-/** Adopts a preferences blob written by another tab. */
+/** Adopts a preferences blob that a different tab wrote. */
 function applyPrefs(next: LoadedPrefs) {
   const keys = accountPrefsFromServer ? DEVICE_PREF_KEYS : PREF_KEYS;
   applyingRemotePrefs = true;
@@ -358,20 +371,23 @@ function applyPrefs(next: LoadedPrefs) {
   }
 }
 
-/** Whether the change being made now came from elsewhere: another tab, or
- * the account's preferences on the server. `prefsSync.ts` sends neither on. */
+/**
+ * If the change in progress came from a different place: a different tab, or
+ * the preferences of the account on the server. `prefsSync.ts` sends neither
+ * on.
+ */
 export function isApplyingRemotePrefs(): boolean {
   return applyingRemotePrefs;
 }
 
-/** Every preference as it stands here, for an open-mode export. */
+/** Each preference as it is here, for an open-mode export. */
 export function prefsSnapshot(): Record<string, unknown> {
   const snapshot: Record<string, unknown> = {};
   for (const key of PREF_KEYS) snapshot[key] = prefSignal(key).value;
   return snapshot;
 }
 
-/** The account's preferences as they stand here, for the server. */
+/** The preferences of the account as they are here, for the server. */
 export function accountPrefsSnapshot(): Record<string, unknown> {
   const snapshot: Record<string, unknown> = {};
   for (const key of ACCOUNT_PREF_KEYS) {
@@ -381,16 +397,17 @@ export function accountPrefsSnapshot(): Record<string, unknown> {
 }
 
 /**
- * Adopts the account's preferences from the server: each key present, and
- * read by its parser as a hand-edited blob would be, since another client
- * wrote it. A key the server lacks, or one that belongs to this device, is
- * left as it is. Saved here, since this tab is the first to hear of it.
+ * Adopts the preferences of the account from the server: each key that is
+ * there, read by its parser as a manually edited blob would be, because a
+ * different client wrote it. The code does not change a key that the server
+ * does not have, or a key that belongs to this device. Saved here, because this
+ * tab is the first to get it.
  */
 export function adoptAccountPrefs(blob: Record<string, unknown>) {
   adoptPrefs(blob, ACCOUNT_PREF_KEYS as PrefKey[]);
 }
 
-/** Each of `keys` that `blob` holds, read by its parser, then saved. */
+/** Each of `keys` that `blob` contains, read by its parser, then saved. */
 function adoptPrefs(blob: Record<string, unknown>, keys: readonly PrefKey[]) {
   applyingRemotePrefs = true;
   try {
@@ -406,10 +423,11 @@ function adoptPrefs(blob: Record<string, unknown>, keys: readonly PrefKey[]) {
   savePrefs();
 }
 
-// The server's defaults, on a browser that had no preferences of its own
-// when it loaded and nobody signed in: every key, the device's own included,
-// at once, so the sign-in screen of a first visit already looks as the host
-// chose. Once. Signed in, the account's copy decides (`prefsSync.ts`).
+// The defaults of the server, on a browser that had no preferences of its own
+// when it loaded, with nobody signed in. Each key, also the keys of the device,
+// at the same time. Thus, the sign-in screen of a first visit already looks as
+// the host selected. One time. When signed in, the copy of the account decides
+// (`prefsSync.ts`).
 let defaultsApplied = false;
 effect(() => {
   const defaults = serverDefaultPrefs.value;
@@ -420,10 +438,10 @@ effect(() => {
   untracked(() => adoptPrefs(defaults.prefs, PREF_KEYS));
 });
 
-// Persist preferences when any pref signal changes (debounced)
+// Persist preferences when a pref signal changes (debounced).
 let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 effect(() => {
-  // Read every signal unconditionally: the reads are what subscribe this.
+  // Read each signal unconditionally. The reads subscribe this.
   for (const key of PREF_KEYS) prefSignal(key).value;
   if (applyingRemotePrefs) return;
   clearTimeout(saveTimeout);
@@ -439,9 +457,9 @@ if (typeof window !== "undefined") {
 
 // --- Note corners ---
 
-// Exposed as a class on <html> rather than threaded through every note
-// surface as a prop: the note card, the create-note stack and the editor all
-// read the same `--note-radius` from CSS.
+// Exposed as a class on <html>, not given to each note surface as a prop. The
+// note card, the create-note stack and the editor all read the same
+// `--note-radius` from CSS.
 effect(() => {
   document.documentElement.classList.toggle(
     "notes-rounded",
@@ -451,7 +469,7 @@ effect(() => {
 
 // --- Note tilt ---
 
-// A class on <html> too: each card carries its own angle as `--note-tilt`
+// Also a class on <html>. Each card carries its own angle as `--note-tilt`,
 // whatever the setting, and the stylesheet applies it only on a messy board.
 effect(() => {
   document.documentElement.classList.toggle(
@@ -468,11 +486,11 @@ effect(() => {
 
 // --- Board background ---
 
-// Attributes on <html>, like the dark hue: styles.css keys the board's colour
-// and texture off them, in both themes. A custom colour is handed over as
-// `--board-custom`, which the dark theme deepens, and likewise the gradient's
-// second custom colour. The picture, which covers both, is applied by
-// state/board.ts.
+// Attributes on <html>, as the dark hue is. styles.css sets the color and
+// texture of the board from them, in both themes. A custom color goes as
+// `--board-custom`, which the dark theme makes darker. The second custom color
+// of the gradient goes in the same way. state/board.ts applies the picture,
+// which covers both.
 effect(() => {
   const root = document.documentElement;
   const color = resolvedBoardColor.value;
@@ -490,7 +508,7 @@ effect(() => {
     root.dataset.boardGradient = gradient;
     root.dataset.boardGradientDirection = resolvedBoardGradientDirection.value;
   }
-  // The custom pattern colour's swatch in Settings shows it.
+  // The swatch of the custom pattern color in Settings shows it.
   root.style.setProperty("--board-ink-custom", boardInkColor.value);
   root.style.setProperty(
     "--board-gradient-custom",
@@ -498,9 +516,10 @@ effect(() => {
   );
 });
 
-// The pattern's colour and opacity, which the texture layer behind the board
-// takes as they are (`.board-frame::before` in preferences.css): a change of
-// either redraws nothing. "auto" leaves the theme's own ink, black or white.
+// The color and opacity of the pattern, which the texture layer behind the
+// board takes as they are (`.board-frame::before` in preferences.css). A change
+// of either draws nothing again. "auto" keeps the own ink of the theme, black
+// or white.
 effect(() => {
   const root = document.documentElement;
   const ink = resolvedBoardInk.value;
@@ -518,8 +537,8 @@ effect(() => {
   );
 });
 
-// The picture textures, as masks the layer reads like the gradient ones. Only
-// their shape counts, so they are drawn once, at load.
+// The picture textures, as masks that the layer reads as it reads the gradient
+// masks. Only their shape is important. Thus, they are drawn one time, at load.
 for (const [name, image] of Object.entries(pictureTextures())) {
   document.documentElement.style.setProperty(
     `--board-texture-${name}-mask`,
@@ -529,15 +548,16 @@ for (const [name, image] of Object.entries(pictureTextures())) {
 
 // --- Light and dark hue ---
 
-// Published as an attribute on <html> rather than a class so the stylesheet can
-// key one `--dark-tint-*` pair off it; the dark neutral ramp is derived from
-// that pair, so every `neutral` utility in the app re-tints at once.
+// Published as an attribute on <html>, not a class. Thus, the stylesheet can
+// set one `--dark-tint-*` pair from it. The dark neutral ramp comes from that
+// pair. Thus, each `neutral` utility in the app gets the new tint at the same
+// time.
 effect(() => {
   document.documentElement.dataset.darkHue = darkHue.value;
 });
 
-// The light theme's counterpart, keyed the same way: `--light-tint-*` drive
-// the light neutral ramp and the white the page is drawn on.
+// The equivalent for the light theme, set in the same way. `--light-tint-*`
+// control the light neutral ramp, and the white on which the page is drawn.
 effect(() => {
   document.documentElement.dataset.lightHue = lightHue.value;
 });
@@ -553,11 +573,11 @@ function applyTheme(mode: ThemeMode) {
   paintBrowserBar(isDark);
 }
 
-// The browser's bar (`<meta name="theme-color">`) keeps the brand colour in
-// the light theme. In the dark one a blue bar over a dark header glares, so it
-// takes the header's own background instead, read from the live ramp so a
-// dark hue tints it too. A canvas turns that `oklch()` into the hex every
-// browser accepts there.
+// The bar of the browser (`<meta name="theme-color">`) keeps the brand color in
+// the light theme. In the dark theme, a blue bar over a dark header is too
+// bright. Thus, it takes the own background of the header, read from the live
+// ramp, so that a dark hue also tints it. A canvas changes that `oklch()` into
+// the hex that each browser accepts there.
 const themeColorMeta = document.querySelector<HTMLMetaElement>(
   'meta[name="theme-color"]',
 );
@@ -584,7 +604,7 @@ function toHex(color: string): string | null {
 }
 
 effect(() => {
-  // Read so a change of dark hue repaints the bar as well.
+  // Read, so that a change of dark hue also paints the bar again.
   void darkHue.value;
   applyTheme(theme.value);
 });

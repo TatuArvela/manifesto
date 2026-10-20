@@ -1,4 +1,4 @@
-// The sign-in screen's form controls, shared by each of its steps.
+// The form controls of the sign-in screen, shared by each of its steps.
 
 import { buttonClass } from "#/components/buttonClasses.ts";
 

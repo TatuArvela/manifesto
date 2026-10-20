@@ -26,8 +26,10 @@ const text = (value: string) => new TextEncoder().encode(value);
 const read = (bytes: Uint8Array | null) =>
   bytes === null ? null : new TextDecoder().decode(bytes);
 
-/** Whether two account keys are the same key: what one seals, the other
- * opens. The keys themselves cannot be read out to compare. */
+/**
+ * If two account keys are the same key: what one seals, the other opens. Nobody
+ * can read out the keys themselves to compare them.
+ */
 async function sameKey(a: CryptoKey, b: CryptoKey): Promise<boolean> {
   const sealed = await seal(await accountSubkey(a, "notes"), text("x"), data);
   return (
@@ -35,7 +37,7 @@ async function sameKey(a: CryptoKey, b: CryptoKey): Promise<boolean> {
   );
 }
 
-/** What the server would hand back to a signed-in device. */
+/** What the server would give back to a signed-in device. */
 function served(made: Awaited<ReturnType<typeof createAccountKeys>>) {
   return {
     version: made.version,
@@ -147,7 +149,7 @@ describe("unlockAccountKey", () => {
     expect(exchange?.algorithm.name).toBe("ECDH");
     expect(signing?.algorithm.name).toBe("ECDSA");
     expect(signing?.extractable).toBe(false);
-    // Each half is bound to its field: one does not stand in for the other.
+    // Each half is bound to its field. One cannot replace the other.
     expect(
       await openPrivateKey(
         made.accountKey,
@@ -162,7 +164,7 @@ describe("unlockAccountKey", () => {
         "exchange",
       ),
     ).toBeNull();
-    // What the private key signs, the public key the server holds verifies.
+    // What the private key signs, the public key that the server has verifies.
     const publicKey = await crypto.subtle.importKey(
       "raw",
       Uint8Array.from(
@@ -200,7 +202,7 @@ describe("replaceSecretKey", () => {
     const after = { ...keys, wrappedBySecret: next?.wrappedBySecret ?? "" };
     const unlocked = await unlockAccountKey(USER, after, next?.secretKey ?? "");
     expect(await sameKey(made.accountKey, unlocked as CryptoKey)).toBe(true);
-    // The key it replaced no longer opens what the server now holds.
+    // The key that it replaced does not open what the server has now.
     expect(await unlockAccountKey(USER, after, made.secretKey)).toBeNull();
   });
 
@@ -257,7 +259,7 @@ describe("the recovery key", () => {
     expect(await sameKey(made.accountKey, recovered.accountKey)).toBe(true);
     expect(recovered.secretKey).not.toBe(made.secretKey);
     expect(recovered.recoveryKey).not.toBe(made.recoveryKey);
-    // The new secret key unlocks; the new recovery key recovers.
+    // The new secret key unlocks, and the new recovery key recovers.
     const unlocked = await unlockAccountKey(
       USER,
       { version: 1, wrappedBySecret: recovered.wrappedBySecret },

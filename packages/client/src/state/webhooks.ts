@@ -10,8 +10,8 @@ import {
 } from "./account/passwordConfirmation.ts";
 
 /**
- * The signed-in user's webhooks. Like the API token calls, each resolves with
- * what happened and never rejects.
+ * The webhooks of the signed-in user. As the API token calls do, each resolves
+ * with what occurred, and never rejects.
  */
 
 export async function listWebhooks(): Promise<Webhook[] | null> {
@@ -59,7 +59,7 @@ export async function deleteWebhook(id: string): Promise<boolean> {
   return res?.ok === true;
 }
 
-/** Null when the request itself failed; otherwise what the receiver said. */
+/** Null when the request itself failed. Otherwise, what the receiver said. */
 export async function testWebhook(
   id: string,
 ): Promise<{ status: number | null; error: string | null } | null> {

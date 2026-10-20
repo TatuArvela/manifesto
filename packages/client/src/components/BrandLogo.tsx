@@ -1,11 +1,11 @@
 import type { Logo } from "#/config.ts";
 
 /**
- * One of the branding logos, as the current theme wants it: its dark variant
- * in the dark theme if it has one, else the light one, inverted there if it
- * asks to be. Both variants are in the page and CSS picks, so a theme switch
- * shows the other at once rather than after a render. Decorative: every place
- * that draws a logo names what it is beside it.
+ * One of the branding logos, as the current theme needs it: its dark variant in
+ * the dark theme if it has one, or the light variant, inverted there if it asks
+ * for that. Both variants are in the page, and CSS selects. Thus, a theme
+ * change shows the other variant immediately, not after a render. Decorative:
+ * each place that draws a logo names it next to it.
  */
 export function BrandLogo({ logo, class: cls }: { logo: Logo; class: string }) {
   if (!logo.dark) {

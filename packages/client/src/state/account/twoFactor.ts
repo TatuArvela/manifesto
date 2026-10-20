@@ -9,8 +9,8 @@ import { currentUser } from "./auth.ts";
 
 /**
  * Two-factor sign-in for the signed-in local account. Each call resolves with
- * what happened, never rejects: `wrong-password` and `wrong-code` for the
- * dialog to say, `failed` for everything else.
+ * what occurred, and never rejects: `wrong-password` and `wrong-code` for the
+ * dialog to tell, `failed` for all other results.
  */
 
 type Failure = { kind: "wrong-password" | "wrong-code" | "failed" };
@@ -22,17 +22,17 @@ function failureOf(res: Response | null): Failure {
 }
 
 /**
- * Whether an account signs in with a second factor (an authenticator, a
- * passkey or both), as the last status read for it said. Kept with the
- * account's id, so another account signing in on this tab never inherits it.
+ * If an account signs in with a second factor (an authenticator, a passkey or
+ * both), as the last status read for it said. Kept with the id of the account.
+ * Thus, a different account that signs in on this tab never gets it.
  */
 const secondFactor = signal<{ userId: string; enabled: boolean } | null>(null);
 
 /**
- * Whether the signed-in account has a second factor. Settings keeps the
- * two-factor section of Sign-in for such an account when the server has
- * turned both halves off: sign-in still asks for the factor, and that
- * section is the only way to remove it.
+ * If the signed-in account has a second factor. Settings keeps the two-factor
+ * section of Sign-in for such an account when the server turned off both
+ * halves. The sign-in still asks for the factor, and that section is the only
+ * way to remove it.
  */
 export function hasSecondFactor(): boolean {
   const known = secondFactor.value;
@@ -73,10 +73,10 @@ export async function disableTwoFactor(
 }
 
 /**
- * What an authenticator app takes, labelled with this deployment's name: the
- * server does not know what the app is called here, so the link is made on
- * this side. The instance goes in too when there is one, or two instances of
- * the same app make two entries nobody can tell apart.
+ * What an authenticator app takes, with the name of this deployment as its
+ * label. The server does not know the name of the app here. Thus, this side
+ * makes the link. The instance is also included when there is one. If not, two
+ * instances of the same app make two entries that nobody can tell apart.
  */
 export function otpauthLink(username: string, secret: string): string {
   const issuer = INSTANCE_NAME ? `${APP_NAME} (${INSTANCE_NAME})` : APP_NAME;

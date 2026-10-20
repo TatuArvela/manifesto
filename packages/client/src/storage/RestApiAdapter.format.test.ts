@@ -12,9 +12,9 @@ import { RestApiAdapter } from "./RestApiAdapter.ts";
 import { Sealer, type StorageKeys } from "./sealing.ts";
 
 /**
- * A note's format in connected mode, against a server that holds only what
- * it is sent (`noteFormat.ts` in shared). A test raises the format by giving
- * the build a step, and lowers it again to play an older build.
+ * The format of a note in connected mode, against a server that keeps only what
+ * it gets (`noteFormat.ts` in shared). A test increases the format when it
+ * gives the build a step, and decreases it again to act as an older build.
  */
 
 const draft: NoteCreate = {
@@ -33,7 +33,7 @@ const draft: NoteCreate = {
   reminder: null,
 };
 
-/** Format 2 while it is set: every title in capitals. */
+/** Format 2 while it is set: each title in capitals. */
 const shout = (words: { title?: string }) =>
   words.title === undefined ? {} : { title: words.title.toUpperCase() };
 
@@ -41,7 +41,7 @@ describe("a note's format, connected", () => {
   let server: SealedServer;
   let keys: StorageKeys;
 
-  /** A device of the account, as a build of whichever format is set. */
+  /** A device of the account, as a build of the format that is set. */
   const device = () => {
     const sealer = new Sealer(keys);
     return {
@@ -78,7 +78,7 @@ describe("a note's format, connected", () => {
       content: "Milk and eggs",
     });
 
-    // A pin is no word: the note stays in its format.
+    // A pin is not a word. The note stays in its format.
     await adapter.update(created.id, { pinned: true });
     expect(server.notes.get(created.id)?.format).toBe(1);
 
@@ -89,7 +89,7 @@ describe("a note's format, connected", () => {
       font: NoteFont.Serif,
     });
     expect(server.notes.get(created.id)?.format).toBe(2);
-    // Read again from the server, as another device would.
+    // Read again from the server, as a different device would.
     expect(await device().adapter.get(created.id)).toMatchObject({
       title: "GROCERIES",
       content: "Bread",
@@ -106,14 +106,14 @@ describe("a note's format, connected", () => {
     expect((await adapter.getAll()).map((n) => n.id)).toEqual([older.id]);
     expect(sealer.newer.value.has(newer.id)).toBe(true);
     expect(sealer.unreadable.value.has(newer.id)).toBe(false);
-    // An export made now would be without it.
+    // An export made now would not include it.
     expect(sealer.missesOwnNotes()).toBe(true);
   });
 
   it("refuses an older build's write over a newer note, with a reason", async () => {
     const { adapter, sealer } = device();
     const created = await adapter.create(draft);
-    // A newer build moves the note on while this one still holds it.
+    // A newer build moves the note forward while this build still has it.
     setNoteFormatStepsForTests([shout]);
     await device().adapter.update(created.id, { content: "From later" });
     setNoteFormatStepsForTests(null);

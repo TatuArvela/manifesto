@@ -20,14 +20,14 @@ import { SettingsHeading } from "./SettingsControls.tsx";
 export const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-sm max-sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 read-only:bg-neutral-100 dark:read-only:bg-neutral-800 read-only:text-neutral-600 dark:read-only:text-neutral-300";
 
-/** Something, an `@`, something: the same shape the server checks. */
+/** Something, an `@`, something: the same shape that the server checks. */
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+$/;
 
 /**
- * Whether this account signs in with a password of its own. Under single
- * sign-on the identity provider owns the password, and the email address too.
- * With both kinds of sign-in on, that is a question about this account; a
- * server from before it could answer says it through its provider.
+ * If this account signs in with its own password. With single sign-on, the
+ * identity provider owns the password, and also the email address. With both
+ * types of sign-in on, that is a question about this account. A server from
+ * before the server could answer tells it through its provider.
  */
 export function hasOwnPassword(): boolean {
   const user = currentUser.value;
@@ -68,9 +68,9 @@ export function Field({
 }
 
 /**
- * Who you are, and the parts of it you can change here. The password is on
- * the Sign-in page with the other ways in, and deleting the account sits
- * apart at the foot, where nobody reaches it on the way to something else.
+ * Who you are, and the parts that you can change here. The password is on the
+ * Sign-in page, with the other ways to sign in. The deletion of the account is
+ * separate at the bottom, where nobody reaches it on the way to something else.
  */
 export function AccountSettings() {
   const user = currentUser.value;
@@ -109,9 +109,9 @@ export function AccountSettings() {
 }
 
 /**
- * Delete your own account, and every note it owns. Two steps, the second
- * with the password, so neither a stray click nor a stolen session does it.
- * Once it is gone this browser is left as a sign-out leaves it.
+ * Delete your own account, and each note that it owns. Two steps, the second
+ * with the password. Thus, neither an accidental click nor a stolen session can
+ * do it. After it is gone, this browser is left as a sign-out leaves it.
  */
 function DeleteAccountForm() {
   const [open, setOpen] = useState(false);
@@ -190,8 +190,8 @@ function DeleteAccountForm() {
 }
 
 /**
- * The address as it is, with a button to change it under local sign-in.
- * Under single sign-on the provider owns it, so it is only shown.
+ * The address as it is, with a button to change it with local sign-in. With
+ * single sign-on, the provider owns it. Thus, the page only shows it.
  */
 function EmailSection({
   current,
@@ -233,9 +233,9 @@ function EmailSection({
 }
 
 /**
- * Set or remove your own email address. It is not checked by sending
- * anything: it is how someone sharing a note finds you, so the hint says that
- * rather than promising mail.
+ * Set or remove your own email address. The app does not check it with a mail.
+ * It is how a person who shares a note finds you. Thus, the hint says that, and
+ * does not promise mail.
  */
 function EmailForm({
   current,

@@ -1,16 +1,16 @@
 /**
- * Sanitized HTML with every image taken out. For the cards of an auto-note
- * plugin that reads notes: its sandbox has no network, so what it returns is
- * the only way anything it read could leave, and an image is fetched from
- * wherever its address says the moment the card is drawn. A link is left in:
- * it goes nowhere until the user follows it.
+ * Sanitized HTML with each image removed. For the cards of an auto-note plugin
+ * that reads notes. Its sandbox has no network. Thus, what it returns is the
+ * only way out for what it read, and the browser loads an image from the
+ * address in it at the moment when it draws the card. A link stays. It goes
+ * nowhere until the user follows it.
  *
- * Every `src` goes, not only an image's: the sanitizer lets `input` and
- * `src` through, and `<input type="image" src>` fetches as an image does.
+ * Each `src` goes, not only that of an image. The sanitizer lets `input` and
+ * `src` through, and `<input type="image" src>` loads as an image does.
  *
- * Parsed and serialized rather than matched with a pattern, which is how a
- * tag written in some unexpected way would get through. A `template`'s
- * content is inert, so nothing loads while the images are still in it.
+ * Parsed and serialized, not matched with a pattern. A pattern would let
+ * through a tag written in an unexpected way. The content of a `template` is
+ * inert. Thus, nothing loads while the images are still in it.
  */
 const cache = new Map<string, string>();
 const CACHE_SIZE = 500;
@@ -22,7 +22,7 @@ export function withoutImages(html: string): string {
   const template = document.createElement("template");
   template.innerHTML = html;
   for (const image of template.content.querySelectorAll("img")) {
-    // What the image was called stays, as text, so the card still reads.
+    // The name of the image stays, as text. Thus, the card is still readable.
     const alt = image.getAttribute("alt");
     image.replaceWith(alt ? document.createTextNode(alt) : "");
   }

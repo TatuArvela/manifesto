@@ -34,43 +34,43 @@ import { createPendingWrites } from "./pendingWrites.ts";
 import { pickDefaultColor, pickDefaultFont } from "./prefs.ts";
 
 /**
- * The notes and the actions that talk to storage about them.
+ * The notes, and the actions that talk to storage about them.
  *
- * Every copy of a note that storage sends back (a reply, a broadcast, a
- * listing) comes in through {@link receiveNote} or {@link receiveNoteList},
- * which replay the writes still outstanding on top of it, so a late reply
- * cannot revert a newer click. A note leaves through {@link forgetNote}.
+ * Each copy of a note that storage sends back (a reply, a broadcast, a listing)
+ * comes in through {@link receiveNote} or {@link receiveNoteList}. They apply
+ * the writes that are not complete again on top of it. Thus, a late reply
+ * cannot undo a newer click. A note goes out through {@link forgetNote}.
  */
 
 export const notes = signal<Note[]>([]);
 
 /**
- * Whether the note list has been read at least once. Until it has, an empty
- * `notes` means "not known yet" rather than "none", so the board must not say
- * there is nothing on it. A failed load leaves it false.
+ * If the note list was read at least one time. Until then, an empty `notes`
+ * means "not known yet", not "none". Thus, the board must not say that it is
+ * empty. A failed load leaves it false.
  */
 export const notesLoaded = signal(false);
 
 /**
- * Each note as storage last sent it, before the writes still outstanding were
- * replayed on top. A write that fails goes back to this, not to the note as
- * the board showed it when clicked: a newer copy may have arrived since, and
- * putting the older one back would leave the board behind the server until
- * something else touched the note.
+ * Each note as storage last sent it, before the code applied the open writes
+ * again on top. A write that fails goes back to this, not to the note as the
+ * board showed it at the click. A newer copy can have arrived since then. If
+ * the code put the older copy back, the board would stay behind the server
+ * until something else changed the note.
  */
 const confirmed = new Map<string, Note>();
 
 /**
- * Where the last read of the whole list left off, in connected mode, so the
- * next can ask for what changed since rather than for everything. Null until
- * a read has set it, and whenever the list stops being a known copy.
+ * Where the last read of the full list stopped, in connected mode. Thus, the
+ * next read can ask for what changed since then, not for all notes. Null until
+ * a read set it, and each time that the list stops to be a known copy.
  */
 let syncCheckpoint: string | null = null;
 
-// When a session ends (a sign-out, or a 401), the account's notes leave
-// memory with it. Emptying the list is also what stops their reminders: the
-// scheduler follows `notes`, and hands the service worker the empty list, so
-// a signed-out browser no longer shows another account's notes as
+// When a session ends (a sign-out, or a 401), the notes of the account go out
+// of memory with it. The empty list also stops their reminders. The scheduler
+// follows `notes`, and gives the empty list to the service worker. Thus, a
+// signed-out browser does not show the notes of a different account as
 // notifications.
 let sessionToken: string | null = null;
 let sessionKeys: StorageKeys | null = null;
@@ -79,23 +79,23 @@ effect(() => {
   const keys = storageKeys.value;
   const signedOut =
     serverUrl !== null && token === null && sessionToken !== null;
-  // Locked again, or started again under new keys: what is in memory was
-  // opened with keys that no longer apply.
+  // Locked again, or started again under new keys: the data in memory was
+  // opened with keys that do not apply now.
   const relocked = sessionKeys !== null && keys !== sessionKeys;
   if (signedOut || relocked) {
     confirmed.clear();
     notes.value = [];
     notesLoaded.value = false;
   }
-  // A checkpoint says what this list already holds of one account's notes.
+  // A checkpoint tells what this list already has of the notes of one account.
   if (token !== sessionToken || relocked) syncCheckpoint = null;
   sessionToken = token;
   sessionKeys = keys;
 });
 
 /**
- * All notes visible to the UI: user notes plus plugin-generated read-only
- * notes, whose user-set metadata is merged in by `autoNotes.toNote`.
+ * All notes that the UI can see: user notes, and read-only notes that plugins
+ * generate. `autoNotes.toNote` merges in their metadata that the user set.
  */
 export const allNotes = computed<Note[]>(() => [
   ...notes.value,
@@ -103,9 +103,9 @@ export const allNotes = computed<Note[]>(() => [
 ]);
 
 /**
- * Insert or replace a note by id. A connected server broadcasts
- * `note:created` before our own POST resolves, so an insert must be
- * idempotent by id or the same note lands in the list twice.
+ * Insert or replace a note by id. A connected server broadcasts `note:created`
+ * before our own POST resolves. Thus, an insert must be idempotent by id. If
+ * not, the same note is in the list two times.
  */
 export function upsertById(list: Note[], note: Note): Note[] {
   const idx = list.findIndex((n) => n.id === note.id);
@@ -115,17 +115,20 @@ export function upsertById(list: Note[], note: Note): Note[] {
   return next;
 }
 
-/** Writes shown before storage has answered for them; see `pendingWrites.ts`. */
+/**
+ * Writes that show before storage answered for them. See `pendingWrites.ts`.
+ */
 const pendingWrites = createPendingWrites();
 
 /**
- * The newer of a copy of a note and the one already taken in. Replies and
- * broadcasts travel separately (HTTP and the socket), and a 412 carries the
- * note as it stood when it was refused, so an older copy can arrive after a
- * newer one; taken in, it would put the board back behind the server.
- * `updatedAt` is the server's version of the note, the same for everyone on
- * it and never going backwards (`nowIso` is monotonic in its one process), so
- * comparing it says which copy is newer.
+ * The newer of a copy of a note and the copy that the store already took in.
+ * Replies and broadcasts go separately (HTTP and the socket), and a 412 carries
+ * the note as it was when the server refused the write. Thus, an older copy can
+ * arrive after a newer copy. If the store took it in, it would put the board
+ * back behind the server. `updatedAt` is the version of the note on the server.
+ * It is the same for all persons on the note and never goes backward (`nowIso`
+ * is monotonic in its one process). Thus, a comparison of it tells which copy
+ * is newer.
  */
 function newer(note: Note): Note {
   const known = confirmed.get(note.id);
@@ -133,13 +136,13 @@ function newer(note: Note): Note {
 }
 
 /**
- * Take in a note as storage has it. A copy that says nothing new is dropped
- * rather than written, so hearing about our own change twice (the reply and
- * the broadcast) costs one render.
+ * Take in a note as storage has it. The store drops a copy that tells nothing
+ * new, and does not write it. Thus, when we get our own change two times (the
+ * reply and the broadcast), it costs one render.
  */
 export function receiveNote(incoming: Note): void {
-  // Even a stale copy redraws, from the newer one: a write that just settled
-  // must stop being replayed either way.
+  // A stale copy also draws again, from the newer copy. A write that just
+  // settled must stop to be applied again in both cases.
   const note = newer(incoming);
   confirmed.set(note.id, note);
   const list = notes.peek();
@@ -150,11 +153,12 @@ export function receiveNote(incoming: Note): void {
 }
 
 /**
- * Take in a whole listing as storage has it. Notes that did not change keep
- * their identity, so a re-fetch of an unchanged board costs no render.
+ * Take in a full listing as storage has it. Notes that did not change keep
+ * their identity. Thus, a new fetch of a board without changes costs no render.
  */
 export function receiveNoteList(listed: Note[]): void {
-  // A copy newer than the listing may have arrived while it was on its way.
+  // A copy newer than the listing can have arrived while the listing was on its
+  // way.
   const incoming = listed.map(newer);
   confirmed.clear();
   for (const note of incoming) confirmed.set(note.id, note);
@@ -166,7 +170,9 @@ export function receiveNoteList(listed: Note[]): void {
   if (next !== held) notes.value = next;
 }
 
-/** Drop a note that storage no longer has, or this user can no longer see. */
+/**
+ * Drop a note that storage does not have now, or that this user cannot see now.
+ */
 export function forgetNote(id: string): void {
   confirmed.delete(id);
   const held = notes.peek();
@@ -175,15 +181,15 @@ export function forgetNote(id: string): void {
   }
 }
 
-/** Change the held copy of one note without writing it anywhere. */
+/** Change the held copy of one note, and do not write it to any place. */
 export function reviseNote(id: string, revise: (note: Note) => Note): void {
   const held = notes.peek();
   if (!held.some((n) => n.id === id)) return;
   notes.value = held.map((n) => (n.id === id ? revise(n) : n));
 }
 
-// Another tab's edits, in open mode. Server mode hears the same over the
-// WebSocket and never writes this key.
+// The edits of a different tab, in open mode. Server mode gets the same over
+// the WebSocket, and never writes this key.
 if (typeof window !== "undefined") {
   subscribeToExternalNotes((next) => {
     if (currentStorage.value instanceof LocalStorageAdapter) {
@@ -211,15 +217,16 @@ export async function loadNotes(): Promise<boolean> {
 }
 
 /**
- * Catch up with what changed while the list was not listening: a reconnect,
- * where writes made on another device arrived nowhere else. Asks only for
- * what changed since the last read, and reads everything when there is no
- * checkpoint, the storage keeps none, or the catch-up fails.
+ * Get what changed while the list did not listen: a reconnect, where writes
+ * made on a different device arrived in no other place. Asks only for what
+ * changed since the last read. It reads all notes when there is no checkpoint,
+ * when the storage keeps none, or when the catch-up fails.
  *
- * A held note missing from the ids was deleted or taken away, but only a note
- * held before the request went out can be judged by them. One that arrived
- * since (a reply to a create, a broadcast) may be newer than the server's
- * answer, and dropping it would lose a note that exists.
+ * A held note that is not in the ids was deleted or taken away. But the ids can
+ * decide only about a note held before the request went out. A note that
+ * arrived after that (a reply to a create, a broadcast) can be newer than the
+ * answer of the server. If the store dropped it, it would lose a note that
+ * exists.
  */
 export async function syncNotes(): Promise<boolean> {
   const since = syncCheckpoint;
@@ -249,17 +256,19 @@ export async function syncNotes(): Promise<boolean> {
   return true;
 }
 
-/** Concurrent callers share one request: a card and the editor over it ask at
- * the same moment. */
+/**
+ * Concurrent callers share one request. A card and the editor over it ask at
+ * the same moment.
+ */
 const imageLoads = new Map<string, Promise<string[]>>();
 
 /**
- * The attachments of a note, fetched if a listing left them behind.
+ * The attachments of a note, loaded if a listing did not include them.
  *
- * `null` means the bytes could not be had, which is not the same as the note
- * having none. A caller that writes an images array back or serializes one
- * must not read a failure as an empty note, or it replaces every attachment
- * with nothing.
+ * `null` means that the code could not get the bytes, which is not the same as
+ * a note that has none. A caller that writes an images array back, or
+ * serializes one, must not read a failure as an empty note. If it does, it
+ * replaces each attachment with nothing.
  */
 export async function ensureImages(id: string): Promise<string[] | null> {
   const note = notes.value.find((n) => n.id === id);
@@ -285,7 +294,7 @@ export async function ensureImages(id: string): Promise<string[] | null> {
   }
 }
 
-/** A whole new note from what was given, with every default filled in. */
+/** A full new note from what was given, with each default filled. */
 export function noteCreateFrom(input: Partial<NoteCreate>): NoteCreate {
   return {
     title: input.title ?? "",
@@ -325,9 +334,9 @@ const PERSONAL_FIELDS = new Set<string>(PERSONAL_NOTE_FIELDS);
 const SHARED_FIELDS = new Set<string>(SHARED_NOTE_FIELDS);
 
 /**
- * Why a change to a note shared with this user would be refused, or null if
- * it would not be. The server decides; this asks the same rule first, so the
- * user is told in a sentence instead of in a failed request.
+ * Why the server would refuse a change to a note shared with this user, or null
+ * if it would not. The server decides. This asks the same rule first. Thus, the
+ * user gets a sentence, not a failed request.
  */
 function refusalFor(note: Note, changes: NoteUpdate): MessageKey | null {
   const role = roleOf(note);
@@ -345,10 +354,10 @@ function refusalFor(note: Note, changes: NoteUpdate): MessageKey | null {
 }
 
 /**
- * `changes` with the images' descriptions kept in step: a write of `images`
- * alone carries each description over to wherever its image now is, and
- * drops those of the images it removed. Without it, open mode would keep the
- * old list of descriptions against the new list of images.
+ * `changes`, with the descriptions of the images kept in agreement. A write of
+ * only `images` moves each description to the new position of its image, and
+ * drops the descriptions of the images that it removed. Without it, open mode
+ * would keep the old list of descriptions against the new list of images.
  */
 function withImageAlts(base: Note | null, changes: NoteUpdate): NoteUpdate {
   if (
@@ -362,9 +371,9 @@ function withImageAlts(base: Note | null, changes: NoteUpdate): NoteUpdate {
 }
 
 /**
- * Shows `changes` at once, sends them, and folds the answer in. A 412 is
- * merged three ways against the server's copy and retried once. `batch` is
- * where a failure is counted when this is one of a group.
+ * Shows `changes` immediately, sends them, and folds the answer in. A 412 is
+ * merged three ways against the copy of the server, and tried again one time.
+ * `batch` is where a failure is counted when this is one of a group.
  */
 export async function updateNote(
   id: string,
@@ -376,19 +385,20 @@ export async function updateNote(
 
 /**
  * `updateNote` for a caller that needs the note as this write left it: the
- * reply to the write itself, never whatever copy the list holds when it
- * lands. A broadcast of someone else's write can arrive while the reply is
- * read, and the list then holds that one. `null` when the write failed.
+ * reply to the write itself, never the copy that the list has when the reply
+ * arrives. A broadcast of the write of a different person can arrive while the
+ * reply is in a read, and the list then has that copy. `null` when the write
+ * failed.
  */
 export async function updateStoredNote(
   id: string,
   requested: NoteUpdate,
   batch?: Batch,
 ): Promise<Note | null> {
-  // An auto-note keeps its metadata in the override sidecar; its title and
-  // content are the plugin's. It lives in `generatedNotes`, never in `notes`,
-  // and reads back there with the override laid over it: null only when the
-  // plugin no longer makes the note.
+  // An auto-note keeps its metadata in the override sidecar. Its title and
+  // content belong to the plugin. It is in `generatedNotes`, never in `notes`,
+  // and reads back there with the override on top. Null only when the plugin
+  // does not make the note now.
   if (isGeneratedNoteId(id)) {
     updateAutoNoteOverride(id, overrideFrom(requested));
     return generatedNotes.value.find((n) => n.id === id) ?? null;
@@ -442,8 +452,8 @@ export async function updateStoredNote(
         return null;
       }
     }
-    // The write never landed, so neither does what it showed: back to what
-    // storage last confirmed, with any newer local write still on top.
+    // The write never arrived. Thus, what it showed is also removed: back to
+    // what storage last confirmed, with each newer local write still on top.
     pendingWrites.settle(id, changes);
     const truth = confirmed.get(id) ?? base;
     if (truth) receiveNote(truth);
@@ -458,8 +468,8 @@ export async function updateStoredNote(
 }
 
 /**
- * Deletes a note for good. On an auto-note this clears its override; the
- * plugin still produces it, in its default state.
+ * Deletes a note permanently. On an auto-note, this clears its override. The
+ * plugin still makes it, in its default state.
  */
 export async function deleteNote(id: string, batch?: Batch): Promise<boolean> {
   if (isGeneratedNoteId(id)) {
@@ -474,8 +484,8 @@ export async function deleteNote(id: string, batch?: Batch): Promise<boolean> {
     deleteVersions(id);
     return true;
   } catch (err) {
-    // Back as it was, with the copy storage last confirmed: a write that
-    // fails later falls back to that one.
+    // Back as it was, with the copy that storage last confirmed. A write that
+    // fails later goes back to that copy.
     if (known && !confirmed.has(id)) confirmed.set(id, known);
     if (held) notes.value = upsertById(notes.value, held);
     reportFailure(
@@ -496,7 +506,8 @@ export async function deleteAllNotes(): Promise<boolean> {
     reportFailure("Failed to delete all notes:", err, "error.deleteFailed");
     ok = false;
   }
-  // Re-read rather than assume none are left: a partial failure leaves some.
+  // Read again, and do not think that none are left. A partial failure leaves
+  // some.
   try {
     receiveNoteList(await storage.getAll());
   } catch (err) {
@@ -517,8 +528,9 @@ export async function importNotes(imported: Note[]): Promise<boolean> {
 }
 
 /**
- * Deletes what has been in the trash past its time. Open mode only: a server
- * runs the same job itself, against its own clock, for every device at once.
+ * Deletes the notes that were in the trash for longer than their time. Only
+ * open mode. A server runs the same job itself, against its own clock, for all
+ * devices at the same time.
  */
 export async function expireTrash(): Promise<void> {
   if (!(currentStorage.value instanceof LocalStorageAdapter)) return;

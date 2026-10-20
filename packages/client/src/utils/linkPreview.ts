@@ -65,17 +65,17 @@ export interface AppendedPreviews {
   previews: LinkPreview[];
   /** The URLs that got a new card, in order. */
   added: string[];
-  /** Whether some URLs were left out because the note was full. */
+  /** If some URLs were not included because the note was full. */
   overflow: boolean;
 }
 
 /**
- * Adds a plain card for each new URL, all at once.
+ * Adds a plain card for each new URL, all at the same time.
  *
- * One paste can carry many links, and building the list per URL from the same
- * starting note would keep only the last of them. Duplicates and
- * URLs the server would refuse are skipped, and the list stops at the per-note
- * cap, since a note over it fails to save in connected mode.
+ * One paste can carry many links. If the code built the list for each URL from
+ * the same start note, it would keep only the last of them. The code skips
+ * duplicates and URLs that the server would refuse. The list stops at the limit
+ * for each note, because a note over it does not save in connected mode.
  */
 export function appendStubPreviews(
   existing: LinkPreview[],
@@ -113,11 +113,11 @@ function isPreviewImage(value: unknown): value is string {
 }
 
 /**
- * The link previews of an imported note, checked field by field. An import is
- * a file from anywhere, so a preview's `url` ends up in an `href` only if it is
- * http(s), and an image survives only as an inlined image the client could
- * have produced itself; a remote image URL is dropped, since the CSP would
- * refuse to load it anyway.
+ * The link previews of an imported note, checked field by field. An import is a
+ * file from any source. Thus, the `url` of a preview goes into an `href` only
+ * if it is http(s). An image stays only as an inlined image that the client
+ * could have made itself. The code drops a remote image URL, because the CSP
+ * would refuse to load it anyway.
  */
 export function parseLinkPreviews(raw: unknown): LinkPreview[] {
   if (!Array.isArray(raw)) return [];
@@ -139,8 +139,8 @@ export function parseLinkPreviews(raw: unknown): LinkPreview[] {
       }),
       ...(isPreviewImage(preview.image) && { image: preview.image }),
       ...(isPreviewImage(preview.favicon) && { favicon: preview.favicon }),
-      // Never the file's own `domain`: a card would then name one site and
-      // open another.
+      // Never the own `domain` of the file. A card would then name one site and
+      // open a different site.
       domain: normalizeDomain(preview.url),
     });
   }

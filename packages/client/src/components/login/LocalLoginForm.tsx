@@ -18,16 +18,16 @@ import {
 import { inputClass, quietClass, submitClass } from "./loginFormClasses.ts";
 
 /**
- * `changePassword` is the step after signing in with a temporary password an
- * admin issued: the server answers with no session until a new one is chosen,
- * so the username and password typed a moment ago are kept and sent again
- * with it.
+ * `changePassword` is the step after a sign-in with a temporary password from
+ * an admin. The server answers with no session until the user selects a new
+ * password. Thus, the code keeps the username and password typed a moment ago,
+ * and sends them again with it.
  */
 type Mode = "signIn" | "register" | "changePassword" | "twoFactor";
 
 /**
- * `canRegister` is false only when the server says registration is closed; an
- * older server does not say, so the tab stays and the server refuses instead.
+ * `canRegister` is false only when the server says that registration is closed.
+ * An older server does not say. Thus, the tab stays, and the server refuses.
  */
 export function LocalLoginForm({
   onForgot,
@@ -39,10 +39,12 @@ export function LocalLoginForm({
   onForgot?: (() => void) | undefined;
   /** Opens "email me a sign-in link", where the server offers it. */
   onEmailLink?: (() => void) | undefined;
-  /** Opens signing in with the recovery key, for whoever lost the rest. */
+  /**
+   * Opens the sign-in with the recovery key, for a person who lost all else.
+   */
   onRecover: () => void;
   canRegister: boolean;
-  /** Whether the server and this browser can sign in with a passkey. */
+  /** If the server and this browser can sign in with a passkey. */
   passkeys: boolean;
 }) {
   const [mode, setMode] = useState<Mode>("signIn");
@@ -126,7 +128,10 @@ export function LocalLoginForm({
     }
   }
 
-  /** The second factor by passkey, answering the challenge the password got. */
+  /**
+   * The second factor by passkey, which answers the challenge that the password
+   * got.
+   */
   async function answerWithPasskey() {
     const options = secondFactor.passkey;
     if (!options || submitting) return;
@@ -134,7 +139,7 @@ export function LocalLoginForm({
     setSubmitting(true);
     try {
       const answer = await getPasskey(options);
-      // A dismissed prompt leaves the challenge unspent, to try again.
+      // A dismissed prompt leaves the challenge unused, for a new try.
       if (answer === "cancelled") return;
       if (typeof answer === "string") {
         setError(t("login.passkeyFailed"));
@@ -149,7 +154,7 @@ export function LocalLoginForm({
         return;
       }
       setError(t("login.passkeyFailed"));
-      // That challenge is spent; the password again brings a fresh one.
+      // That challenge is used. The password again brings a new one.
       try {
         await login(username, password);
       } catch (again) {

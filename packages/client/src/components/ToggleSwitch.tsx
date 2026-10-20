@@ -4,9 +4,9 @@ import { ControlLabelId } from "./controlLabel.ts";
 import { Tooltip } from "./Tooltip.tsx";
 
 /**
- * Plain on/off switch for a boolean setting, with no icon per state. Use this
- * wherever the setting really is just on or off; `ThreeWayToggle` is for the
- * cases where the states are genuinely different choices worth naming.
+ * A plain on/off switch for a boolean setting, with no icon for each state. Use
+ * this where the setting is really only on or off. `ThreeWayToggle` is for the
+ * cases where the states are really different choices with names.
  */
 export function Switch({
   checked,
@@ -49,9 +49,9 @@ export function Switch({
 
 /**
  * A choice between a few named options, drawn as a track with a sliding knob.
- * Each option is a real radio button, hidden under its icon, so the group is
- * one tab stop and the arrow keys move the choice. It is named by `label`, or
- * by the settings row it sits in.
+ * Each option is a real radio button, hidden under its icon. Thus, the group is
+ * one tab stop, and the arrow keys move the choice. `label` names it, or the
+ * settings row in which it is.
  */
 export function ThreeWayToggle({
   value,

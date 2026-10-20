@@ -4,12 +4,14 @@ import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 
 let nextId = 0;
 
-// Only show focus-triggered tooltips when the user is actually navigating
-// with a keyboard. Otherwise a tap on a button would focus it and leave the
-// tooltip stuck open (no mouseleave follows a tap on iOS).
+// Show tooltips on focus only when the user really navigates with a keyboard.
+// If not, a tap on a button would focus it, and the tooltip would stay open (no
+// mouseleave follows a tap on iOS).
 let lastInputKeyboard = false;
 
-/** Show-timers still counting down, so `hideAllTooltips` can cancel them. */
+/**
+ * Show timers that still count down. Thus, `hideAllTooltips` can cancel them.
+ */
 const pendingTimers = new Set<ReturnType<typeof setTimeout>>();
 
 if (typeof window !== "undefined") {
@@ -30,10 +32,10 @@ if (typeof window !== "undefined") {
 }
 
 /**
- * Tooltips are shown on a delay, so a click that opens a panel under the
- * cursor can leave one stranded on top of that panel: the pointer never
- * leaves the trigger, so no `pointerleave` arrives to hide it. Anything that
- * opens over its own trigger calls this first.
+ * Tooltips show after a delay. Thus, a click that opens a panel under the
+ * cursor can leave one on top of that panel. The pointer never leaves the
+ * trigger. Thus, no `pointerleave` arrives to hide it. Each element that opens
+ * over its own trigger calls this first.
  */
 export function hideAllTooltips() {
   for (const timer of pendingTimers) clearTimeout(timer);
@@ -82,11 +84,11 @@ export function Tooltip({
 
   useEffect(() => cancelPending, [cancelPending]);
 
-  // Escape hides a tooltip without moving the pointer or focus off its
-  // trigger, so one covering what someone is reading can be put away. It
-  // passes the press on: a tooltip is never what Escape was meant for alone.
-  // Followed through the popover's own `toggle` event, since
-  // `hideAllTooltips` hides it from outside this component.
+  // Escape hides a tooltip, and does not move the pointer or the focus off its
+  // trigger. Thus, you can put away a tooltip that covers what you read. It
+  // sends the press on, because Escape is never only for a tooltip. The code
+  // follows the own `toggle` event of the popover, because `hideAllTooltips`
+  // hides it from outside this component.
   const [shown, setShown] = useState(false);
   useEscapeStack(shown, hide, { passThrough: true });
 

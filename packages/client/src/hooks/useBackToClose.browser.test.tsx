@@ -5,10 +5,10 @@ import { afterHistorySettles } from "#/state/sheetHistory.ts";
 import { useBackToClose } from "./useBackToClose.ts";
 
 /**
- * Real history on a real page: what matters is which entry the browser ends
- * up on and which sheet hears about it, which a mocked `history` cannot show.
- * Every step waits for the `popstate` it causes, since going back is
- * asynchronous and the hook's own backs are part of what is under test.
+ * Real history on a real page. The important results are on which entry the
+ * browser stops, and which sheet learns about it. A mocked `history` cannot
+ * show that. Each step waits for the `popstate` that it causes, because back is
+ * asynchronous, and the own backs of the hook are part of what the test checks.
  */
 
 let host: HTMLDivElement;
@@ -31,7 +31,7 @@ const nextPop = () =>
     window.addEventListener("popstate", () => resolve(), { once: true }),
   );
 
-/** Resolves once every `history.back()` of the hook's own has landed. */
+/** Resolves when each own `history.back()` of the hook is complete. */
 const settled = () =>
   new Promise<void>((resolve) =>
     afterHistorySettles(() => setTimeout(resolve, 0)),
@@ -89,7 +89,8 @@ describe("the browser's back", () => {
   it("closes only the newest of two sheets", async () => {
     const lower = vi.fn();
     const upper = vi.fn();
-    // The same tree both times, so the lower sheet stays mounted throughout.
+    // The same tree both times. Thus, the lower sheet stays mounted all the
+    // time.
     const Stack = ({ both }: { both: boolean }) => (
       <>
         <Sheet onBack={lower} />
@@ -127,7 +128,8 @@ describe("a sheet closed some other way", () => {
     show(<Sheet onBack={first} />);
     await settled();
 
-    // Closed and replaced in one go, as a reminder opening another note does.
+    // Closed and replaced in one step, as a reminder that opens a different
+    // note does.
     show(<Sheet active={false} onBack={first} />);
     show(<Sheet key="second" onBack={second} />);
     await settled();

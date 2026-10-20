@@ -9,11 +9,11 @@ import { hideAllTooltips } from "./Tooltip.tsx";
 /**
  * Renders children in a fixed-position portal next to the anchor button.
  *
- * Placement goes through the same geometry as `Dropdown`, so the panel flips
- * to the other side of its trigger and stays inside the viewport, even for a
- * card at the top of the page.
+ * The placement uses the same geometry as `Dropdown`. Thus, the panel flips to
+ * the other side of its trigger, and stays inside the viewport, also for a card
+ * at the top of the page.
  */
-/** How long a card popover takes to leave; `card-popover-out` in styles.css. */
+/** How long a card popover takes to leave. `card-popover-out` in styles.css. */
 export const CARD_POPOVER_EXIT_MS = 140;
 
 export function CardPopover({
@@ -28,8 +28,9 @@ export function CardPopover({
   children: ComponentChildren;
   placement?: DropdownPlacement;
   /**
-   * Closed, and playing its exit (see `usePresence`): it no longer takes
-   * clicks, keys or the Escape key, so the page under it is live at once.
+   * Closed, and in its exit animation (see `usePresence`). It does not take
+   * clicks, keys or the Escape key now. Thus, the page under it is live
+   * immediately.
    */
   leaving?: boolean;
 }) {
@@ -54,8 +55,9 @@ export function CardPopover({
       );
     };
     updatePos();
-    // Panels here change size while open (the kebab menu grows when the tag
-    // picker expands inside it), so re-place on their own resize too.
+    // Panels here change size while they are open (the kebab menu grows when
+    // the tag picker expands inside it). Thus, the code places them again also
+    // on their own resize.
     const panel = popoverRef.current;
     const ro = panel ? new ResizeObserver(updatePos) : null;
     if (panel && ro) ro.observe(panel);
@@ -68,19 +70,19 @@ export function CardPopover({
     };
   }, [anchorRef, placement]);
 
-  // The trigger's tooltip would otherwise stay up underneath this panel:
-  // the pointer never leaves the trigger, so no `pointerleave` arrives.
+  // If not, the tooltip of the trigger would stay up under this panel. The
+  // pointer never leaves the trigger. Thus, no `pointerleave` arrives.
   useEffect(hideAllTooltips, []);
 
-  // Mounted only while open or leaving, so it is always the top of the stack
-  // while it is open.
+  // Mounted only while it is open or leaving. Thus, it is always the top of the
+  // stack while it is open.
   useEscapeStack(!leaving, onClose);
 
-  // Focus goes in once the panel is placed (a hidden panel takes no focus),
-  // to the current choice where there is one marked, unless something in it
-  // has taken focus itself (the tag picker's field). The panel is portalled
-  // to the end of the page, so without this the keyboard never reached it:
-  // Tab from its trigger went on to the next card.
+  // Focus goes in after the panel is in position (a hidden panel takes no
+  // focus), to the current choice if one is marked, unless an element in it
+  // took focus itself (the field of the tag picker). The panel is portalled to
+  // the end of the page. Without this, the keyboard never reached it: Tab from
+  // its trigger went to the next card.
   const placed = pos !== null;
   useEffect(() => {
     const panel = popoverRef.current;
@@ -91,9 +93,9 @@ export function CardPopover({
     (current ?? tabbableIn(panel)[0])?.focus();
   }, [placed]);
 
-  // And back to the trigger once it closes, if focus was in the panel and
-  // nothing else has taken it: a choice that opens a dialog keeps the
-  // dialog's focus, which its own trap has moved by the time this runs.
+  // Also, focus goes back to the trigger after it closes, if focus was in the
+  // panel and nothing else took it. A choice that opens a dialog keeps the
+  // focus of the dialog, which its own trap moved before this runs.
   useEffect(() => {
     const panel = popoverRef.current;
     if (!leaving || !panel) return;
@@ -118,8 +120,8 @@ export function CardPopover({
         data-placed={pos ? "true" : undefined}
         data-leaving={leaving ? "true" : undefined}
         inert={leaving}
-        // Tabbing out of the panel closes it, as a menu does, rather than
-        // leaving it open over a page the keyboard has moved on through.
+        // A Tab out of the panel closes it, as for a menu. It does not stay
+        // open over a page through which the keyboard moved on.
         onFocusOut={(e) => {
           const to = e.relatedTarget;
           if (to instanceof Node && !e.currentTarget.contains(to)) onClose();

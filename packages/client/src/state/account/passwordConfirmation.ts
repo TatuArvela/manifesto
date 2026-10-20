@@ -2,10 +2,10 @@ import type { ErrorResponse } from "@manifesto/shared";
 import type { MessageKey } from "#/i18n/index.ts";
 
 /**
- * Why the server would not take an action that asks for the password again
- * (an email address, a token, a webhook): none was sent, it was wrong, the
- * account has none and its sign-in is too old, or too many wrong ones have
- * locked the name for a while. See `auth/confirmation.ts` on the server.
+ * Why the server refused an action that asks for the password again (an email
+ * address, a token, a webhook): none was sent, it was wrong, the account has
+ * none and its sign-in is too old, or too many wrong passwords locked the name
+ * for some time. See `auth/confirmation.ts` on the server.
  */
 export type ConfirmationRefusal =
   | "password-missing"
@@ -13,7 +13,7 @@ export type ConfirmationRefusal =
   | "sign-in-again"
   | "locked";
 
-/** The refusal an answer carries, or null if it is some other failure. */
+/** The refusal that an answer carries, or null if it is a different failure. */
 export async function confirmationRefusal(
   res: Response,
 ): Promise<ConfirmationRefusal | null> {

@@ -41,7 +41,8 @@ describe("pendingWrites", () => {
     const writes = createPendingWrites();
     const changes = { pinned: true };
     writes.begin(makeNote(), changes);
-    // Another device's edit arrives while our pin is still in the air.
+    // The edit of a different device arrives while our pin is still in
+    // progress.
     const elsewhere = makeNote({
       title: "Renamed",
       updatedAt: "2026-04-02T00:00:00Z",
@@ -68,7 +69,7 @@ describe("pendingWrites", () => {
     writes.begin(note, first);
     writes.begin(note, second);
 
-    // The first write's answer lands; the second is still outstanding.
+    // The answer of the first write arrives. The second is still in progress.
     writes.settle("n1", first);
     const answered = makeNote({
       color: NoteColor.Blue,
@@ -81,7 +82,7 @@ describe("pendingWrites", () => {
     const writes = createPendingWrites();
     const changes = { tags: ["one"] };
     writes.begin(makeNote(), changes);
-    // A conflict retry sends a merged set of changes and settles the original.
+    // A conflict retry sends a merged set of changes, and settles the original.
     writes.settle("n1", changes);
     expect(writes.pending("n1")).toBe(false);
   });

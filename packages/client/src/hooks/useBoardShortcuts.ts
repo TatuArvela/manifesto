@@ -23,8 +23,8 @@ import {
 import { useShortcut } from "./useShortcut.ts";
 
 /**
- * The shortcuts listed on the `?` sheet, as `[key, message]` pairs, in the
- * order the sheet shows them. Enter is not bound here: a focused card already
+ * The shortcuts that the `?` sheet lists, as `[key, message]` pairs, in the
+ * order of the sheet. Enter is not bound here, because a focused card already
  * opens on it.
  */
 export const BOARD_SHORTCUTS = [
@@ -50,16 +50,16 @@ function focusSearch() {
     input.focus();
     return;
   }
-  // On a phone the field is part of the search view, which is not up yet.
+  // On a phone, the field is part of the search view, which is not open yet.
   activeView.value = "search";
   requestAnimationFrame(() => visibleSearch()?.focus());
 }
 
 /**
- * Moves a card one step in manual order and says where it went, the
- * keyboard's (and the card menu's) way of doing what a drag does. Focus is
- * put back on the card's open button wherever it was focused before, since
- * the move takes its element out of the page and back.
+ * Moves a card one step in manual order, and tells where it went. This is the
+ * keyboard way (and the card menu way) to do what a drag does. Focus goes back
+ * to the open button of the card wherever it was focused before, because the
+ * move takes its element out of the page and back.
  */
 export async function moveCard(id: string, step: NoteMoveStep): Promise<void> {
   const hadFocus = focusedNoteId() === id;
@@ -79,7 +79,7 @@ export async function moveCard(id: string, step: NoteMoveStep): Promise<void> {
   });
 }
 
-/** Acts on the focused card, then hands focus to its neighbour. */
+/** Acts on the focused card, then gives focus to the adjacent card. */
 async function withFocusedNote(
   act: (id: string) => Promise<boolean | undefined>,
 ) {

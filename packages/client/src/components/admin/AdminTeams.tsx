@@ -30,10 +30,11 @@ function reportWrite(result: TeamWriteResult): AdminTeam | null {
 }
 
 /**
- * The admin's teams: made and filled here, or mirrored from the identity
- * provider's groups, whose members are the provider's and shown read-only.
- * Sharing a note with a team invites its members; a change of members here
- * invites the newcomers and takes the notes from those who left.
+ * The teams of the admin: made and filled here, or mirrored from the groups of
+ * the identity provider. The provider owns the members of those, and they show
+ * read-only. A share of a note with a team invites its members. A change of
+ * members here invites the new members, and takes the notes from those who
+ * left.
  */
 export function AdminTeams() {
   const [teams, setTeams] = useState<AdminTeam[] | null>(null);

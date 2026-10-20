@@ -1,14 +1,19 @@
-/* What the appearance preferences switch on <html>: motion, note corners, and the board's colour, texture and picture. */
+/*
+ * What the appearance preferences switch on <html>: motion, note corners, and
+ * the color, texture and picture of the board.
+ */
 
-/* Motion preference (Settings > Animations), toggled on <html> by
-   state/prefs.ts and defaulting to the OS `prefers-reduced-motion` setting.
-
-   Durations collapse to a near-zero value rather than `animation: none`,
-   because several components finish their work on `animationend`: the
-   settings panel only unmounts when its slide-out fires one. Killing the
-   animation outright would mean that event never arrives and the panel would
-   stay on screen forever. A 0.01ms animation still fires it on the next
-   frame. */
+/*
+ * The motion preference (Settings > Animations), toggled on <html> by
+ * state/prefs.ts. Its default is the `prefers-reduced-motion` setting of the
+ * OS.
+ *
+ * Durations collapse to a value near zero, not `animation: none`, because
+ * several components complete their work on `animationend`. The settings panel
+ * only unmounts when its slide-out fires one. If the animation stopped fully,
+ * that event would never arrive, and the panel would stay on the screen
+ * forever. A 0.01ms animation still fires it on the next frame.
+ */
 /* biome-ignore-start lint/complexity/noImportantStyles: the reduced-motion
    override has to beat every animation the app declares, including inline
    ones, since that is the whole point of the block. */
@@ -25,9 +30,11 @@
 }
 /* biome-ignore-end lint/complexity/noImportantStyles: end of the override. */
 
-/* Note corner style: a user preference (Settings > Note Corners). Every note
-   surface reads this one variable: the cards, the create-note stack, and the
-   editor. `.notes-rounded` is toggled on <html> by state/prefs.ts. */
+/*
+ * The note corner style: a user preference (Settings > Note Corners). Each note
+ * surface reads this one variable: the cards, the create-note stack, and the
+ * editor. state/prefs.ts toggles `.notes-rounded` on <html>.
+ */
 :root {
   --note-radius: 0px;
 }
@@ -40,12 +47,15 @@
   border-radius: var(--note-radius);
 }
 
-/* Note tilt: a user preference (Settings > Appearance > Notes). Each card in
-   the grid carries its own angle as `--note-tilt` (utils/noteTilt.ts), and a
-   messy board, `.notes-messy` on <html>, leans it by that much. `rotate` is
-   its own property, so it adds to the drag's and the reordering's
-   `transform` rather than replacing it. A card straightens as it is pointed
-   at, picked up or opened, as a note is when someone reaches for it. */
+/*
+ * The note tilt: a user preference (Settings > Appearance > Notes). Each card
+ * in the grid carries its own angle as `--note-tilt` (utils/noteTilt.ts), and a
+ * messy board, `.notes-messy` on <html>, tilts it by that much. `rotate` is its
+ * own property. Thus, it adds to the `transform` of the drag and of the
+ * reorder, and does not replace it. A card becomes straight when the pointer is
+ * on it, or when it is picked up or opened, as a note does when a person
+ * reaches for it.
+ */
 :root.notes-messy .note-tilt {
   rotate: var(--note-tilt, 0deg);
 }
@@ -54,25 +64,32 @@
   rotate: 0deg;
 }
 
-/* Board background: user preferences (Settings > Appearance > Board
-   Background), keyed off attributes on <html> by state/prefs.ts. The board is
-   composed of a colour and a texture over it, or covered whole by a picture.
-   `.board` is the scrolling area the notes sit in; a background there stays
-   put while they scroll over it.
-
-   Every preset colour has a light and a dark shade, pale and deep enough that
-   any note colour still reads against it. A custom colour is shown as picked
-   in the light theme and mixed deep into the page colour in the dark one, so a
-   pastel chosen in daylight does not glare behind dark notes at night. */
+/*
+ * The board background: user preferences (Settings > Appearance > Board
+ * Background), set from attributes on <html> by state/prefs.ts. The board is a
+ * color with a texture over it, or a picture that covers it fully. `.board` is
+ * the scrolling area in which the notes are. A background there stays in place
+ * while they scroll over it.
+ *
+ * Each preset color has a light and a dark shade, sufficiently pale and deep
+ * that each note color is still visible against it. A custom color shows as
+ * selected in the light theme, and mixed deep into the page color in the dark
+ * theme. Thus, a pastel selected in daylight is not too bright behind dark
+ * notes at night.
+ */
 :root {
-  /* The neutrals, light to dark in either theme. Black is a charcoal in the
-     light theme and white a slate in the dark one, so the dark or light text
-     of the page's headings still reads over them. */
+  /*
+   * The neutrals, light to dark in both themes. Black is a charcoal in the
+   * light theme, and white a slate in the dark theme. Thus, the dark or light
+   * text of the headings of the page is still visible over them.
+   */
   --board-white: #ffffff;
   --board-gray: #d4d4d4;
   --board-black: #525252;
-  /* A clear pastel, a step stronger than a note of the same colour, so the
-     note still stands off it. */
+  /*
+   * A clear pastel, one step stronger than a note of the same color. Thus, the
+   * note is still visible against it.
+   */
   --board-red: #fecaca;
   --board-orange: #fed7aa;
   --board-yellow: #fef08a;
@@ -85,7 +102,7 @@
   --board-custom-shade: var(--board-custom);
   --board-gradient-custom-shade: var(--board-gradient-custom);
   --board-scrim: rgb(255 255 255 / 0.15);
-  /* The colour the pattern is drawn in, unless one is picked. */
+  /* The color of the pattern, unless the user selects one. */
   --board-ink: #000000;
 }
 
@@ -93,7 +110,7 @@
   --board-white: #525252;
   --board-gray: #2e2e2e;
   --board-black: #0a0a0a;
-  /* A step deeper than a dark note of the same colour. */
+  /* One step deeper than a dark note of the same color. */
   --board-red: #450a0a;
   --board-orange: #431407;
   --board-yellow: #422006;
@@ -154,12 +171,14 @@
   --board-color: var(--board-custom-shade);
 }
 
-/* Gradient: the board's colour (or the page's, with none) fading to a second
-   one, toward a side or corner. The direction attribute is only set alongside
-   the colour, so it alone writes the gradient. A corner keyword rather than an
-   angle, so a
-   diagonal runs corner to corner on a board of any shape. It is the bottom
-   layer under the texture, and covers the board once rather than tiling. */
+/*
+ * The gradient: the color of the board (or of the page, with none) that fades
+ * to a second color, toward a side or corner. The direction attribute is set
+ * only together with the color. Thus, it alone writes the gradient. A corner
+ * keyword, not an angle. Thus, a diagonal goes from corner to corner on a board
+ * of any shape. It is the bottom layer under the texture, and covers the board
+ * one time. It does not tile.
+ */
 :root[data-board-gradient="white"] {
   --board-color-to: var(--board-white);
 }
@@ -253,17 +272,19 @@
   );
 }
 
-/* Textures. Each is a mask-image and a matching mask-size, named once here
-   and used both by the board and by its tile in Settings. The mask is laid
-   over a layer of `--board-ink` at `--board-texture-opacity` (`::before` on
-   `.board-frame` and `.board-texture-tile`), so a texture is only a shape,
-   drawn in opaque black: changing the pattern's colour or opacity redraws
-   none of them, and every mark of every texture comes out at the one
-   opacity. Most are gradients. The paper grain, the stars, the hearts, the
-   confetti, the bubbles and the sawtooth are SVG, drawn once at load by state/prefs.ts
-   (utils/boardTextures.ts), since a few are worked out rather than written.
-   A texture of several layers lists one size per layer: a shorter list
-   cycles (styles.test.ts holds every texture to this). */
+/*
+ * Textures. Each is a mask-image and a matching mask-size, named one time here,
+ * and used by the board and by its tile in Settings. The mask is over a layer
+ * of `--board-ink` at `--board-texture-opacity` (`::before` on `.board-frame`
+ * and `.board-texture-tile`). Thus, a texture is only a shape, drawn in opaque
+ * black. A change of the color or opacity of the pattern draws none of them
+ * again, and each mark of each texture has the one opacity. Most are gradients.
+ * The paper grain, the stars, the hearts, the confetti, the bubbles and the
+ * sawtooth are SVG, drawn one time at load by state/prefs.ts
+ * (utils/boardTextures.ts), because some are calculated, not written. A texture
+ * of several layers lists one size for each layer. A shorter list cycles
+ * (styles.test.ts checks this for each texture).
+ */
 :root {
   --board-texture-paper: var(--board-texture-paper-mask);
   --board-texture-paper-size: 160px 160px;
@@ -285,14 +306,16 @@
   --board-texture-lines-size: auto;
   --board-texture-confetti: var(--board-texture-confetti-mask);
   --board-texture-confetti-size: 320px 320px;
-  /* Waves: a running line of arcs, each tile holding the trough of one
-     (a ring centred on its top edge) and the crest of the next (centred on
-     its bottom edge), which meet across the tile boundary as an S. The line
-     runs 11.5px from each centre, so the tile is four of that wide, and the
-     joins fall a quarter and three quarters across. A join on a side edge
-     would split its line between two tiles, each drawing only its own half,
-     out of step with the arc it meets; so the trough is centred and the
-     crest sits on the side edges, drawn at both, each tile its own half. */
+  /*
+   * Waves: a continuous line of arcs. Each tile contains the trough of one (a
+   * ring centered on its top edge) and the crest of the next (centered on its
+   * bottom edge). They meet across the tile boundary as an S. The line is
+   * 11.5px from each center. Thus, the tile is four times that wide, and the
+   * joins are at one quarter and three quarters across. A join on a side edge
+   * would split its line between two tiles, and each would draw only its own
+   * half, not aligned with the arc that it meets. Thus, the trough is centered,
+   * and the crest is on the side edges, drawn at both, each tile its own half.
+   */
   --board-texture-waves:
     radial-gradient(
       circle at 23px 0,
@@ -329,8 +352,10 @@
   --board-texture-sawtooth-size: 286px 286px;
 }
 
-/* A picked pattern colour, in either theme. Declared after the dark theme's
-   ink, which it overrides. */
+/*
+ * A selected pattern color, in both themes. Declared after the ink of the dark
+ * theme, which it overrides.
+ */
 :root[data-board-ink] {
   --board-ink: var(--board-ink-picked);
 }
@@ -380,11 +405,13 @@
   --board-texture: var(--board-texture-sawtooth);
   --board-texture-size: var(--board-texture-sawtooth-size);
 }
-/* `.board-frame` holds the scrolling `.board` and draws behind it, so the
-   colour, gradient and texture stay put while the notes scroll over them. The
-   texture is a layer of its own, under everything in the frame, so that its
-   opacity is the layer's: the slider in Settings changes one number and
-   nothing is redrawn. */
+/*
+ * `.board-frame` contains the scrolling `.board` and draws behind it. Thus, the
+ * color, gradient and texture stay in place while the notes scroll over them.
+ * The texture is its own layer, under all content in the frame. Thus, its
+ * opacity is that of the layer. The slider in Settings changes one number, and
+ * nothing is drawn again.
+ */
 .board-frame {
   position: relative;
   isolation: isolate;
@@ -404,14 +431,18 @@
   opacity: var(--board-texture-opacity, 0.1);
 }
 .board {
-  /* Its own stacking context, so the new-note pad, which tucks its base
-     behind the sheets with a negative z-index, stays above the frame. */
+  /*
+   * Its own stacking context. Thus, the new-note pad, which puts its base
+   * behind the sheets with a negative z-index, stays above the frame.
+   */
   isolation: isolate;
 }
 
-/* The picture covers the colour and texture alike, under a thin scrim in the
-   page's own colour so headings and empty-view text stay legible over a busy
-   photo. The attribute is only set once the picture has loaded. */
+/*
+ * The picture covers the color and the texture, under a thin scrim in the own
+ * color of the page. Thus, headings and the text of an empty view stay legible
+ * over a busy photo. The attribute is set only after the picture loaded.
+ */
 :root[data-board-picture] .board-frame::before {
   display: none;
 }
@@ -423,8 +454,10 @@
   background-position: center;
 }
 
-/* The choices in Settings, drawn in the shade the current theme uses. A
-   texture tile shows the texture on the colour chosen now, as the board will. */
+/*
+ * The choices in Settings, drawn in the shade that the current theme uses. A
+ * texture tile shows the texture on the color selected now, as the board will.
+ */
 .board-swatch {
   background-color: var(--board-page);
 }
@@ -480,8 +513,10 @@
   background-color: var(--board-gradient-custom-shade);
 }
 
-/* Each tile names its texture in `--tile-texture`, so the gradient can be laid
-   under every one of them in a single rule. */
+/*
+ * Each tile names its texture in `--tile-texture`. Thus, one rule can put the
+ * gradient under each of them.
+ */
 .board-texture-tile {
   position: relative;
   isolation: isolate;

@@ -1,4 +1,7 @@
-/* Tailwind variants and theme, shared keyframes and animation utilities, and page-wide base rules. */
+/*
+ * Tailwind variants and theme, shared keyframes and animation utilities, and
+ * base rules for the full page.
+ */
 
 @custom-variant dark (&:where(.dark, .dark *));
 @custom-variant touch (@media (hover: none));
@@ -11,11 +14,14 @@
   --breakpoint-7xl: 3200px;
 }
 
-/* The layers over the board, bottom to top. A sheet opened over another sheet
-   (sharing, public links, history) takes the nested pair; the confirmation
-   and the toasts sit above everything, since any layer can raise either and
-   neither may land behind the layer that asked. Named here so the order can
-   be read in one place rather than reassembled from numbers. */
+/*
+ * The layers over the board, bottom to top. A sheet opened over a different
+ * sheet (sharing, public links, history) takes the nested pair. The
+ * confirmation and the toasts are above all, because each layer can show
+ * either, and neither can be behind the layer that asked. Named here, so that
+ * you can read the order in one place, and do not have to collect it from
+ * numbers.
+ */
 @utility layer-backdrop {
   z-index: 40;
 }
@@ -75,22 +81,27 @@
   animation: scale-in 100ms ease-out;
 }
 
-/* `type="search"` makes WebKit and Blink draw their own clear button. In the
-   header the field already has our own X while the search view is open, so
-   the native one is a confusing second control, so suppress it there.
-
-   Scoped to the header deliberately: the search view's mobile input draws no
-   clear button of its own, so there the native control is the only way to
-   empty the field by tapping. */
+/*
+ * `type="search"` makes WebKit and Blink draw their own clear button. In the
+ * header, the field already has our own X while the search view is open. The
+ * native button is a confusing second control. Thus, remove it there.
+ *
+ * Intentionally scoped to the header. The mobile input of the search view draws
+ * no clear button of its own. Thus, there the native control is the only way to
+ * empty the field with a tap.
+ */
 header input[type="search"]::-webkit-search-cancel-button,
 header input[type="search"]::-webkit-search-decoration {
   -webkit-appearance: none;
   appearance: none;
 }
 
-/* One keyboard focus ring for everything, rather than each browser's own,
-   which differ and can vanish against a coloured note. In the base layer, so
-   a control that draws its own (`focus:ring-*` with `outline-none`) keeps it. */
+/*
+ * One keyboard focus ring for all controls, not the own ring of each browser,
+ * which are different and can disappear against a colored note. In the base
+ * layer. Thus, a control that draws its own (`focus:ring-*` with
+ * `outline-none`) keeps it.
+ */
 @layer base {
   :focus-visible {
     outline: 2px solid var(--color-blue-600);
@@ -110,7 +121,10 @@ body {
   text-size-adjust: 100%;
 }
 
-/* The row a settings search jumped to, lit for a moment so the eye finds it. */
+/*
+ * The row to which a settings search went, lit for a moment so that the eye
+ * finds it.
+ */
 .settings-found {
   border-radius: 0.5rem;
   animation: settings-found 1.6s ease-out;

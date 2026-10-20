@@ -8,20 +8,20 @@ import { type Command, TextSelection } from "@milkdown/kit/prose/state";
 import { goToNextCell, isInTable } from "@milkdown/kit/prose/tables";
 import { addBodyRowAfter } from "./tableActions.ts";
 
-// Where the presets' own key bindings do the wrong thing, and what does the
-// right one instead.
+// Where the own key bindings of the presets do the wrong thing, and what does
+// the correct thing in their place.
 
 /**
- * Rebinds the presets' keys. Called from the editor's `config`, which runs
- * before the presets read their bindings.
+ * Binds the keys of the presets again. Called from the `config` of the editor,
+ * which runs before the presets read their bindings.
  *
- * Both presets bind a Backspace command to Delete as well, so Delete with
- * the caret at the start of a list item or a heading did what Backspace
- * does: it joined the item into the one above, or turned an H2 into an H1,
- * where it should have deleted the next character. Delete is taken off both.
+ * Both presets also bind a Backspace command to Delete. Thus, Delete with the
+ * caret at the start of a list item or a heading did what Backspace does. It
+ * joined the item into the item above, or changed an H2 into an H1, where it
+ * should have deleted the next character. Delete is removed from both.
  *
- * The heading one goes altogether: {@link backspaceToParagraph} does
- * Backspace's part instead.
+ * The heading binding goes fully. {@link backspaceToParagraph} does the part of
+ * Backspace in its place.
  */
 export function configureEditorKeys(ctx: Ctx): void {
   ctx.update(listItemKeymap.key, (keys) => ({
@@ -35,13 +35,13 @@ export function configureEditorKeys(ctx: Ctx): void {
 }
 
 /**
- * Backspace at the start of a heading or a code block turns it into a
- * paragraph, in one press.
+ * Backspace at the start of a heading or a code block changes it into a
+ * paragraph, with one press.
  *
- * The preset stepped a heading down a level instead, so an H3 grew into an
- * H2 and then an H1 before it let go, and a code block had nothing at all:
- * at the start of the note, with no block above to join, an empty one could
- * not be got rid of from the keyboard.
+ * The preset moved a heading down one level in place of that. Thus, an H3
+ * became an H2, and then an H1, before it went. A code block had nothing. At
+ * the start of the note, with no block above to join, you could not remove an
+ * empty code block from the keyboard.
  */
 const backspaceToParagraph: Command = (state, dispatch) => {
   const { $from, empty } = state.selection;
@@ -56,13 +56,14 @@ const backspaceToParagraph: Command = (state, dispatch) => {
  * Tab and Shift-Tab in a list or a table stay in the editor.
  *
  * The presets bind them there, but their commands decline where they cannot
- * act: indenting a list's first item, Tab in a table's last cell, Shift-Tab
- * in its first. A declined Tab is the browser's again, and it moved focus
- * out of the note to the next button, so the next keystroke typed nowhere.
- * Tab in a table's last cell adds a row instead, as in a spreadsheet.
+ * act: an indent of the first item of a list, Tab in the last cell of a table,
+ * Shift-Tab in its first cell. A declined Tab goes back to the browser, which
+ * moved focus out of the note to the next button. Thus, the next keystroke
+ * typed nowhere. Tab in the last cell of a table adds a row, as in a
+ * spreadsheet.
  *
- * Elsewhere Tab is left to the browser, so the keyboard can still leave the
- * text.
+ * In other places, Tab stays with the browser. Thus, the keyboard can still
+ * leave the text.
  */
 const tabIn =
   (dir: 1 | -1): Command =>
@@ -86,14 +87,14 @@ const tabIn =
   };
 
 /**
- * An arrow off the far side of a code block that starts or ends the note
- * adds a paragraph there and moves into it.
+ * An arrow off the far side of a code block that starts or ends the note adds a
+ * paragraph there, and moves into it.
  *
- * Above and below a table or a divider at either end, the gap cursor gives
- * the caret somewhere to stand, and typing there makes the paragraph. It
- * does not stand beside a code block, whose text the caret can already be
- * in, so there was no way past one from the keyboard: Enter only adds a
- * line inside it.
+ * Above and below a table or a divider at either end, the gap cursor gives the
+ * caret a place, and typing there makes the paragraph. The gap cursor does not
+ * show next to a code block, because the caret can already be in its text.
+ * Thus, there was no way past one from the keyboard: Enter only adds a line
+ * inside it.
  */
 const leaveCodeBlock =
   (dir: "up" | "down" | "left" | "right"): Command =>
@@ -117,8 +118,8 @@ const leaveCodeBlock =
   };
 
 /**
- * The keys handled here rather than by a preset. A plugin's keymap runs
- * ahead of every preset's, which Milkdown adds after `prosePluginsCtx`.
+ * The keys handled here, not by a preset. The keymap of a plugin runs before
+ * that of each preset, which Milkdown adds after `prosePluginsCtx`.
  */
 export const editorKeys: MilkdownPlugin = (ctx) => () => {
   ctx.update(prosePluginsCtx, (plugins) => [

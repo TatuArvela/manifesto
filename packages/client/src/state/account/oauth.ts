@@ -12,18 +12,19 @@ import {
 } from "./passwordConfirmation.ts";
 
 /**
- * The consent page an AI assistant sends the browser to when it signs in to
- * `/api/v1/mcp` (OAuth): what it asked for, read from the address, and the two
- * answers the user can give. The server checks the client and where it may
- * be sent back; this page only ever navigates to an address it confirmed.
+ * The consent page to which an AI assistant sends the browser when it signs in
+ * to `/api/v1/mcp` (OAuth): what it asked for, read from the address, and the
+ * two answers that the user can give. The server checks the client, and to
+ * where the browser can go back. This page only goes to an address that the
+ * server confirmed.
  */
 
-/** Vite's `BASE_URL` without its trailing slash, as the router has it. */
+/** The `BASE_URL` of Vite without its trailing slash, as the router has it. */
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const CONSENT_PATH = "/oauth/authorize";
 
-/** Whether `pathname` is the consent page's. */
+/** If `pathname` is that of the consent page. */
 export function isOAuthConsentPath(pathname: string): boolean {
   const rest =
     BASE && pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname;
@@ -40,9 +41,9 @@ export interface AuthorizeRequest {
 }
 
 /**
- * The request in a consent page's query, or null for one this server cannot
- * grant: anything but the code flow with an S256 PKCE challenge, which is all
- * OAuth 2.1 and MCP allow.
+ * The request in the query of a consent page, or null for a request that this
+ * server cannot give. That is all requests other than the code flow with an
+ * S256 PKCE challenge, which is all that OAuth 2.1 and MCP permit.
  */
 export function parseAuthorizeRequest(search: string): AuthorizeRequest | null {
   const query = new URLSearchParams(search);
@@ -62,8 +63,10 @@ export function parseAuthorizeRequest(search: string): AuthorizeRequest | null {
   };
 }
 
-/** Schemes a browser would run or read rather than hand to an app. The
- * server refuses to register them; this is the page not trusting that alone. */
+/**
+ * Schemes that a browser would run or read, and not give to an app. The server
+ * refuses to register them. This is the page that does not trust only that.
+ */
 const UNSAFE_SCHEMES = /^(javascript|data|vbscript|blob|file|about):/i;
 
 function navigateTo(url: string): void {
@@ -71,8 +74,11 @@ function navigateTo(url: string): void {
   window.location.assign(url);
 }
 
-/** The assistant asking, as the server knows it; null when the server does
- * not know it, or it asked to be sent back somewhere it did not register. */
+/**
+ * The assistant that asks, as the server knows it. Null when the server does
+ * not know it, or when it asked to go back to an address that it did not
+ * register.
+ */
 export async function lookUpClient(
   request: AuthorizeRequest,
 ): Promise<OAuthClientInfo | null> {
@@ -99,10 +105,10 @@ export type AllowResult =
 /**
  * Lets the assistant in, and sends the browser back to it with the code.
  *
- * An assistant reaches notes, so its grant carries the keys to open them.
- * The code is made here and the keys wrapped under it, and the server is
- * sent the code's hash: it first sees the code when the assistant trades it
- * in, and wraps the keys again for the tokens it hands out.
+ * An assistant reaches notes. Thus, its grant carries the keys to open them.
+ * The code is made here, and the keys are wrapped under it. The server gets the
+ * hash of the code. It first sees the code when the assistant exchanges it, and
+ * wraps the keys again for the tokens that it gives.
  */
 export async function allowClient(
   request: AuthorizeRequest,
@@ -114,7 +120,8 @@ export async function allowClient(
   if (!sealing) return { kind: "failed" };
   let made: Awaited<ReturnType<typeof sealing.newToken>>;
   try {
-    // A code is a token's secret for two minutes, and wrapped under alike.
+    // A code is the secret of a token for two minutes, and is wrapped in the
+    // same way.
     made = await sealing.newToken("");
   } catch (err) {
     console.warn("Failed to make an assistant's keys:", err);
@@ -142,8 +149,8 @@ export async function allowClient(
   try {
     const { redirectTo } = (await res.json()) as OAuthAuthorizeResponse;
     if (made) {
-      // The server never had the code: it comes back without one, to an
-      // address it checked, and the code is added here.
+      // The server never had the code. The answer comes back without one, to an
+      // address that the server checked, and the code is added here.
       const url = new URL(redirectTo);
       url.searchParams.set("code", made.secret);
       target = url.href;
@@ -159,8 +166,8 @@ export async function allowClient(
 }
 
 /**
- * Tells the assistant no (RFC 6749's `access_denied`). Only for a request the
- * server has confirmed the address of: an unchecked one could be anywhere.
+ * Tells the assistant no (`access_denied` of RFC 6749). Only for a request
+ * whose address the server confirmed. An unchecked address could be anywhere.
  */
 export function denyClient(client: OAuthClientInfo, state: string | null) {
   const target = new URL(client.redirectUri);
@@ -169,8 +176,10 @@ export function denyClient(client: OAuthClientInfo, state: string | null) {
   navigateTo(target.href);
 }
 
-/** Where the answer goes, as a person would recognise it: a web address's
- * host, or an app's own scheme. */
+/**
+ * Where the answer goes, as a person would know it: the host of a web address,
+ * or the own scheme of an app.
+ */
 export function returnTarget(redirectUri: string): string {
   try {
     const url = new URL(redirectUri);

@@ -8,8 +8,8 @@ import { unified } from "unified";
 import { findItemDate, itemDateClass, localIsoDate } from "./itemDate.ts";
 
 /**
- * What a rendered note is allowed to contain. Everything markdown produces,
- * plus the few tags our own toolbar writes as raw HTML.
+ * What a rendered note can contain. All that Markdown makes, plus the few tags
+ * that our own toolbar writes as raw HTML.
  */
 const PURIFY_CONFIG = {
   ALLOWED_TAGS: [
@@ -68,14 +68,14 @@ const PURIFY_CONFIG = {
 };
 
 /**
- * Every link in a rendered note opens in a new tab, so following one never
- * navigates away from the notes. `noopener` keeps the opened page from
- * reaching back into this one through `window.opener`.
+ * Each link in a rendered note opens in a new tab. Thus, a link never navigates
+ * away from the notes. `noopener` prevents the opened page from access to this
+ * page through `window.opener`.
  *
- * A hook rather than a pass over the output because it runs on exactly what
- * survived sanitizing, including an `<a>` written as raw HTML with a `target`
- * of its own. DOMPurify hooks are global, which is fine while this module is
- * DOMPurify's only user.
+ * A hook, not a pass over the output, because it runs on exactly what stayed
+ * after the sanitizer, also an `<a>` written as raw HTML with its own `target`.
+ * DOMPurify hooks are global, which is acceptable while this module is the only
+ * user of DOMPurify.
  */
 DOMPurify.addHook("afterSanitizeAttributes", (node) => {
   if (node.tagName !== "A" || !node.hasAttribute("href")) return;
@@ -84,12 +84,12 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
 });
 
 /**
- * The classes a rendered note may carry: the ones the pipeline itself writes
- * (GFM's task lists and code languages, the footnote label, the date chip).
- * Any other is dropped. A note can come from someone else (a share, a public
- * link, a plugin), and the page's own utility classes would let it lay
- * itself over the app (`fixed inset-0 z-50`) as a fake sign-in or a link
- * dressed as a button.
+ * The classes that a rendered note can have: those that the pipeline itself
+ * writes (the task lists and code languages of GFM, the footnote label, the
+ * date chip). The code drops all others. A note can come from a different
+ * person (a share, a public link, a plugin). The own utility classes of the
+ * page would let it put itself over the app (`fixed inset-0 z-50`) as a fake
+ * sign-in, or as a link that looks like a button.
  */
 const RENDERED_CLASSES = new Set([
   "contains-task-list",
@@ -112,10 +112,10 @@ DOMPurify.addHook("uponSanitizeAttribute", (_node, data) => {
 });
 
 /**
- * What is being rendered, which decides where a date token becomes a chip
- * (see `itemDate.ts`): in a whole document only inside a task list item, in
- * the label of a checklist item anywhere, since the caller has already taken
- * the box off it and says here whether it was ticked.
+ * What is rendered, which decides where a date token becomes a chip (see
+ * `itemDate.ts`). In a full document, only inside a task list item. In the
+ * label of a checklist item, anywhere, because the caller already removed the
+ * box from it, and tells here if it was ticked.
  */
 type RenderMode = "document" | "openItem" | "doneItem";
 
@@ -128,11 +128,13 @@ interface HtmlNode {
   children?: HtmlNode[];
 }
 
-/** The item a text node belongs to; null where a token stays plain text. */
+/**
+ * The item to which a text node belongs. Null where a token stays plain text.
+ */
 type ItemContext = { checked: boolean; dated: boolean } | null;
 
 function isTicked(item: HtmlNode): boolean {
-  // The box is the item's first child, or the first child of its paragraph
+  // The box is the first child of the item, or the first child of its paragraph
   // when the list is spread.
   const [first] = item.children ?? [];
   const box = first?.tagName === "p" ? first.children?.[0] : first;
@@ -146,7 +148,7 @@ function chipDates(node: HtmlNode, item: ItemContext, today: string): void {
     const child = children[i];
     if (!child) continue;
     if (child.type === "text") {
-      // One chip an item: a second date in the same text is just text.
+      // One chip for each item. A second date in the same text is only text.
       const found =
         item && !item.dated ? findItemDate(child.value ?? "") : null;
       if (!item || !found) continue;
@@ -200,13 +202,13 @@ function itemDateChips(mode: RenderMode) {
 }
 
 /**
- * `allowDangerousHtml` is what lets `<u>`, `<sub>` and `<sup>` survive.
- * Without it `remark-rehype` drops every raw HTML node before DOMPurify is
- * ever asked, so the three tags our own formatting toolbar writes vanished
- * from previews while sitting in the allowlist below, apparently permitted.
+ * `allowDangerousHtml` lets `<u>`, `<sub>` and `<sup>` stay. Without it,
+ * `remark-rehype` drops each raw HTML node before DOMPurify gets it. Thus, the
+ * three tags that our own formatting toolbar writes disappeared from previews,
+ * while they were in the allowlist below and looked permitted.
  *
- * The "dangerous" is real and it is `renderMarkdown`'s job to answer: raw HTML
- * now reaches the sanitizer, which is the boundary that was always meant to
+ * The "dangerous" is real, and `renderMarkdown` must answer it. Raw HTML now
+ * reaches the sanitizer, which is the boundary that was always intended to
  * decide this. Nothing outside `ALLOWED_TAGS` / `ALLOWED_ATTR` gets through.
  */
 function makeProcessor(mode: RenderMode) {
@@ -228,31 +230,31 @@ const processors = {
 /**
  * Rendered HTML by source, most recently used last.
  *
- * Every card on the board renders its preview through here, and a card
- * re-renders for reasons that have nothing to do with its text: the editor
- * opening, a selection, a drag passing over it. The pipeline costs most of a
- * millisecond per block before DOMPurify, so a board of a hundred cards spent
- * a hundred milliseconds or more producing the HTML it already had. Big
- * enough to hold every block of a large board; a `Map` keeps insertion order,
- * so the first key is the one to evict.
+ * Each card on the board renders its preview through here, and a card renders
+ * again for reasons that are not related to its text: the editor opens, a
+ * selection, a drag over it. The pipeline costs most of a millisecond for each
+ * block before DOMPurify. Thus, a board of a hundred cards used a hundred
+ * milliseconds or more to make the HTML that it already had. Sufficiently big
+ * for each block of a large board. A `Map` keeps the insertion order. Thus, the
+ * first key is the key to remove.
  */
 const RENDER_CACHE_SIZE = 2000;
 const renderCache = new Map<string, string>();
 
 /**
- * Markdown to HTML, sanitized. Every caller feeds the result to
- * `dangerouslySetInnerHTML`, and note content can arrive from a shared link,
- * an imported file or a plugin, so sanitizing is part of rendering rather
- * than something each call site remembers to do. One of the three used to
- * forget the allowlist, and nothing said so.
+ * Markdown to HTML, sanitized. Each caller gives the result to
+ * `dangerouslySetInnerHTML`, and note content can come from a shared link, an
+ * imported file or a plugin. Thus, the sanitizer is part of the render, not a
+ * step that each call site must remember. Before, one of the three forgot the
+ * allowlist, and nothing told this.
  */
 export function renderMarkdown(md: string): string {
   return render(md, "document");
 }
 
 function render(md: string, mode: RenderMode): string {
-  // Only text that could hold a date token depends on the mode, and on the
-  // day: a chip turns overdue at midnight with no change to its source.
+  // Only text that could contain a date token depends on the mode and on the
+  // day. A chip becomes overdue at midnight with no change to its source.
   const key = md.includes("@")
     ? `${mode} ${localIsoDate(new Date())}\n${md}`
     : md;
@@ -274,14 +276,15 @@ function render(md: string, mode: RenderMode): string {
 }
 
 /**
- * The same rendering for a fragment that has to sit inside a line, such as a
- * checklist item's label, which lives next to its checkbox. A single wrapping
- * paragraph is unwrapped; anything block-shaped keeps its markup, since a
- * label that really does contain a list is better ugly than swallowed.
+ * The same render for a fragment that must be inside a line, for example the
+ * label of a checklist item, which is next to its checkbox. A single wrapping
+ * paragraph is unwrapped. All block content keeps its markup, because an ugly
+ * label that really contains a list is better than lost content.
  *
- * Checklist labels go through this so `**milk**` in an item renders bold, as
- * the same text does outside the list. `checked` says the fragment is such a
- * label, and whether its box is ticked, so a date in it is drawn as a chip.
+ * Checklist labels go through this. Thus, `**milk**` in an item renders bold,
+ * as the same text does outside the list. `checked` tells that the fragment is
+ * such a label, and if its box is ticked. Thus, a date in it is drawn as a
+ * chip.
  */
 export function renderInlineMarkdown(md: string, checked?: boolean): string {
   const html = render(

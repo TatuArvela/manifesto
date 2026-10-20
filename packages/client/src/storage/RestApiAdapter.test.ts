@@ -74,8 +74,9 @@ describe("RestApiAdapter", () => {
     });
 
     it("builds relative paths from an empty base, for a same-origin server", async () => {
-      // What `/` resolves to. `fetch` takes it from here against the page, so
-      // the client needs no hostname of its own and cannot have a stale one.
+      // What `/` resolves to. `fetch` takes it from here against the page.
+      // Thus, the client needs no hostname of its own, and cannot have a stale
+      // one.
       const sameOrigin = new RestApiAdapter("", "t", { sealer: plainSealing });
       fetchMock.mockResolvedValueOnce(jsonResponse({ notes: [] }));
       await sameOrigin.getAll();
@@ -514,9 +515,9 @@ describe("RestApiAdapter", () => {
   });
 
   describe("paging", () => {
-    // The app keeps every note in one signal (`allTags`, the tag counts and
-    // the whole filter chain are computed over the full list), so pages are a
-    // property of the wire and the adapter hands the caller all of them.
+    // The app keeps each note in one signal (`allTags`, the tag counts and the
+    // full filter chain are computed over the full list). Thus, pages are a
+    // property of the wire, and the adapter gives the caller all of them.
 
     it("follows the cursor until the server stops offering one", async () => {
       fetchMock
@@ -543,8 +544,8 @@ describe("RestApiAdapter", () => {
     });
 
     it("stops on an empty page rather than following its cursor", async () => {
-      // A page with nothing in it cannot be followed by a useful one, and a
-      // server that kept handing back the same cursor would spin forever.
+      // An empty page cannot have a useful page after it, and a server that
+      // continued to give back the same cursor would loop forever.
       fetchMock.mockResolvedValue(
         jsonResponse({ notes: [], nextCursor: "same-cursor-again" }),
       );
@@ -633,7 +634,9 @@ describe("RestApiAdapter", () => {
 });
 
 describe("image uploads", () => {
-  /** A stand-in for XMLHttpRequest that answers every upload with `status`. */
+  /**
+   * A replacement for XMLHttpRequest that answers each upload with `status`.
+   */
   function fakeXhr(
     status: number,
     ref = "attachment:01ARZ3NDEKTSV4RRFFQ69G5FAV",

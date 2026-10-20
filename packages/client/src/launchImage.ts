@@ -1,22 +1,23 @@
 /**
  * Gives iOS a picture of the loading screen to show while a home-screen launch
- * starts up.
+ * starts.
  *
- * Launched from the home screen, iOS shows a blank screen until the page
- * arrives, and nothing in the page can draw there: the only thing iOS puts up
- * in that time is an `apple-touch-startup-image`, which it takes when the app
- * is added to the home screen. So the page draws one, in Safari, from the
- * splash in index.html as it stands: the same logo, name and layout, at this
- * device's exact size (iOS ignores an image of any other size), with the
- * system font. Being drawn from the served page, it follows a rebranded
- * bundle's files with no build step.
+ * When an app starts from the home screen, iOS shows a blank screen until the
+ * page arrives, and nothing in the page can draw there. The only item that iOS
+ * shows in that time is an `apple-touch-startup-image`, which it takes when the
+ * app is added to the home screen. Thus, the page draws one in Safari, from the
+ * current splash in index.html: the same logo, name and layout, at the exact
+ * size of this device (iOS ignores an image of any other size), with the system
+ * font. It is drawn from the served page. Thus, it follows the files of a
+ * rebranded bundle with no build step.
  *
- * One image per orientation and system scheme. A home-screen app keeps its
- * own storage apart from Safari's, so it starts on the system theme whatever
- * the theme preference in Safari says, and the scheme is all that can differ.
+ * One image for each orientation and system scheme. A home-screen app keeps its
+ * own storage, separate from that of Safari. Thus, it starts on the system
+ * theme, whatever the theme preference in Safari says, and only the scheme can
+ * be different.
  */
 
-/** The splash's two themes, as index.html spells them. */
+/** The two themes of the splash, as index.html writes them. */
 const THEMES = {
   light: { background: "#ffffff", text: "#171717", invertLogo: false },
   dark: { background: "#171717", text: "#fafafa", invertLogo: true },
@@ -24,7 +25,7 @@ const THEMES = {
 
 type Theme = (typeof THEMES)[keyof typeof THEMES];
 
-/** Where the splash puts its logo and name, from the centre of the screen. */
+/** Where the splash puts its logo and name, from the center of the screen. */
 interface SplashLayout {
   logoSrc: string;
   logo: { dx: number; dy: number; width: number; height: number };
@@ -32,8 +33,8 @@ interface SplashLayout {
 }
 
 /**
- * Only Safari on iOS and iPadOS has `navigator.standalone`, and it is true
- * inside an app already on the home screen, which has no use for the image.
+ * Only Safari on iOS and iPadOS has `navigator.standalone`. It is true inside
+ * an app that is already on the home screen, which does not need the image.
  */
 function canBeAddedToHomeScreen(): boolean {
   const standalone = (navigator as { standalone?: boolean }).standalone;
@@ -41,8 +42,8 @@ function canBeAddedToHomeScreen(): boolean {
 }
 
 /**
- * Reads the splash's layout. Called at boot, while the splash is still there;
- * it is removed once the app is up.
+ * Reads the layout of the splash. Called at start, while the splash is still
+ * there. It is removed after the app is up.
  */
 function measureSplash(): SplashLayout | null {
   const splash = document.getElementById("splash");
@@ -73,9 +74,9 @@ function measureSplash(): SplashLayout | null {
 }
 
 /**
- * The logo as the dark splash shows it, `filter: invert(1)`, done with
- * compositing because Safari's canvas has no `filter`: white made the
- * difference of every pixel, then cut back to the logo's own shape.
+ * The logo as the dark splash shows it, `filter: invert(1)`, made with
+ * compositing, because the canvas of Safari has no `filter`: white is made the
+ * difference of each pixel, then cut back to the own shape of the logo.
  */
 function invertedLogo(logo: HTMLImageElement, width: number, height: number) {
   const canvas = document.createElement("canvas");
@@ -133,8 +134,9 @@ function addLink(href: string, media: string) {
 }
 
 /**
- * Draws the launch images and puts them in the page. The work is a few large
- * PNG encodes, so it waits until the app is up rather than competing with it.
+ * Draws the launch images, and puts them in the page. The work is a few large
+ * PNG encodes. Thus, it waits until the app is up, and does not compete with
+ * it.
  */
 export function offerLaunchImage(delayMs = 3000): void {
   if (!canBeAddedToHomeScreen()) return;
@@ -151,8 +153,8 @@ async function addLaunchImages(layout: SplashLayout): Promise<void> {
   } catch {
     return;
   }
-  // `screen` is the whole display in CSS pixels, and on iOS always the
-  // portrait way round.
+  // `screen` is the full display in CSS pixels, and on iOS always in portrait
+  // orientation.
   const short = Math.min(screen.width, screen.height);
   const long = Math.max(screen.width, screen.height);
   const scale = window.devicePixelRatio || 1;
@@ -176,8 +178,8 @@ async function addLaunchImages(layout: SplashLayout): Promise<void> {
           `(orientation: ${orientation}) and (prefers-color-scheme: ${scheme})`,
         );
       } catch {
-        // A canvas the logo tainted cannot be exported; iOS then shows its
-        // blank screen, as it did before.
+        // A canvas that the logo tainted cannot be exported. iOS then shows its
+        // blank screen, as before.
       }
     }
   }

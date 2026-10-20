@@ -6,19 +6,19 @@ import {
   type Transaction,
 } from "@milkdown/kit/prose/state";
 
-// Putting a whole block (a divider, a table) into the rich editor from the
-// toolbar. The raw-mode counterpart is `utils/rawBlockFormatting.ts`.
+// Puts a full block (a divider, a table) into the rich editor from the toolbar.
+// The raw-mode equivalent is `utils/rawBlockFormatting.ts`.
 
 /**
- * Puts `block` into the document at the top level, after the block the
- * selection is in, or in place of it when that is an empty paragraph.
+ * Puts `block` into the document at the top level, after the block that
+ * contains the selection, or in its place when that is an empty paragraph.
  *
- * Never at the caret itself: a divider dropped mid-sentence splits the
- * paragraph in two, and a table inside a list item has no Markdown that
- * reads back as the same thing. With `caretInside` the caret goes to the
- * block's first text position (a table's first cell), otherwise to the text
- * that follows it. When nothing follows, an empty paragraph is added, so the
- * caret always has somewhere to go on from the new block.
+ * Never at the caret itself. A divider in the middle of a sentence splits the
+ * paragraph in two, and a table inside a list item has no Markdown that reads
+ * back as the same thing. With `caretInside`, the caret goes to the first text
+ * position of the block (the first cell of a table). Otherwise, it goes to the
+ * text that follows it. When nothing follows, the code adds an empty paragraph.
+ * Thus, the caret always has a place to go after the new block.
  */
 export function insertBlock(
   state: EditorState,
@@ -32,7 +32,7 @@ export function insertBlock(
   let from: number;
   let to: number;
   if ($from.depth === 0 || $to.depth === 0) {
-    // A selected node or a gap cursor sits between top-level blocks already.
+    // A selected node or a gap cursor is already between top-level blocks.
     from = to = state.selection.to;
   } else {
     const current = $from.node(1);

@@ -45,8 +45,10 @@ export type ConnectionStatus = "idle" | "connecting" | "open" | "closed";
 
 export const connectionStatus = signal<ConnectionStatus>("idle");
 
-/** Every status write goes through here, so `connectionOutage` cannot drift
- * out of step with the socket it speaks for. */
+/**
+ * Each status write goes through here. Thus, `connectionOutage` always agrees
+ * with its socket.
+ */
 function setStatus(next: ConnectionStatus) {
   connectionStatus.value = next;
   trackConnection(next);
@@ -57,25 +59,25 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let backoffMs = 1000;
 const MAX_BACKOFF = 30_000;
 let lastViewedNoteId: string | null | undefined;
-// True after the first successful connection for the current auth token. A
-// fresh login starts at false; the first onopen flips it. Subsequent opens
-// (after onclose triggers a reconnect) trigger a notes re-fetch so any writes
-// that happened on another device while we were offline aren't missed.
+// True after the first successful connection for the current auth token. A new
+// login starts at false. The first onopen changes it. Later opens (after
+// onclose causes a reconnect) get the notes again. Thus, the client does not
+// miss writes that occurred on a different device while it was offline.
 let hasOpenedOnce = false;
 
 /**
- * How long the socket may stay silent before we stop believing it. A socket
- * that dies without a close (a network change, a sleep, a NAT forgetting it)
- * stays `OPEN` here until TCP gives up, which can take many minutes, and all
- * that time the banner says connected while nothing arrives. The server sends
- * `heartbeat` on an interval, so two missed beats and some slack is enough to
- * call it.
+ * How long the socket can stay silent before we stop to believe it. A socket
+ * that dies without a close (a network change, a sleep, a NAT that forgets it)
+ * stays `OPEN` here until TCP stops, which can take many minutes. During all
+ * that time, the banner says connected while nothing arrives. The server sends
+ * `heartbeat` at an interval. Thus, two missed beats and some spare time are
+ * sufficient to decide.
  */
 const SILENCE_LIMIT_MS = APP_SOCKET_HEARTBEAT_MS * 2.5;
 let lastHeardAt = 0;
-// Only a socket that has heard one heartbeat is held to the limit. A server
-// from before heartbeats sends none, and a quiet board would otherwise be
-// redialled every minute or so, forever.
+// The limit applies only to a socket that heard one heartbeat. A server from
+// before heartbeats sends none. If not, the client would connect again to a
+// quiet board approximately each minute, forever.
 let hearsHeartbeats = false;
 let watchdog: ReturnType<typeof setInterval> | null = null;
 
@@ -118,8 +120,10 @@ function isShareUser(value: unknown): boolean {
   );
 }
 
-/** The shape only: what an invitation shows is sealed, and is checked when
- * it is opened (`state/sharing.ts`). */
+/**
+ * Only the shape. What an invitation shows is sealed, and is checked when it is
+ * opened (`state/sharing.ts`).
+ */
 function isInvitation(value: unknown): value is ShareInvitation {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
@@ -150,11 +154,11 @@ function isComment(value: unknown): boolean {
 }
 
 /**
- * Discriminates on the payload, not just on `type`, the mirror of the
- * server's `isClientEvent`. Accepting anything with a string `type` narrowed
- * to the union without checking the fields the branches then read, so a
- * malformed `note:created` put `undefined` into the notes list and a card
- * threw during render.
+ * Discriminates on the payload, not only on `type`, as the `isClientEvent` of
+ * the server does. When it accepted each value with a string `type`, it
+ * narrowed to the union without a check of the fields that the branches then
+ * read. Thus, a malformed `note:created` put `undefined` into the notes list,
+ * and a card threw during render.
  */
 export function isServerEvent(value: unknown): value is WebSocketEvent {
   if (!value || typeof value !== "object") return false;
@@ -195,8 +199,10 @@ export function isServerEvent(value: unknown): value is WebSocketEvent {
   }
 }
 
-/** What an event is about: events about one note wait for each other, and
- * for nothing else. */
+/**
+ * The subject of an event. Events about one note wait for each other, and for
+ * nothing else.
+ */
 function subjectOf(event: Exclude<WebSocketEvent, { type: "heartbeat" }>) {
   switch (event.type) {
     case "note:created":
@@ -217,31 +223,32 @@ function subjectOf(event: Exclude<WebSocketEvent, { type: "heartbeat" }>) {
 }
 
 /**
- * The last event being applied for each subject. A note arrives sealed, and
- * opening it takes a moment (a request, when its key is offered), so events
- * about the same note wait for each other: a deletion must not overtake the
- * update before it. Another note's events do not wait behind a slow one.
+ * The last event that applies for each subject. A note arrives sealed, and its
+ * open takes a short time (a request, when its key is offered). Thus, events
+ * about the same note wait for each other: a deletion must not come before the
+ * update before it. The events of a different note do not wait behind a slow
+ * one.
  */
 const applying = new Map<string, Promise<void>>();
 
 /**
- * Raised each time a reconnect starts catching up through `syncNotes`. An
- * event the socket before it delivered may still be opening when the sync
- * has already dropped its note; that event is older than the sync, so it may
- * refresh a note still held but never bring one back.
+ * Increased each time a reconnect starts a catch-up through `syncNotes`. An
+ * event that the previous socket delivered can still be in its open when the
+ * sync already dropped its note. That event is older than the sync. Thus, it
+ * can refresh a note that is still held, but never bring one back.
  */
 let catchUps = 0;
 
 function queueServerEvent(event: WebSocketEvent) {
-  // A heartbeat is about the socket, not the notes: it waits for nothing, or
-  // a slow note would have a live socket taken for a silent one.
+  // A heartbeat is about the socket, not the notes. It waits for nothing. If
+  // not, a slow note would make a live socket look silent.
   if (event.type === "heartbeat") {
     hearsHeartbeats = true;
     return;
   }
   const subject = subjectOf(event);
-  // Sent to the session that was unlocked when it arrived: one locked or
-  // signed out since does not apply it under whoever comes next.
+  // Sent to the session that was unlocked when it arrived. A session that was
+  // locked or signed out after that does not apply it for the next user.
   const session = sealer.peek();
   const heardAt = catchUps;
   const next = (applying.get(subject) ?? Promise.resolve())
@@ -259,12 +266,12 @@ async function applyServerEvent(event: WebSocketEvent, heardAt: number) {
   switch (event.type) {
     case "note:created":
     case "note:updated": {
-      // Null while locked, and for a note whose key did not open: either
-      // way there is nothing readable to show.
+      // Null while locked, and for a note whose key did not open. In both
+      // cases, there is nothing readable to show.
       const note = await sealer.peek()?.open(event.note);
       if (!note) break;
-      // Overtaken by a catch-up while it opened: one the sync dropped stays
-      // dropped.
+      // A catch-up came before it while it opened. A note that the sync dropped
+      // stays dropped.
       const stale = heardAt !== catchUps;
       if (stale && !notes.peek().some((n) => n.id === note.id)) break;
       receiveNote(note);
@@ -305,8 +312,10 @@ function send(event: WebSocketClientEvent) {
   }
 }
 
-/** Let go of the current socket: stop hearing it, and close it if the browser
- * has not already. */
+/**
+ * Release the current socket: stop to listen to it, and close it if the browser
+ * did not already.
+ */
 function dropSocket() {
   stopWatchdog();
   if (!socket) return;
@@ -326,23 +335,23 @@ function dropSocket() {
 function disconnect() {
   clearReconnect();
   dropSocket();
-  // "idle", not "closed": this runs when the token changes, so we are not
-  // failing to reach the server, we are not asking. A logout that reported an
-  // outage would be reporting one that nobody is waiting to end.
+  // "idle", not "closed". This runs when the token changes. Thus, we do not
+  // fail to reach the server. We do not ask. A logout that reported an outage
+  // would report an outage for whose end nobody waits.
   setStatus("idle");
   clearPresence();
   lastViewedNoteId = undefined;
-  // Reset the "has opened once" flag: a token change (logout, re-login as a
-  // different user) starts a fresh session that should NOT trigger the
-  // reconnect-refetch on its first open.
+  // Reset the "has opened once" flag. A token change (logout, a new login as a
+  // different user) starts a new session, which must NOT cause the reconnect
+  // fetch on its first open.
   hasOpenedOnce = false;
 }
 
 function connect(token: string) {
   if (WS_ORIGIN === null) return;
   setStatus("connecting");
-  // A new socket has not been heard from, and owes nothing to what the last
-  // one heard.
+  // A new socket did not send anything yet, and owes nothing to what the last
+  // socket heard.
   hearsHeartbeats = false;
   const ws = new WebSocket(`${WS_ORIGIN}/api/v1/ws`, [SUBPROTOCOL, token]);
   socket = ws;
@@ -354,8 +363,8 @@ function connect(token: string) {
     stopWatchdog();
     watchdog = setInterval(() => {
       if (!hasGoneSilent()) return;
-      // Closing it would wait on a closing handshake nobody will answer, so
-      // let go of it and take the path a close would have taken.
+      // A close would wait for a closing handshake that nobody will answer.
+      // Thus, release it, and take the path that a close would have taken.
       dropSocket();
       lost(1006);
     }, APP_SOCKET_HEARTBEAT_MS / 2);
@@ -363,16 +372,15 @@ function connect(token: string) {
       send({ type: "presence:update", noteId: lastViewedNoteId });
     }
     if (hasOpenedOnce) {
-      // Reconnect path: only WS-bound state caught up via fan-out events. We
-      // missed everything that happened while offline, so ask for what
-      // changed since the last read (`syncNotes`, which lists everything when
-      // it cannot). `receiveNote` keeps the notes that did not change and
-      // handles any racing events that arrive between this fire and the
-      // response.
+      // The reconnect path. Only the WS state got updates through fan-out
+      // events. We missed all that occurred while offline. Thus, ask for what
+      // changed since the last read (`syncNotes`, which lists all notes when it
+      // cannot). `receiveNote` keeps the notes that did not change, and handles
+      // events that race and arrive between this fire and the response.
       catchUps++;
       syncNotes().catch(() => {
-        // Network blip during the catch-up fetch is fine; the next user
-        // action or full reload will retry.
+        // A network problem during the catch-up fetch is acceptable. The next
+        // user action or full reload tries again.
       });
       void loadInvitations();
       void refreshAccountPrefs();
@@ -398,7 +406,7 @@ function connect(token: string) {
   ws.onclose = (event) => lost(event.code);
 
   ws.onerror = () => {
-    // onclose will follow with the reconnect logic
+    // onclose follows, with the reconnect logic.
   };
 }
 
@@ -408,15 +416,16 @@ function lost(code: number) {
   socket = null;
   setStatus("closed");
   if (code === 4401) {
-    // server rejected our token, so drop local auth so the user re-logs in
+    // The server refused our token. Thus, drop the local auth, so that the user
+    // logs in again.
     clearAuthLocal();
     return;
   }
   if (authToken.value) {
     backoffMs = Math.min(MAX_BACKOFF, backoffMs * 2);
     reconnectTimer = setTimeout(() => {
-      // Re-read the token at fire time: the user could have logged out
-      // (or had a token swap) between scheduling and this callback.
+      // Read the token again at fire time. The user could have logged out (or
+      // had a token change) between the schedule and this callback.
       const current = authToken.value;
       if (current) connect(current);
     }, backoffMs);
@@ -424,26 +433,27 @@ function lost(code: number) {
 }
 
 /**
- * Dial now rather than waiting the backoff out, because something just told us
- * the network is worth another try: the app came back to the foreground, or
- * the browser went back online.
+ * Connect now, and do not wait for the end of the backoff, because something
+ * just said that the network is worth another try: the app came back to the
+ * foreground, or the browser went back online.
  *
- * An app resumed from the background comes back to a socket the browser closed
- * while the page was frozen, and to a backoff that the retries it did manage
- * in between may have grown to {@link MAX_BACKOFF}. Left alone, the notes list
- * would then stay stale, and the banner up, for half a minute after the app
- * was already on screen.
+ * An app that resumes from the background comes back to a socket that the
+ * browser closed while the page was frozen. It also comes back to a backoff
+ * that its retries in the meantime possibly made as long as {@link
+ * MAX_BACKOFF}. Without this, the notes list would stay stale, and the banner
+ * open, for half a minute after the app was already on the screen.
  */
 function reconnectNow() {
   if (!isServerMode) return;
   const token = authToken.value;
   if (!token) return;
-  // A socket that is open, or still dialling, is doing its job. One the browser
-  // has closed under us is not, and its `onclose` may not have reached us yet:
-  // a resume can deliver the visibility change first, and waiting for the close
-  // would put us back on the very backoff we came here to skip. One that says
-  // it is open but has not been heard from in too long is not either: a page
-  // frozen for an hour had no timer running to notice.
+  // A socket that is open, or still connects, does its job. A socket that the
+  // browser closed does not, and its `onclose` possibly did not reach us yet. A
+  // resume can deliver the visibility change first, and a wait for the close
+  // would put us back on the same backoff that we came here to skip. A socket
+  // that says that it is open, but that sent nothing for too long, also does
+  // not do its job. A page that was frozen for one hour had no timer that could
+  // see it.
   if (
     socket &&
     socket.readyState !== WebSocket.CLOSED &&
@@ -460,14 +470,14 @@ function reconnectNow() {
 
 let started = false;
 
-/** Wire the WS client to auth + editor signals. Idempotent. */
+/** Connect the WS client to the auth and editor signals. Idempotent. */
 export function startAppSocket(): void {
   if (started) return;
   started = true;
 
-  // Only the token is this effect's business. Connecting writes status, and
-  // anything that reads a signal on the way would otherwise become a reason to
-  // tear the socket down and dial again.
+  // Only the token concerns this effect. A connection writes status. If code
+  // read a signal on the way, that would otherwise become a reason to close the
+  // socket and connect again.
   effect(() => {
     const token = authToken.value;
     untracked(() => {

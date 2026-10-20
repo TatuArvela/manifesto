@@ -13,10 +13,10 @@ import {
 import { useEscapeStack } from "./useEscapeStack.ts";
 
 /**
- * Where a press does something of its own, so a drag starting there is not a
- * selection. Cards are listed explicitly because a card is also a native drag
- * source for reordering; `[tabindex]` catches the custom controls, such as the
- * create-note stack, that are not buttons.
+ * Where a press does something of its own. Thus, a drag that starts there is
+ * not a selection. Cards are listed explicitly, because a card is also a native
+ * drag source for the reorder. `[tabindex]` catches the custom controls that
+ * are not buttons, for example the create-note stack.
  */
 const IGNORE_SELECTOR = [
   "a",
@@ -30,12 +30,12 @@ const IGNORE_SELECTOR = [
   '[role="button"]',
   '[role="dialog"]',
   ".note-draggable-wrapper",
-  // A view with no notes to select, where a drag should select text instead:
-  // the admin view shows a temporary password that has to be copyable.
+  // A view with no notes to select, where a drag must select text. The admin
+  // view shows a temporary password that you must be able to copy.
   "[data-marquee-ignore]",
 ].join(",");
 
-/** Movement before a press becomes a drag, so a click stays a click. */
+/** The movement before a press becomes a drag. Thus, a click stays a click. */
 const THRESHOLD_PX = 4;
 
 function sameSet(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
@@ -45,22 +45,22 @@ function sameSet(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
 }
 
 /**
- * Drag-to-select on the note grid: press on empty space inside `containerRef`
- * and drag, and every card the box touches is selected, live, into the same
- * selection the per-card checkboxes build. Shift or Cmd/Ctrl adds to the
- * current selection instead of replacing it; Escape puts back what was
- * selected before the drag. Holding the pointer near the top or bottom edge
- * scrolls, so the box can reach notes that are off screen.
+ * Drag-to-select on the note grid. Push on empty space inside `containerRef`
+ * and drag. Each card that the box touches is selected, live, into the same
+ * selection that the checkboxes of the cards build. Shift or Cmd/Ctrl adds to
+ * the current selection, and does not replace it. Escape restores the selection
+ * from before the drag. When you hold the pointer near the top or bottom edge,
+ * the grid scrolls. Thus, the box can reach notes that are off the screen.
  *
- * A press on the same empty space that is not a drag clears the selection,
- * the way clicking beside the files in a file manager does, unless Shift or
- * Cmd/Ctrl is held.
+ * A press on the same empty space without a drag clears the selection, as a
+ * click next to the files in a file manager does, unless Shift or Cmd/Ctrl is
+ * held.
  *
- * The box is mouse only. On touch the same press is a scroll, and long-press
- * already selects, but a tap still clears.
+ * The box is only for the mouse. On touch, the same press is a scroll, and a
+ * long press already selects. But a tap still clears.
  *
  * Returns the box to draw, in viewport coordinates and clipped to the
- * container, or null when no drag is under way.
+ * container, or null when no drag is in progress.
  */
 export function useMarqueeSelection(
   containerRef: RefObject<HTMLElement | null>,
@@ -82,9 +82,9 @@ export function useMarqueeSelection(
       // A press on the scrollbar is a scroll.
       if (down.clientX - origin.left >= container.clientWidth) return;
 
-      // Kept in the container's scrolled content coordinates rather than the
-      // viewport's, so the corner the drag began at stays pinned to the notes
-      // under it while the container scrolls.
+      // Kept in the scrolled content coordinates of the container, not those of
+      // the viewport. Thus, the corner where the drag started stays on the
+      // notes under it while the container scrolls.
       const toContent = (clientX: number, clientY: number) => {
         const rect = container.getBoundingClientRect();
         return {
@@ -116,8 +116,8 @@ export function useMarqueeSelection(
           bottom: content.bottom + dy,
         };
 
-        // The same notes "select all" takes: auto-notes are read-only, and
-        // nothing a bulk action does applies to them.
+        // The same notes as "select all" takes. Auto-notes are read-only, and
+        // no bulk action applies to them.
         const selectable = new Set(
           sortedNotes
             .peek()
@@ -153,8 +153,8 @@ export function useMarqueeSelection(
         const before = container.scrollTop;
         container.scrollTop += edgeScrollStep(pointer.y, rect.top, rect.bottom);
         update();
-        // Keep scrolling for as long as the pointer is held at the edge and
-        // there is further to go; a pointer that stops moving sends no events.
+        // Continue to scroll while the pointer is held at the edge and there is
+        // more to go. A pointer that stops sends no events.
         if (container.scrollTop !== before) {
           frame = requestAnimationFrame(tick);
         }
@@ -172,7 +172,7 @@ export function useMarqueeSelection(
           moved = true;
           if (!canDraw) return;
           active = true;
-          // Otherwise the drag also paints a text selection across the page.
+          // If not, the drag also paints a text selection across the page.
           document.getSelection()?.removeAllRanges();
           document.body.classList.add("marquee-active");
         }

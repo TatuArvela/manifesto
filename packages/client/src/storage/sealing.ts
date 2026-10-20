@@ -67,26 +67,25 @@ import {
 } from "./linkSealing.ts";
 
 /**
- * Sealing and opening for everything that crosses to the server in connected
- * mode (`docs/specification/features/encryption.md`). A note is sealed here
- * before it leaves and opened here when it arrives, so nothing above the
- * storage layer ever holds a ciphertext, and nothing below it a readable
- * note.
+ * The seal and open of all data that goes to the server in connected mode
+ * (`docs/specification/features/encryption.md`). A note is sealed here before
+ * it goes out, and opened here when it arrives. Thus, no code above the storage
+ * layer ever has a ciphertext, and no code below it has a readable note.
  */
 
-/** The unlocked account's key, as the device holds it. */
+/** The key of the unlocked account, as the device has it. */
 export interface StorageKeys {
   userId: string;
   /** The version of the account key. */
   version: number;
-  /** Derives, and cannot be read out. */
+  /** It derives, and cannot be read out. */
   accountKey: CryptoKey;
 }
 
 /**
- * Set by `state/account/accountKeys.ts` while the account is unlocked, and
- * null otherwise. Pushed in for the same reason as `storageConnection`:
- * storage never imports the state that knows about unlocking.
+ * Set by `state/account/accountKeys.ts` while the account is unlocked, and null
+ * otherwise. Pushed in for the same reason as `storageConnection`: storage
+ * never imports the state that knows about the unlock.
  */
 export const storageKeys = signal<StorageKeys | null>(null);
 
@@ -98,7 +97,7 @@ export class LockedError extends Error {
   }
 }
 
-/** A note whose key this device has not opened, so it cannot be written. */
+/** A note whose key this device did not open. Thus, it cannot be written. */
 export class NoteKeyError extends Error {
   constructor(public readonly noteId: string) {
     super("The note's key could not be opened");
@@ -106,22 +105,26 @@ export class NoteKeyError extends Error {
   }
 }
 
-/** What is known of a note's key: the key to use, and its wrapped copy as
- * the server holds it. */
+/**
+ * What is known of the key of a note: the key to use, and its wrapped copy as
+ * the server has it.
+ */
 interface HeldNoteKey {
   key: NoteSealKey;
   wrapped: string;
   /** The keys before this one, as the note carries them sealed. */
   previous: string;
-  /** Those keys opened, the first time something under one is read. */
+  /** Those keys opened, the first time that code reads something under one. */
   older?: Promise<ReadonlyMap<number, NoteSealKey>>;
 }
 
-/** How many notes of a listing are being opened at any moment. */
+/** How many notes of a listing are in their open at each moment. */
 const OPENED_AT_ONCE = 8;
 
-/** A note's key, and the ones it was under before: what opens anything
- * written beside the note, whenever it was written. */
+/**
+ * The key of a note, and its previous keys. Together, they open all data
+ * written next to the note, whenever it was written.
+ */
 export interface NoteKeyRing {
   key: NoteSealKey;
   older: ReadonlyMap<number, NoteSealKey>;
@@ -133,7 +136,7 @@ function ringKey(ring: NoteKeyRing, version: number): NoteSealKey | null {
     : (ring.older.get(version) ?? null);
 }
 
-/** Puts `id` in the set `held` holds, or takes it out. */
+/** Puts `id` in the set that `held` has, or removes it. */
 function toggleIn(
   held: Signal<ReadonlySet<string>>,
   id: string,
@@ -148,58 +151,64 @@ function toggleIn(
 }
 
 /**
- * One unlocked account's sealing. It remembers the key of every note it has
- * opened, so a change to a note is sealed without unwrapping its key again;
- * the keys themselves cannot be read out of it.
+ * The sealing of one unlocked account. It remembers the key of each note that
+ * it opened. Thus, it seals a change to a note without a new unwrap of its key.
+ * Nobody can read the keys themselves out of it.
  */
 export class Sealer {
   private readonly account: Promise<AccountSealKeys>;
   /** Wraps the key of each note that has a reminder, for a calendar feed. */
   private readonly reminders: Promise<CryptoKey>;
   private readonly noteKeys = new Map<string, HeldNoteKey>();
-  /** What opens each image this device has met, by its reference. */
+  /** What opens each image that this device saw, by its reference. */
   private readonly images: ImageKeyRing;
-  /** Whether a note's images have to be made its owner's before it names
-   * them (`POST /api/v1/attachments/claim`). */
+  /**
+   * If the images of a note must be made the property of its owner before it
+   * names them (`POST /api/v1/attachments/claim`).
+   */
   readonly claimsImages: boolean = true;
-  /** Whether a shared note's key is wrapped for the people on it. */
+  /** If the key of a shared note is wrapped for the persons on it. */
   readonly handsKeysOn: boolean = true;
   private readonly keys: StorageKeys;
-  /** The account's private keys, opened the first time one is needed. */
+  /**
+   * The private keys of the account, opened the first time that code needs one.
+   */
   private readonly privateKeys: PrivateKeys;
-  /** Notes that arrived and did not open, by id: what the board says it
-   * is not showing (`UnopenedNotes`). */
+  /**
+   * Notes that arrived and did not open, by id: what the board says that it
+   * does not show (`UnopenedNotes`).
+   */
   readonly unreadable = signal<ReadonlySet<string>>(new Set());
   /**
-   * Notes that arrived in a format newer than this build reads, by id: saved
-   * by a newer version of the app, so this one has to be reloaded to show
+   * Notes that arrived in a format newer than this build reads, by id. A newer
+   * version of the app saved them. Thus, this version must be reloaded to show
    * them (`UnopenedNotes`).
    */
   readonly newer = signal<ReadonlySet<string>>(new Set());
-  /** Those of both kinds this account owns. */
+  /** The notes of both kinds that this account owns. */
   private readonly unopenedOwn = new Set<string>();
-  /** The format each note opened here is stored in. */
+  /** The format in which each note opened here is stored. */
   private readonly formats = new Map<string, number>();
   /**
-   * The notes this account owns that are due a new key: someone who held
-   * the one they are under no longer holds the note.
+   * The notes that this account owns that need a new key: a person who had
+   * their current key does not have the note now.
    */
   readonly due = signal<ReadonlySet<string>>(new Set());
   /**
-   * The notes with a reminder that a calendar feed cannot name yet: no copy
-   * of their key is under this account's reminder key. A reminder set by a
-   * script leaves one so, and so does a replaced note key.
+   * The notes with a reminder that a calendar feed cannot name yet: no copy of
+   * their key is under the reminder key of this account. A reminder that a
+   * script set leaves a note in this state, and so does a replaced note key.
    */
   readonly feedDue = signal<ReadonlySet<string>>(new Set());
   /**
-   * The key version of each note whose key was replaced while it was open
-   * here, so that whatever holds the old key (a live document) starts again.
+   * The key version of each note whose key was replaced while it was open here.
+   * Thus, all that has the old key (a live document) starts again.
    */
   readonly replaced = signal<ReadonlyMap<string, number>>(new Map());
   /**
-   * Whether a whole listing has been opened, so the key of every note the
-   * account holds is at hand. An import needs that before it seals: a note
-   * already there is written over under the key it has.
+   * If a full listing was opened. Thus, the key of each note of the account is
+   * available. An import needs that before it seals, because a note that is
+   * already there is written over under its current key.
    */
   complete = false;
 
@@ -217,9 +226,9 @@ export class Sealer {
   }
 
   /**
-   * The key of a note this account holds, wrapped to `recipient`'s public
-   * key and signed as this account. Null when the private keys could not be
-   * opened; rejects with `NoteKeyError` for a note whose key is not held.
+   * The key of a note of this account, wrapped to the public key of `recipient`
+   * and signed as this account. Null when the private keys could not open.
+   * Rejects with `NoteKeyError` for a note whose key is not held.
    */
   async offerKey(
     noteId: string,
@@ -243,14 +252,14 @@ export class Sealer {
   }
 
   /**
-   * Takes a key offered to this account. It is used only if its signature
-   * checks against `signerKey`, the signing key of the account it says
-   * wrapped it; then it is opened and wrapped under this account's own notes
-   * key, which is what is handed back to store. Null for one that does not
-   * check or does not open, and for one that is not the key of `words`, the
-   * note's sealed fields as the server sent them: the signature says who
-   * wrapped a key, not that it is the note's, and anyone on the note may
-   * wrap one.
+   * Takes a key offered to this account. The code uses it only if its signature
+   * passes the check against `signerKey`, the signing key of the account that
+   * it says wrapped it. Then the code opens it, and wraps it under the own
+   * notes key of this account, which it gives back to store. Null for a key
+   * that does not pass the check or does not open. Also null for a key that is
+   * not the key of `words`, the sealed fields of the note as the server sent
+   * them. The signature tells who wrapped a key, not that it is the key of the
+   * note, and all persons on the note can wrap one.
    */
   async adoptOffered(
     noteId: string,
@@ -273,8 +282,8 @@ export class Sealer {
   }
 
   /**
-   * What an invitation shows of its note, opened with the key adopted for
-   * it. Null when no key for the note at `keyVersion` is held.
+   * What an invitation shows of its note, opened with the key adopted for it.
+   * Null when no key for the note at `keyVersion` is held.
    */
   async openPreview(
     noteId: string,
@@ -291,34 +300,40 @@ export class Sealer {
     return { title, content, font };
   }
 
-  /** An image sealed for upload. Rejects with `ImageKindError` for a file
-   * that is not an image a note may hold. */
+  /**
+   * An image sealed for upload. Rejects with `ImageKindError` for a file that
+   * is not an image that a note can contain.
+   */
   sealUpload(image: Blob): Promise<ImageUpload> {
     return this.images.seal(image);
   }
 
-  /** Keeps what opens the image the server has just named `ref`. */
+  /** Keeps what opens the image that the server just named `ref`. */
   keepImageKey(ref: string, key: ImageKey | null): void {
     this.images.keep(ref, key);
   }
 
-  /** What opens the image `ref` names, or null when this device has none. */
+  /**
+   * What opens the image that `ref` names, or null when this device has none.
+   */
   imageKeyOf(ref: string): ImageKey | null {
     return this.images.keyOf(ref);
   }
 
-  /** `to` is the same sealed image as `from`, stored again for a note's
-   * owner. */
+  /**
+   * `to` is the same sealed image as `from`, stored again for the owner of a
+   * note.
+   */
   sameImage(from: string, to: string): void {
     this.images.same(from, to);
   }
 
-  /** The image `ref` names, from its sealed bytes. */
+  /** The image that `ref` names, from its sealed bytes. */
   openDownload(ref: string, sealed: Blob): Promise<Blob> {
     return this.images.open(ref, sealed);
   }
 
-  /** Keeps a note's key, and says so when it is not the one held before. */
+  /** Keeps the key of a note, and tells when it is not the key held before. */
   private hold(id: string, held: HeldNoteKey): void {
     const before = this.noteKeys.get(id);
     this.noteKeys.set(id, held);
@@ -329,8 +344,10 @@ export class Sealer {
     }
   }
 
-  /** A held note key wrapped under the reminder key: the copy a calendar
-   * feed opens the note with. */
+  /**
+   * A held note key wrapped under the reminder key: the copy with which a
+   * calendar feed opens the note.
+   */
   private async wrappedForFeed(id: string, held: HeldNoteKey): Promise<string> {
     const account = await this.account;
     const raw = await unwrapNoteKey(
@@ -354,8 +371,8 @@ export class Sealer {
   }
 
   /**
-   * The copy of a note's key for this account's calendar feeds, to store
-   * with a note that has a reminder and none yet.
+   * The copy of the key of a note for the calendar feeds of this account, to
+   * store with a note that has a reminder and no copy yet.
    */
   async feedKey(
     id: string,
@@ -364,8 +381,10 @@ export class Sealer {
     return this.wrappedForFeed(id, await this.keyOf(id, fetch));
   }
 
-  /** The note as its reader sees it, in the current format; null when its
-   * key does not open, or it is in a format newer than this build reads. */
+  /**
+   * The note as its reader sees it, in the current format. Null when its key
+   * does not open, or when it is in a format newer than this build reads.
+   */
   async open(sealed: SealedNote): Promise<Note | null> {
     const owned = (sealed.sharing?.role ?? "owner") === "owner";
     if (isNewerNoteFormat(sealed.format)) {
@@ -375,8 +394,8 @@ export class Sealer {
     }
     toggleIn(this.newer, sealed.id, false);
     const account = await this.account;
-    // No copy of the key of their own, and one offered: taken first, unless
-    // it was taken already and the server has not stored the copy yet.
+    // No copy of the key of their own, and one offered: take it first, unless
+    // it was already taken and the server did not store the copy yet.
     if (
       sealed.key === "" &&
       sealed.offered &&
@@ -389,9 +408,9 @@ export class Sealer {
     const opened = await openSealedNote(
       account,
       sealed,
-      // The same wrapped copy as last time, or a key just taken from an
-      // offer, which the server does not hold yet: no need to unwrap. A key
-      // of another version is not the note's any more.
+      // The same wrapped copy as last time, or a key just taken from an offer,
+      // which the server does not have yet: no unwrap is necessary. A key of a
+      // different version is not the key of the note now.
       known &&
         known.key.version === sealed.keyVersion &&
         (known.wrapped === sealed.key || sealed.key === "")
@@ -399,8 +418,8 @@ export class Sealer {
         : undefined,
     );
     if (!opened) {
-      // Under a key that was replaced, and the new one not here yet: the
-      // old one seals nothing more.
+      // Under a key that was replaced, and the new key is not here yet. The old
+      // key seals nothing more.
       if (known && known.key.version !== sealed.keyVersion) {
         this.noteKeys.delete(sealed.id);
       }
@@ -415,7 +434,7 @@ export class Sealer {
       known.wrapped === sealed.key &&
       known.previous === previous
     ) {
-      // As held already: kept, with the earlier keys it has opened.
+      // As already held: kept, with the earlier keys that it opened.
     } else if (sealed.key !== "") {
       this.hold(sealed.id, { key: opened.key, wrapped: sealed.key, previous });
     } else if (known && known.previous !== previous) {
@@ -439,7 +458,7 @@ export class Sealer {
     return opened.note;
   }
 
-  /** Every note of a listing that opens, in order, a few at a time. */
+  /** Each note of a listing that opens, in order, a few at a time. */
   async openAll(sealed: SealedNote[]): Promise<Note[]> {
     const opened = new Array<Note | null>(sealed.length).fill(null);
     let next = 0;
@@ -460,18 +479,22 @@ export class Sealer {
     this.complete = true;
   }
 
-  /** Whether a note of this id has been opened here. */
+  /** If a note with this id was opened here. */
   holds(id: string): boolean {
     return this.noteKeys.has(id);
   }
 
-  /** Whether a note this account owns arrived and did not open: a backup
-   * made now would be without it. */
+  /**
+   * If a note that this account owns arrived and did not open. A backup made
+   * now would not include it.
+   */
   missesOwnNotes(): boolean {
     return this.unopenedOwn.size > 0;
   }
 
-  /** A note's key no longer applies: it was deleted, or taken away. */
+  /**
+   * The key of a note does not apply now: the note was deleted, or taken away.
+   */
   forget(id: string): void {
     this.noteKeys.delete(id);
     this.unopenedOwn.delete(id);
@@ -498,8 +521,8 @@ export class Sealer {
   }
 
   /**
-   * The key of a note already on the server. `fetch` reads the note when
-   * this device has not opened it yet.
+   * The key of a note that is already on the server. `fetch` reads the note
+   * when this device did not open it yet.
    */
   private async keyOf(
     id: string,
@@ -529,7 +552,7 @@ export class Sealer {
     throw new NoteKeyError(id);
   }
 
-  /** A note's key with the ones before it, opened once and kept. */
+  /** The key of a note with its previous keys, opened one time and kept. */
   private async ringOf(
     id: string,
     fetch: () => Promise<SealedNote | null>,
@@ -548,11 +571,11 @@ export class Sealer {
   }
 
   /**
-   * The note under a new key, for its owner to send: what everyone on the
-   * note shares sealed again as it is, the new key wrapped for this account,
-   * the keys before it sealed under it, and the new key wrapped for each
-   * live public link. Null when the note does not open here, and then
-   * nothing is replaced. `commit` is called once the server has taken it.
+   * The note under a new key, for its owner to send. All that the persons on
+   * the note share is sealed again as it is. The new key is wrapped for this
+   * account, the previous keys are sealed under it, and the new key is wrapped
+   * for each live public link. Null when the note does not open here. Then
+   * nothing is replaced. `commit` is called after the server took it.
    */
   async rekey(
     sealed: SealedNote,
@@ -573,8 +596,8 @@ export class Sealer {
     const previous = await openPreviousKeys(from, id, sealed.previousKeys);
     previous.set(sealed.keyVersion, oldRaw);
     try {
-      // A note with keys before this one that do not open is left alone:
-      // replacing the key would lose what they opened.
+      // The code does not change a note with previous keys that do not open. A
+      // replacement of the key would lose what they opened.
       if (sealed.previousKeys && previous.size < 2) return null;
       const key = await noteSealKey(raw, version);
       const fields = await resealSharedFields(from, key, id, sealed);
@@ -585,7 +608,7 @@ export class Sealer {
       for (const link of links) {
         if (link.mode !== "live") continue;
         const linkKey = await this.openLinkKey(id, link.sealedLinkKey);
-        // A link whose key does not open here stops opening the note.
+        // A link whose key does not open here stops to open the note.
         if (!linkKey) continue;
         rewrapped.push({
           token: link.token,
@@ -600,8 +623,8 @@ export class Sealer {
           ...fields,
           ...(rewrapped.length > 0 && { links: rewrapped }),
         },
-        // Under its new key the note is not due one, which the next read
-        // would only say again.
+        // Under its new key, the note does not need a new key, which the next
+        // read would only say again.
         commit: () => {
           this.hold(id, { key, wrapped, previous: previousKeys });
           toggleIn(this.due, id, false);
@@ -614,10 +637,10 @@ export class Sealer {
   }
 
   /**
-   * `changes`, with every word of the note when it is stored in an older
-   * format than this build writes and they change any: the server keeps one
-   * format for all of a note's words, so the rest come from the note as it
-   * is read now, brought up to date.
+   * `changes`, with all words of the note when it is stored in a format older
+   * than this build writes and they change one of them. The server keeps one
+   * format for all words of a note. Thus, the other words come from the note as
+   * it is read now, updated.
    */
   private async inCurrentFormat(
     id: string,
@@ -649,21 +672,21 @@ export class Sealer {
       await this.inCurrentFormat(id, changes, fetch),
       this.images.byRef,
     );
-    // A reminder being set: the note's key goes under the reminder key with
-    // it, so a calendar feed can name the event.
+    // A reminder is set. The key of the note goes under the reminder key with
+    // it. Thus, a calendar feed can name the event.
     if (changes.reminder) {
       sealed.reminderKey = await this.wrappedForFeed(id, held);
     }
-    // Words under the note key say which one, so the server can refuse
-    // them once the note has left it.
+    // Words under the note key tell which key. Thus, the server can refuse them
+    // after the note went away from that key.
     const shared = SEALED_SHARED_NOTE_FIELDS.some((field) => field in sealed);
     return shared ? { ...sealed, keyVersion: key.version } : sealed;
   }
 
   /**
-   * A whole note written over one this account already holds, as an import
-   * does: under the key the note has, so its versions and its document stay
-   * readable.
+   * A full note written over a note that this account already has, as an import
+   * does. Under the current key of the note. Thus, its versions and its
+   * document stay readable.
    */
   async sealOver(id: string, note: NoteCreate): Promise<SealedNoteCreate> {
     const held = this.noteKeys.get(id);
@@ -708,7 +731,7 @@ export class Sealer {
     } as SealedNoteCreate;
   }
 
-  /** A version to add to a note's history. */
+  /** A version to add to the history of a note. */
   async sealVersion(
     noteId: string,
     version: Pick<NoteVersion, "title" | "content"> & { timestamp?: string },
@@ -723,8 +746,10 @@ export class Sealer {
     };
   }
 
-  /** The versions that open, newest first as they came: each with the key
-   * it was written under, the note's or one before it. */
+  /**
+   * The versions that open, newest first as they came, each with the key under
+   * which it was written: that of the note, or a previous key.
+   */
   async openVersions(
     noteId: string,
     sealed: SealedNoteVersion[],
@@ -742,10 +767,10 @@ export class Sealer {
   }
 
   /**
-   * The keys a note's shared document is read and written with: its edits,
-   * snapshots and cursors are sealed under the note's key, and what was
-   * written before the key was replaced opens with the one before. Rejects
-   * with `NoteKeyError` for a note whose key this device does not hold.
+   * The keys with which the shared document of a note is read and written. Its
+   * edits, snapshots and cursors are sealed under the key of the note. What was
+   * written before the key was replaced opens with the previous key. Rejects
+   * with `NoteKeyError` for a note whose key this device does not have.
    */
   async documentKey(
     noteId: string,
@@ -754,7 +779,7 @@ export class Sealer {
     return this.ringOf(noteId, fetch);
   }
 
-  /** What publishing a note takes; see `sealPublicLink`. */
+  /** What the publication of a note needs. See `sealPublicLink`. */
   async publish(
     note: Pick<
       Note,
@@ -780,8 +805,10 @@ export class Sealer {
     return sealPublicLink(account, note, mode, noteKey, this.images.byRef);
   }
 
-  /** A link's key, from the copy sealed for its owner; null when it does
-   * not open. */
+  /**
+   * The key of a link, from the copy sealed for its owner. Null when it does
+   * not open.
+   */
   async openLinkKey(noteId: string, sealed: string): Promise<string | null> {
     return openPublicLinkKey(await this.account, noteId, sealed);
   }
@@ -794,7 +821,9 @@ export class Sealer {
     return newKeyedToken(this.keys, prefix, carries);
   }
 
-  /** A comment's text, sealed under its note's key and bound to `id`. */
+  /**
+   * The text of a comment, sealed under the key of its note and bound to `id`.
+   */
   async sealComment(
     noteId: string,
     id: string,
@@ -806,8 +835,8 @@ export class Sealer {
   }
 
   /**
-   * The comments that open, as they came: each with the key it was written
-   * under, the note's or one before it.
+   * The comments that open, as they came, each with the key under which it was
+   * written: that of the note, or a previous key.
    */
   async openComments(
     noteId: string,
@@ -848,18 +877,19 @@ export class Sealer {
   }
 }
 
-/** What the storage layer seals and opens with: `Sealer`, as its callers
- * see it. */
+/**
+ * What the storage layer seals and opens with: `Sealer`, as its callers see it.
+ */
 export type NoteSealing = Pick<Sealer, keyof Sealer>;
 
-/** What takes a key offered with a note; see `storage/shareKeys.ts`. */
+/** What takes a key offered with a note. See `storage/shareKeys.ts`. */
 type OfferHandler = (sealing: NoteSealing, sealed: SealedNote) => Promise<void>;
 
 let offerHandler: OfferHandler | null = null;
 
 /**
- * Set by `storage/shareKeys.ts`, which knows how to ask the server for the
- * signer's key: the sealing itself must not reach for a request.
+ * Set by `storage/shareKeys.ts`, which knows how to ask the server for the key
+ * of the signer. The sealing itself must not make a request.
  */
 export function setOfferHandler(handler: OfferHandler | null): void {
   offerHandler = handler;
@@ -868,15 +898,17 @@ export function setOfferHandler(handler: OfferHandler | null): void {
 const forTests = signal<NoteSealing | null>(null);
 
 /**
- * Puts another sealing in place of the account's, for tests of what sits
- * above storage (`test/plainSealing.ts`). Null takes it away again.
+ * Puts a different sealing in place of that of the account, for tests of the
+ * code above storage (`test/plainSealing.ts`). Null removes it again.
  */
 export function setSealingForTests(sealing: NoteSealing | null): void {
   forTests.value = sealing;
 }
 
-/** The sealing of the account that is unlocked now; null while locked, in
- * open mode, and signed out. */
+/**
+ * The sealing of the account that is unlocked now. Null while locked, in open
+ * mode, and while signed out.
+ */
 export const sealer = computed<NoteSealing | null>(
   () =>
     forTests.value ??

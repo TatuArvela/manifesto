@@ -22,10 +22,10 @@ import {
   removeRawLink,
 } from "#/utils/rawFormatting.ts";
 
-/** Where the toolbar's changes go, and whether it may make any. */
+/** Where the changes of the toolbar go, and if it can make changes. */
 export interface FormattingTarget {
   editor: Editor;
-  /** The raw-mode textarea while raw mode is on; see `FormattingToolbar`. */
+  /** The raw-mode textarea while raw mode is on. See `FormattingToolbar`. */
   rawTextarea: HTMLTextAreaElement | null | undefined;
   disabled: boolean | undefined;
   onFormat: (type: FormatType, arg?: string) => void;
@@ -40,7 +40,7 @@ export function toolbarButtonClass(active: boolean): string {
     : `${base} hover:bg-black/5 dark:hover:bg-white/5`;
 }
 
-/** Keeps the caret where it is when a toolbar button is pressed. */
+/** Keeps the caret in its position when you push a toolbar button. */
 export const keepFocus = (e: MouseEvent) => e.preventDefault();
 
 const menuPanelClass =
@@ -129,8 +129,9 @@ export function HeadingMenu({
 }
 
 /**
- * The link button: on a link it takes the link off, anywhere else it asks for
- * an address. A web address becomes a preview card too, through `onAddLink`.
+ * The link button. On a link, it removes the link. In all other places, it asks
+ * for an address. A web address also becomes a preview card, through
+ * `onAddLink`.
  */
 export function LinkMenu({
   target,
@@ -237,7 +238,10 @@ export function LinkMenu({
   );
 }
 
-/** In a table the button opens the table's menu; anywhere else it makes one. */
+/**
+ * In a table, the button opens the menu of the table. In all other places, it
+ * makes a table.
+ */
 export function TableMenu({
   target,
   inTable,

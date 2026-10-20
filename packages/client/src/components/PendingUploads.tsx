@@ -1,8 +1,10 @@
 import type { PendingUpload } from "#/hooks/useImageUploads.ts";
 import { t } from "#/i18n/index.ts";
 
-/** Images being stored: the file as it was picked, with progress, or marked
- * as failed with a retry. */
+/**
+ * Images that the app stores now: the file as it was selected, with its
+ * progress, or marked as failed, with a retry.
+ */
 export function PendingUploads({
   uploads,
   onRetry,

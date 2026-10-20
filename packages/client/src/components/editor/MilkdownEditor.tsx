@@ -46,7 +46,10 @@ import {
 } from "#/utils/editorMarkdown.ts";
 import { rebaseEdit } from "#/utils/textMerge.ts";
 
-/** The editor's document as markdown, normalized as `normalizeMarkdown` says. */
+/**
+ * The document of the editor as markdown, normalized as `normalizeMarkdown`
+ * says.
+ */
 export function getEditorMarkdown(editor: Editor): string {
   return normalizeMarkdown(editor.action(getMarkdown()));
 }
@@ -57,11 +60,11 @@ interface MilkdownEditorProps {
   disabled?: boolean | undefined;
   contentLocked?: boolean | undefined;
   rawMode?: boolean;
-  /** Receives the raw-mode textarea, so the toolbar can format its text. */
+  /** Gets the raw-mode textarea. Thus, the toolbar can format its text. */
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
   autoFocus?: boolean;
   onEditorReady?: (editor: Editor) => void;
-  /** The editor `onEditorReady` handed over has been destroyed. */
+  /** The editor that `onEditorReady` gave was destroyed. */
   onEditorGone?: () => void;
   collab?:
     | {
@@ -100,17 +103,17 @@ export function MilkdownEditor({
   const rawContentRef = useRef(rawContent);
   rawContentRef.current = rawContent;
 
-  // Raw mode's link to the document, which lives in the hidden rich editor
-  // (and, in collab, in the shared fragment behind it). See the raw-mode
-  // effect further down.
+  // The link of raw mode to the document, which is in the hidden rich editor
+  // (and, in collab, in the shared fragment behind it). See the raw-mode effect
+  // below.
   const rawSyncRef = useRef<{
-    /** Whether the textarea is the one being edited. */
+    /** If the textarea is the element that you edit. */
     active: boolean;
-    /** The text the textarea and the document last agreed on. */
+    /** The text on which the textarea and the document agreed last. */
     base: string;
-    /** The document `base` was agreed with. */
+    /** The document with which `base` was agreed. */
     doc: ProseNode | null;
-    /** The last value handed to `onChange`, from either side. */
+    /** The last value given to `onChange`, from either side. */
     sent: string;
     frame: number;
     pullFrame: number;
@@ -122,8 +125,8 @@ export function MilkdownEditor({
     frame: 0,
     pullFrame: 0,
   });
-  // Assigned in the component body below; the editor's plugins reach it
-  // through this because `build` runs once and closes over nothing.
+  // Assigned in the component body below. The plugins of the editor reach it
+  // through this, because `build` runs one time and closes over nothing.
   const documentChangedRef = useRef<() => void>(() => {});
 
   const emitChange = (value: string) => {
@@ -136,10 +139,11 @@ export function MilkdownEditor({
   const collabRef = useRef(collab);
   collabRef.current = collab;
 
-  // The collaborative plugin is fetched on demand, so a collaborative editor
-  // cannot be built until it lands. See `loadYjsCollab` for why it must be in
-  // hand *before* the editor is created rather than awaited inside the plugin.
-  // Held in a ref as well: `build` reads it without taking it as a dependency.
+  // The collaborative plugin loads on demand. Thus, the code cannot build a
+  // collaborative editor until it arrives. See `loadYjsCollab` for why the code
+  // must have it *before* the editor is created, and must not await it inside
+  // the plugin. It is also in a ref, because `build` reads it, but does not
+  // take it as a dependency.
   const [collabFactory, setCollabFactory] = useState<YjsCollabFactory | null>(
     null,
   );
@@ -155,9 +159,9 @@ export function MilkdownEditor({
         if (!cancelled) setCollabFactory(() => factory);
       },
       () => {
-        // Leaves the editor unbuilt rather than silently non-collaborative:
-        // binding solo here would let this client's copy overwrite the shared
-        // document on the next save.
+        // Leaves the editor not built, and does not make it silently
+        // non-collaborative. A solo binding here would let the copy of this
+        // client overwrite the shared document on the next save.
       },
     );
     return () => {
@@ -173,7 +177,7 @@ export function MilkdownEditor({
         ctx.update(editorViewOptionsCtx, (prev) => ({
           ...prev,
           editable: () => true,
-          // The editable area had no name, so a screen reader announced an
+          // The editable area had no name. Thus, a screen reader announced an
           // unnamed text field after the title.
           attributes: {
             role: "textbox",
@@ -190,11 +194,12 @@ export function MilkdownEditor({
           const normalized = normalizeMarkdown(md);
           const sync = rawSyncRef.current;
           if (sync.active) {
-            // In raw mode the textarea reports the text, as typed. What still
+            // In raw mode, the textarea reports the text, as typed. What still
             // comes through here is rich-mode typing that was inside the
-            // listener's debounce when raw mode opened, recognisable as the
-            // text raw mode was loaded with; our own pushes echo back as the
-            // serializer's rewrite of the textarea, and are dropped.
+            // debounce of the listener when raw mode opened. You can recognize
+            // it as the text with which raw mode was loaded. Our own pushes
+            // come back as the version of the textarea that the serializer
+            // wrote again, and the code drops them.
             const text = normalized.replace(/\n+$/, "");
             if (text !== sync.base || text === sync.sent.replace(/\n+$/, "")) {
               return;
@@ -227,18 +232,18 @@ export function MilkdownEditor({
   }, []);
 
   /**
-   * Writes the textarea's text into the rich editor, if it has changed since
-   * the two last agreed. In collab that is also a write to the shared
-   * fragment, which `ySyncPlugin` makes in the same call and as a diff, so
-   * only what differs is replaced.
+   * Writes the text of the textarea into the rich editor, if it changed since
+   * the two last agreed. In collab, that is also a write to the shared
+   * fragment, which `ySyncPlugin` makes in the same call and as a diff. Thus,
+   * only the parts that are different are replaced.
    *
-   * Only what differs from the text as typed, though: a collaborator's edit
-   * that landed since the last agreement, and has not reached the textarea
-   * yet (the listener reports on a debounce), is not in that text and would
-   * be reverted. So when the document has moved, the local edit is replayed
-   * onto the collaborator's version first, and the textarea takes the result.
-   * When the two edits touch the same text that cannot be done, and the local
-   * one wins.
+   * But only what is different from the text as typed. An edit of a
+   * collaborator that arrived since the last agreement, and did not reach the
+   * textarea yet (the listener reports after a debounce), is not in that text,
+   * and would be reverted. Thus, when the document moved, the code first
+   * applies the local edit again on the version of the collaborator, and the
+   * textarea gets the result. When the two edits change the same text, that is
+   * not possible, and the local edit wins.
    */
   const pushRaw = useCallback(
     (instance: Editor) => {
@@ -267,20 +272,20 @@ export function MilkdownEditor({
     [textareaRef],
   );
 
-  // `@milkdown/plugin-listener` serializes the document on a 200ms debounce and
-  // exposes no way to cancel it, so an editor torn down inside that window
-  // leaves a timer that runs against a dismantled context and throws
-  // `Context "editorView" not found` from a place nothing can catch. Its
-  // handler checks `markdownUpdated.length` *before* it serializes, though, so
-  // emptying the array is a cancel in everything but name: the timer still
-  // fires, finds nothing to notify, and returns without touching the context.
-  // Reachable whenever a note is closed within 200ms of a keystroke, and on
-  // every solo → collab remount.
+  // `@milkdown/plugin-listener` serializes the document after a 200ms debounce,
+  // and gives no way to cancel it. Thus, an editor torn down inside that window
+  // leaves a timer that runs against a removed context, and throws `Context
+  // "editorView" not found` from a place where nothing can catch it. But its
+  // handler checks `markdownUpdated.length` *before* it serializes. Thus, an
+  // empty array is a cancel in all but name: the timer still fires, finds
+  // nothing to notify, and returns without a change to the context. This can
+  // occur each time a note closes within 200ms of a keystroke, and on each
+  // remount from solo to collab.
   //
-  // Raw text typed in the last frame is written through afterwards, once the
-  // listener can no longer fire. In collab the provider may already be gone by
-  // now (a parent's cleanup runs before its child's), so that write is best
-  // effort; the per-frame pushes are what actually carry raw edits out.
+  // Raw text typed in the last frame is written after that, when the listener
+  // cannot fire now. In collab, the provider can already be gone now (the
+  // cleanup of a parent runs before that of its child). Thus, that write is
+  // best effort. The pushes in each frame are what really carry raw edits out.
   const beforeDestroy = useCallback(
     (instance: Editor) => {
       instance.action((ctx) => {
@@ -294,7 +299,7 @@ export function MilkdownEditor({
       try {
         pushRaw(instance);
       } catch {
-        // A document already torn down beneath us has nowhere to write.
+        // A document that is already torn down has no place to write.
       }
       sync.active = false;
     },
@@ -307,15 +312,15 @@ export function MilkdownEditor({
     !collab || collabFactory !== null,
   );
 
-  // A note that has never been edited collaboratively has an empty shared
-  // fragment, and ySyncPlugin adopts whatever the fragment holds, so binding
-  // would blank the editor and then write that blank back as the note content.
-  // Seed the fragment from the note instead. Safe because NoteCardEditor only
-  // supplies `collab` after the provider reports synced, so an empty fragment
-  // here means the server has none either.
+  // A note that was never edited collaboratively has an empty shared fragment,
+  // and ySyncPlugin adopts what the fragment contains. Thus, a binding would
+  // make the editor blank, and then write that blank back as the content of the
+  // note. Fill the fragment from the note in place of that. This is safe,
+  // because NoteCardEditor gives `collab` only after the provider reports
+  // synced. Thus, an empty fragment here means that the server also has none.
   //
-  // A layout effect only to keep it ahead of the raw-mode one below, which
-  // reads the text this writes.
+  // A layout effect only to keep it before the raw-mode effect below, which
+  // reads the text that this writes.
   useLayoutEffect(() => {
     if (!editor || !collab) return;
     const fragment = collab.ydoc.getXmlFragment(
@@ -327,10 +332,10 @@ export function MilkdownEditor({
     editor.action(replaceAll(initial));
   }, [editor, collab]);
 
-  // A parent that keeps the editor must let go of it once it is destroyed:
-  // every read of a destroyed editor throws (`Context "editorState" not
-  // found`), and the parent goes on rendering when only this component is
-  // replaced, as on the solo to collab remount.
+  // A parent that keeps the editor must release it after it is destroyed. Each
+  // read of a destroyed editor throws (`Context "editorState" not found`), and
+  // the parent continues to render when only this component is replaced, as on
+  // the remount from solo to collab.
   useEffect(() => {
     if (!editor) return;
     return () => onEditorGoneRef.current?.();
@@ -340,8 +345,8 @@ export function MilkdownEditor({
     if (!editor) return;
     onEditorReadyRef.current?.(editor);
     if (autoFocus && rawModeRef.current) {
-      // The rich editor is hidden: focusing it would send the first
-      // keystrokes into a document nobody can see.
+      // The rich editor is hidden. If it had focus, the first keystrokes would
+      // go into a document that nobody can see.
       const textarea = textareaRef.current;
       textarea?.focus();
       textarea?.setSelectionRange(textarea.value.length, textarea.value.length);
@@ -370,38 +375,41 @@ export function MilkdownEditor({
   }, [editor, disabled, contentLocked]);
 
   // Raw mode edits the note as text while the document stays in the rich
-  // editor, and the two are kept in step both ways rather than reconciled on
-  // the way out. Writing the textarea over the whole document on toggling back
-  // loses work in collab: a note closed while still in raw mode would never
-  // reach the shared fragment, and merely looking at a note in raw mode would
-  // overwrite whatever a collaborator had written meanwhile.
+  // editor. The code keeps the two the same in both directions. It does not
+  // reconcile them on the way out. If the textarea wrote over the full document
+  // when you toggle back, work would be lost in collab. A note closed while
+  // still in raw mode would never reach the shared fragment, and only a look at
+  // a note in raw mode would overwrite what a collaborator wrote in the
+  // meantime.
   //
-  // - Entering reads the text out of the editor, never from the `content`
-  //   prop, which in collab can be staler than the shared fragment the editor
-  //   is showing. Arriving counts as entering when the editor mounts straight
-  //   into raw mode, but leaving only happens after entering, so the editor
-  //   arriving in rich mode never writes anything.
-  // - Typing pushes the text into the editor once per frame (`pushRaw`), so
-  //   the document, and in collab everyone else, sees raw edits as they are
-  //   made, and nothing is left to write when the editor closes.
-  // - A change to the document that is not our own push's echo (a
-  //   collaborator's edit, or rich-mode typing still in the listener's
-  //   debounce when raw mode opened) is copied into the textarea, keeping the
-  //   caret. If something typed there has yet to be pushed, the push merges
-  //   the two instead.
-  // - `onChange` is fed from the textarea while raw mode is on, so what is
-  //   saved is the text as typed, not the serializer's rewrite of it.
+  // - The start of raw mode reads the text out of the editor, never from the
+  //   `content` prop, which in collab can be older than the shared fragment
+  //   that the editor shows. The arrival counts as the start when the editor
+  //   mounts directly into raw mode. But the end of raw mode only occurs after
+  //   its start. Thus, an editor that arrives in rich mode never writes
+  //   anything.
+  // - Typing pushes the text into the editor one time in each frame
+  //   (`pushRaw`). Thus, the document, and in collab all other persons, see raw
+  //   edits while they occur, and nothing is left to write when the editor
+  //   closes.
+  // - A change to the document that is not the echo of our own push (an edit of
+  //   a collaborator, or rich-mode typing still in the debounce of the listener
+  //   when raw mode opened) is copied into the textarea, and the caret stays.
+  //   If something typed there was not pushed yet, the push merges the two.
+  // - While raw mode is on, the textarea feeds `onChange`. Thus, the saved text
+  //   is the text as typed, not the version that the serializer wrote again.
   //
-  // A layout effect, so entering happens in the same task as the commit that
-  // lifts the textarea's `readOnly`. A passive effect runs a frame later, and
-  // a keystroke in that frame is not pushed (raw mode is not on yet) and is
-  // then overwritten by entering, which reads the text out of the editor.
+  // A layout effect. Thus, the start occurs in the same task as the commit that
+  // removes the `readOnly` of the textarea. A passive effect runs one frame
+  // later. A keystroke in that frame is not pushed (raw mode is not on yet),
+  // and is then overwritten by the start, which reads the text out of the
+  // editor.
   useLayoutEffect(() => {
     if (!editor) return;
     const sync = rawSyncRef.current;
     if (rawMode && !sync.active) {
-      // The serializer ends every document with a newline, which in a
-      // textarea is an empty last line under the text.
+      // The serializer ends each document with a newline. In a textarea, that
+      // is an empty last line under the text.
       const text = getEditorMarkdown(editor).replace(/\n+$/, "");
       sync.active = true;
       sync.base = text;
@@ -416,9 +424,9 @@ export function MilkdownEditor({
     }
   }, [rawMode, editor, pushRaw]);
 
-  // Collaborators' edits have to be watched for directly: `ySyncPlugin`
+  // The code must watch for the edits of collaborators directly. `ySyncPlugin`
   // applies them as `addToHistory: false` transactions, which the markdown
-  // listener skips entirely.
+  // listener skips fully.
   documentChangedRef.current = () => {
     const sync = rawSyncRef.current;
     if (!editor || !sync.active || sync.pullFrame) return;
@@ -426,9 +434,9 @@ export function MilkdownEditor({
       sync.pullFrame = 0;
       if (!sync.active) return;
       const doc = editor.action((ctx) => ctx.get(editorViewCtx).state.doc);
-      // Our own push, which recorded the document it produced.
+      // Our own push, which recorded the document that it made.
       if (doc === sync.doc) return;
-      // Typed but not yet pushed: the push merges the two.
+      // Typed, but not pushed yet: the push merges the two.
       if (rawContentRef.current !== sync.base) return;
       const md = getEditorMarkdown(editor);
       const text = md.replace(/\n+$/, "");
@@ -454,12 +462,13 @@ export function MilkdownEditor({
     });
   };
 
-  // The textarea grows with its text rather than scrolling inside the note,
-  // which already scrolls. Sizing it by counting newlines, as `rows` did,
-  // missed every line that wraps: a long paragraph pushed the first lines up
-  // out of a box too short to hold it. Measured instead, and again whenever
-  // the width changes, because narrowing the note wraps more lines. While
-  // hidden it has no layout to measure, hence waiting for `rawMode`.
+  // The textarea grows with its text, and does not scroll inside the note,
+  // which already scrolls. When `rows` set its size from a count of newlines,
+  // it missed each line that wraps. A long paragraph pushed the first lines up
+  // out of a box that was too short. Thus, the code measures it, and measures
+  // it again each time the width changes, because a narrower note wraps more
+  // lines. While it is hidden, it has no layout to measure. Thus, the code
+  // waits for `rawMode`.
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
     if (!rawMode || !textarea) return;
@@ -489,9 +498,9 @@ export function MilkdownEditor({
         value={rawContent}
         onInput={(e) => onRawInput((e.target as HTMLTextAreaElement).value)}
         disabled={disabled}
-        // Until the editor is up there is no document to read the text out of
-        // or push it into: what shows is the `content` prop, which is replaced
-        // by the document's own text the moment it arrives.
+        // Until the editor is up, there is no document from which to read the
+        // text, or into which to push it. What shows is the `content` prop,
+        // which the own text of the document replaces when it arrives.
         readOnly={contentLocked || !editor}
       />
       <div

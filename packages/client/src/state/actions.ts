@@ -46,27 +46,27 @@ import {
 } from "./views.ts";
 
 /**
- * The user-level note actions: each one a thing a button does, built on the
- * store's `updateNote` / `deleteNote`. Like those, every action reports its
- * own failure and resolves; see `failures.ts`.
+ * The note actions at user level, each what a button does, built on the
+ * `updateNote` / `deleteNote` of the store. As those do, each action reports
+ * its own failure and resolves. See `failures.ts`.
  */
 
 /**
- * How a card leaves the grid, one look per kind of going:
+ * How a card goes out of the grid, one look for each kind of departure:
  *
- * - `discard`: trashed or deleted. It is crumpled into a ball and tossed.
+ * - `discard`: trashed or deleted. It is crumpled into a ball and thrown.
  * - `archive`: put away. It is lifted up and off the board.
- * - `undelete`: back among the notes from the trash. It ascends: it glows,
- *   and floats up out of the Trash into the light.
- * - `restore`: back among the notes from the archive. It swells slightly as
- *   it fades, rising to meet them.
+ * - `undelete`: back among the notes from the trash. It ascends: it glows, and
+ *   floats up out of the Trash into the light.
+ * - `restore`: back among the notes from the archive. It becomes a little
+ *   larger while it fades, and rises to meet them.
  */
 export type LeaveStyle = "discard" | "archive" | "undelete" | "restore";
 
 /**
- * Notes whose cards are playing their exit animation, in the moment before a
- * trash, archive or restore takes them out of the grid, and how each is going.
- * NoteCard reads this to play `.note-leaving`.
+ * Notes whose cards play their exit animation, in the moment before a trash,
+ * archive or restore takes them out of the grid, and how each goes. NoteCard
+ * reads this to play `.note-leaving`.
  */
 export const leavingNotes = signal<ReadonlyMap<string, LeaveStyle>>(new Map());
 
@@ -79,10 +79,10 @@ const LEAVE_MS: Record<LeaveStyle, number> = {
 };
 
 /**
- * Runs `change` once the cards for `ids` have animated out. Waits only for
- * notes whose card is in the current view and would no longer be after
- * `becomes` is applied, and not at all with animations off. If `change`
- * fails the flag still clears, so the card comes back rather than staying
+ * Runs `change` one time after the cards for `ids` animated out. It waits only
+ * for notes whose card is in the current view and would not be there after
+ * `becomes` applies. It does not wait with animations off. If `change` fails,
+ * the flag still clears. Thus, the card comes back, and does not stay
  * invisible.
  */
 async function afterLeaving<T>(
@@ -160,9 +160,9 @@ export async function unarchiveNote(id: string): Promise<boolean> {
 }
 
 /**
- * The note most recently pinned or unpinned, for the brief moment after the
- * toggle. Pinning moves a card between the pinned and unpinned grids, which
- * remounts it; NoteCard reads this on mount to play a settle animation.
+ * The note pinned or unpinned most recently, for the short moment after the
+ * toggle. A pin moves a card between the pinned and unpinned grids, which
+ * mounts it again. NoteCard reads this on mount to play a settle animation.
  */
 export const recentlyPinned = signal<string | null>(null);
 
@@ -187,10 +187,10 @@ export async function togglePin(id: string) {
 // --- Tags ---
 
 /**
- * Adds one tag to one note, reading its tags as they stand now rather than as
- * the caller last rendered them: two tags picked before a render would
- * otherwise each write a list holding only itself. Reads `allNotes` so an
- * auto-note's override gets it too.
+ * Adds one tag to one note. It reads the current tags, not the tags that the
+ * caller last rendered. If not, two tags selected before a render would each
+ * write a list that contains only itself. Reads `allNotes`. Thus, the override
+ * of an auto-note also gets it.
  */
 export async function addTag(id: string, tag: string): Promise<boolean> {
   const note = allNotes.peek().find((n) => n.id === id);
@@ -200,7 +200,7 @@ export async function addTag(id: string, tag: string): Promise<boolean> {
 }
 
 /**
- * Rewrites the tags of every note carrying `tag` or a tag under it, as one
+ * Writes again the tags of each note that has `tag` or a tag under it, as one
  * operation.
  */
 function retagNotesWith(
@@ -227,8 +227,8 @@ function withinTag(known: string[], tag: string): string[] {
 }
 
 /**
- * Takes a tag off every note, and with it every tag under it: deleting
- * `work` deletes `work/clients` too, as deleting a folder would.
+ * Removes a tag from each note, and with it each tag under it. A deletion of
+ * `work` also deletes `work/clients`, as a deletion of a folder would.
  */
 export async function deleteTag(tag: string): Promise<boolean> {
   const ok = await retagNotesWith(tag, (tags) =>
@@ -237,8 +237,8 @@ export async function deleteTag(tag: string): Promise<boolean> {
   if (activeTag.value !== null && isTagWithin(activeTag.value, tag)) {
     activeTag.value = null;
   }
-  // A tag gone from every note should not hide the next note given it, nor
-  // colour it.
+  // A tag that is gone from each note must not hide the next note that gets it,
+  // or give it a color.
   if (ok) {
     for (const t of withinTag(hiddenTags.value, tag)) setTagHidden(t, false);
     for (const t of withinTag(Object.keys(tagColors.value), tag)) {
@@ -249,10 +249,10 @@ export async function deleteTag(tag: string): Promise<boolean> {
 }
 
 /**
- * Gives every note tagged `from` the tag `to` in its place, and moves the
- * tags under `from` along with it (`work/clients` becomes `job/clients`). A
- * note that has both already just loses `from`, so the rename can also merge
- * two tags. `to` is expected normalized the way the tag picker does it.
+ * Gives each note tagged `from` the tag `to` in its place, and moves the tags
+ * under `from` with it (`work/clients` becomes `job/clients`). A note that
+ * already has both only loses `from`. Thus, the rename can also merge two tags.
+ * The caller must give `to` normalized, as the tag picker does.
  */
 export async function renameTag(from: string, to: string): Promise<boolean> {
   if (from === to) return true;
@@ -263,12 +263,13 @@ export async function renameTag(from: string, to: string): Promise<boolean> {
   ]);
   if (activeTag.value !== null) activeTag.value = moved(activeTag.value);
   if (!ok) return ok;
-  // Hidden under its old name stays hidden under its new one.
+  // A tag hidden under its old name stays hidden under its new name.
   for (const tag of withinTag(hiddenTags.value, from)) {
     setTagHidden(tag, false);
     setTagHidden(moved(tag), true);
   }
-  // The colour goes with the name, unless the tag merged into has its own.
+  // The color goes with the name, unless the tag into which it merges has its
+  // own color.
   for (const tag of withinTag(Object.keys(tagColors.value), from)) {
     const color = tagColors.value[tag];
     setTagColor(tag, null);
@@ -316,9 +317,9 @@ export async function removeTagFromNotes(
 // --- Bulk ---
 
 /**
- * Applies `act` to every selected note that still exists, as one operation,
- * then leaves select mode. The writes start together: each shows its change
- * before it awaits anything, so the board settles once.
+ * Applies `act` to each selected note that still exists, as one operation, then
+ * leaves select mode. The writes start together. Each shows its change before
+ * it awaits anything. Thus, the board becomes stable one time.
  */
 async function bulkApply(
   act: (id: string, batch: Batch) => Promise<unknown>,
@@ -343,7 +344,7 @@ export async function bulkPin(): Promise<boolean> {
       updateNote(id, { pinned: false }, batch),
     );
   }
-  // To the head of the pinned section together, in the order they had.
+  // To the start of the pinned section together, in their previous order.
   const ordered = notes
     .peek()
     .filter((n) => selectedNotes.value.has(n.id))
@@ -360,8 +361,8 @@ export async function bulkPin(): Promise<boolean> {
   });
 }
 
-// One exit for the whole selection: going through `archiveNote` or
-// `trashNote` per note would animate the cards out one after another.
+// One exit for the full selection. If the code used `archiveNote` or
+// `trashNote` for each note, the cards would animate out one after the other.
 export async function bulkArchive(): Promise<boolean> {
   return await afterLeaving([...selectedNotes.value], "archive", ARCHIVED, () =>
     bulkApply(archiveNow),
@@ -394,9 +395,9 @@ export async function bulkSetColor(color: NoteColor): Promise<boolean> {
 }
 
 /**
- * Gives every selected note `tag`, or takes it from them all. The selection is
- * kept, unlike the other bulk actions: the tag panel stays open, since a
- * selection often takes several tags at once.
+ * Gives each selected note `tag`, or removes it from all of them. The selection
+ * stays, as it does not for the other bulk actions. The tag panel stays open,
+ * because a selection frequently gets several tags at the same time.
  */
 export async function bulkSetTag(tag: string, on: boolean): Promise<boolean> {
   const ids = selectedNotes.value;
@@ -408,9 +409,9 @@ export async function bulkSetTag(tag: string, on: boolean): Promise<boolean> {
 // --- Order ---
 
 /**
- * Spread every note out again, with the moved one at `at`. Over the whole
- * number line rather than the dragged section, so notes not on screen keep
- * their place. Reached only when `positionBetween` has run out of room.
+ * Spread each note out again, with the moved note at `at`. Over the full number
+ * line, not only the dragged section. Thus, notes that are not on the screen
+ * keep their position. Used only when `positionBetween` has no more space.
  */
 async function renumberFrom(
   rest: Note[],
@@ -429,11 +430,11 @@ async function renumberFrom(
 }
 
 /**
- * Moves one note within `noteIds`, the dragged section's order as it stood
- * before the drop. The note lands straight after the one it was dropped
- * behind, on the whole number line: archived and trashed notes are off screen
- * but share it, so a midpoint between the visible neighbours alone could land
- * on a hidden note's position. Only the moved note is written.
+ * Moves one note within `noteIds`, the order of the dragged section before the
+ * drop. The note goes immediately after the note behind which it was dropped,
+ * on the full number line. Archived and trashed notes are off the screen but
+ * share it. Thus, a midpoint between only the visible neighbors could be the
+ * position of a hidden note. Only the moved note is written.
  */
 export async function reorderNotes(
   noteIds: string[],
@@ -451,7 +452,8 @@ export async function reorderNotes(
   const rest = [...allNotes.peek()]
     .sort(byPosition)
     .filter((n) => n.id !== movedId);
-  // A predecessor that is somehow not on the line puts it at the head.
+  // If the predecessor is not on the line for some reason, the note goes at the
+  // start.
   const at =
     predecessorId === undefined
       ? 0
@@ -465,13 +467,13 @@ export async function reorderNotes(
   await updateNote(movedId, { position: next });
 }
 
-/** One step earlier or later, or all the way to either end. */
+/** One step earlier or later, or fully to one of the ends. */
 export type NoteMoveStep = -1 | 1 | "start" | "end";
 
 /**
- * Where a note could move to, one step earlier (`-1`) or later (`1`) or to
- * either end of its section of the board (pinned or not): the keyboard's way
- * of doing what a drag does. Null where it cannot: the board is not in manual
+ * Where a note could move: one step earlier (`-1`) or later (`1`), or to one of
+ * the ends of its section of the board (pinned or not). This is the keyboard
+ * way to do what a drag does. Null where it cannot: the board is not in manual
  * order, or the note is already at that end.
  */
 export function noteMoveTarget(
@@ -493,8 +495,8 @@ export function noteMoveTarget(
 
 /**
  * Moves a note one step, or to the start or end of its section, as
- * `noteMoveTarget` finds it. Says where it landed,
- * one-based, for the caller to announce, or null if it did not move.
+ * `noteMoveTarget` finds it. Tells where it went, one-based, for the caller to
+ * announce, or null if it did not move.
  */
 export async function moveNoteBy(
   id: string,
@@ -509,16 +511,17 @@ export async function moveNoteBy(
 // --- Checklists ---
 
 /**
- * Gives one of a note's images its description, or takes it away with "".
- * The image is found by its reference, since another writer may have moved
- * it; one that has meanwhile been removed is left alone.
+ * Gives one of the images of a note its description, or removes it with "". The
+ * code finds the image by its reference, because a different writer can have
+ * moved it. If it was removed in the meantime, the code does not change it.
  */
 export async function describeImage(
   id: string,
   image: string,
   alt: string,
 ): Promise<boolean> {
-  // The descriptions are written with the list, so the list has to be whole.
+  // The descriptions are written with the list. Thus, the list must be
+  // complete.
   const images = await ensureImages(id);
   const note = notes.value.find((n) => n.id === id);
   const index = images?.indexOf(image) ?? -1;
@@ -539,7 +542,9 @@ export async function deleteCheckedItems(id: string) {
   await updateNote(id, { content: next });
 }
 
-/** Unticks every item of a note's checklists, for a list used again. */
+/**
+ * Clears each item of the checklists of a note, for a list that is used again.
+ */
 export async function uncheckAll(id: string) {
   const note = notes.value.find((n) => n.id === id);
   if (!note) return;

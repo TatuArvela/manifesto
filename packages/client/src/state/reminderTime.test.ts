@@ -14,14 +14,14 @@ import { describe, expect, it } from "vitest";
 import { defined } from "#/test/defined.ts";
 
 /**
- * The recurrence maths on its own, in the Node project. The scheduler's
- * browser test covers each recurrence's single step; these follow a reminder
- * over many fires, which is what the scheduler does: each fire stores the
- * advanced reminder (its next time, and the day it repeats on when a short
- * month hides it) and steps from that.
+ * Only the recurrence arithmetic, in the Node project. The browser test of the
+ * scheduler covers the single step of each recurrence. These tests follow a
+ * reminder over many fires, as the scheduler does. Each fire stores the
+ * advanced reminder (its next time, and the day on which it repeats when a
+ * short month hides it), and steps from that.
  */
 
-/** The times a recurring reminder is set to over `count` fires. */
+/** The times to which a recurring reminder is set over `count` fires. */
 function fires(
   time: string,
   recurrence: "daily" | "weekly" | "monthly" | "yearly",
@@ -49,8 +49,8 @@ describe("parseLocalISO and formatLocalISO", () => {
       "2026-12-31T23:59:59",
     ]) {
       const parsed = parseLocalISO(iso);
-      // A time that does not exist on this clock (a spring-forward gap)
-      // is moved by the platform; everything else comes back as written.
+      // The platform moves a time that does not exist on this clock (a
+      // spring-forward gap). All other times come back as written.
       if (parsed.getHours() === Number(iso.slice(11, 13))) {
         expect(formatLocalISO(parsed)).toBe(iso);
       }
@@ -112,9 +112,9 @@ describe("a recurring reminder over many fires", () => {
     ]);
   });
 
-  // 02:30 does not exist on 8 March 2026 in New York, nor 03:30 on 29 March
-  // 2026 in Helsinki: read back through a Date, the hour came out an hour
-  // late and every later occurrence kept it.
+  // 02:30 does not exist on 8 March 2026 in New York, and 03:30 does not exist
+  // on 29 March 2026 in Helsinki. When read back through a Date, the hour came
+  // out one hour late, and each later occurrence kept it.
   it("keeps its hour through a daylight saving gap, in any zone", () => {
     expect(fires("2026-03-07T02:30:00", "daily", 2)).toEqual([
       "2026-03-07T02:30:00",
@@ -204,8 +204,8 @@ describe("the day a reminder repeats on", () => {
   });
 
   it("moves a daily or weekly reminder days behind to its next occurrence", () => {
-    // The repeat day stayed the day the reminder was set for, and stepping
-    // from it went back to the day after: the snap landed in the past and
+    // The repeat day stayed the day for which the reminder was set, and a step
+    // from it went back to the day after. The snap went into the past, and
     // stayed there.
     const now = parseLocalISO("2026-10-06T09:01:00");
     expect(
@@ -260,14 +260,14 @@ describe("snapToFuture", () => {
   });
 
   it("reaches the first occurrence after now from a reminder years behind", () => {
-    // Walking a step at a time, the loop gave up after 1000 days.
+    // When it moved one step at a time, the loop stopped after 1000 days.
     expect(snapToFuture("2020-01-01T09:00:00", "daily", now)).toBe(
       "2026-06-16T09:00:00",
     );
     expect(snapToFuture("2020-01-01T13:00:00", "daily", now)).toBe(
       "2026-06-15T13:00:00",
     );
-    // 2020-01-06 was a Monday, and so is 2026-06-15; noon has passed.
+    // 2020-01-06 was a Monday, and so is 2026-06-15. Noon is past.
     expect(snapToFuture("2020-01-06T09:00:00", "weekly", now)).toBe(
       "2026-06-22T09:00:00",
     );
@@ -363,8 +363,8 @@ describe("instantOf", () => {
     expect(instantOf("2026-10-25T05:00:00", "Europe/Helsinki")).toBe(
       at("2026-10-25T03:00:00Z"),
     );
-    // And enters it at 03:00 on 29 March: 03:30 does not exist that night,
-    // and lands just after the gap.
+    // And starts it at 03:00 on 29 March. 03:30 does not exist that night, and
+    // goes to just after the gap.
     expect(instantOf("2026-03-29T02:59:00", "Europe/Helsinki")).toBe(
       at("2026-03-29T00:59:00Z"),
     );

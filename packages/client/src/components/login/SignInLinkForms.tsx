@@ -14,14 +14,14 @@ import { getPasskey } from "#/utils/webauthn.ts";
 import { type SecondFactor, TwoFactorStep } from "./LoginSteps.tsx";
 import { inputClass, quietClass, submitClass } from "./loginFormClasses.ts";
 
-/** What to say about a link that could not be asked for. */
+/** What to say about a link that could not be requested. */
 const REQUEST_FAILURES = {
   throttled: "login.tooManyAttempts",
   invalid: "account.email.invalid",
   failed: "login.serverUnavailable",
 } as const satisfies Record<string, MessageKey>;
 
-/** Asks for a sign-in link by mail; says the same whatever the address. */
+/** Asks for a sign-in link by mail. It says the same, whatever the address. */
 export function SignInLinkForm({ onBack }: { onBack: () => void }) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
@@ -93,18 +93,18 @@ export function SignInLinkForm({ onBack }: { onBack: () => void }) {
 }
 
 /**
- * Where a mailed sign-in link lands. It waits for a press before it spends
- * the link: a mail scanner or a preview that loads the address runs this
- * page too, and would otherwise use the link up and sign itself in. An
- * account with a second factor is then asked for it, with the same link,
- * which the server only spends once that holds.
+ * Where a mailed sign-in link opens. It waits for a press before it uses the
+ * link. A mail scanner or a preview that loads the address also runs this page.
+ * Without the press, it would use up the link, and sign itself in. An account
+ * with a second factor must then give it, with the same link. The server uses
+ * the link only after the factor is correct.
  */
 export function SignInLinkLanding({
   token,
   onDone,
 }: {
   token: string;
-  /** Back to the ordinary sign-in form, the link being of no more use. */
+  /** Back to the usual sign-in form, because the link is of no more use. */
   onDone: () => void;
 }) {
   const [step, setStep] = useState<
@@ -137,13 +137,13 @@ export function SignInLinkLanding({
       } else if (err instanceof AuthRequestError && err.status === 410) {
         setStep("expired");
       } else if (passkey !== undefined) {
-        // Only a 401 is the passkey's doing; a lock or an unreachable server
-        // says so itself.
+        // Only a 401 comes from the passkey. A lock or a server that is not
+        // available says so itself.
         const refused = err instanceof AuthRequestError && err.status === 401;
         setError(
           t(refused ? "login.passkeyFailed" : loginErrorKey(err, "twoFactor")),
         );
-        // That challenge is spent; the link again brings a fresh one.
+        // That challenge is used. The link again brings a new one.
         try {
           await signInWithLink(token);
         } catch (again) {
@@ -158,7 +158,8 @@ export function SignInLinkLanding({
           ) {
             setStep("expired");
           } else {
-            // No fresh challenge came, so the spent one is not offered again.
+            // No new challenge came. Thus, the code does not offer the used one
+            // again.
             setSecondFactor((held) => ({ ...held, passkey: null }));
             setError(t(loginErrorKey(again, "twoFactor")));
           }
@@ -178,7 +179,7 @@ export function SignInLinkLanding({
     const options = secondFactor.passkey;
     if (!options || submitting) return;
     const answer = await getPasskey(options);
-    // A dismissed prompt leaves the challenge unspent, to try again.
+    // A dismissed prompt leaves the challenge unused, for a new try.
     if (answer === "cancelled") return;
     if (typeof answer === "string") {
       setError(t("login.passkeyFailed"));

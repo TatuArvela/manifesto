@@ -12,8 +12,8 @@ import {
 import "#/styles.css";
 
 /**
- * The editor's keys, pressed for real: which command a key reaches depends on
- * every plugin's keymap and their order, which only a whole editor has.
+ * The keys of the editor, really pushed. Which command a key reaches depends on
+ * the keymap of each plugin and their order, which only a full editor has.
  */
 
 const hosts: HTMLDivElement[] = [];
@@ -47,7 +47,9 @@ async function mount(content: string): Promise<Editor> {
 const viewOf = (editor: Editor): EditorView =>
   editor.action((ctx) => ctx.get(editorViewCtx));
 
-/** Puts the caret just before the first `text` in the document, plus `offset`. */
+/**
+ * Puts the caret just before the first `text` in the document, plus `offset`.
+ */
 function caretAt(editor: Editor, text: string, offset = 0) {
   const view = viewOf(editor);
   let found = -1;
@@ -145,8 +147,8 @@ describe("Tab in a list or a table", () => {
 
 describe("spaces in the text", () => {
   it("are laid out as typed, so a trailing one moves the caret", async () => {
-    // ProseMirror needs this and its stylesheet was never loaded: with
-    // `normal`, a space at the end of a line took up no room.
+    // ProseMirror needs this, and its stylesheet never loaded. With `normal`, a
+    // space at the end of a line used no space.
     const editor = await mount("Text");
     const dom = viewOf(editor).dom;
     expect(getComputedStyle(dom).whiteSpace).toMatch(

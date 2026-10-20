@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { offerLaunchImage } from "./launchImage.ts";
 import { defined } from "./test/defined.ts";
 
-// A solid black square, as the stock logo is a solid black shape.
+// A solid black square, because the usual logo is a solid black shape.
 const LOGO = `data:image/svg+xml,${encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="black"/></svg>',
 )}`;
@@ -17,7 +17,7 @@ function launchLinks() {
   ];
 }
 
-/** Safari's flag, which says whether the page is already a home-screen app. */
+/** The flag of Safari, which tells if the page is already a home-screen app. */
 function setStandalone(value: boolean | undefined) {
   Object.defineProperty(navigator, "standalone", {
     value,
@@ -43,7 +43,8 @@ async function pixel(src: string, x: number, y: number) {
 }
 
 beforeEach(() => {
-  // index.html's splash, reduced to what places the logo and the name.
+  // The splash of index.html, with only the parts that position the logo and
+  // the name.
   splash = document.createElement("div");
   splash.id = "splash";
   splash.style.cssText =
@@ -88,8 +89,8 @@ describe("the launch image", () => {
     const scale = window.devicePixelRatio;
     const width = Math.min(screen.width, screen.height);
     const height = Math.max(screen.width, screen.height);
-    // The logo's centre, at the same distance from the screen's centre as it
-    // is from the splash's.
+    // The center of the logo, at the same distance from the center of the
+    // screen as from the center of the splash.
     const x = Math.round(
       (width / 2 +
         logoBox.left +

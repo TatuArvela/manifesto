@@ -18,10 +18,10 @@ const STATUS_CLASS: Record<SetupCheckStatus, string> = {
 };
 
 /**
- * The overview's setup checks: the settings that go wrong without anything
- * saying so (HTTPS, `APP_URL`, the proxy and `TRUST_PROXY`, backups, mail).
- * Asked for on their own, after the rest of the overview, and again after a
- * test email so its result shows.
+ * The setup checks of the overview: the settings that can be wrong without a
+ * message (HTTPS, `APP_URL`, the proxy and `TRUST_PROXY`, backups, mail). They
+ * load separately, after the other parts of the overview, and again after a
+ * test email, so that its result shows.
  */
 export function SetupChecks() {
   const [facts, setFacts] = useState<AdminChecksResponse | null>(null);

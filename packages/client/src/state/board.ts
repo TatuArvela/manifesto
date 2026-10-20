@@ -10,17 +10,17 @@ import { boardImageStamp, boardUsePicture } from "./prefs.ts";
 import { showError } from "./ui.ts";
 
 /**
- * An object URL for the board picture on file, or null with none. Kept while
- * the colour and texture are showing too, so Settings can offer the picture.
+ * An object URL for the stored board picture, or null when there is none. Kept
+ * also while the color and texture show. Thus, Settings can offer the picture.
  */
 export const boardImageUrl = signal<string | null>(null);
 
 let started = false;
 
 /**
- * Loads the board picture whenever one is put on file, here or in another tab
- * (its stamp changes in the shared preferences), and paints it over the whole
- * board while it is in use. Called once from `App`.
+ * Loads the board picture each time one is stored, here or in a different tab
+ * (its stamp changes in the shared preferences), and paints it over the full
+ * board while it is in use. `App` calls it one time.
  */
 export function initBoardBackground(): () => void {
   if (started) return () => {};
@@ -43,15 +43,15 @@ export function initBoardBackground(): () => void {
     void loadBoardImage()
       .catch(() => null)
       .then((blob) => {
-        // Replaced again while this one was loading.
+        // Replaced again while this one loaded.
         if (mine !== generation) return;
         setUrl(blob ? URL.createObjectURL(blob) : null);
       });
   });
 
-  // Keyed on the picture having loaded, not only on it being wanted: until
-  // then, and if it never does, the colour and texture stay on the board
-  // rather than a blank.
+  // The key is that the picture loaded, not only that it is wanted. Until then,
+  // and if it never loads, the color and texture stay on the board, not a
+  // blank.
   const stopPainting = effect(() => {
     const url = boardImageUrl.value;
     const root = document.documentElement;
@@ -77,7 +77,7 @@ export function initBoardBackground(): () => void {
 
 /**
  * Makes `file` the board picture and shows it. Reports its own failure and
- * resolves false, like the actions in actions.ts.
+ * resolves false, as the actions in actions.ts do.
  */
 export async function setBoardImage(file: File): Promise<boolean> {
   const image = await shrinkBoardImage(file);
@@ -96,7 +96,7 @@ export async function setBoardImage(file: File): Promise<boolean> {
   return true;
 }
 
-/** Forgets the board picture, leaving the colour and texture on the board. */
+/** Forgets the board picture, and leaves the color and texture on the board. */
 export async function removeBoardImage(): Promise<boolean> {
   try {
     await deleteBoardImage();

@@ -121,7 +121,7 @@ describe("LoginScreen with passkeys", () => {
     host.querySelector("form")?.requestSubmit();
 
     (await button(t("login.twoFactor.usePasskey"))).click();
-    // Passkeys alone leave nothing to type: whoever lost them has the
+    // Passkeys alone leave nothing to type. A person who lost them has the
     // recovery key.
     expect(
       host.querySelector('input[autocomplete="one-time-code"]'),

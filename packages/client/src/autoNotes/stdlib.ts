@@ -1,14 +1,15 @@
-// Pure functions exposed to plugins inside the sandbox. Each must be fully
-// self-contained (no closures over module scope, no imports) so they can be
-// Function.prototype.toString()'d into the iframe bootstrap as a prelude.
+// Pure functions for the plugins inside the sandbox. Each must be fully
+// self-contained (no closures over module scope, no imports). Thus,
+// Function.prototype.toString() can put them into the iframe bootstrap as a
+// prelude.
 //
-// Host code (tests, potentially UI helpers) can also call these directly.
+// Host code (tests, possibly UI helpers) can also call these directly.
 
 /**
- * Localized labels for `approxUntil`. Every string may include `{n}` as a
- * placeholder for a number; plain labels (today/tomorrow/…) have none. The
- * host builds this dict from i18n and passes it into the sandbox so stdlib
- * stays free of hardcoded strings.
+ * Localized labels for `approxUntil`. Each string can contain `{n}` as a
+ * placeholder for a number. Plain labels (today/tomorrow/…) have none. The host
+ * builds this dictionary from i18n, and gives it to the sandbox. Thus, stdlib
+ * has no hardcoded strings.
  */
 export interface ApproxLabels {
   today: string;
@@ -69,7 +70,7 @@ export function lastPast(list: string[], nowIso: string): string | null {
 }
 
 /**
- * Project a recurring event forward from a known occurrence. Returns the most
+ * Calculate a recurring event forward from a known occurrence. Returns the most
  * recent occurrence on or before `nowIso`.
  */
 export function lastOccurrence(
@@ -103,7 +104,7 @@ export function formatDateTime(iso: string, locale: string): string {
 
 /**
  * Localized "N days ago" / "in N days". Uses Intl.RelativeTimeFormat with
- * numeric: "auto" so same-day returns "today" / "tänään".
+ * numeric: "auto". Thus, the same day returns "today" / "tänään".
  */
 export function relativeDays(
   iso: string,
@@ -119,10 +120,11 @@ export function relativeDays(
 }
 
 /**
- * Bucketed approximation for "soon-ish" events. Picks the narrowest bucket
- * that matches: today / tomorrow / day-after / N days / N weeks on exact
- * multiples of 7 / a month at 30-31 / "less than N weeks" otherwise. Falls
- * back to an absolute locale-formatted date past 6 weeks.
+ * An approximation in buckets for events that are near. It selects the
+ * narrowest bucket that matches: today / tomorrow / day after / N days / N
+ * weeks on exact multiples of 7 / one month at 30-31 / "less than N weeks"
+ * otherwise. After 6 weeks, it uses an absolute date in the format of the
+ * locale.
  */
 export function approxUntil(
   iso: string,
@@ -174,9 +176,9 @@ export const STDLIB_FUNCTIONS = {
 export type StdlibName = keyof typeof STDLIB_FUNCTIONS;
 
 /**
- * Serialize the stdlib into a JS source string that, when evaluated inside
- * the sandbox, populates a `__stdlib` object with locale pre-bound. The
- * sandbox's bootstrap wraps this and exposes it as `ctx.stdlib`.
+ * Serialize the stdlib into a JS source string. When the sandbox evaluates it,
+ * it fills a `__stdlib` object with the locale already bound. The bootstrap of
+ * the sandbox wraps this, and exposes it as `ctx.stdlib`.
  */
 export function buildStdlibPrelude(): string {
   const parts: string[] = [];

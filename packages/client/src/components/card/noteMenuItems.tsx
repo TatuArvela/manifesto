@@ -54,46 +54,46 @@ import type {
   NoteMenuSubmenu,
 } from "./NoteMenu.tsx";
 
-// What a note's menu holds, for every surface that shows one (the card, the
-// read-only view, the editor, the composer); `NoteMenu.tsx` draws it.
+// The contents of the menu of a note, for each surface that shows one (the
+// card, the read-only view, the editor, the composer). `NoteMenu.tsx` draws it.
 
 export interface NoteMenuOptions {
   /**
-   * The editor's live buffer. Sharing, duplicating and exporting read it in
-   * preference to the stored note, which lags by the auto-save debounce.
+   * The live buffer of the editor. Share, duplicate and export read it in place
+   * of the stored note, which is behind by the debounce of the auto-save.
    */
   draft?: { title: string; content: string };
-  /** Adds "Version history", only where there is a panel to show. */
+  /** Adds "Version history", only where there is a panel to show it. */
   onShowVersions?: (() => void) | undefined;
   /**
-   * Adds "Delete checked items". The card rewrites the stored note; the editor
-   * has to go through its own document, which in collab mode is the only copy
-   * that counts.
+   * Adds "Delete checked items". The card writes the stored note again. The
+   * editor must go through its own document, which in collab mode is the only
+   * copy that counts.
    */
   checkedItems?: { present: boolean; remove: () => void; uncheck: () => void };
   /** Adds "Sort items by date", through the same two routes. */
   datedItems?: { present: boolean; sort: () => void };
   /**
-   * Called when a row moves the note out of the view it was opened from,
-   * archiving, trashing and restoring all do. Surfaces that sit over that view
-   * close themselves here.
+   * Called when a row moves the note out of the view from which it opened.
+   * Archive, trash and restore all do. Surfaces that are over that view close
+   * themselves here.
    */
   onDismiss?: () => void;
-  /** Drops "Delete" where the surface offers its own discard instead. */
+  /** Removes "Delete" where the surface offers its own discard in its place. */
   omitTrash?: boolean;
 }
 
 /**
- * The rows every surface shows for a saved note, in one order. Splitting them
- * three ways is what let the card store unnormalized tags, the read-only view
- * stay open over a note it had just archived, and the editor export a note
- * with its auto-note markers still attached.
+ * The rows that each surface shows for a saved note, in one order. When there
+ * were three copies, the card stored tags that were not normalized, the
+ * read-only view stayed open over a note that it just archived, and the editor
+ * exported a note with its auto-note markers still attached.
  *
- * Grouped by what the reader came to do, most particular first: this note's
- * own tools (its history, its checklist), then sending it
- * somewhere (sharing, a file, a copy), then where it sits (its place on the
- * board, the archive), and Delete last on its own. The rarer rows of a group
- * share a submenu, so the panel opens at nine rows or fewer.
+ * The groups follow what the reader wants to do, most specific first: the own
+ * tools of this note (its history, its checklist), then sending it to a
+ * different place (sharing, a file, a copy), then its position (its place on
+ * the board, the archive), and Delete last, alone. The rarer rows of a group
+ * share a submenu. Thus, the panel opens with nine rows or fewer.
  */
 export function noteMenuItems(
   note: Note,
@@ -114,8 +114,8 @@ export function noteMenuItems(
     });
   }
 
-  // Sorting and deleting items are changing the note, which someone who can
-  // only view it cannot do.
+  // To sort and delete items changes the note. A person who can only view it
+  // cannot do that.
   if (role !== "view") {
     items.push(
       checklistSubmenu({
@@ -128,12 +128,12 @@ export function noteMenuItems(
   items.push({ kind: "divider", id: "send" });
 
   const share: NoteMenuAction[] = [];
-  // Sharing with people needs accounts, so a server. An automatic note is
-  // rewritten by a plugin in its owner's browser and has nothing to offer
-  // anyone else, and a trashed one is on its way out.
+  // Sharing with people needs accounts, thus a server. A plugin writes an
+  // automatic note again in the browser of its owner, and it has nothing to
+  // offer other persons. A trashed note is on its way out.
   if (isServerMode && !note.readonly) {
-    // With sharing off on the server, only to take people off a note it
-    // was already shared with.
+    // With sharing off on the server, only to remove people from a note that
+    // was already shared with them.
     const shareable =
       serverFeature("sharing") || (note.sharing?.members.length ?? 0) > 0;
     if (role === "owner" && !note.trashed && shareable) {
@@ -195,20 +195,21 @@ export function noteMenuItems(
     downloadSubmenu({
       markdown: () => downloadNoteAsMarkdown({ title, content }),
       json: async () => {
-        // The attachments, not the count: a note listed by the server carries
-        // an empty `images`, and an export written from that would be a file
-        // silently missing its pictures.
+        // The attachments, not the count. A note that the server listed has an
+        // empty `images`, and an export written from that would be a file that
+        // silently does not have its pictures.
         const loaded = await ensureImages(note.id);
-        // Null is "could not fetch", not "has none"; writing the file anyway
-        // would save a note stripped of the pictures it still has. The file
-        // carries the bytes, not references only this server can read.
+        // Null means "could not get", not "has none". If the code wrote the
+        // file anyway, it would save a note without the pictures that it still
+        // has. The file contains the bytes, not references that only this
+        // server can read.
         const images = loaded && (await inlineImages(loaded));
         if (!images) {
           if (loaded) showError(t("error.exportFailed"));
           return;
         }
-        // Auto-note markers are stripped so the export is a static, portable
-        // note rather than one that claims a plugin owns it.
+        // The code removes the auto-note markers. Thus, the export is a static,
+        // portable note, not one that says that a plugin owns it.
         const { readonly: _r, source: _s, imageCount: _c, ...plain } = note;
         downloadNoteAsJson({
           ...plain,
@@ -221,9 +222,9 @@ export function noteMenuItems(
     }),
   );
 
-  // The card of a plugin that reads notes has no copy to make: the copy
-  // would be an ordinary note, drawn with the images its card is kept from
-  // drawing (see `drawnWithoutImages`).
+  // The card of a plugin that reads notes has no copy to make. The copy would
+  // be an ordinary note, drawn with the images that its card does not draw (see
+  // `drawnWithoutImages`).
   if (!drawnWithoutImages(note)) {
     items.push({
       id: "duplicate",
@@ -243,9 +244,9 @@ export function noteMenuItems(
 
   items.push({ kind: "divider", id: "place" });
 
-  // The board's manual order, for whoever cannot drag: a keyboard, a screen
-  // reader, a switch. Offered only where a drag would work, and only the
-  // directions the card can go.
+  // The manual order of the board, for a person who cannot drag: a keyboard, a
+  // screen reader, a switch. It shows only where a drag would work, and only
+  // for the directions that the card can go.
   const moves = [
     [
       "move-start",
@@ -307,9 +308,9 @@ export function noteMenuItems(
 
   items.push({ kind: "divider", id: "destructive" });
 
-  // A recipient's Delete puts the note in their own trash, as the owner's does
-  // for theirs. Emptying it from there takes the note out of their notes and
-  // leaves it with everyone else.
+  // A Delete by a recipient puts the note in their own trash, as the Delete of
+  // the owner does for the owner. When they empty it from there, the note goes
+  // out of their notes, and stays with all other persons.
   if (!options.omitTrash) {
     items.push({
       id: "trash",
@@ -325,9 +326,9 @@ export function noteMenuItems(
           onDismiss?.();
           return;
         }
-        // Asked before anything moves, and the surface stays put if the
-        // answer is no: dismissing first would close the editor over a note
-        // the reader has just decided to keep.
+        // Asked before anything moves. If the answer is no, the surface stays.
+        // If it closed first, it would close the editor over a note that the
+        // reader just decided to keep.
         const ok = await confirmDeletion({
           title: t("confirm.trash.title"),
           body: t("confirm.trash.body"),
@@ -344,9 +345,9 @@ export function noteMenuItems(
 }
 
 /**
- * "Checklist items", for sorting and clearing a note's checklist. Shared with
- * the new-note sheet, which has no saved note to build the rest from. Either
- * row is left out when the note has nothing it would act on.
+ * "Checklist items", to sort and clear the checklist of a note. Shared with the
+ * new-note sheet, which has no saved note from which to build the others. The
+ * code removes either row when the note has nothing on which it would act.
  */
 export function checklistSubmenu(actions: {
   checkedItems?:
@@ -393,7 +394,7 @@ export function checklistSubmenu(actions: {
   };
 }
 
-/** "Download", the note as a file in either format. Shared as above. */
+/** "Download": the note as a file in either format. Shared as above. */
 export function downloadSubmenu(write: {
   markdown: () => void;
   json: () => void | Promise<void>;

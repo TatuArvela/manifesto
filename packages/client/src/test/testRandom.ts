@@ -1,13 +1,13 @@
 /**
- * A seeded source of random choices for the property tests, so a failing case
- * can be replayed: every property runs a fixed list of seeds, and a failure
- * names the seed it came from.
+ * A seeded source of random choices for the property tests. Thus, a failing
+ * case can be played again. Each property runs a fixed list of seeds, and a
+ * failure names the seed from which it came.
  *
- * Hand-written rather than a property-testing library: the tests here need a
- * few picks and shuffles, not shrinking, and a failure's seed plus the trace
- * the test prints is enough to read what went wrong.
+ * Written manually, not a property-testing library. The tests here need a few
+ * picks and shuffles, not shrinking. The seed of a failure and the trace that
+ * the test prints are sufficient to see what went wrong.
  *
- * Not a `.test.ts` file, so Vitest does not collect it.
+ * Not a `.test.ts` file. Thus, Vitest does not collect it.
  */
 export interface Random {
   /** An integer in `[0, n)`. */
@@ -19,7 +19,7 @@ export interface Random {
   subset<T>(items: readonly T[], p?: number): T[];
 }
 
-/** mulberry32: small, fast, and good enough to spread test cases. */
+/** mulberry32: small, fast, and sufficiently good to spread test cases. */
 export function seeded(seed: number): Random {
   let state = seed >>> 0;
   const next = () => {
@@ -38,7 +38,10 @@ export function seeded(seed: number): Random {
   return random;
 }
 
-/** The seeds each property runs: enough to cover, few enough to stay quick. */
+/**
+ * The seeds that each property runs: sufficient to cover, and few enough to
+ * stay fast.
+ */
 export const SEEDS: readonly number[] = Array.from(
   { length: 300 },
   (_, i) => i + 1,

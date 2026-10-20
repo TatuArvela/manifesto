@@ -7,13 +7,14 @@ import { t } from "#/i18n/index.ts";
 import { openExternalLink } from "#/state/externalLinks.ts";
 
 /**
- * Links in the editor. A click places the caret, as it does on any other text,
- * instead of leaving the note for the link's target; and while the caret is on
- * a link, an "Open link" button sits under it for when leaving is the point.
+ * Links in the editor. A click puts the caret in the link, as on all other
+ * text. It does not leave the note for the target of the link. While the caret
+ * is on a link, an "Open link" button is under it, for when you want to leave.
  * Mod-Enter does the same from the keyboard.
  *
- * Only web and mail addresses are opened. A link's target is whatever the
- * markdown says, and a `javascript:` one would otherwise run in the app.
+ * The code opens only web addresses and mail addresses. The target of a link is
+ * what the markdown says, and a `javascript:` target would otherwise run in the
+ * app.
  */
 
 const OPENABLE = /^(?:https?:|mailto:)/i;

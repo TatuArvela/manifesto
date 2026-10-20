@@ -23,10 +23,10 @@ function toNote(raw: unknown, trashed: boolean): Note | null {
 }
 
 /**
- * Simplenote's export: a zip whose `source/notes.json` holds
- * `{ activeNotes, trashedNotes }`, each note one string of text whose first
- * line Simplenote shows as its title. The same file picked on its own imports
- * too.
+ * The export of Simplenote: a zip whose `source/notes.json` contains `{
+ * activeNotes, trashedNotes }`. Each note is one string of text, whose first
+ * line Simplenote shows as its title. The same file selected alone also
+ * imports.
  */
 export const simplenoteImporter: Importer = {
   format: "Simplenote",

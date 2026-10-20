@@ -19,12 +19,13 @@ import {
 import { applyTextEdit } from "#/utils/rawFormatting.ts";
 
 /**
- * What the editor's toolbar and menu do to a note's text, against whichever
- * holds it: the textarea in raw mode, the rich editor otherwise.
+ * What the toolbar and the menu of the editor do to the text of a note, against
+ * the element that has it: the textarea in raw mode, and the rich editor
+ * otherwise.
  *
- * Built on every render rather than memoised: the editor's tick is what
- * schedules that render (`useEditorTicks`), so what this reads is as fresh as
- * the last transaction.
+ * Built on each render, not memoized. The tick of the editor schedules that
+ * render (`useEditorTicks`). Thus, what this reads is as recent as the last
+ * transaction.
  */
 export interface TextActions {
   canUndo: boolean;
@@ -43,7 +44,7 @@ export function textActions(
   const readDoc = (read: (doc: Node) => boolean) =>
     editor ? editor.action((ctx) => read(ctx.get(editorStateCtx).doc)) : false;
 
-  /** Rewrites the text, keeping the caret where it can stay. */
+  /** Writes the text again, and keeps the caret where it can stay. */
   const edit = (
     rewrite: (text: string) => string,
     inDoc: (view: EditorView) => void,
@@ -65,11 +66,12 @@ export function textActions(
     });
   };
 
-  // The undo buttons drive the rich editor's history, which in raw mode
-  // belongs to a document that is about to be replaced, so they stand down
-  // there; the textarea's own undo (Cmd+Z) covers raw edits, toolbar ones
-  // included. In collab that history is `yUndoPlugin`'s, not Milkdown's, so
-  // both go through `editorHistory`, which asks the state which one it has.
+  // The undo buttons control the history of the rich editor. In raw mode, that
+  // history belongs to a document that will be replaced. Thus, they stop there.
+  // The own undo of the textarea (Cmd+Z) covers raw edits, also those of the
+  // toolbar. In collab, that history belongs to `yUndoPlugin`, not to Milkdown.
+  // Thus, both go through `editorHistory`, which asks the state which one it
+  // has.
   const canRun = (which: "undo" | "redo") =>
     editor && !rawMode
       ? editor.action((ctx) => {

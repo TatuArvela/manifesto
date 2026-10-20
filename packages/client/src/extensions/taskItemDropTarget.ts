@@ -1,30 +1,31 @@
-// Where a dragged checklist item lands, worked out from the items' levels and
-// lists alone. `taskItemDrag.ts` measures the page and hands the numbers in;
-// nothing here reads the DOM, so the rules can be tested without one.
+// Where a dragged checklist item goes, calculated only from the levels and
+// lists of the items. `taskItemDrag.ts` measures the page and gives the
+// numbers. Nothing here reads the DOM. Thus, the rules can be tested without
+// one.
 
 export const INDENT_PX = 24;
 
 /**
- * How far above a finger a touch drag aims, at most. The finger covers the row
- * it is on and the line under it, so the item is held up where it can be seen
- * and the drop goes where the item is drawn, not under the fingertip.
+ * The maximum height above a finger at which a touch drag aims. The finger
+ * covers its row and the line under it. Thus, the item is held up where you can
+ * see it, and the drop goes where the item is drawn, not under the fingertip.
  *
- * The lift grows with the finger's travel, at half its pace, rather than
- * being there from the start: lifted at once, the aim began a row up, and an
- * item let go where it was picked up moved one slot.
+ * The lift grows with the travel of the finger, at half its speed. It is not
+ * there from the start. When it was there immediately, the aim started one row
+ * up, and an item released where it was picked up moved one slot.
  */
 export const TOUCH_LIFT_PX = 44;
 
-/** What the rules need of an item: how deep it is, and which list it is in. */
+/** What the rules need of an item: its depth, and its list. */
 export interface DropItem {
   level: number;
-  /** The top-level list the item belongs to, or below 0 for none. */
+  /** The top-level list of the item, or below 0 for none. */
   outerListPos: number;
 }
 
 /**
- * The slot before the first of `count` items whose line's middle is below
- * `y`. The middles are asked for one at a time, so a drag near the top
+ * The slot before the first of `count` items whose line has its middle below
+ * `y`. The code asks for the middles one at a time. Thus, a drag near the top
  * measures only the lines above it.
  */
 export function slotAt(
@@ -39,8 +40,8 @@ export function slotAt(
 }
 
 /**
- * The item above or below `slot`, stepping over the one being dragged, which
- * is still in the list where it was picked up.
+ * The item above or below `slot`. It skips the dragged item, which is still in
+ * the list where it was picked up.
  */
 export function neighborIndex(
   slot: number,
@@ -55,9 +56,9 @@ export function neighborIndex(
 }
 
 /**
- * The two items around `slot` when they are in different lists, which is
- * where a drop has to choose between the end of the first and the start of
- * the second; null anywhere else.
+ * The two items around `slot` when they are in different lists. There, a drop
+ * must select between the end of the first list and the start of the second.
+ * Null in all other places.
  */
 export function listBoundaryAt<T extends DropItem>(
   items: readonly T[],
@@ -73,9 +74,10 @@ export function listBoundaryAt<T extends DropItem>(
 }
 
 /**
- * The level a drop lands at: the dragged item's own, moved one for every
- * `INDENT_PX` sideways, but never deeper than one under the item above, nor
- * shallower than the item below (which would otherwise become its child).
+ * The level at which a drop goes: the own level of the dragged item, moved one
+ * for each `INDENT_PX` to the side. Never deeper than one under the item above,
+ * and never shallower than the item below (which would otherwise become its
+ * child).
  */
 export function dropLevel(
   items: readonly DropItem[],
@@ -97,7 +99,7 @@ export function dropLevel(
   return Math.max(minLevel, Math.min(maxLevel, desired));
 }
 
-/** How far above a finger the drop is aimed after `travel`; it only grows. */
+/** How far above a finger the drop aims after `travel`. It only grows. */
 export function touchLift(lift: number, travel: number): number {
   return Math.max(lift, Math.min(TOUCH_LIFT_PX, Math.abs(travel) / 2));
 }

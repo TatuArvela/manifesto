@@ -9,7 +9,7 @@ import { checkImportSize, type Importer, importedNote } from "./importer.ts";
 
 const IMAGE_SUBTYPES = new Set<string>(IMAGE_DATA_URL_SUBTYPES);
 
-/** `20240131T081500Z`, Evernote's timestamp, as ISO 8601. */
+/** `20240131T081500Z`, the timestamp of Evernote, as ISO 8601. */
 function enexTime(raw: string | null | undefined): string | null {
   const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(
     (raw ?? "").trim(),
@@ -21,7 +21,10 @@ function text(parent: Element, tag: string): string | null {
   return parent.getElementsByTagName(tag)[0]?.textContent ?? null;
 }
 
-/** A note's image resources, as the data URLs a note's `images` holds. */
+/**
+ * The image resources of a note, as the data URLs that the `images` of a note
+ * contain.
+ */
 function imagesOf(note: Element): string[] {
   const images: string[] = [];
   for (const resource of Array.from(note.getElementsByTagName("resource"))) {
@@ -38,10 +41,10 @@ function imagesOf(note: Element): string[] {
 }
 
 /**
- * Evernote's `.enex` export: XML with one `<note>` per note, its text as
- * ENML (Evernote's HTML) in `<content>`, its tags, its dates, and its
- * attachments inline as base64 `<resource>`s. Images become the note's
- * images; other attachments (PDFs, audio) have no place on a note.
+ * The `.enex` export of Evernote: XML with one `<note>` for each note. Its text
+ * is ENML (the HTML of Evernote) in `<content>`, with its tags, its dates, and
+ * its attachments inline as base64 `<resource>` elements. Images become the
+ * images of the note. Other attachments (PDFs, audio) have no place on a note.
  */
 export const evernoteImporter: Importer = {
   format: "Evernote",

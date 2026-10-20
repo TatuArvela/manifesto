@@ -3,9 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { initReminderScheduler, parseLocalISO } from "./reminderScheduler.ts";
 
 /**
- * One real fire through the scheduler, in a file of its own because
- * `initReminderScheduler` runs once per module. What it stores is what the
- * next fire steps from, so this is where the drift used to start.
+ * One real fire through the scheduler. It is in its own file because
+ * `initReminderScheduler` runs one time for each module. The next fire steps
+ * from what it stores. Thus, this is where the drift started before.
  */
 
 function note(reminder: Note["reminder"]): Note {

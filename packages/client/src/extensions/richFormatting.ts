@@ -24,9 +24,9 @@ import {
 } from "./manifestoInlineMarks.ts";
 import { insertTable } from "./tableActions.ts";
 
-// The formatting toolbar's reading and writing of the rich editor: which
-// formats the selection has, and applying one. The raw-mode counterpart, for
-// the markdown textarea, is `utils/rawFormatting.ts`.
+// How the formatting toolbar reads and writes the rich editor: which formats
+// the selection has, and how to apply one. The raw-mode equivalent, for the
+// markdown textarea, is `utils/rawFormatting.ts`.
 
 export const emptyFormats: ActiveFormats = {
   heading: false,
@@ -194,7 +194,7 @@ export function applyFormat(
   }
 }
 
-/** The depth of the innermost quote the covered selection starts in. */
+/** The depth of the innermost quote in which the covered selection starts. */
 function quoteDepth(
   state: EditorState,
   quote: NodeType | undefined,
@@ -208,14 +208,14 @@ function quoteDepth(
 }
 
 /**
- * Takes the selected blocks out of the quote the selection starts in, one
- * level, or returns null when it starts outside a quote. The button reads as
- * on whenever it starts in one, and wrapping there put a quote inside the
- * quote instead of taking it off.
+ * Takes the selected blocks one level out of the quote in which the selection
+ * starts, or returns null when it starts outside a quote. The button shows as
+ * on each time it starts in one. A wrap there put a quote inside the quote, and
+ * did not remove it.
  *
- * Only the text the selection covers counts (see {@link coveredRange}), and
- * it is cut back to the quote's end: the blocks after the quote were never
- * in it.
+ * Only the text that the selection covers counts (see {@link coveredRange}),
+ * and the code cuts it back to the end of the quote. The blocks after the quote
+ * were never in it.
  */
 export function unquote(state: EditorState): Transaction | null {
   const quote = state.schema.nodes.blockquote;
@@ -230,10 +230,11 @@ export function unquote(state: EditorState): Transaction | null {
 }
 
 /**
- * Takes every mark but links off the selection, or off the caret's whole
- * paragraph when nothing is selected, and turns headings back into text.
- * Links stay: where one goes is part of the text, not its look. Lists and
- * quotes stay too, being the note's structure rather than its formatting.
+ * Removes all marks other than links from the selection, or from the full
+ * paragraph of the caret when nothing is selected. It changes headings back
+ * into text. Links stay, because the target of a link is part of the text, not
+ * of its look. Lists and quotes also stay, because they are the structure of
+ * the note, not its formatting.
  */
 function clearFormatting(state: EditorState): Transaction | null {
   const { heading, paragraph } = state.schema.nodes;

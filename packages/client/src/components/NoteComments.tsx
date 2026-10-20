@@ -37,7 +37,7 @@ const fieldClass =
 const quietButton =
   "px-2 py-1 text-xs rounded-md cursor-pointer text-black/60 dark:text-white/60 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50";
 
-/** A field for a comment's text: sent with the button or Mod+Enter. */
+/** A field for the text of a comment. The button or Mod+Enter sends it. */
 function CommentField({
   initial = "",
   label,
@@ -48,7 +48,7 @@ function CommentField({
   initial?: string;
   label: string;
   submitLabel: string;
-  /** Resolves true when the text was taken, which empties the field. */
+  /** Resolves true when the text was accepted, which empties the field. */
   onSubmit: (body: string) => Promise<boolean>;
   onCancel?: (() => void) | undefined;
 }) {
@@ -113,7 +113,7 @@ function CommentRow({
   isNoteOwner: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  // Escape leaves the edit, before it reaches the note's editor behind it.
+  // Escape leaves the edit, before it reaches the editor of the note behind it.
   useEscapeStack(editing, () => setEditing(false));
   const mine =
     comment.author !== null && comment.author.id === currentUser.value?.id;
@@ -197,16 +197,18 @@ function CommentRow({
 }
 
 /**
- * The comments beside a shared note: a line saying how many, which opens the
- * list and a field to add one. Shown for a note that is shared, to everyone
- * on it; a note nobody else is on has nobody to talk to.
+ * The comments next to a shared note: a line that tells how many there are,
+ * which opens the list and a field to add one. It shows for a shared note, to
+ * all persons on it. A note that has no other person on it has nobody to talk
+ * to.
  *
- * On a screen wide enough the list opens in a panel of its own to the right
- * of the note (`SheetAside`), so a long thread does not push the note's tags
- * and toolbar away; anywhere narrower it opens under the line.
+ * On a screen that is sufficiently wide, the list opens in its own panel to the
+ * right of the note (`SheetAside`). Thus, a long thread does not push the tags
+ * and the toolbar of the note away. On a narrower screen, it opens under the
+ * line.
  *
- * Writing needs the server's sharing feature. With it off the comments
- * already made are still read and can still be deleted.
+ * To write needs the sharing feature of the server. When it is off, you can
+ * still read and delete existing comments.
  */
 export function NoteComments({ note }: { note: Note }) {
   const shared = note.sharing !== undefined;
@@ -214,11 +216,11 @@ export function NoteComments({ note }: { note: Note }) {
   const aside = useContext(SheetAside);
   const wide = useMediaQuery(SHEET_ASIDE_QUERY);
   const beside = aside !== null && wide;
-  // Held for its exit after it is closed.
+  // Kept for its exit after it closes.
   const panel = usePresence(open && beside ? true : null, SHEET_ASIDE_EXIT_MS);
   const noteId = note.id;
-  // Who is on the note. A comment names its author only while they are, so
-  // the names held go stale when this changes and the list is read again.
+  // Who is on the note. A comment names its author only while they are. Thus,
+  // when this changes, the kept names are stale, and the list is read again.
   const people = note.sharing
     ? [
         note.sharing.owner.id,

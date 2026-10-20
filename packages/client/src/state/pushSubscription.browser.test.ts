@@ -7,7 +7,7 @@ import {
 import { DEFAULT_SERVER_FEATURES, serverFeatures } from "./serverFeatures.ts";
 
 const SERVER = "http://server.test";
-/** 65 bytes, as a push key is; the content does not matter here. */
+/** 65 bytes, as a push key is. The content is not important here. */
 const KEY_BYTES = Uint8Array.from({ length: 65 }, (_, i) => (i === 0 ? 4 : i));
 const KEY = btoa(String.fromCharCode(...KEY_BYTES))
   .replace(/\+/g, "-")
@@ -85,7 +85,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
-  // Back to the browser's own getter.
+  // Back to the own getter of the browser.
   Reflect.deleteProperty(navigator.serviceWorker, "ready");
   storageConnection.value = { serverUrl: null, token: null };
   serverFeatures.value = DEFAULT_SERVER_FEATURES;
@@ -176,7 +176,7 @@ describe("removePushSubscription", () => {
   });
 
   it("does not wait for a service worker that was never registered", async () => {
-    // `ready` never settles there; signing out must not hang on it.
+    // `ready` never settles there. A sign-out must not wait for it forever.
     Object.defineProperty(navigator.serviceWorker, "ready", {
       configurable: true,
       get: () => new Promise(() => {}),

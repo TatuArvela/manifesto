@@ -30,14 +30,14 @@ import { getColorPickerColors, getFontLabel, t } from "#/i18n/index.ts";
 import { editorButtonClass, editorIconClass } from "./editorButtons.ts";
 
 /**
- * The open note's toolbar: under the note on a wide screen, and on a phone in
- * the top bar (`atTop`), since the keyboard covers the foot of the screen
- * there and iOS never moves anything out from under it. Undo and redo then
- * sit in the top bar's own row (`HistoryButtons`), which leaves this one room
- * for the rest. Two groups that wrap as units: the first tools, and
- * everything else. When the bar is too narrow for one row, the first group is
- * what gives way, so it takes a row of its own and the controls a thumb
- * reaches for (the menu, undo, done) keep theirs together.
+ * The toolbar of the open note: under the note on a wide screen, and in the top
+ * bar on a phone (`atTop`), because the keyboard covers the bottom of the
+ * screen there, and iOS never moves anything out from under it. Undo and redo
+ * are then in the own row of the top bar (`HistoryButtons`), which leaves space
+ * in this row for the other tools. There are two groups that wrap as units: the
+ * first tools, and all others. When the bar is too narrow for one row, the
+ * first group moves. It takes its own row, and the controls for the thumb (the
+ * menu, undo, done) stay together.
  */
 export function NoteEditorToolbar({
   color,
@@ -72,7 +72,7 @@ export function NoteEditorToolbar({
   reminder?: NoteReminder | null | undefined;
   onReminderChange?: ((reminder: NoteReminder | null) => void) | undefined;
   onFilesSelected: (files: FileList | null) => void;
-  /** Opens the drawing pad; left out where the note cannot take images. */
+  /** Opens the drawing pad. Not given where the note cannot have images. */
   onDraw?: (() => void) | undefined;
   rawMode: boolean;
   onToggleRawMode: () => void;
@@ -85,11 +85,11 @@ export function NoteEditorToolbar({
   deleteLabel?: string | undefined;
   onDone: () => void;
   disabled?: boolean | undefined;
-  /** In a phone's top bar, without undo and redo, rather than under the note. */
+  /** In the top bar of a phone, without undo and redo, not under the note. */
   atTop?: boolean;
 }) {
-  // One of the bar's three panels at most is open: opening one closes the
-  // others.
+  // A maximum of one of the three panels of the bar is open. When one opens,
+  // the others close.
   const [open, setOpen] = useState<"color" | "font" | "menu" | null>(null);
   const toggle = (panel: "color" | "font" | "menu") =>
     setOpen(open === panel ? null : panel);
@@ -97,9 +97,9 @@ export function NoteEditorToolbar({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pickerColors = getColorPickerColors();
 
-  // Rendered in one of two places, see below. Drawing sits beside the
-  // picture it makes, rather than in the menu where it was found by nobody
-  // looking for a way to add one.
+  // Rendered in one of two places, see below. Drawing is next to the picture
+  // that it makes. Before, it was in the menu, where nobody who looked for a
+  // way to add a picture found it.
   const imageButtons = (
     <>
       <ToolButton
@@ -122,8 +122,9 @@ export function NoteEditorToolbar({
     </>
   );
 
-  // The font and raw-mode controls the phone's bar has no room for, above
-  // the menu's own rows and gone with them while a submenu is open.
+  // The font and raw-mode controls for which the bar of the phone has no space,
+  // above the own rows of the menu. They go with those rows while a submenu is
+  // open.
   const phoneRows = (
     <>
       <div class="sm:hidden px-3 pt-1.5 pb-1 text-xs text-neutral-500 dark:text-neutral-400">
@@ -345,7 +346,7 @@ export function HistoryButtons({
   );
 }
 
-/** One of the bar's icon buttons, named by its tooltip. */
+/** One of the icon buttons of the bar, named by its tooltip. */
 function ToolButton({
   label,
   ariaLabel = label,
@@ -355,12 +356,12 @@ function ToolButton({
   dimmed,
 }: {
   label: string;
-  /** Where the button's name says more than its tooltip. */
+  /** Where the name of the button says more than its tooltip. */
   ariaLabel?: string;
   icon: LucideIcon;
   onClick: () => void;
   disabled?: boolean | undefined;
-  /** Shown faded, for undo and redo with nothing to do. */
+  /** Shown faded, for undo and redo when there is nothing to do. */
   dimmed?: boolean;
 }) {
   return (
@@ -382,7 +383,7 @@ function ToolButton({
   );
 }
 
-/** A font to pick, shown as "Aa" in that font. */
+/** A font to select, shown as "Aa" in that font. */
 function FontButton({
   font,
   selected,
@@ -392,7 +393,10 @@ function FontButton({
   font: NoteFont;
   selected: boolean;
   onClick: () => void;
-  /** Marks the current font for a screen reader, in the wide screen's picker. */
+  /**
+   * Marks the current font for a screen reader, in the picker of the wide
+   * screen.
+   */
   pressed?: boolean;
 }) {
   return (

@@ -46,9 +46,9 @@ function Heading({ title, hint }: { title: string; hint: string }) {
 }
 
 /**
- * What a signed-in account sees until its notes are unlocked: the set-up of
- * its keys the first time, and after that the secret key asked for at every
- * sign-in. Signing in proved who it is; this is what opens the notes.
+ * What a signed-in account sees until its notes are unlocked: the set-up of its
+ * keys the first time, and after that the secret key, which the app asks for at
+ * each sign-in. The sign-in proved who it is. This opens the notes.
  */
 export function KeyScreen() {
   const state = keyState.value;
@@ -109,7 +109,9 @@ export function KeyScreen() {
   );
 }
 
-/** An account's first sign-in: its keys are made here and shown once. */
+/**
+ * The first sign-in of an account: its keys are made here, and shown one time.
+ */
 function SetupKeys() {
   const [sheet, setSheet] = useState<KeySheet | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -161,7 +163,10 @@ const UNLOCK_FAILURES: Record<Exclude<UnlockResult, "ok">, MessageKey> = {
 
 type UnlockMode = "unlock" | "recover" | "startAgain";
 
-/** Every sign-in after the first: the secret key, or a way on without it. */
+/**
+ * Each sign-in after the first: the secret key, or a way to continue without
+ * it.
+ */
 function UnlockKeys() {
   const [mode, setMode] = useState<UnlockMode>("unlock");
   const [key, setKey] = useState("");
@@ -223,8 +228,11 @@ function UnlockKeys() {
   );
 }
 
-/** For someone with neither key: the account's keys go, and it is set up
- * again. Said plainly, since nothing brings back what the old keys held. */
+/**
+ * For a person with neither key: the keys of the account go, and it is set up
+ * again. The text is clear, because nothing brings back what the old keys
+ * contained.
+ */
 function StartAgain({ onBack }: { onBack: () => void }) {
   const [password, setPassword] = useState("");
   const [refusal, setRefusal] = useState<ConfirmationRefusal | null>(null);

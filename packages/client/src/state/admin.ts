@@ -20,21 +20,23 @@ import { activeView, showError, showSuccess } from "./ui.ts";
 /**
  * Account administration, for the `/admin` view.
  *
- * Every action here follows the contract in `actions.ts`: it reports its own
- * failure and resolves, saying whether it worked in its return value. The
- * server's error text is English and written for a log, so failures are
- * mapped to catalogue messages by status instead of being shown as they came.
+ * Each action here follows the contract in `actions.ts`. It reports its own
+ * failure and resolves, and its return value tells if it worked. The error text
+ * of the server is English and written for a log. Thus, the code maps failures
+ * to catalogue messages by status, and does not show them as they came.
  */
 
-/** Every account on the server, or null before the first load finishes. */
+/** Each account on the server, or null before the first load is complete. */
 export const adminUsers = signal<AdminUser[] | null>(null);
 
-/** A password the server has just issued. It is shown once and never fetched
- * again, so it lives here only until the admin dismisses it. */
+/**
+ * A password that the server just gave. It shows one time and is never loaded
+ * again. Thus, it is kept here only until the admin dismisses it.
+ */
 export interface IssuedPassword {
   username: string;
   password: string;
-  /** Whether the account was created by this action or had its password reset. */
+  /** If this action created the account, or reset its password. */
   kind: "created" | "reset";
 }
 
@@ -50,12 +52,13 @@ function request<T>(
 }
 
 /**
- * Say what went wrong. A 403 means this user is no longer an admin (another
- * admin revoked it), so the view they are on has nothing left to show them.
+ * Tell what went wrong. A 403 means that this user is not an admin now (a
+ * different admin revoked it). Thus, their current view has nothing left to
+ * show them.
  */
 function report(err: unknown, fallback: MessageKey, conflict?: MessageKey) {
   const status = err instanceof ApiError ? err.status : 0;
-  if (status === 401) return; // signed out; the login screen says enough
+  if (status === 401) return; // signed out; the login screen tells sufficient
   if (err instanceof ApiError && err.code === "email_taken") {
     showError(t("admin.error.emailTaken"));
     return;
@@ -83,14 +86,17 @@ function replaceUser(user: AdminUser) {
       : users.map((u) => (u.id === user.id ? user : u));
 }
 
-/** A newer release than the server runs, when its update check found one. */
+/**
+ * A release newer than the version that the server runs, when its update check
+ * found one.
+ */
 export const availableUpdate = signal<{ latest: string; url: string } | null>(
   null,
 );
 
 /**
- * Asks the server whether a newer release is out, for the account menu to
- * mention. Quiet on failure: this is news, not something to act on now.
+ * Asks the server if a newer release is available, for the account menu to
+ * tell. Silent on failure: this is news, not something to act on now.
  */
 export async function checkForUpdate(): Promise<void> {
   try {
@@ -103,7 +109,7 @@ export async function checkForUpdate(): Promise<void> {
   }
 }
 
-/** The server's overview; null on failure, which has been reported. */
+/** The overview of the server. Null on failure, which was reported. */
 export async function loadAdminOverview(): Promise<AdminOverviewResponse | null> {
   try {
     return await request<AdminOverviewResponse>("GET", "/overview");
@@ -114,9 +120,9 @@ export async function loadAdminOverview(): Promise<AdminOverviewResponse | null>
 }
 
 /**
- * What the setup checks read; null on failure, which has been reported. It
- * carries a made-up `X-Forwarded-For`, and what the proxy in front did to it
- * is part of the answer.
+ * What the setup checks read. Null on failure, which was reported. It carries
+ * an invented `X-Forwarded-For`, and what the proxy in front did to it is part
+ * of the answer.
  */
 export async function loadSetupChecks(): Promise<AdminChecksResponse | null> {
   try {
@@ -129,8 +135,10 @@ export async function loadSetupChecks(): Promise<AdminChecksResponse | null> {
   }
 }
 
-/** Sends the admin a test email; whether it went. A 409 is an account with
- * no address to send it to. */
+/**
+ * Sends the admin a test email, and tells if it went. A 409 is an account with
+ * no address to send it to.
+ */
 export async function sendTestMail(): Promise<boolean> {
   try {
     const body = await request<AdminTestMailResponse>("POST", "/checks/mail");
@@ -146,8 +154,10 @@ export async function sendTestMail(): Promise<boolean> {
   }
 }
 
-/** One page of the audit log, older than `before` when given; null on
- * failure, which has been reported. */
+/**
+ * One page of the audit log, older than `before` when given. Null on failure,
+ * which was reported.
+ */
 export async function loadAuditLog(
   before?: string,
 ): Promise<AuditLogResponse | null> {
@@ -211,7 +221,7 @@ export async function setAccountAdmin(
   }
 }
 
-/** Set or clear (`null`) an account's email address. */
+/** Set or clear (`null`) the email address of an account. */
 export async function setAccountEmail(
   id: string,
   email: string | null,

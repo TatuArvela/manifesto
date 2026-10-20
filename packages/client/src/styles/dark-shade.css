@@ -1,29 +1,33 @@
-/* The dark theme's tinted neutral ramp, and the swatches that show it. */
+/* The tinted neutral ramp of the dark theme, and the swatches that show it. */
 
-/* --- Dark shade ---------------------------------------------------------
-
-   Tailwind compiles every `neutral` utility to `var(--color-neutral-N)`, so
-   redefining the ramp on `html.dark` re-skins the whole dark theme without a
-   single component knowing about it. These rules are unlayered, which puts
-   them above Tailwind's `@layer theme` defaults regardless of specificity.
-
-   Two knobs drive it. `--dark-tint-c` / `--dark-tint-h` add a cast: each step
-   keeps Tailwind's own lightness and only gains chroma, so contrast ratios are
-   untouched. Chroma tapers off towards the light end, because the dark theme
-   uses those steps for text and tinted text reads as a mistake where a tinted
-   surface reads as a choice. The hues run warm to cool along the violet-blue
-   arc at a chroma low enough that each reads as a grey with a cast rather than
-   a colour. The point is matching the dark mode of the OS or editor beside
-   it, and those sit in a narrow band. The board's preset colours follow at a higher
-   chroma, for a dark theme that is meant to read as that colour.
-
-   `--dark-dim` deepens instead of tinting: it is subtracted from the lightness
-   of the dark end, tapering to nothing by the 400 step so text keeps its
-   contrast against a page that has gone all the way to black.
-
-   The `[data-dark-hue]` rules are deliberately not scoped to `html`: the
-   settings swatches set the same attribute on themselves to sample a shade
-   without any of these values having to be restated in JavaScript. */
+/*
+ * --- Dark shade ---------------------------------------------------------
+ *
+ * Tailwind compiles each `neutral` utility to `var(--color-neutral-N)`. Thus, a
+ * new definition of the ramp on `html.dark` changes the look of the full dark
+ * theme, and no component has to know about it. These rules are unlayered,
+ * which puts them above the `@layer theme` defaults of Tailwind, whatever the
+ * specificity.
+ *
+ * Two controls set it. `--dark-tint-c` / `--dark-tint-h` add a hue. Each step
+ * keeps the lightness of Tailwind and only gets chroma. Thus, contrast ratios
+ * do not change. Chroma decreases toward the light end, because the dark theme
+ * uses those steps for text. Tinted text looks like an error, but a tinted
+ * surface looks like a choice. The hues go from warm to cool along the
+ * violet-blue arc, at a chroma so low that each looks like a gray with a hue,
+ * not like a color. The purpose is to agree with the dark mode of the OS or the
+ * editor next to it, and those are in a narrow band. The preset colors of the
+ * board follow at a higher chroma, for a dark theme that must look like that
+ * color.
+ *
+ * `--dark-dim` makes the shade darker, and does not tint. It is subtracted from
+ * the lightness of the dark end, and decreases to nothing at the 400 step.
+ * Thus, text keeps its contrast against a page that is fully black.
+ *
+ * The `[data-dark-hue]` rules are intentionally not scoped to `html`. The
+ * settings swatches set the same attribute on themselves to show a sample of a
+ * shade. Thus, JavaScript does not have to state these values again.
+ */
 :root {
   --dark-tint-c: 0;
   --dark-tint-h: 0;
@@ -84,8 +88,10 @@
   --dark-dim: 20.5%;
 }
 
-/* The board's preset colours, as tints strong enough to read as the colour
-   rather than as a cast, in the hues the light shades use. */
+/*
+ * The preset colors of the board, as tints strong enough to look like the color
+ * and not like a hue, in the hues that the light shades use.
+ */
 [data-dark-hue="red"] {
   --dark-tint-c: 0.035;
   --dark-tint-h: 25;
@@ -172,11 +178,13 @@ html.dark {
   );
 }
 
-/* A literal sample of the theme, not an advertisement for it: the chip is the
-   700 step, the tone the dark theme outlines its cards with, light enough to
-   carry a cast this subtle, and dark enough that the two dimmed shades read as
-   dimmer than the tints. Amplifying the chroma to make the options easier to
-   tell apart would promise a tint the user will not get. */
+/*
+ * A literal sample of the theme, not an advertisement for it. The chip is the
+ * 700 step, the tone with which the dark theme outlines its cards. It is light
+ * enough to carry a hue this subtle, and dark enough that the two dimmed shades
+ * look dimmer than the tints. More chroma would make the options easier to tell
+ * apart, but would promise a tint that the user will not get.
+ */
 .dark-hue-swatch {
   background-color: oklch(
     calc(37.1% - var(--dark-dim) * 0.6) var(--dark-tint-c) var(--dark-tint-h)

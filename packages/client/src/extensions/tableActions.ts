@@ -14,8 +14,8 @@ import {
 } from "@milkdown/kit/prose/tables";
 import { insertBlock } from "./blockInsertion.ts";
 
-// The table menu on the formatting toolbar: making a table, and the row and
-// column changes offered while the caret is in one.
+// The table menu on the formatting toolbar: to make a table, and the row and
+// column changes available while the caret is in one.
 
 export type TableAction =
   | "addRowAfter"
@@ -26,7 +26,7 @@ export type TableAction =
 
 /**
  * An empty table with a header row, two rows under it and three columns.
- * Markdown has no table without a header row, so the schema has none either.
+ * Markdown has no table without a header row. Thus, the schema has none either.
  */
 export function createTable(schema: Schema, rows = 2, columns = 3) {
   const { table, table_header_row, table_header, table_row, table_cell } =
@@ -45,17 +45,19 @@ export function createTable(schema: Schema, rows = 2, columns = 3) {
   ]);
 }
 
-/** A new table after the caret's block, with the caret in its first cell. */
+/**
+ * A new table after the block of the caret, with the caret in its first cell.
+ */
 export function insertTable(state: EditorState): Transaction | null {
   const table = createTable(state.schema);
   return table && insertBlock(state, table, true);
 }
 
 /**
- * Which of the actions apply where the selection is, in the order the menu
- * lists them. Removing the header row or the last row under it would leave a
- * table Markdown cannot write down, and removing the only column leaves none,
- * so those are offered as removing the table instead.
+ * The actions that apply at the selection, in the order of the menu. A removal
+ * of the header row or of the last row under it would leave a table that
+ * Markdown cannot write. A removal of the only column leaves none. Thus, for
+ * those, the menu offers the removal of the table.
  */
 export function availableTableActions(state: EditorState): TableAction[] {
   if (!isInTable(state)) return [];
@@ -70,10 +72,10 @@ export function availableTableActions(state: EditorState): TableAction[] {
 }
 
 /**
- * A row of plain cells under the selected ones, aligned as the header is,
- * with the caret in its first cell. Not `addRowAfter` from
- * `prosemirror-tables`, which copies the row above: under the header row
- * that is a second header row, and Markdown has room for one.
+ * A row of plain cells under the selected cells, aligned as the header is, with
+ * the caret in its first cell. Not `addRowAfter` from `prosemirror-tables`,
+ * which copies the row above. Under the header row, that is a second header
+ * row, and Markdown has space for only one.
  */
 export function addBodyRowAfter(
   state: EditorState,
@@ -100,7 +102,7 @@ export function addBodyRowAfter(
   return true;
 }
 
-/** Applies `action`, if it is one `availableTableActions` offers. */
+/** Applies `action`, if `availableTableActions` offers it. */
 export function applyTableAction(
   state: EditorState,
   action: TableAction,

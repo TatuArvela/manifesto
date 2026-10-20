@@ -15,7 +15,9 @@ const selectedClass =
   "outline-2 outline-offset-2 outline-blue-500 dark:outline-blue-400";
 const swatchClass = "w-6 h-6 sm:w-7 sm:h-7 rounded-full cursor-pointer";
 
-/** "auto", the theme's faint ink, sits between white and black as the gray. */
+/**
+ * "auto", the faint ink of the theme, is between white and black as the gray.
+ */
 const PRESETS = [
   "white",
   "auto",
@@ -23,14 +25,14 @@ const PRESETS = [
 ] as const satisfies readonly BoardInk[];
 
 /**
- * What colour the texture is drawn in, as a card laid out like the board's
- * colours: "random" on the first row where it sits in theirs, where "none"
- * would be beside it there is none (the pattern has its own), then white,
- * gray and black with the native picker, then the presets. The texture tiles
- * take it at once, so they are the preview; "auto" is the faint ink of the
- * theme, gray on either, so it is offered as the gray between white and
- * black. The colourful ones are named as the note colours they share a hue
- * with.
+ * The color in which the texture is drawn, as a card with the same layout as
+ * the colors of the board. "random" is on the first row, where it is in their
+ * card. Where "none" would be next to it, there is nothing (the pattern has its
+ * own). Then white, gray and black with the native picker, then the presets.
+ * The texture tiles use it immediately. Thus, they are the preview. "auto" is
+ * the faint ink of the theme, gray on both. Thus, it shows as the gray between
+ * white and black. The colorful choices have the names of the note colors with
+ * the same hue.
  */
 export function BoardInkPicker({
   composing,
@@ -69,7 +71,7 @@ export function BoardInkPicker({
           }
           onClick={() =>
             compose(() => {
-              // Picking "random" again is how to ask for another.
+              // A new selection of "random" is how to ask for a different one.
               if (ink === "random") rerollBoardInk();
               boardInk.value = "random";
             })

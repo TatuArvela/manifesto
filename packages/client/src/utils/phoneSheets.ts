@@ -1,44 +1,48 @@
 /**
- * The phone's full-screen sheets (an open note, the composer, a note's history)
- * are laid out in the page rather than fixed over it, so that the page itself
- * is what scrolls.
+ * The full-screen sheets of the phone (an open note, the composer, the history
+ * of a note) are part of the page layout, not fixed over it. Thus, the page
+ * itself scrolls.
  *
- * That is the one arrangement iOS handles the on-screen keyboard well in. A
- * `fixed` sheet with its own scroller leaves the page nothing to scroll, so to
- * keep the caret in view Safari slides the whole visible area up over the
- * sheet instead, taking its top bar off the screen, and a drag with the
- * keyboard up moves the sheet rather than the text. A sheet in the page's flow
- * gets scrolled like any page, and the board, fixed underneath while it is up,
- * keeps its own scroll position for when it comes back.
+ * That is the one arrangement in which iOS handles the on-screen keyboard well.
+ * A `fixed` sheet with its own scroller leaves the page nothing to scroll. To
+ * keep the caret in view, Safari then slides the full visible area up over the
+ * sheet, which takes its top bar off the screen. A drag with the keyboard up
+ * then moves the sheet, not the text. A sheet in the flow of the page scrolls
+ * as any page does. The board, fixed under it while it is open, keeps its own
+ * scroll position for when it comes back.
  *
- * Only the newest sheet is in the flow. One opened over another (a note's
- * history over the note) pins the one below it in place, and gives it back
- * the scroll position it had when it comes back to the top.
+ * Only the newest sheet is in the flow. A sheet opened over a different sheet
+ * (the history of a note over the note) fixes the sheet below it in place, and
+ * gives it back its previous scroll position when it comes back to the top.
  *
- * The page carries `sheet-open` on <html> meanwhile, and each sheet a
- * `data-sheet` of `flow` or `covered`; styles.css applies them below the `sm`
- * breakpoint only, so a wider screen's centred dialog never notices.
+ * In the meantime, the page has `sheet-open` on <html>, and each sheet has a
+ * `data-sheet` of `flow` or `covered`. styles.css applies them only below the
+ * `sm` breakpoint. Thus, the centered dialog of a wider screen never sees them.
  */
 
-/** The breakpoint below which a note opens as a sheet, Tailwind's `max-sm`. */
+/**
+ * The breakpoint below which a note opens as a sheet, the `max-sm` of Tailwind.
+ */
 export const PHONE_QUERY = "(width < 40rem)";
 
-/** Whether the note editor is laid out as a phone's full-screen sheet. */
+/** If the note editor has the layout of a full-screen sheet of a phone. */
 export function isPhoneLayout(): boolean {
   return typeof matchMedia === "function" && matchMedia(PHONE_QUERY).matches;
 }
 
 interface Sheet {
   el: HTMLElement;
-  /** The page's scroll position when another sheet covered this one. */
+  /**
+   * The scroll position of the page when a different sheet covered this one.
+   */
   scrollY: number;
 }
 
 const sheets: Sheet[] = [];
 
 /**
- * Puts `el` in the page's flow over everything under it. Returns the call
- * that takes it out again, which the sheet makes as it unmounts.
+ * Puts `el` in the flow of the page over all content under it. Returns the call
+ * that takes it out again, which the sheet makes when it unmounts.
  */
 export function openSheet(el: HTMLElement): () => void {
   const below = sheets[sheets.length - 1];
@@ -79,12 +83,12 @@ function closeSheet(sheet: Sheet) {
 let stopPainting: (() => void) | null = null;
 
 /**
- * Scrolls a control the keyboard has reached out from under a phone sheet's
- * sticky bars (`.note-sheet-top`, `.note-sheet-bottom`), which the browser
- * counts as on screen and so does not scroll for (WCAG 2.4.11). Only a
- * keyboard's focus, so a tap never moves the page under the finger, and never
- * the editor's text, whose box is the whole note: the caret is iOS's to keep
- * in view. A frame later, after any scroll of the browser's own.
+ * Scrolls a control that the keyboard reached out from under the sticky bars of
+ * a phone sheet (`.note-sheet-top`, `.note-sheet-bottom`). The browser counts
+ * these as on the screen, and thus does not scroll for them (WCAG 2.4.11). Only
+ * for keyboard focus. Thus, a tap never moves the page under the finger. Never
+ * for the text of the editor, whose box is the full note. iOS keeps the caret
+ * in view. One frame later, after a scroll of the browser itself.
  */
 function keepFocusClear(event: FocusEvent) {
   const target = event.target;
@@ -114,19 +118,19 @@ function keepFocusClear(event: FocusEvent) {
 }
 
 /**
- * Gives the page's own background the colour of the note in `sheet`, as
- * `--sheet-canvas` on <html>, and keeps it in step while the note is open.
+ * Gives the own background of the page the color of the note in `sheet`, as
+ * `--sheet-canvas` on <html>, and keeps it the same while the note is open.
  *
- * With the keyboard up in a Safari tab, iOS lets the page be panned down past
- * the foot of everything it lays out, even a `fixed` layer covering the
- * screen, and what shows there is the page's background: the board's dark
- * colour, as a band between the note's controls and the keys. Only the
- * background reaches it, so it takes the note's colour.
+ * With the keyboard up in a Safari tab, iOS lets the user pan the page down
+ * past the bottom of all its layout, also a `fixed` layer that covers the
+ * screen. The background of the page shows there: the dark color of the board,
+ * as a band between the controls of the note and the keys. Only the background
+ * reaches it. Thus, it takes the color of the note.
  *
- * Followed through the note's class, which is what a colour change alters,
- * and again once its colour transition has run, since the class changes at
- * its start. Version history swaps one article for another, so the panel's
- * children are watched for a new one.
+ * Followed through the class of the note, which a color change changes, and
+ * again after its color transition ran, because the class changes at its start.
+ * Version history replaces one article with a different one. Thus, the code
+ * watches the children of the panel for a new one.
  */
 function paintPage(sheet: HTMLElement) {
   stopPainting?.();
@@ -155,8 +159,9 @@ function paintPage(sheet: HTMLElement) {
     copy();
   };
   const swaps = new MutationObserver(find);
-  // The element the note is drawn in, which `NoteSheet` marks: it is not the
-  // sheet's own child, since what sits beside it on a wide screen shares a row.
+  // The element in which the note is drawn, which `NoteSheet` marks. It is not
+  // a direct child of the sheet, because the content next to it on a wide
+  // screen shares a row.
   const panel = sheet.querySelector(".note-sheet-panel");
   if (panel) swaps.observe(panel, { childList: true });
   const onTransitionEnd = (event: TransitionEvent) => {
@@ -174,7 +179,7 @@ function paintPage(sheet: HTMLElement) {
   };
 }
 
-/** Test seam: the stack is module state and outlives an unmounted sheet. */
+/** Test seam: the stack is module state, and stays after a sheet unmounts. */
 export function openSheetCount(): number {
   return sheets.length;
 }

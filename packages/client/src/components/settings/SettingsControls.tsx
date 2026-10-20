@@ -4,13 +4,16 @@ import { useContext, useId, useState } from "preact/hooks";
 import { ControlLabelId } from "#/components/controlLabel.ts";
 import { Dropdown } from "#/components/Dropdown.tsx";
 
-/** A three-way toggle's track, dark enough to read on a group's tinted panel. */
+/**
+ * The track of a three-way toggle, sufficiently dark to read on the tinted
+ * panel of a group.
+ */
 export const toggleTrackClass = "bg-neutral-200/80 dark:bg-neutral-700";
 
 /**
- * One labelled setting: name on the left, its control on the right. The name
- * is centred on a control one line high, and set at the top of a taller one
- * (`alignTop`), as a heading over samples.
+ * One setting with a label: the name on the left, its control on the right. The
+ * name is centered on a control with the height of one line. On a taller
+ * control (`alignTop`), it is at the top, as a heading over samples.
  */
 export function SettingsRow({
   label,
@@ -38,8 +41,8 @@ export function SettingsRow({
 }
 
 /**
- * A section's name within a page, the same on every page. It sits flush with
- * the text under it; a group of rows insets it with `class`.
+ * The name of a section within a page, the same on all pages. It is aligned
+ * with the text under it. A group of rows indents it with `class`.
  */
 export function SettingsHeading({
   class: className = "",
@@ -58,8 +61,8 @@ export function SettingsHeading({
 }
 
 /**
- * Rows that belong together, with a line between each, under a heading when
- * the group needs a name.
+ * Rows that belong together, with a line between each, under a heading when the
+ * group needs a name.
  */
 export function SettingsGroup({
   title,
@@ -79,20 +82,24 @@ export function SettingsGroup({
 }
 
 /**
- * One choice in a {@link SettingsSelect}. Options carry their own preview (a
- * leading element, a styled label, or neither), so the select stays
- * presentation-agnostic instead of growing a render hook per kind of setting.
+ * One choice in a {@link SettingsSelect}. Options have their own preview (an
+ * element at the start, a styled label, or neither). Thus, the select does not
+ * depend on the presentation, and does not need a render hook for each type of
+ * setting.
  */
 export type SettingsOption<T extends string> = {
   value: T;
   label: string;
-  /** Rendered ahead of the label, e.g. a colour swatch. */
+  /** Rendered before the label, for example a color swatch. */
   preview?: JSX.Element;
-  /** Applied to the label, e.g. to show a font in the font it picks. */
+  /**
+   * Applied to the label, for example to show a font in the font that it
+   * selects.
+   */
   labelStyle?: CSSProperties | undefined;
 };
 
-/** The shared innards of the trigger and every menu item. */
+/** The shared contents of the trigger and of each menu item. */
 function OptionContent<T extends string>({
   option,
 }: {
@@ -107,10 +114,10 @@ function OptionContent<T extends string>({
 }
 
 /**
- * A select-style field for a settings row: a labelled trigger with a chevron,
- * with its menu on the shared Dropdown. That puts the panel in the top layer,
- * so the settings modal's scroll container does not clip it, and brings
- * light-dismiss and Escape with it.
+ * A select-style field for a settings row: a trigger with a label and a
+ * chevron, with its menu on the shared Dropdown. That puts the panel in the top
+ * layer. Thus, the scroll container of the settings modal does not clip it, and
+ * it gets light-dismiss and Escape.
  */
 export function SettingsSelect<T extends string>({
   value,
@@ -124,10 +131,12 @@ export function SettingsSelect<T extends string>({
   options: SettingsOption<T>[];
   onChange: (value: T) => void;
   label: string;
-  /** Shown as it stands but not opened, for a setting that does not apply now. */
+  /** Shown as it is, but not opened, for a setting that does not apply now. */
   disabled?: boolean | undefined;
-  /** The trigger shows only the choice's preview, with its name in the menu
-   * and the tooltip, for a select set in a narrow column. */
+  /**
+   * The trigger shows only the preview of the choice, with its name in the menu
+   * and the tooltip, for a select in a narrow column.
+   */
   compact?: boolean | undefined;
 }) {
   const [open, setOpen] = useState(false);
@@ -196,10 +205,10 @@ export type SettingsTile<T extends string> = {
 };
 
 /**
- * A choice made by picture, as the system settings of macOS offer one: a
- * sample of each option side by side, the chosen one ringed and its name in
- * bold. Native radios underneath, so the arrow keys move between them as in
- * any radio group, and a settings search lands on the checked one.
+ * A choice by picture, as the system settings of macOS offer one: a sample of
+ * each option next to each other, with a ring around the selected one and its
+ * name in bold. Native radios are under them. Thus, the arrow keys move between
+ * them as in all radio groups, and a settings search goes to the checked one.
  */
 export function SettingsTiles<T extends string>({
   value,
@@ -212,7 +221,7 @@ export function SettingsTiles<T extends string>({
   options: SettingsTile<T>[];
   onChange: (value: T) => void;
   label: string;
-  /** The layout of the tiles, for a caller that lines something up under them. */
+  /** The layout of the tiles, for a caller that aligns something under them. */
   class?: string | undefined;
 }) {
   const labelledBy = useContext(ControlLabelId);

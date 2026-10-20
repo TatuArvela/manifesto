@@ -1,28 +1,31 @@
 import type { Note } from "@manifesto/shared";
 
 /**
- * The manual order of notes: one float `position` per note, shared by every
- * view, archived and trashed notes included. Pure, so the arithmetic tests
+ * The manual order of notes: one float `position` for each note, shared by all
+ * views, also archived and trashed notes. Pure. Thus, the arithmetic is tested
  * without a store.
  */
 
 /**
- * The gap a fresh numbering leaves between two notes, so a note dropped
- * between them can take a number of its own without moving anything else.
+ * The gap that a new numbering leaves between two notes. Thus, a note dropped
+ * between them can take its own number, and nothing else moves.
  */
 export const POSITION_STEP = 1000;
 
 /**
- * Manual order: by `position`, and by id where two notes share one. Two
- * devices can pick the same midpoint and a backup can carry a duplicate, and
- * without a second key two devices disagree about the order. Ids are ULIDs
- * and so sort by themselves.
+ * Manual order: by `position`, and by id where two notes have the same
+ * position. Two devices can select the same midpoint, and a backup can carry a
+ * duplicate. Without a second key, two devices do not agree about the order.
+ * Ids are ULIDs, and thus sort by themselves.
  */
 export function byPosition(a: Note, b: Note): number {
   return a.position - b.position || a.id.localeCompare(b.id);
 }
 
-/** The position that puts one note ahead of all of `held`; see {@link headPositions}. */
+/**
+ * The position that puts one note before all of `held`. See {@link
+ * headPositions}.
+ */
 export function headPosition(held: readonly Note[]): number {
   let lowest = -Date.now();
   for (const note of held) {
@@ -34,11 +37,11 @@ export function headPosition(held: readonly Note[]): number {
 }
 
 /**
- * `count` positions ahead of every note in `held`: where new notes go, and
- * where a note goes when pinned. Minus the clock, so notes created on two
- * devices come out newest first once both lists meet, and a step ahead of the
- * lowest held note when that is further ahead still. The first slot is the
- * topmost, so a group keeps its order among itself.
+ * `count` positions before each note in `held`: where new notes go, and where a
+ * note goes when pinned. Minus the clock. Thus, notes created on two devices
+ * show newest first when both lists meet. One step before the lowest held note
+ * when that is even more forward. The first slot is the top. Thus, a group
+ * keeps its own order.
  */
 export function headPositions(held: readonly Note[], count: number): number[] {
   const lowest = headPosition(held);
@@ -49,10 +52,11 @@ export function headPositions(held: readonly Note[], count: number): number[] {
 }
 
 /**
- * Halfway between two neighbours. `position` is a double in both storage
- * drivers, so a {@link POSITION_STEP} gap survives about fifty halvings. Null
- * when there is no room left between them (a gap halved away, or a pair that
- * is tied or out of order), which is the caller's cue to renumber.
+ * Halfway between two neighbors. `position` is a double in both storage
+ * drivers. Thus, a {@link POSITION_STEP} gap stays usable for approximately
+ * fifty halvings. Null when there is no space left between them (a gap halved
+ * to nothing, or a pair that is equal or in the wrong order). Then the caller
+ * must number again.
  */
 export function positionBetween(
   before: number | undefined,

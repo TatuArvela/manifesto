@@ -15,7 +15,7 @@ import {
   toggleTrackClass,
 } from "./SettingsControls.tsx";
 
-// Endonyms never translate: each language's name is rendered in that language.
+// Endonyms never translate: the name of each language is in that language.
 const LOCALE_ENDONYMS: Record<string, string> = {
   en: "English",
   fi: "Suomi",
@@ -26,8 +26,8 @@ type LanguageOption = "system" | (typeof SUPPORTED_LOCALES)[number];
 const decimalSeparators: DecimalSeparator[] = ["auto", ".", ","];
 
 /**
- * Language and Region: the language the app is shown in, and the decimal
- * separator inline calculations read and write, which follows it on Auto.
+ * Language and Region: the language of the app, and the decimal separator that
+ * inline calculations read and write, which follows it on Auto.
  */
 export function LanguageSettings() {
   const languageOptions: SettingsOption<LanguageOption>[] = [

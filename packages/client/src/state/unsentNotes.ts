@@ -33,51 +33,56 @@ import {
 import { newNoteRequested } from "./ui.ts";
 
 /**
- * New notes the server has not taken yet, in connected mode. Closing the
- * composer queues the note here rather than sending it and hoping: it is kept
- * on the device (sealed, `storage/offlineNotes.ts`) before it is sent, and
- * sent again whenever there is reason to think the server can be reached (the
- * browser going back online, the app socket reconnecting, the account
- * unlocking) until it lands.
+ * New notes that the server did not take yet, in connected mode. A close of the
+ * composer queues the note here. It does not only send it. The note is kept on
+ * the device (sealed, `storage/offlineNotes.ts`) before it is sent. It is sent
+ * again each time there is a reason to think that the server is available (the
+ * browser goes back online, the app socket reconnects, the account unlocks),
+ * until it arrives.
  *
- * Each note's id is chosen when it is queued, so sending it again is safe: a
- * write that arrived but whose answer was lost meets a 409 the next time, and
- * the note found under that id is taken as the one sent.
+ * The id of each note is selected when it is queued. Thus, to send it again is
+ * safe. A write that arrived, but whose answer was lost, gets a 409 the next
+ * time, and the code takes the note found under that id as the note that it
+ * sent.
  *
- * In open mode a note is stored in this browser at once, and nothing waits.
+ * In open mode, a note is stored in this browser immediately, and nothing
+ * waits.
  */
 
 export interface UnsentNote {
   id: string;
   note: NoteCreate;
   /**
-   * The server refused it for what it holds (too long, say), not for being
-   * out of reach: it is not sent again until it is changed.
+   * The server refused it for its content (for example, too long), not because
+   * the server was not available. It is not sent again until it changes.
    */
   refused: boolean;
 }
 
-/** In the order they were written. */
+/** In the order in which they were written. */
 export const unsentNotes = signal<UnsentNote[]>([]);
 
-/** The note being sent at this moment, which cannot be taken back meanwhile. */
+/**
+ * The note that is sent at this moment, which cannot be taken back in the
+ * meantime.
+ */
 export const sendingNoteId = signal<string | null>(null);
 
 /**
- * Whether the first try at sending each note has finished. Until it has, the
- * note is not shown as waiting: a note sent in a moment never flashes up as
- * unsent on its way to the board.
+ * If the first try to send each note is complete. Until it is, the note does
+ * not show as waiting. Thus, a note sent in a moment never shows as unsent for
+ * an instant on its way to the board.
  */
 export const settledNoteIds = signal<ReadonlySet<string>>(new Set());
 
-/** What becomes of a note the server would not take. */
+/** What occurs to a note that the server did not take. */
 export type SendFailure = "later" | "taken" | "refused";
 
 /**
- * Why a send failed, as what to do next: `later` when the server could not
- * be reached or is not taking notes at the moment, `taken` when a note with
- * the id already exists (perhaps this one, whose answer was lost), and
- * `refused` when sending it as it is will never work.
+ * Why a send failed, as what to do next. `later` when the server was not
+ * available, or does not take notes at the moment. `taken` when a note with the
+ * id already exists (possibly this note, whose answer was lost). `refused` when
+ * a send of it as it is will never work.
  */
 export function sendFailure(err: unknown): SendFailure {
   if (err instanceof RequestError) {
@@ -97,21 +102,26 @@ export function sendFailure(err: unknown): SendFailure {
       ? "later"
       : "refused";
   }
-  // Locked: the note is sent once the account is unlocked again.
+  // Locked: the note is sent after the account is unlocked again.
   if (err instanceof LockedError) return "later";
   if (err instanceof NoteLimitError) return "refused";
-  // `fetch` rejects with a TypeError when no answer came back at all.
+  // `fetch` rejects with a TypeError when no answer came back.
   if (err instanceof TypeError) return "later";
   return "refused";
 }
 
-/** Whether `unsentNotes` holds what was kept for whoever is unlocked. */
+/** If `unsentNotes` contains what was kept for the account that is unlocked. */
 let loaded = false;
 let generation = 0;
-/** What `unsentNotes` was read for, so a change to neither reads nothing. */
+/**
+ * For what `unsentNotes` was read. Thus, when neither changes, nothing is read.
+ */
 let loadedFor: { token: string | null; keys: unknown } | null = null;
 
-/** Previews still loading when a note was queued, applied once it lands. */
+/**
+ * Previews that were still loading when a note was queued, applied after it
+ * arrives.
+ */
 const loadingPreviews = new Map<string, Promise<LinkPreview | null>[]>();
 
 interface KeptUnsent {
@@ -152,7 +162,7 @@ function fromRecord(
 }
 
 function settle(id: string): void {
-  // Landed: there is nothing left to show.
+  // Arrived: there is nothing left to show.
   if (!unsentNotes.peek().some((e) => e.id === id)) return;
   if (settledNoteIds.peek().has(id)) return;
   settledNoteIds.value = new Set([...settledNoteIds.peek(), id]);
@@ -175,10 +185,10 @@ function replace(entry: UnsentNote): void {
 }
 
 /**
- * Saves a new note: in open mode at once, and in connected mode through the
- * queue, so a note written without a connection is kept until there is one.
- * Locked, there is nothing to seal it with, and it goes straight to storage
- * as before. Resolves whether the note was kept; never rejects.
+ * Saves a new note: in open mode immediately, and in connected mode through the
+ * queue. Thus, a note written without a connection is kept until there is one.
+ * When locked, there is nothing with which to seal it, and it goes directly to
+ * storage as before. Resolves with if the note was kept. Never rejects.
  */
 export async function queueNote(
   input: Partial<NoteCreate>,
@@ -197,7 +207,8 @@ export async function queueNote(
   };
   unsentNotes.value = [...unsentNotes.peek(), entry];
   if (pending.length > 0) loadingPreviews.set(entry.id, pending);
-  // Kept before it is sent: a page put away mid-request loses nothing.
+  // Kept before it is sent. Thus, a page put away during the request loses
+  // nothing.
   await keep(owner, entry);
   void sendUnsent();
   return true;
@@ -209,8 +220,8 @@ function landed(
   sentFor: { run: number; ownerId: string },
 ): void {
   void dropOffline(sentFor.ownerId, "unsent", entry.id);
-  // The session or the keys changed while it was on its way: the list it
-  // was sent from is gone, and the note belongs to no list here now.
+  // The session or the keys changed while it was on its way. The list from
+  // which it was sent is gone, and the note belongs to no list here now.
   if (sentFor.run !== generation) return;
   const pending = loadingPreviews.get(entry.id);
   batch(() => {
@@ -227,7 +238,7 @@ async function refuse(entry: UnsentNote): Promise<void> {
   if (owner?.keys) await keep(owner, refused);
 }
 
-/** Sends one note, and says whether to go on to the next. */
+/** Sends one note, and tells if to continue to the next. */
 async function sendOne(
   entry: UnsentNote,
   ownerId: string,
@@ -268,17 +279,21 @@ async function sendOne(
 
 async function sendAll(): Promise<void> {
   for (const entry of unsentNotes.peek()) {
-    // Signed out, locked, or another account: what is left waits for it.
+    // Signed out, locked, or a different account: the remaining notes wait for
+    // it.
     const owner = offlineOwner();
     if (!owner?.keys || !loaded) return;
-    // Taken back into the composer, or discarded, while the one before went.
+    // Taken back into the composer, or discarded, while the previous note went.
     const current = unsentNotes.peek().find((e) => e.id === entry.id);
     if (!current || current.refused) continue;
     if ((await sendOne(current, owner.id)) === "stop") return;
   }
 }
 
-/** Two tabs of one browser send one at a time; the 409 covers the rest. */
+/**
+ * Two tabs of one browser send one at a time. The 409 covers the remaining
+ * cases.
+ */
 async function oneTabAtATime(work: () => Promise<void>): Promise<void> {
   const locks = typeof navigator === "undefined" ? undefined : navigator.locks;
   if (!locks) return work();
@@ -289,8 +304,8 @@ let sending: Promise<void> | null = null;
 let sendAgain = false;
 
 /**
- * Sends whatever is waiting. A call while a round is under way asks for
- * another after it, since the note it brings may have missed this one.
+ * Sends all that waits. A call while a round is in progress asks for another
+ * round after it, because the note that it brings can have missed this round.
  * Never rejects.
  */
 export function sendUnsent(): Promise<void> {
@@ -313,7 +328,7 @@ export function sendUnsent(): Promise<void> {
   return sending;
 }
 
-/** The fields of an unsent note, as the composer holds them. */
+/** The fields of an unsent note, as the composer has them. */
 function asDraft(note: NoteCreate): ComposerDraft {
   return {
     title: note.title,
@@ -329,9 +344,9 @@ function asDraft(note: NoteCreate): ComposerDraft {
 }
 
 /**
- * Takes an unsent note back into the composer to be changed, and opens it.
- * A draft already kept is not written over: it is queued in its place.
- * False when the note is being sent at this moment.
+ * Takes an unsent note back into the composer for a change, and opens it. The
+ * code does not write over a draft that is already kept. It is queued in its
+ * place. False when the note is sent at this moment.
  */
 export async function reopenUnsent(id: string): Promise<boolean> {
   const entry = unsentNotes.peek().find((e) => e.id === id);
@@ -346,7 +361,7 @@ export async function reopenUnsent(id: string): Promise<boolean> {
   return true;
 }
 
-/** Forgets an unsent note. False when it is being sent at this moment. */
+/** Forgets an unsent note. False when it is sent at this moment. */
 export async function discardUnsent(id: string): Promise<boolean> {
   if (sendingNoteId.peek() === id) return false;
   without(id);
@@ -356,9 +371,9 @@ export async function discardUnsent(id: string): Promise<boolean> {
 }
 
 /**
- * Reads the notes kept for whoever is unlocked now, and sends them. Runs
- * whenever the session or the keys change: a sign-out or a lock empties the
- * list, since nothing in it could be sent, and an unlock fills it again.
+ * Reads the notes kept for the account that is unlocked now, and sends them.
+ * Runs each time the session or the keys change. A sign-out or a lock empties
+ * the list, because nothing in it could be sent, and an unlock fills it again.
  */
 async function load(): Promise<void> {
   const token = storageConnection.peek().token;
@@ -381,7 +396,7 @@ async function load(): Promise<void> {
     const entry = fromRecord(record.id, record.value, record.format);
     if (entry) kept.push(entry);
   }
-  // In the order they were written, which a ULID's order is.
+  // In the order in which they were written, which is the order of a ULID.
   kept.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   // A note queued while they were read stays, after them.
   const queued = unsentNotes.peek();

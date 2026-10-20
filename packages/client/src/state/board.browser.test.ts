@@ -15,7 +15,7 @@ import {
 } from "./prefs.ts";
 import { toasts } from "./ui.ts";
 
-/** A real, decodable picture, larger than the board keeps. */
+/** A real picture that can be decoded, larger than the board keeps. */
 async function photo(width: number, height: number): Promise<File> {
   const canvas = document.createElement("canvas");
   canvas.width = width;

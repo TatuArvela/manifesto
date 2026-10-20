@@ -13,31 +13,31 @@ import {
 } from "./offlineOwner.ts";
 
 /**
- * The new-note composer's draft, kept on the device while it is being
- * written, so a reload, a closed tab or a phone putting the app away does
- * not lose it. The composer saves it as it changes and reads it back when it
- * opens; closing or discarding the note clears it. One draft a device: two
- * tabs writing at once keep whichever wrote last.
+ * The draft of the new-note composer, kept on the device while the user writes
+ * it. Thus, a reload, a closed tab or a phone that puts the app away does not
+ * lose it. The composer saves it when it changes, and reads it back when it
+ * opens. A close or discard of the note clears it. One draft for each device.
+ * If two tabs write at the same time, the last write stays.
  *
- * Sealed in connected mode (`storage/offlineNotes.ts`), and kept only while
- * the account is unlocked; locked, the composer still holds it in memory.
+ * Sealed in connected mode (`storage/offlineNotes.ts`), and kept only while the
+ * account is unlocked. When locked, the composer still keeps it in memory.
  */
 
 export type ComposerDraft = KeptFields;
 
-/** How long typing has to pause before the draft is written. */
+/** How long typing must pause before the draft is written. */
 export const DRAFT_SAVE_MS = 300;
 
 const DRAFT_ID = "current";
 
-/** What has been asked to be written and not yet, or null. */
+/** What a caller asked to write and that is not written yet, or null. */
 let waiting: ComposerDraft | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
 
 /**
- * Writes and removals in the order they were asked for. A write is sealed
- * first, which takes a moment, so a clear that followed it could otherwise
- * land first and leave the draft behind.
+ * Writes and removals in the order of the requests. A write is sealed first,
+ * which takes a short time. Thus, a clear that followed it could otherwise
+ * arrive first, and leave the draft.
  */
 let chain: Promise<unknown> = Promise.resolve();
 
@@ -60,14 +60,14 @@ function write(draft: ComposerDraft): Promise<void> {
   return inOrder(() => keepOffline(owner, "draft", DRAFT_ID, record));
 }
 
-/** Keeps `draft` once typing pauses. */
+/** Keeps `draft` after typing pauses. */
 export function saveDraft(draft: ComposerDraft): void {
   waiting = draft;
   if (timer !== null) clearTimeout(timer);
   timer = setTimeout(() => void flushDraft(), DRAFT_SAVE_MS);
 }
 
-/** Writes what is waiting now, as a page is put away. */
+/** Writes what waits now, when a page is put away. */
 export function flushDraft(): Promise<void> {
   if (timer !== null) clearTimeout(timer);
   timer = null;
@@ -76,7 +76,7 @@ export function flushDraft(): Promise<void> {
   return draft ? write(draft) : Promise.resolve();
 }
 
-/** Keeps `draft` at once: a note moved back into the composer. */
+/** Keeps `draft` immediately: a note moved back into the composer. */
 export function replaceDraft(draft: ComposerDraft): Promise<void> {
   if (timer !== null) clearTimeout(timer);
   timer = null;
@@ -98,7 +98,7 @@ export function clearDraft(): Promise<void> {
 export async function loadDraft(): Promise<ComposerDraft | null> {
   const owner = offlineOwner();
   if (!owner) return null;
-  // After whatever is still being written.
+  // After all that is still in a write.
   await inOrder(async () => {});
   const [record] = await readOffline(owner, "draft");
   if (!record || typeof record.value !== "object" || record.value === null) {
@@ -110,7 +110,7 @@ export async function loadDraft(): Promise<ComposerDraft | null> {
   return isEmptyDraft(draft) ? null : draft;
 }
 
-/** Whether a draft holds nothing worth keeping. */
+/** If a draft contains nothing useful to keep. */
 export function isEmptyDraft(draft: ComposerDraft): boolean {
   return (
     draft.title.trim() === "" &&
@@ -121,8 +121,8 @@ export function isEmptyDraft(draft: ComposerDraft): boolean {
   );
 }
 
-// A page being put away may not come back: a phone discards it, a tab is
-// closed. Whatever is waiting is written now rather than after the pause.
+// A page that is put away possibly does not come back: a phone discards it, a
+// tab closes. Thus, the code writes all that waits now, not after the pause.
 if (typeof window !== "undefined") {
   window.addEventListener("pagehide", () => void flushDraft());
   document.addEventListener("visibilitychange", () => {

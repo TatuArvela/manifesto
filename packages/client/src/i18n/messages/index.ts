@@ -12,9 +12,9 @@ export type PluralEntry = {
 
 export type MessageKey = keyof typeof en;
 
-// Widen the narrow literal types from `as const` on the English source so
-// translations can supply any string (or PluralEntry for plural keys) while
-// still enforcing key parity.
+// Widen the narrow literal types from `as const` on the English source. Thus,
+// translations can give any string (or PluralEntry for plural keys), and the
+// keys must still agree.
 export type Messages = {
   [K in keyof typeof en]: (typeof en)[K] extends string ? string : PluralEntry;
 };
@@ -22,9 +22,9 @@ export type Messages = {
 export { en };
 
 /**
- * Every catalogue but English, each a chunk of its own, fetched only by
- * whoever reads that language. English is in the entry chunk, since it is the
- * default and what any missing string falls back to.
+ * All catalogues other than English, each its own chunk, loaded only by users
+ * who read that language. English is in the entry chunk, because it is the
+ * default, and the fallback for each missing string.
  */
 export const catalogueLoaders: Record<
   Exclude<Locale, "en">,
@@ -34,17 +34,17 @@ export const catalogueLoaders: Record<
 };
 
 /**
- * The catalogues here so far. Held here rather than in `i18n/index.ts`, which
- * reads `config.js`: the browser tests' setup loads Finnish through this
- * module, and loading `config.js` there would come before, and so undo, the
- * mocks of it that tests in server mode make.
+ * The catalogues that are here now. They are kept here, not in `i18n/index.ts`,
+ * which reads `config.js`. The setup of the browser tests loads Finnish through
+ * this module. If it loaded `config.js` there, that would come before the mocks
+ * of it that tests in server mode make, and would undo them.
  */
 export const catalogues: Partial<Record<Locale, Messages>> = { en };
 const fetching = new Map<Locale, Promise<boolean>>();
 
 /**
- * Fetches a language's catalogue if it is not here yet. Resolves false when
- * it could not be had (the next call tries again), and never rejects.
+ * Loads the catalogue of a language if it is not here yet. Resolves false when
+ * it could not load (the next call tries again), and never rejects.
  */
 export function loadCatalogue(loc: Locale): Promise<boolean> {
   if (loc === "en" || catalogues[loc]) return Promise.resolve(true);

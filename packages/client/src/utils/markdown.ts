@@ -1,22 +1,22 @@
 /**
- * One definition of what a checklist line is, for everyone who has to agree:
- * the preview that draws the boxes, the actions that toggle and delete them,
- * and the segmenter that decides which lines belong together. If they
- * disagree, the preview draws a box that `toggleCheckbox` refuses to touch.
+ * One definition of a checklist line, for all code that must agree: the preview
+ * that draws the boxes, the actions that toggle and delete them, and the
+ * segmenter that decides which lines belong together. If they do not agree, the
+ * preview draws a box that `toggleCheckbox` refuses to change.
  *
- * The trailing space is optional. An item with no label is a real thing
- * (pressing Enter in the editor makes one); requiring "`] `" would turn an
- * empty item into literal `- [ ]` text that can never be checked.
+ * The trailing space is optional. An item with no label is real (Enter in the
+ * editor makes one). If "`] `" was necessary, an empty item would become
+ * literal `- [ ]` text that nobody can tick.
  */
 const CHECKLIST_RE = /^(\s*)((?:[-*+] )?)\[([ xX])\](?: (.*))?$/;
 
 export interface ChecklistLine {
-  /** Leading whitespace, which is what nesting is expressed in. */
+  /** Leading whitespace, which tells the nesting. */
   indent: string;
   /** The list marker, `""` when the line is a bare `[ ]`. */
   bullet: string;
   checked: boolean;
-  /** Everything after the box; `""` for an item with no label yet. */
+  /** All after the box. `""` for an item with no label yet. */
   label: string;
 }
 
@@ -27,7 +27,10 @@ export function parseChecklistLine(line: string): ChecklistLine | null {
   return { indent, bullet, checked: box.toLowerCase() === "x", label };
 }
 
-/** Rewrites a checklist line's box, leaving indent, marker and label alone. */
+/**
+ * Writes again the box of a checklist line, and does not change the indent,
+ * marker and label.
+ */
 export function setChecklistChecked(line: string, checked: boolean): string {
   const parsed = parseChecklistLine(line);
   if (!parsed) return line;
@@ -39,9 +42,9 @@ export function setChecklistChecked(line: string, checked: boolean): string {
 
 /**
  * `content` without its ticked checklist items. Indented descendants go with
- * their parent, so a subtree is removed whole. A fence ends the subtree:
- * whatever is quoted inside it is not this item's child, and deleting into it
- * would leave the block unterminated.
+ * their parent. Thus, a subtree is removed fully. A fence ends the subtree.
+ * What is quoted inside it is not a child of this item, and a deletion into it
+ * would leave the block open.
  */
 export function removeCheckedItems(content: string): string {
   const lines = content.split("\n");
@@ -67,15 +70,15 @@ export function removeCheckedItems(content: string): string {
   return lines.filter((_, i) => !toRemove.has(i)).join("\n");
 }
 
-/** Returns true if a line is a checklist item */
+/** Returns true if a line is a checklist item. */
 export function isChecklistLine(line: string): boolean {
   return CHECKLIST_RE.test(line);
 }
 
 /**
- * Whether `content` has a checklist the user can see. Fenced lines are
- * skipped, as the preview skips them: inside a code block `- [x]` is quoted
- * text, not a box.
+ * If `content` has a checklist that the user can see. Fenced lines are skipped,
+ * as the preview skips them. Inside a code block, `- [x]` is quoted text, not a
+ * box.
  */
 export function hasChecklist(content: string): boolean {
   const lines = content.split("\n");
@@ -83,7 +86,7 @@ export function hasChecklist(content: string): boolean {
   return lines.some((line, i) => !fenced[i] && isChecklistLine(line));
 }
 
-/** As {@link hasChecklist}, but only counting boxes that are ticked. */
+/** As {@link hasChecklist}, but it counts only boxes that are ticked. */
 export function hasCheckedItems(content: string): boolean {
   const lines = content.split("\n");
   const fenced = markFencedLines(lines);
@@ -93,9 +96,9 @@ export function hasCheckedItems(content: string): boolean {
 }
 
 /**
- * `content` with the box on `lineIndex` flipped, and every indented
- * descendant below it set to match, as the editor's subtree toggle does.
- * Null when that line is not a box that can be ticked.
+ * `content` with the box on `lineIndex` changed, and each indented descendant
+ * below it set to agree, as the subtree toggle of the editor does. Null when
+ * that line is not a box that can be ticked.
  */
 export function toggleChecklistItem(
   content: string,
@@ -144,7 +147,8 @@ export function markFencedLines(lines: string[]): boolean[] {
     fenced[i] = true;
     // CommonMark: only a fence of the same character closes, and it must be
     // at least as long. So a ``` inside a ~~~ block, or inside a ```` one,
-    // stays part of the code, which is how a note documents fences at all.
+    // stays part of the code, which is the only way for a note to document
+    // fences.
     if (
       fence !== undefined &&
       fence[0] === openFence[0] &&
@@ -180,7 +184,7 @@ export function segmentContent(content: string): ContentSegment[] {
   return segments;
 }
 
-/** `content` with every ticked checklist item unticked, for a list reused. */
+/** `content` with each ticked checklist item cleared, for a list used again. */
 export function uncheckAllItems(content: string): string {
   const lines = content.split("\n");
   const fenced = markFencedLines(lines);
@@ -193,7 +197,7 @@ export function uncheckAllItems(content: string): string {
     .join("\n");
 }
 
-/** How many of the checklist items in `content` are ticked, of how many. */
+/** How many of the checklist items in `content` are ticked, and of how many. */
 export function checklistProgress(content: string): {
   done: number;
   total: number;
@@ -220,8 +224,8 @@ interface ItemNode {
 }
 
 function sortedLines(items: ItemNode[]): string[] {
-  // `sort` is stable, so items sharing a key keep the order they were
-  // written in.
+  // `sort` is stable. Thus, items with the same key keep the order in which
+  // they were written.
   return [...items]
     .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
     .flatMap((item) => [item.line, ...sortedLines(item.children)]);
@@ -229,8 +233,8 @@ function sortedLines(items: ItemNode[]): string[] {
 
 /**
  * `content` with its checklist items in the order of `keyOf`, smallest first.
- * Items are sorted among their siblings only, in each run of checklist lines,
- * and an item's indented children move with it, sorted in turn.
+ * Items are sorted only among their siblings, in each sequence of checklist
+ * lines. The indented children of an item move with it, and are also sorted.
  */
 export function sortChecklist(
   content: string,
@@ -262,8 +266,8 @@ export function sortChecklist(
 }
 
 /**
- * `content` with each checklist's ticked items after the ones still to do,
- * each among its siblings, both groups in the order they had.
+ * `content` with the ticked items of each checklist after the items that are
+ * still to do, each among its siblings. Both groups keep their order.
  */
 export function moveCheckedLast(content: string): string {
   return sortChecklist(content, (item) => (item?.checked ? "1" : "0"));

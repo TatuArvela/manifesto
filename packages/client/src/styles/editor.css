@@ -1,35 +1,47 @@
-/* The Milkdown editor, its link tooltip, and the phone's full-screen sheets. */
+/*
+ * The Milkdown editor, its link tooltip, and the full-screen sheets of the
+ * phone.
+ */
 
 /* ── Milkdown editor styles ──────────────────────────────────────────── */
 
 .milkdown-editor {
-  /* The link tooltip is positioned against it, so it scrolls with the note. */
+  /*
+   * The link tooltip is positioned against it. Thus, it scrolls with the note.
+   */
   position: relative;
 }
 
 .milkdown-editor .ProseMirror {
   outline: none;
-  /* A line that cannot break (a pasted hash, a long URL) scrolls sideways
-     inside the note rather than running out over the board. The text, not
-     `.milkdown-editor`, is the scroller, so the link tooltip beside it is
-     never clipped. Chromium gives an editable area `overflow-wrap:
-     break-word` of its own, which would break the line instead, and other
-     browsers do not, so it is set here for all of them. */
+  /*
+   * A line that cannot break (a pasted hash, a long URL) scrolls sideways
+   * inside the note, and does not go out over the board. The text, not
+   * `.milkdown-editor`, is the scroller. Thus, the link tooltip next to it is
+   * never clipped. Chromium gives an editable area its own `overflow-wrap:
+   * break-word`, which would break the line, and other browsers do not. Thus,
+   * it is set here for all of them.
+   */
   overflow-x: auto;
   overflow-wrap: normal;
-  /* What ProseMirror's own stylesheet (`prosemirror-view/style/
-     prosemirror.css`) sets and requires, which nothing here loaded. With the
-     default `normal`, a space typed at the end of a line, or a second one in
-     a row, collapsed on screen while staying in the text: the caret seemed
-     not to move, and the arrows took two presses to cross one gap. */
+  /*
+   * What the own stylesheet of ProseMirror
+   * (`prosemirror-view/style/prosemirror.css`) sets and needs, which nothing
+   * here loaded. With the default `normal`, a space typed at the end of a line,
+   * or a second space in sequence, collapsed on the screen but stayed in the
+   * text. The caret did not seem to move, and the arrows needed two presses to
+   * cross one gap.
+   */
   white-space: break-spaces;
   font-variant-ligatures: none;
   font-feature-settings: "liga" 0;
 }
 
-/* The rest of ProseMirror's own stylesheet. A selection of table cells, and
-   a selected node, hide the browser's selection under this class; without
-   it, the highlight showed over the cells' text as well. */
+/*
+ * The remaining part of the own stylesheet of ProseMirror. A selection of table
+ * cells, and a selected node, hide the selection of the browser under this
+ * class. Without it, the highlight also showed over the text of the cells.
+ */
 .milkdown-editor .ProseMirror-hideselection *::selection {
   background: transparent;
 }
@@ -42,9 +54,11 @@
   user-select: text;
 }
 
-/* A selected divider or table (Backspace just after one selects it first,
-   and the next press removes it). Unmarked, the first press looked like it
-   did nothing. */
+/*
+ * A selected divider or table (Backspace just after one selects it first, and
+ * the next press removes it). Without a mark, the first press seemed to do
+ * nothing.
+ */
 .milkdown-editor .ProseMirror-selectednode {
   outline: 2px solid rgb(59 130 246 / 0.6);
   outline-offset: 2px;
@@ -54,10 +68,12 @@
   outline: none;
 }
 
-/* The gap cursor (`prosemirror-gapcursor`), where the caret stands between
-   two blocks that hold no text of their own, such as before a table at the
-   top of a note or after a divider at the end of one: a short blinking line
-   in the text's colour, shown only while the editor has focus. */
+/*
+ * The gap cursor (`prosemirror-gapcursor`), where the caret is between two
+ * blocks that have no text of their own, for example before a table at the top
+ * of a note or after a divider at the end of one. A short line that blinks, in
+ * the color of the text, shown only while the editor has focus.
+ */
 .milkdown-editor .ProseMirror-gapcursor {
   display: none;
   pointer-events: none;
@@ -84,22 +100,26 @@
   display: block;
 }
 
-/* ProseMirror ends a line whose last thing is not text (a line break, an
-   image) with an empty image and a break, so the caret has a line to stand
-   on. Tailwind's preflight makes every image a block, which pushed that
-   empty line down a second time. Preflight is in the base layer, so this
-   wins without the `!important` ProseMirror's own copy needs. */
+/*
+ * ProseMirror ends a line whose last item is not text (a line break, an image)
+ * with an empty image and a break. Thus, the caret has a line on which to
+ * stand. The preflight of Tailwind makes each image a block, which pushed that
+ * empty line down a second time. Preflight is in the base layer. Thus, this
+ * wins without the `!important` that the own copy of ProseMirror needs.
+ */
 .milkdown-editor img.ProseMirror-separator {
   display: inline;
   border: none;
   margin: 0;
 }
 
-/* An overlay scrollbar (macOS, phones) is drawn over the last line rather
-   than beside it, so room is made under the text, but only while it does
-   scroll: a scroll timeline is inactive on a box that cannot, and an
-   animation on an inactive timeline has no effect. Without support for it
-   (Firefox), the scrollbar may still cover the last line. */
+/*
+ * An overlay scrollbar (macOS, phones) is drawn over the last line, not next to
+ * it. Thus, the code makes space under the text, but only while it scrolls. A
+ * scroll timeline is inactive on a box that cannot scroll, and an animation on
+ * an inactive timeline has no effect. Without support for it (Firefox), the
+ * scrollbar can still cover the last line.
+ */
 @keyframes editor-scrollbar-room {
   from,
   to {
@@ -114,10 +134,13 @@
   }
 }
 
-/* "Open link", under the link the caret is in (extensions/linkTooltip.ts).
-   Coloured like the other tooltips. It fades and drops in, and fades out in
-   place; `visibility` is held until the fade has finished so a closed tooltip
-   neither shows nor takes the clicks meant for the text under it. */
+/*
+ * "Open link", under the link in which the caret is
+ * (extensions/linkTooltip.ts). It has the color of the other tooltips. It fades
+ * and drops in, and fades out in place. `visibility` stays until the fade is
+ * complete. Thus, a closed tooltip does not show, and does not take the clicks
+ * for the text under it.
+ */
 .link-tooltip {
   position: absolute;
   z-index: 20;
@@ -169,9 +192,11 @@
   background-color: var(--color-neutral-300);
 }
 
-/* The row and column buttons over the table the caret is in
-   (extensions/tableBar.ts). Drawn like the formatting toolbar's floating bar
-   (`FormattingToolbar`), and faded like the link tooltip. */
+/*
+ * The row and column buttons over the table in which the caret is
+ * (extensions/tableBar.ts). Drawn as the floating bar of the formatting toolbar
+ * (`FormattingToolbar`), and faded as the link tooltip.
+ */
 .table-bar {
   position: absolute;
   z-index: 20;
@@ -248,42 +273,48 @@
   background-color: rgb(255 255 255 / 0.1);
 }
 
-/* A phone's finger needs a bigger target than a pointer does. */
+/* A finger on a phone needs a bigger target than a pointer does. */
 @media (max-width: 639px) {
   .table-bar-button {
     padding: 0.625rem;
   }
 }
 
-/* Headings, paragraphs and lists are shared with .prose; see above. */
+/* Headings, paragraphs and lists are shared with .prose. See above. */
 .milkdown-editor li p {
   margin: 0;
 }
 
-/* The board and its top bar are fixed to the screen, on every width and
-   whether or not a sheet is open. A home-screen app on iOS lays the page
-   under the status bar, and WebKit blurs whatever is there unless it finds a
-   fixed or sticky bar at the top to take a colour from. A header in the flow
-   of a page that never scrolls is neither, so the board's top was blurred
-   under the clock. Fixed, the shell is also what keeps the board where it
-   stands under a phone's sheets (below), which used to pin it only then. */
+/*
+ * The board and its top bar are fixed to the screen, at all widths, whether a
+ * sheet is open or not. A home-screen app on iOS puts the page under the status
+ * bar, and WebKit blurs the content there, unless it finds a fixed or sticky
+ * bar at the top from which to take a color. A header in the flow of a page
+ * that never scrolls is neither. Thus, the top of the board was blurred under
+ * the clock. When fixed, the shell also keeps the board in place under the
+ * sheets of a phone (below). Before, it was fixed only then.
+ */
 .app-shell {
   position: fixed;
   inset: 0;
 }
 
-/* The phone's full-screen sheets (an open note, the composer, a note's
-   history) are laid out in the page, and the page is what scrolls them; see
-   utils/phoneSheets.ts, which sets the attributes. The board stays where it
-   stands underneath, and a sheet covered by a newer one is pinned over it. A
-   wider screen's dialog is fixed as ever. */
+/*
+ * The full-screen sheets of the phone (an open note, the composer, the history
+ * of a note) are part of the page layout, and the page scrolls them. See
+ * utils/phoneSheets.ts, which sets the attributes. The board stays in place
+ * under them, and a sheet that a newer sheet covers is fixed over it. The
+ * dialog of a wider screen is fixed, as always.
+ */
 @media (width < 40rem) {
   .note-sheet[data-sheet="flow"] {
     position: relative;
   }
 
-  /* The page takes the open note's colour, for the band iOS shows past the
-     foot of the page with the keyboard up; see `paintPage`. */
+  /*
+   * The page takes the color of the open note, for the band that iOS shows past
+   * the bottom of the page when the keyboard is up. See `paintPage`.
+   */
   html.sheet-open body {
     background-color: var(--sheet-canvas);
   }
@@ -294,19 +325,23 @@
     overflow: hidden;
   }
 
-  /* The note inside fills at least the screen. Nothing here reads the
-     keyboard: iOS already lets the page scroll the text's end above the keys,
-     and a top bar made to follow the visible area during a scroll trailed it
-     by a frame. */
+  /*
+   * The note inside fills a minimum of the screen. Nothing here reads the
+   * keyboard. iOS already lets the page scroll the end of the text above the
+   * keys. A top bar that followed the visible area during a scroll was one
+   * frame behind it.
+   */
   .note-sheet-surface {
     min-height: 100dvh;
   }
 
-  /* Its top bar stays on screen as the page scrolls. The editor's tools are
-     in it, since iOS leaves the bottom of the screen under the keyboard; a
-     note only read keeps its few at the bottom. Both take the note's colour
-     from it, here only: a wider screen's dialog has rounded corners that a
-     painted bar would square off. */
+  /*
+   * Its top bar stays on the screen while the page scrolls. The tools of the
+   * editor are in it, because iOS leaves the bottom of the screen under the
+   * keyboard. A note that the user only reads keeps its few tools at the
+   * bottom. Both take the color of the note from it, only here. The dialog of a
+   * wider screen has rounded corners that a painted bar would make square.
+   */
   .note-sheet-top {
     position: sticky;
     top: 0;
@@ -324,13 +359,16 @@
   }
 }
 
-/* What a sheet shows beside its panel on a wide screen (`SheetAside` in
-   NoteSheet.tsx; a note's comments). The aside has no width until something
-   is in it and then widens, so the panel slides aside instead of jumping
-   while what arrived fades in over the room being made. On the way out the
-   same in reverse: the content is held for SHEET_ASIDE_EXIT_MS, marked
-   `data-leaving`, and the aside closes up under it. The content keeps its
-   full width throughout, so nothing in it reflows. */
+/*
+ * What a sheet shows next to its panel on a wide screen (`SheetAside` in
+ * NoteSheet.tsx; the comments of a note). The aside has no width until
+ * something is in it, and then it becomes wider. Thus, the panel slides to the
+ * side and does not jump, while the new content fades in over the space that
+ * opens. On the way out, the same occurs in reverse. The content stays for
+ * SHEET_ASIDE_EXIT_MS, marked `data-leaving`, and the aside closes under it.
+ * The content keeps its full width all the time. Thus, nothing in it changes
+ * its layout.
+ */
 .sheet-aside {
   width: 0;
   margin-left: 0;

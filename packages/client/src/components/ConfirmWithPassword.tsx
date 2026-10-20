@@ -10,12 +10,12 @@ const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-sm max-sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
 
 /**
- * The password again, for the actions that would let whoever holds a stolen
- * session keep the account (an email address, a token, a webhook). Shown only
- * to an account that has one: one signed in through an identity provider is
- * asked to have signed in recently instead (`ConfirmationError`). Drawn at
- * the size of the Settings fields around it; a full page whose fields are
- * larger passes its own `inputClass`.
+ * The password again, for the actions that would let the holder of a stolen
+ * session keep the account (an email address, a token, a webhook). Only an
+ * account that has a password sees it. An account that signs in through an
+ * identity provider must have a recent sign-in in its place
+ * (`ConfirmationError`). It has the size of the Settings fields around it. A
+ * full page with larger fields gives its own `inputClass`.
  */
 export function ConfirmPasswordField({
   value,
@@ -44,7 +44,9 @@ export function ConfirmPasswordField({
   );
 }
 
-/** Why the server wanted more before doing it, with the way to give it. */
+/**
+ * Why the server needed more before it did the action, with the way to give it.
+ */
 export function ConfirmationError({
   refusal,
 }: {

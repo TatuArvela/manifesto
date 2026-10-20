@@ -84,18 +84,18 @@ describe("stdlib", () => {
   it("formatDate produces a medium-style locale string", () => {
     const en = formatDate("2026-04-23", "en");
     const fi = formatDate("2026-04-23", "fi");
-    // Don't pin exact wording; just ensure both localize differently and
-    // include the year.
+    // Do not pin the exact words. Only make sure that both have different
+    // localization and include the year.
     expect(en).toMatch(/2026/);
     expect(fi).toMatch(/2026/);
   });
 
   it("relativeDays uses Intl.RelativeTimeFormat semantics", () => {
-    // Same day → "today"
+    // The same day → "today"
     expect(
       relativeDays("2026-04-23", "2026-04-23", "en").toLowerCase(),
     ).toMatch(/today/);
-    // Past day
+    // A past day
     expect(relativeDays("2026-04-20", "2026-04-23", "en")).toMatch(
       /3 days ago/,
     );
@@ -173,8 +173,8 @@ describe("stdlib", () => {
     expect(prelude).toContain("const __stdlibRaw");
     expect(prelude).toContain("addDays");
     expect(prelude).toContain("approxUntil");
-    // The prelude should be evaluable, as a smoke check that toString didn't
-    // produce syntax garbage.
+    // The prelude must be evaluable, as a smoke check that toString did not
+    // make bad syntax.
     expect(() => new Function(`${prelude}; return __stdlibRaw;`)).not.toThrow();
   });
 });

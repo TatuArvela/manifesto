@@ -1,17 +1,16 @@
 /**
  * Puts the saved theme on <html> before the first paint.
  *
- * Everything else about preferences belongs to state/prefs.ts, which owns this
- * key and re-applies the class the moment it loads. This copy exists only
- * because that module is part of the bundle, and the bundle runs after the
- * browser has already painted: without it the loading screen, and then the app
- * behind it, would flash white on the way into a dark theme. It reads the same
- * two things prefs.ts does and writes the same class, so the two cannot
- * disagree.
+ * state/prefs.ts owns all other parts of the preferences. It owns this key, and
+ * applies the class again when it loads. This copy exists only because that
+ * module is part of the bundle, and the bundle runs after the browser painted.
+ * Without it, the loading screen, and then the app behind it, would show white
+ * for a moment before a dark theme. It reads the same two values as prefs.ts,
+ * and writes the same class. Thus, the two always agree.
  *
- * A separate file rather than an inline script because the page's CSP allows
- * scripts from 'self' only, and a blocking one because the whole point is to
- * run before anything is drawn.
+ * It is a separate file, not an inline script, because the CSP of the page
+ * permits scripts only from 'self'. It blocks, because it must run before
+ * anything is drawn.
  */
 (() => {
   const prefersDark = () => {
@@ -23,8 +22,8 @@
   };
   let mode = "system";
   try {
-    // Storage can be unavailable (private mode, blocked site data) or hold
-    // something unparseable; an unreadable preference is no preference.
+    // Storage can be unavailable (private mode, blocked site data), or contain
+    // data that does not parse. An unreadable preference is no preference.
     const raw = localStorage.getItem("manifesto:prefs");
     const saved = raw ? JSON.parse(raw).theme : undefined;
     if (saved === "light" || saved === "dark") mode = saved;

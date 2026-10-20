@@ -20,9 +20,9 @@ import {
 } from "./sealing.ts";
 
 /**
- * The adapter against a server that holds only what it is sent: every word of
- * a note has to leave sealed and come back readable, and nothing readable may
- * be left on the server.
+ * The adapter against a server that keeps only what it gets. Each word of a
+ * note must go out sealed and come back readable, and nothing readable can stay
+ * on the server.
  */
 
 const draft: NoteCreate = {
@@ -76,7 +76,7 @@ describe("RestApiAdapter with sealing", () => {
     expect(held.position).toBe(3);
     const dump = server.dump();
     for (const word of WORDS) expect(dump, word).not.toContain(word);
-    // The first words of the text are kept sealed beside it.
+    // The first words of the text are kept sealed next to it.
     expect(held.excerpt.startsWith("e1.")).toBe(true);
 
     expect(await adapter.get(created.id)).toEqual(created);
@@ -99,7 +99,8 @@ describe("RestApiAdapter with sealing", () => {
     const b = await adapter.create({ ...draft, title: "Other" });
     const heldA = defined(server.notes.get(a.id));
     const heldB = defined(server.notes.get(b.id));
-    // A server that swaps a title between two notes of one account.
+    // A server that changes the titles of two notes of one account with each
+    // other.
     server.notes.set(b.id, { ...heldB, title: heldA.title });
     const read = await adapterFor(keys).get(b.id);
     expect(read?.title).toBe("");
@@ -219,7 +220,7 @@ describe("RestApiAdapter with sealing", () => {
     });
 
     it("takes the key a recipient is offered before sealing again", async () => {
-      // Two accounts with keys to wrap to and sign with.
+      // Two accounts with keys to which to wrap and with which to sign.
       const account = async (userId: string) => {
         const made = await createAccountKeys(userId);
         const held: AccountKeys = {
@@ -282,8 +283,8 @@ describe("RestApiAdapter with sealing", () => {
       });
       expect((await hers.get("n1"))?.title).toBe("Groceries");
 
-      // The owner replaces the key and offers Alice the new one; her device
-      // has not read the note since.
+      // The owner replaces the key and offers Alice the new key. Her device did
+      // not read the note since then.
       const made = await owner.sealer.rekey(first, []);
       if (!made) throw new Error("not replaced");
       made.commit();
@@ -323,26 +324,27 @@ describe("RestApiAdapter with sealing", () => {
       await adapter.saveVersion(created.id, { title: "v", content: "kept" });
       const key = defined(server.notes.get(created.id)).key;
 
-      // A device that has not listed anything yet lists first.
+      // A device that did not list anything yet lists first.
       const fresh = adapterFor(keys);
       await fresh.importAll([backup(created.id, "From the backup")]);
 
       expect(defined(server.notes.get(created.id)).key).toBe(key);
       expect((await adapter.get(created.id))?.title).toBe("From the backup");
-      // Its history is under the same key, so it still opens.
+      // Its history is under the same key. Thus, it still opens.
       expect(await adapter.listVersions(created.id)).toHaveLength(1);
     });
 
     it("seals again under the key a note has now when it was replaced meanwhile", async () => {
       const created = await adapter.create(draft);
       await adapter.getAll();
-      // Another device of the account replaces the key: someone left.
+      // A different device of the account replaces the key: a person left.
       const before = defined(server.notes.get(created.id));
       const made = await new Sealer(keys).rekey(before, []);
       if (!made) throw new Error("not replaced");
       server.notes.set(created.id, { ...before, ...made.body });
 
-      // This one still holds the key before, which whoever left holds too.
+      // This device still has the previous key, which the departed person also
+      // has.
       await adapter.importAll([backup(created.id, "From the backup")]);
 
       const after = defined(server.notes.get(created.id));
@@ -385,8 +387,10 @@ describe("RestApiAdapter with sealing", () => {
       mine = new RestApiAdapter("http://server.test", "tok", { sealer });
     });
 
-    /** An upload as `putImage` makes it, which a test without a browser
-     * cannot send: sealed here, stored on the server, its key kept. */
+    /**
+     * An upload as `putImage` makes it, which a test without a browser cannot
+     * send: sealed here, stored on the server, and its key kept.
+     */
     async function upload(
       with_: Sealer,
       image: Blob,
@@ -402,7 +406,7 @@ describe("RestApiAdapter with sealing", () => {
       const sealed = await sealer.sealUpload(blob(PNG, "image/png"));
       const stored = await bytesOf(sealed.body);
       expect(stored.length).toBe(PNG.length + 28);
-      // Not the image, nor anything that starts like one.
+      // Not the image, and nothing that starts as one.
       expect([...stored.subarray(0, 4)]).not.toEqual([...PNG.subarray(0, 4)]);
       expect(sealed.headers["Content-Type"]).toBe("application/octet-stream");
       expect(sealed.headers["X-Attachment-Address"]).toMatch(
@@ -428,7 +432,7 @@ describe("RestApiAdapter with sealing", () => {
     });
 
     it("takes what the bytes say an image is, and nothing that is not one", async () => {
-      // A PNG handed over as something else is still a PNG.
+      // A PNG given as a different type is still a PNG.
       const sealed = await sealer.sealUpload(blob(PNG, "text/html"));
       expect(sealed.key?.type).toBe("image/png");
       const svg = new TextEncoder().encode("<svg onload=alert(1)>");
@@ -442,7 +446,7 @@ describe("RestApiAdapter with sealing", () => {
       const created = await mine.create({ ...draft, images: [ref] });
       expect(created.images).toEqual([ref]);
       expect(server.refs.get(created.id)?.imageRefs).toEqual([ref]);
-      // The key is nowhere the server can read it.
+      // The key is in no place where the server can read it.
       const held = defined(server.notes.get(created.id));
       expect(held.images.startsWith("e1.")).toBe(true);
 
@@ -474,14 +478,14 @@ describe("RestApiAdapter with sealing", () => {
 
     it("names the owner's copy of an image that was someone else's", async () => {
       const created = await mine.create(draft);
-      // An image this device can open, held by another account: one copied
-      // out of a note shared with it.
+      // An image that this device can open, held by a different account: an
+      // image copied out of a note shared with it.
       const theirs = await upload(sealer, blob(PNG, "image/png"), "other");
       const updated = await mine.update(created.id, { images: [theirs] });
       const [own] = updated.images;
       expect(own).not.toBe(theirs);
       expect(server.refs.get(created.id)?.imageRefs).toEqual([own]);
-      // The same sealed bytes, so the key still opens them.
+      // The same sealed bytes. Thus, the key still opens them.
       expect((await mine.loadImage(defined(own))).type).toBe("image/png");
     });
 
@@ -493,7 +497,7 @@ describe("RestApiAdapter with sealing", () => {
     it("shows nothing for an image that is not what its note says", async () => {
       const sealed = await sealer.sealUpload(blob(GIF, "image/gif"));
       const ref = server.putAttachment(await bytesOf(sealed.body));
-      // A note written by someone who lied about the kind of image.
+      // A note written by a person who gave a false kind of image.
       sealer.keepImageKey(ref, {
         key: sealed.key?.key ?? "",
         type: "image/png",

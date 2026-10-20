@@ -1,7 +1,7 @@
 /**
- * What the formatting toolbar can apply and report, shared by the rich editor's
- * toolbar and raw mode (`rawFormatting.ts`), which express the same buttons as
- * edits to the markdown text.
+ * What the formatting toolbar can apply and report, shared by the toolbar of
+ * the rich editor and raw mode (`rawFormatting.ts`), which do the same buttons
+ * as edits to the Markdown text.
  */
 
 export type FormatType =
@@ -39,12 +39,15 @@ export interface ActiveFormats {
   underline: boolean;
   subscript: boolean;
   superscript: boolean;
-  /** Only ever true in the rich editor; see `getRawActiveFormats`. */
+  /** Only true in the rich editor. See `getRawActiveFormats`. */
   table: boolean;
   codeBlock: boolean;
 }
 
-/** A change to a text field's value, with where its selection ends up. */
+/**
+ * A change to the value of a text field, with the final position of its
+ * selection.
+ */
 export interface TextEdit {
   value: string;
   selectionStart: number;

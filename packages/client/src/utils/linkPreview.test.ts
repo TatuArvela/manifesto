@@ -73,9 +73,10 @@ describe("makeStubPreview", () => {
 
 describe("extractUrls performance", () => {
   it("does not backtrack quadratically on a long punctuation run", () => {
-    // An unbounded `+` in TRAILING_PUNCTUATION_RE took ~15s here; this runs in
-    // well under a millisecond. `extractUrls` is called during note-card render,
-    // so a pathological note would otherwise freeze the tab on every paint.
+    // An unbounded `+` in TRAILING_PUNCTUATION_RE took approximately 15s here.
+    // This runs in much less than one millisecond. `extractUrls` is called
+    // during the render of a note card. Thus, a pathological note would
+    // otherwise freeze the tab on each paint.
     const hostile = `http://x${".".repeat(120_000)}a`;
     const started = performance.now();
     extractUrls(hostile);

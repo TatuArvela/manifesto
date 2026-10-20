@@ -33,13 +33,14 @@ function buildApproxLabels(): ApproxLabels {
 }
 
 /**
- * Manual refresh tick: increment to re-invoke all plugins. There is no
- * automatic timer; auto-notes render once on mount and then only when the
- * user hits the refresh button, plugins change, or the locale changes.
+ * Manual refresh tick: increase it to run all plugins again. There is no
+ * automatic timer. Auto-notes render one time on mount, and then only when the
+ * user pushes the refresh button, when plugins change, or when the locale
+ * changes.
  */
 export const refreshTick = signal(0);
 
-/** Force-rerun every enabled plugin. */
+/** Run each enabled plugin again. */
 export function refreshAutoNotes(): void {
   refreshTick.value = refreshTick.value + 1;
 }
@@ -48,13 +49,13 @@ interface RenderedNote {
   pluginId: string;
   pluginName: string;
   result: AutoNoteResult;
-  /** Made by a run that was reading notes, see `drawnWithoutImages`. */
+  /** Made by a run that read notes. See `drawnWithoutImages`. */
   reading: boolean;
 }
 
 /**
- * Materialized notes for all enabled plugins. Updated by the effect below.
- * An array signal rather than a computed because plugin invocation is async.
+ * The notes that all enabled plugins made. The effect below updates it. An
+ * array signal, not a computed, because a plugin call is asynchronous.
  */
 export const autoNotes = signal<RenderedNote[]>([]);
 
@@ -75,22 +76,23 @@ function buildErrorNote(
   };
 }
 
-/** How many notes one plugin is shown, the most recently changed first. */
+/** How many notes one plugin sees, the most recently changed first. */
 export const MAX_NOTES_READ = 500;
-/** How much of one note's text a plugin is shown. */
+/** How much of the text of one note a plugin sees. */
 export const MAX_CONTENT_READ = 20_000;
 
 /**
- * The user's notes, handed in by `initAutoNotes`: `notesStore` builds on this
- * module (a generated note is a note), so reading it from here would be a
- * cycle. Generated notes are not among them, so no plugin reads another's
- * output, or its own.
+ * The notes of the user, given by `initAutoNotes`. `notesStore` builds on this
+ * module (a generated note is a note). Thus, a read from here would be a cycle.
+ * Generated notes are not among them. Thus, no plugin reads the output of a
+ * different plugin, or its own.
  */
 let userNotes: () => Note[] = () => [];
 
 /**
- * A plugin's notes: those carrying a tag it reads or a tag under one, as a
- * tag's notes are counted everywhere else, and not in the trash.
+ * The notes of a plugin: the notes that have a tag that it reads or a tag under
+ * one, as the notes of a tag are counted in all other places, and not in the
+ * trash.
  */
 function inScope(tags: string[], all: Note[]): Note[] {
   if (tags.length === 0) return [];
@@ -101,7 +103,7 @@ function inScope(tags: string[], all: Note[]): Note[] {
   );
 }
 
-/** What a plugin is shown of them (`ctx.notes`). */
+/** What a plugin sees of them (`ctx.notes`). */
 export function notesFor(tags: string[], all: Note[]): PluginNote[] {
   return inScope(tags, all)
     .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
@@ -120,14 +122,15 @@ export function notesFor(tags: string[], all: Note[]): PluginNote[] {
 }
 
 /**
- * Whether a note is the output of a plugin that reads notes. Such a card is
- * drawn without images (`withoutImages`): the plugin's sandbox has no network,
- * so an image address in what it returns would be the one way to send what it
- * read somewhere.
+ * If a note is the output of a plugin that reads notes. Such a card is drawn
+ * without images (`withoutImages`). The sandbox of the plugin has no network.
+ * Thus, an image address in what it returns would be the only way to send what
+ * it read to a different place.
  *
- * Asked of the run that made the card as well as of the plugin as it stands:
- * a card outlives the allowance it was made under, until the next run
- * replaces it, and Stop is pressed on exactly the plugin not to be trusted.
+ * The code asks this of the run that made the card, and also of the current
+ * plugin. A card stays after the permission under which it was made, until the
+ * next run replaces it. A person pushes Stop on exactly the plugin that they do
+ * not trust.
  */
 export function drawnWithoutImages(note: Pick<Note, "id" | "source">): boolean {
   if (note.source?.kind !== "auto-note") return false;
@@ -195,13 +198,16 @@ function scheduleRun() {
 
 let disposer: (() => void) | null = null;
 
-/** How long the notes a plugin reads must rest before it runs again: a
- * note being typed changes with every pause of the auto-save. */
+/**
+ * How long the notes that a plugin reads must stay without change before it
+ * runs again. A note that a person types changes at each pause of the
+ * auto-save.
+ */
 const NOTE_CHANGE_SETTLE_MS = 1000;
 
 /**
  * What the reading plugins would see, as text to compare: which notes are in
- * each one's scope and when each last changed. Empty when nothing reads.
+ * the scope of each, and when each last changed. Empty when nothing reads.
  */
 function scopeSignature(all: Note[]): string {
   return plugins.value
@@ -217,10 +223,11 @@ function scopeSignature(all: Note[]): string {
 }
 
 /**
- * Wire up the effects that re-invoke plugins. They run once on mount, when
- * plugins change, the locale changes or `refreshAutoNotes()` is called, and,
- * for a plugin that reads notes, a moment after a note in its scope changes.
- * `notes` is the user's own notes (see `userNotes`).
+ * Connect the effects that run plugins again. They run one time on mount, when
+ * plugins change, when the locale changes, or when code calls
+ * `refreshAutoNotes()`. For a plugin that reads notes, they also run a moment
+ * after a note in its scope changes. `notes` is the own notes of the user (see
+ * `userNotes`).
  */
 export function initAutoNotes(notes: () => Note[] = () => []): () => void {
   if (disposer) return disposer;
@@ -240,8 +247,8 @@ export function initAutoNotes(notes: () => Note[] = () => []): () => void {
     const signature = scopeSignature(notes());
     const samePlugins = plugins.value === lastPlugins;
     lastPlugins = plugins.value;
-    // The first reading is the run the effect above has just asked for, and
-    // so is one that follows a change to the plugins (Allow, Stop).
+    // The first reading is the run for which the effect above just asked. So is
+    // a reading that follows a change to the plugins (Allow, Stop).
     if (lastSignature === null || signature === lastSignature || !samePlugins) {
       lastSignature = signature;
       return;
@@ -265,10 +272,10 @@ const DEFAULT_COLOR = "default" as NoteColor;
 const DEFAULT_FONT = "default" as NoteFont;
 
 /**
- * Where an auto-note that names no position of its own goes: ahead of every
- * ordinary note, whose new positions count down from minus the clock. Far
- * enough past that to hold for as long as the clock does, and well inside the
- * range a double counts exactly.
+ * Where an auto-note that names no position of its own goes: before each usual
+ * note, whose new positions count down from minus the clock. Sufficiently far
+ * past that to stay correct as long as the clock does, and well inside the
+ * range that a double counts exactly.
  */
 const AUTO_NOTE_HEAD = -1e15;
 
@@ -279,7 +286,7 @@ function noteId(rendered: RenderedNote, index: number): string {
   );
 }
 
-/** The generated notes made by a run that was reading notes. */
+/** The generated notes made by a run that read notes. */
 const madeReading = computed<Set<string>>(
   () =>
     new Set(

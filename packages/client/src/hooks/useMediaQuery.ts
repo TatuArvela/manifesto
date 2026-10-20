@@ -1,9 +1,9 @@
 import { useEffect, useState } from "preact/hooks";
 
 /**
- * Whether a media query matches, kept current as the window changes. For the
- * few places where a width decides where something is mounted, not only how it
- * looks, which CSS alone cannot say.
+ * If a media query matches, kept current while the window changes. For the few
+ * places where a width decides where something is mounted, not only how it
+ * looks. CSS alone cannot tell that.
  */
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(

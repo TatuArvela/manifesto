@@ -1,7 +1,7 @@
 declare const __APP_VERSION__: string;
 declare const __APP_NAME__: string;
 declare const __APP_WELCOME__: boolean;
-/** The rest of the branding, as the build resolved it; see `config.ts`. */
+/** The other branding values, as the build resolved them. See `config.ts`. */
 declare const __BRANDING__: {
   appLogo: string;
   instanceName: string;

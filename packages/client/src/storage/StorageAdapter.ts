@@ -7,21 +7,25 @@ import type {
 } from "@manifesto/shared";
 
 export interface UpdateOptions {
-  /** Last-known updatedAt, sent as `If-Match` for optimistic concurrency. */
+  /**
+   * The last known updatedAt, sent as `If-Match` for optimistic concurrency.
+   */
   ifMatch?: string;
 }
 
-/** What changed since a checkpoint; see `StorageAdapter.changesSince`. */
+/** What changed since a checkpoint. See `StorageAdapter.changesSince`. */
 export interface NoteChanges {
-  /** The notes that changed, without their attachments, as a listing has them. */
+  /**
+   * The notes that changed, without their attachments, as a listing has them.
+   */
   notes: Note[];
-  /** Every note the user can see now, changed or not. */
+  /** Each note that the user can see now, changed or not. */
   ids: string[];
-  /** Where this left off: the `since` of the next call. */
+  /** Where this stopped: the `since` of the next call. */
   checkpoint: string;
 }
 
-/** What a new note is stored with besides its fields. */
+/** What a new note is stored with, other than its fields. */
 export interface CreateOptions {
   id?: string | undefined;
 }
@@ -29,18 +33,18 @@ export interface CreateOptions {
 export interface StorageAdapter {
   getAll(): Promise<Note[]>;
   /**
-   * The notes that changed since `since` (null for everything), or null when
-   * this storage keeps no record of change and the caller should list it all.
-   * A server does (`GET /api/v1/sync`); a browser's own storage has no one else
-   * writing to it.
+   * The notes that changed since `since` (null for all notes), or null when
+   * this storage keeps no record of changes and the caller must list all. A
+   * server does (`GET /api/v1/sync`). The own storage of a browser has no other
+   * writer.
    */
   changesSince(since: string | null): Promise<NoteChanges | null>;
   get(id: string): Promise<Note | null>;
   /**
-   * Stores a new note. `id` is chosen by the caller when it has to be known
-   * before the write lands: a note queued while offline is sent again under
-   * the same one, so a write that arrived but whose answer was lost is found
-   * rather than made twice.
+   * Stores a new note. The caller selects `id` when it must be known before the
+   * write arrives. A note queued while offline is sent again under the same id.
+   * Thus, a write that arrived, but whose answer was lost, is found and not
+   * made two times.
    */
   create(note: NoteCreate, options?: CreateOptions): Promise<Note>;
   update(
@@ -52,44 +56,48 @@ export interface StorageAdapter {
   deleteAll(): Promise<void>;
   importAll(notes: Note[]): Promise<void>;
   /**
-   * The attachments of one note. Server listings leave them out (they are the
-   * bulk of a note and most of them are never looked at), so anything that
-   * needs the bytes asks for them. In open mode nothing was ever separated, so
-   * this is a read of what is already there.
+   * The attachments of one note. Server listings do not include them (they are
+   * most of a note, and nobody looks at most of them). Thus, all code that
+   * needs the bytes asks for them. In open mode, nothing was ever separated.
+   * Thus, this is a read of what is already there.
    */
   loadImages(id: string): Promise<string[]>;
   /**
-   * The bytes an image reference names: an `attachment:<id>` on the server
-   * in connected mode, a `local:<hash>` in this browser's IndexedDB in open
-   * mode. Rejects for the other kind, or bytes that are gone.
+   * The bytes that an image reference names: an `attachment:<id>` on the server
+   * in connected mode, a `local:<hash>` in the IndexedDB of this browser in
+   * open mode. Rejects for the other kind, or for bytes that are gone.
    */
   loadImage(ref: string): Promise<Blob>;
   /**
-   * Stores an image and resolves the reference to put in a note's `images`:
-   * uploaded in connected mode (`POST /api/v1/attachments`, reporting progress
-   * as a fraction) for an `attachment:` reference, kept in IndexedDB in open
-   * mode for a `local:` one. Rejects if it could not be stored.
+   * Stores an image, and resolves the reference to put in the `images` of a
+   * note. Uploaded in connected mode (`POST /api/v1/attachments`, with progress
+   * reported as a fraction) for an `attachment:` reference. Kept in IndexedDB
+   * in open mode for a `local:` reference. Rejects if the code could not store
+   * it.
    */
   putImage(
     image: Blob,
     options?: { onProgress?: (fraction: number) => void; signal?: AbortSignal },
   ): Promise<string>;
   /**
-   * A note's version history, newest first. Open mode keeps it in this
-   * browser; connected mode on the server, so every device shares it.
+   * The version history of a note, newest first. Open mode keeps it in this
+   * browser. Connected mode keeps it on the server. Thus, all devices share it.
    */
   listVersions(noteId: string): Promise<NoteVersion[]>;
-  /** Adds a version; `timestamp` only when bringing an older one across. */
+  /**
+   * Adds a version. `timestamp` only when the code brings across an older
+   * version.
+   */
   saveVersion(
     noteId: string,
     version: { title: string; content: string; timestamp?: string },
   ): Promise<void>;
   /**
    * What the server could read from a linked page, with its image and favicon
-   * as fetched (not yet shrunk). Null when there is nothing to add to the plain
-   * link card: always in open mode, which has no server to ask and whose CSP
-   * forbids asking anyone else, and in connected mode when the page could not
-   * be fetched or the server has previews turned off.
+   * as loaded (not shrunk yet). Null when there is nothing to add to the plain
+   * link card. That is always so in open mode, which has no server to ask and
+   * whose CSP forbids to ask any other party. In connected mode, it is so when
+   * the page did not load, or when the server has previews turned off.
    */
   fetchLinkPreview(url: string): Promise<LinkPreview | null>;
 }

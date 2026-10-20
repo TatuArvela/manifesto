@@ -7,13 +7,13 @@ import {
 } from "./index.ts";
 
 /**
- * Which backend a note goes to follows the session, but storage is the layer
- * underneath the session, not above it. Were it to import the auth signals,
- * anything that touched a note would pull the login screen's state in with
- * it, so `state/account/auth.ts` pushes the connection in.
+ * The session decides to which backend a note goes, but storage is the layer
+ * under the session, not above it. If it imported the auth signals, all code
+ * that touched a note would bring in the state of the login screen with it.
+ * Thus, `state/account/auth.ts` pushes the connection in.
  *
- * That inversion is only safe if the adapter still changes the moment the
- * connection does, which is what these check.
+ * That inversion is only safe if the adapter still changes at the moment when
+ * the connection does. These tests check that.
  */
 
 const offline = { serverUrl: null, token: null };
@@ -38,8 +38,8 @@ describe("currentStorage", () => {
 
   it("treats a same-origin base as a server, not as no server at all", () => {
     // A single-origin deployment configures `/`, which resolves to the empty
-    // string. Read as falsy, that sent every note to this device while the
-    // user was signed in and believed otherwise.
+    // string. When read as falsy, that sent each note to this device while the
+    // user was signed in and thought differently.
     storageConnection.value = { serverUrl: "", token: "t" };
     expect(currentStorage.value).toBeInstanceOf(RestApiAdapter);
   });

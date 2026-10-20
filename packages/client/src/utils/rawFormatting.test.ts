@@ -8,8 +8,8 @@ import {
   type TextEdit,
 } from "./rawFormatting.ts";
 
-// `‹` and `›` mark a selection, `|` a caret, in both the input and the
-// expected output, so a case reads as the textarea would look.
+// `‹` and `›` mark a selection, and `|` a caret, in the input and in the
+// expected output. Thus, a case looks as the textarea would.
 function parse(marked: string): [string, number, number] {
   const caret = marked.indexOf("|");
   if (caret !== -1) {
@@ -55,8 +55,9 @@ describe("inline formats in raw mode", () => {
   });
 
   it("unwraps a selection that takes in its own markers", () => {
-    // Selecting the whole `**text**` by double-click or drag is the natural
-    // way to pick it, and used to read as unformatted and gain four more.
+    // A double-click or a drag that selects all of `**text**` is the natural
+    // way to select it. Before, the code read that as unformatted, and added
+    // four more.
     expect(active("a ‹**word**› b")).toMatchObject({ bold: true });
     expect(format("a ‹**word**› b", "bold")).toBe("a ‹word› b");
     expect(format("‹***both***›", "italic")).toBe("**‹both›**");
@@ -64,8 +65,8 @@ describe("inline formats in raw mode", () => {
   });
 
   it("does not read a selection across two formatted runs as one", () => {
-    // Peeling the outer asterisks would leave `a** and **b`, which reads as
-    // bold and would be unwrapped into broken markdown.
+    // A removal of the outer asterisks would leave `a** and **b`, which reads
+    // as bold, and would then be unwrapped into broken Markdown.
     expect(active("‹**a** and **b**›").bold).toBe(false);
     expect(format("‹**a** and **b**›", "italic")).toBe("*‹**a** and **b**›*");
   });
@@ -81,13 +82,13 @@ describe("inline formats in raw mode", () => {
   });
 
   it("does not peel markup off only one end of a selection", () => {
-    // `**word` is not bold text with its closing half out of view; wrapping
-    // just `word` would leave `****word**`.
+    // `**word` is not bold text with its closing half out of view. A wrap of
+    // only `word` would leave `****word**`.
     expect(format("‹**word›", "bold")).toBe("**‹**word›**");
   });
 
   it("keeps whitespace at the edges of a selection outside the markers", () => {
-    // `** word **` is not bold in markdown, just asterisks.
+    // `** word **` is not bold in Markdown. It is only asterisks.
     expect(format("a‹ word ›b", "bold")).toBe("a **‹word›** b");
   });
 
@@ -109,8 +110,8 @@ describe("inline formats in raw mode", () => {
   });
 
   it("does not split a marker run at the caret", () => {
-    // `*|*aa**` is one `**` with the caret inside it, not an `*` on either
-    // side of the caret, which lit up Italic.
+    // `*|*aa**` is one `**` with the caret inside it, not an `*` on each side
+    // of the caret, which made Italic show as on.
     expect(active("- [ ] *|*aa**")).toMatchObject({
       bold: true,
       italic: false,
@@ -195,7 +196,7 @@ describe("block formats in raw mode", () => {
 
 describe("whole blocks in raw mode", () => {
   it("puts a divider under the caret's paragraph, apart from it", () => {
-    // Straight under the text, `---` would underline it as a heading.
+    // Directly under the text, `---` would underline it as a heading.
     expect(format("Fir|st", "divider")).toBe("First\n\n---\n\n|");
     expect(format("Fir|st\nline\n\nNext", "divider")).toBe(
       "First\nline\n\n---\n\n|Next",

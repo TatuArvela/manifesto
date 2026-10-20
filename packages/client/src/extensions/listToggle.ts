@@ -7,26 +7,29 @@ import {
 } from "@milkdown/kit/prose/state";
 import { coveredRange } from "./coveredRange.ts";
 
-// The toolbar's three list buttons in the rich editor. Raw mode's are in
-// `utils/rawLineFormatting.ts`.
+// The three list buttons of the toolbar in the rich editor. Those of raw mode
+// are in `utils/rawLineFormatting.ts`.
 
 export type ListKind = "bullet" | "ordered" | "task";
 
-/** Just what is needed of an `EditorView`, so a test can stand in for one. */
+/**
+ * Only the parts of an `EditorView` that are necessary. Thus, a test can
+ * replace one.
+ */
 export interface ListView {
   readonly state: EditorState;
   dispatch(tr: Transaction): void;
 }
 
-/** The list kind a list item is, from its list and its `checked`. */
+/** The list type of a list item, from its list and its `checked`. */
 function kindOf(list: ProseNode, item: ProseNode): ListKind {
   if (item.attrs.checked != null) return "task";
   return list.type.name === "ordered_list" ? "ordered" : "bullet";
 }
 
 /**
- * Where each text block between `from` and `to` (by default, the text the
- * selection covers) starts, with the list item it is in.
+ * Where each text block between `from` and `to` (by default, the text that the
+ * selection covers) starts, with the list item that contains it.
  */
 function coveredBlocks(state: EditorState, from?: number, to?: number) {
   const item = state.schema.nodes.list_item;
@@ -56,7 +59,9 @@ function coveredBlocks(state: EditorState, from?: number, to?: number) {
   return blocks;
 }
 
-/** Selects from the first covered block's start to the last one's end. */
+/**
+ * Selects from the start of the first covered block to the end of the last one.
+ */
 function selectCovered(view: ListView) {
   const { $from, $to } = coveredRange(view.state);
   const from = $from.start();
@@ -70,8 +75,9 @@ function selectCovered(view: ListView) {
 }
 
 /**
- * Line breaks in the covered paragraphs become paragraph breaks, so each line
- * becomes an item of its own. Done last line first, so earlier positions hold.
+ * Line breaks in the covered paragraphs become paragraph breaks. Thus, each
+ * line becomes its own item. The code does the last line first. Thus, earlier
+ * positions stay correct.
  */
 function splitLines(view: ListView) {
   const { state } = view;
@@ -92,11 +98,11 @@ function splitLines(view: ListView) {
 }
 
 /**
- * Lifts every selected block out of its list, one block at a time, until
- * none is in a list or nothing moves. A block at a time, because one lift
- * over the whole selection only lifts when it all sits in one list: half in
- * a list, nothing moved. A nested item comes out a level per lift, so it
- * ends up after the list rather than as a line of the item above it.
+ * Lifts each selected block out of its list, one block at a time, until none is
+ * in a list or nothing moves. One block at a time, because one lift over the
+ * full selection only works when all of it is in one list. Half in a list,
+ * nothing moved. A nested item comes out one level for each lift. Thus, it goes
+ * after the list, not into a line of the item above it.
  */
 function liftOut(view: ListView) {
   const item = view.state.schema.nodes.list_item;
@@ -143,16 +149,16 @@ function markItems(view: ListView, kind: ListKind) {
 /**
  * The Bullet, Numbered and Checklist buttons.
  *
- * - Every selected line becomes an item of its own, a line break within a
- *   paragraph included. Milkdown's `wrapInBulletListCommand` wraps the
- *   selection in one list item, so three lines became one item.
- * - When every selected line already is that kind of item, they come out of
- *   the list altogether: pressed twice, a button gives back plain lines.
- * - When they are all items of another kind, their list changes kind in
- *   place, nesting and all. A list's type is the whole list's in Markdown,
- *   so its other items change with it.
- * - Otherwise the selected items are lifted out first and everything is
- *   wrapped afresh, so a selection half in a list ends up as one list.
+ * - Each selected line becomes its own item, also a line break within a
+ *   paragraph. The `wrapInBulletListCommand` of Milkdown wraps the selection in
+ *   one list item. Thus, three lines became one item.
+ * - When each selected line is already that type of item, they come out of the
+ *   list fully. Thus, a button pushed two times gives back plain lines.
+ * - When they are all items of a different type, their list changes type in
+ *   place, with its nesting. In Markdown, the type of a list applies to the
+ *   full list. Thus, its other items change with it.
+ * - Otherwise, the code first lifts the selected items out, and wraps all
+ *   again. Thus, a selection that is half in a list becomes one list.
  */
 export function toggleList(view: ListView, kind: ListKind): void {
   const { bullet_list, ordered_list } = view.state.schema.nodes;
@@ -181,8 +187,9 @@ export function toggleList(view: ListView, kind: ListKind): void {
       if (lists.has(listPos) || block.item.list.type === listType) continue;
       lists.add(listPos);
       tr.setNodeMarkup(listPos, listType);
-      // Milkdown writes each item's marker from the item's own `listType`
-      // and `label`, not its list's, so they change with the list.
+      // Milkdown writes the marker of each item from the own `listType` and
+      // `label` of the item, not those of its list. Thus, they change with the
+      // list.
       block.item.list.forEach((child, offset) => {
         tr.setNodeMarkup(listPos + 1 + offset, undefined, {
           ...child.attrs,

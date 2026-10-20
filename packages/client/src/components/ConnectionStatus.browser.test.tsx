@@ -3,14 +3,14 @@ import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * The banner reports `connectionOutage`, never the raw status: the status
- * leaves "open" on every resume, and saying so there flashed "Disconnected" at
- * someone whose reconnect was already under way. The waiting itself is
- * `connectionOutage`'s and is tested there; this is about the banner honouring
- * it, and about which of the two messages it picks.
+ * The banner reports `connectionOutage`, never the raw status. The status
+ * leaves "open" on each resume. When the banner reported it, "Disconnected"
+ * showed for a moment to a person whose reconnect was already in progress.
+ * `connectionOutage` owns the wait, and its own tests check it. These tests
+ * check that the banner obeys it, and which of the two messages it selects.
  *
- * Both modules are mocked down to the signals the banner reads, and
- * `isServerMode` forced on, since a test build has no server configured.
+ * Both modules are mocked to the signals that the banner reads, and
+ * `isServerMode` is on, because a test build has no configured server.
  */
 const connectionStatus = signal<"idle" | "connecting" | "open" | "closed">(
   "open",
@@ -26,7 +26,7 @@ const { t } = await import("#/i18n/index.ts");
 
 let host: HTMLDivElement;
 
-/** Preact rerenders on a microtask, so read the DOM only after one. */
+/** Preact renders again on a microtask. Thus, read the DOM only after one. */
 async function banner() {
   await Promise.resolve();
   return host.querySelector("[role='status']");

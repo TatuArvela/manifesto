@@ -17,11 +17,17 @@ import { Backdrop } from "./Backdrop.tsx";
 import { BrandLogo } from "./BrandLogo.tsx";
 import { buttonClass } from "./buttonClasses.ts";
 
-/** How long the fade-out runs; matches the `duration-150` classes below. */
+/**
+ * The duration of the fade-out. It agrees with the `duration-150` classes
+ * below.
+ */
 const CLOSE_MS = 150;
 
-/** The host to name as where notes are kept. Asked only in server mode, so
- * the null branch is defensive rather than reachable. */
+/**
+ * The host to name as the place where notes are kept. The code asks only in
+ * server mode. Thus, the null branch is a precaution, and the code cannot reach
+ * it.
+ */
 function serverHost(url: string | null): string {
   if (url === null) return "";
   try {
@@ -32,16 +38,16 @@ function serverHost(url: string | null): string {
 }
 
 /**
- * Where this deployment keeps notes, which the two operating modes answer
- * very differently: on this device, or on a named server. The welcome dialog
- * leads with it and the settings' About page repeats it.
+ * Where this deployment keeps notes. The two operating modes answer this very
+ * differently: on this device, or on a named server. The welcome dialog starts
+ * with it, and the About page of the settings repeats it.
  */
 export function StorageMode({
   id,
   class: extra,
 }: {
   id?: string;
-  /** Its spacing and background, which depend on what it sits on. */
+  /** Its spacing and background, which depend on the surface below it. */
   class: string;
 }) {
   const user = currentUser.value;
@@ -78,11 +84,11 @@ export function StorageMode({
 }
 
 /**
- * A first-time visitor's introduction, and above all the answer to "where do
- * my notes go?". The two operating modes answer that very differently, and
- * nothing else in the interface says which one this is: an open-mode user can
- * lose everything by clearing site data without ever having been told their
- * notes lived there.
+ * The introduction for a first-time visitor, and most important, the answer to
+ * "where do my notes go?". The two operating modes answer that very
+ * differently, and no other part of the interface tells which mode this is. An
+ * open-mode user can lose all data when they clear the site data, if nobody
+ * told them that their notes were there.
  */
 export function WelcomeDialog() {
   const [closing, setClosing] = useState(false);

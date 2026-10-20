@@ -4,14 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { escapeStackDepth, useEscapeStack } from "./useEscapeStack.ts";
 
 /**
- * The point of the stack is that one Escape reaches exactly one layer, so every
- * test here presses Escape with several registered and checks which one moved.
- * Real key events on a real document: the bug it replaces was several document
- * listeners all firing, which testing a handler in isolation cannot show.
+ * The purpose of the stack is that one Escape reaches exactly one layer. Thus,
+ * each test here pushes Escape with many layers registered, and checks which
+ * one moved. Real key events on a real document: the bug that it replaces was
+ * many document listeners that all fired, which a test of one handler alone
+ * cannot show.
  *
- * Layers are opened one render at a time, the way the app opens them: a click
- * on the editor opens the picker over it. See the hook's note on why a layer
- * must not become active in the same render as one it sits inside.
+ * Layers open one render at a time, as the app opens them: a click on the
+ * editor opens the picker over it. See the note of the hook about why a layer
+ * must not become active in the same render as a layer that contains it.
  */
 
 let host: HTMLDivElement;
@@ -34,7 +35,10 @@ const pressEscape = () =>
     new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
   );
 
-/** Registration is a layout effect, so a render leaves the stack settled. */
+/**
+ * The registration is a layout effect. Thus, after a render the stack is
+ * stable.
+ */
 const show = (tree: ComponentChildren) => render(tree, host);
 
 beforeEach(() => {
@@ -45,8 +49,8 @@ beforeEach(() => {
 afterEach(() => {
   show(null);
   host.remove();
-  // The stack is module state; a leak here would swallow Escape for every test
-  // that follows.
+  // The stack is module state. A leak here would take Escape from each later
+  // test.
   expect(escapeStackDepth()).toBe(0);
 });
 
@@ -65,15 +69,15 @@ describe("useEscapeStack", () => {
 
     pressEscape();
 
-    // The reported bug in one assertion: a colour picker open over the editor
-    // used to dismiss itself *and* close the editor on the same key press.
+    // The reported bug in one assertion: a color picker open over the editor
+    // dismissed itself *and* closed the editor on the same key press.
     expect(picker).toHaveBeenCalledTimes(1);
     expect(editor).not.toHaveBeenCalled();
   });
 
   it("lets a pass-through layer hand the same press on", () => {
-    // A tooltip over the editor: Escape puts it away and still closes the
-    // editor, rather than costing a keyboard user a second press.
+    // A tooltip over the editor: Escape removes it and still closes the editor.
+    // Thus, a keyboard user does not need a second press.
     const editor = vi.fn();
     const tooltip = vi.fn();
 
@@ -113,9 +117,9 @@ describe("useEscapeStack", () => {
   });
 
   it("puts a layer that reactivates back on top", () => {
-    // A dropdown stays mounted for the life of its trigger and moves in and out
-    // of the stack with `open`, so reopening one has to outrank the modal that
-    // registered while it was shut.
+    // A dropdown stays mounted for the life of its trigger, and moves in and
+    // out of the stack with `open`. Thus, when it opens again, it must outrank
+    // the modal that registered while it was closed.
     const modal = vi.fn();
     const dropdown = vi.fn();
     const tree = (open: boolean) => (
@@ -136,8 +140,9 @@ describe("useEscapeStack", () => {
   });
 
   it("keeps a layer's position when its handler changes identity", () => {
-    // Handlers close over state, so they are new functions on every render.
-    // Re-registering one would quietly promote it over everything opened since.
+    // Handlers close over state. Thus, they are new functions on each render. A
+    // new registration of one would silently move it above all layers opened
+    // since.
     const bottom = vi.fn();
     const top = vi.fn();
     const tree = (tick: number, topOpen: boolean) => (

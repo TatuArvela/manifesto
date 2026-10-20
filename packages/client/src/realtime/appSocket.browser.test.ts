@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { isServerEvent } from "./appSocket.ts";
 
 /**
- * The wire is untrusted input like any other. This guard used to accept
- * anything carrying a string `type`, which narrowed it to the union without
- * checking the fields the branches then read: a `note:created` with no note
- * put `undefined` into the list and a card threw during render, the same
- * failure as an unknown colour in an imported file.
+ * The wire is untrusted input, as all other input. Before, this guard accepted
+ * each value with a string `type`. That narrowed it to the union without a
+ * check of the fields that the branches then read. A `note:created` with no
+ * note put `undefined` into the list, and a card threw during render, the same
+ * failure as an unknown color in an imported file.
  *
- * The guard itself is pure, but importing it reaches `state/prefs.ts`, which
- * touches `document` as it loads, so this belongs in the browser project.
+ * The guard itself is pure. But its import reaches `state/prefs.ts`, which uses
+ * `document` when it loads. Thus, this belongs in the browser project.
  */
 describe("isServerEvent", () => {
   const note = { id: "01J", title: "T", content: "" };

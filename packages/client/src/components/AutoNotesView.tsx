@@ -36,10 +36,10 @@ type AddMode = "inline" | "url" | null;
 const tagList = (tags: string[]) => tags.map((tag) => `#${tag}`).join(", ");
 
 /**
- * What a plugin reads, and what it asks to: the tags its source names with
- * `// @reads`. Nothing is read until the user allows it here, the allowance
- * can be taken back, and a plugin whose source comes to ask for more is
- * shown asking again for the new tags only.
+ * What a plugin reads, and what it asks to read: the tags that its source names
+ * with `// @reads`. Nothing is read until the user permits it here. The user
+ * can remove the permission. A plugin whose source starts to ask for more shows
+ * a request again, only for the new tags.
  */
 function PluginReads({ plugin }: { plugin: PluginSource }) {
   const declared = declaredReads(plugin);
@@ -149,11 +149,11 @@ export function AutoNotesView() {
     }
   };
 
-  // The controls and the introduction keep to the centred column that list
-  // mode puts everything in, as the search and tag filters do, and stay above
-  // the plugins however many there are. In grid mode each plugin is one column
-  // of the board, its notes stacked under it, so a handful of plugins sit side
-  // by side instead of one full-width row each.
+  // The controls and the introduction stay in the centered column in which list
+  // mode puts all content, as the search and tag filters do. They stay above
+  // the plugins, however many there are. In grid mode, each plugin is one
+  // column of the board, with its notes under it. Thus, a few plugins are side
+  // by side, not each in a full-width row.
   const column = "w-full max-w-xl mx-auto";
 
   return (

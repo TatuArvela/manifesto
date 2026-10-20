@@ -24,11 +24,12 @@ export { loadCatalogue, type MessageKey } from "./messages/index.ts";
 type Vars = Record<string, string | number>;
 
 /**
- * The language on screen: the chosen `locale` once its catalogue is here,
- * and until then the one before it, so that switching never flashes English.
- * `main.tsx` loads the saved choice's catalogue before the first render, so
- * a page opens in its language from the start. Everything below reads this
- * rather than `locale`, so strings, dates and numbers change together.
+ * The language on the screen: the selected `locale` after its catalogue is
+ * here, and until then the previous language. Thus, a change never shows
+ * English for a moment. `main.tsx` loads the catalogue of the saved choice
+ * before the first render. Thus, a page opens in its language from the start.
+ * All code below reads this, not `locale`. Thus, strings, dates and numbers
+ * change together.
  */
 const shown = signal<Locale>(DEFAULT_LOCALE);
 
@@ -46,8 +47,8 @@ effect(() => {
 function interpolate(template: string, vars?: Vars): string {
   return template.replace(/\{(\w+)\}/g, (match, name) => {
     if (vars && name in vars) return String(vars[name]);
-    // `{appName}` is filled from the build-time branding rather than from the
-    // message catalogue, so translations never hard-code the product name.
+    // `{appName}` comes from the build-time branding, not from the message
+    // catalogue. Thus, translations never contain the product name.
     if (name === "appName") return APP_NAME;
     return match;
   });
@@ -58,7 +59,7 @@ function lookupRaw(loc: Locale, key: MessageKey): unknown {
 }
 
 function resolveString(key: MessageKey): string {
-  // Read the signal so callers using t() from render bodies subscribe.
+  // Read the signal, so that callers that use t() from render bodies subscribe.
   const active = shown.value;
   let raw = lookupRaw(active, key);
   if (typeof raw !== "string") {
@@ -94,20 +95,20 @@ function resolvePlural(key: MessageKey, n: number): string {
 }
 
 /**
- * Translate a key for the current locale. Reads the language on screen, so
- * every call subscribes during render. **Always call inside component render
- * bodies**, not at module scope, or the string will freeze to the load-time
- * locale.
+ * Translate a key for the current locale. It reads the language on the screen.
+ * Thus, each call subscribes during render. **Always call it inside component
+ * render bodies**, not at module scope. If not, the string stays in the locale
+ * from load time.
  *
- * `{appName}` resolves on its own; every other placeholder comes from `vars`.
+ * `{appName}` resolves by itself. All other placeholders come from `vars`.
  */
 export function t(key: MessageKey, vars?: Vars): string {
   return interpolate(resolveString(key), vars);
 }
 
 /**
- * Translate a plural key. `{count}` defaults to `n` and may be overridden
- * via `vars`. Same reactivity rule as `t()`.
+ * Translate a plural key. `{count}` is `n` by default, and `vars` can override
+ * it. The same reactivity rule as for `t()`.
  */
 export function plural(key: MessageKey, n: number, vars?: Vars): string {
   return interpolate(resolvePlural(key, n), { count: n, ...(vars ?? {}) });
@@ -127,9 +128,9 @@ export function formatDate(iso: string): string {
 }
 
 /**
- * Names joined the way the language joins them ("Alice, Bob and Carol",
- * "Alice, Bob ja Carol"), so no message has to spell out a separator. Reads
- * the language on screen, so the same render-body rule as `t()` applies.
+ * Names joined as the language joins them ("Alice, Bob and Carol", "Alice, Bob
+ * ja Carol"). Thus, no message has to contain a separator. It reads the
+ * language on the screen. Thus, the same render-body rule as for `t()` applies.
  */
 export function formatList(items: string[]): string {
   return new Intl.ListFormat(shown.value, { type: "conjunction" }).format(
@@ -138,18 +139,18 @@ export function formatList(items: string[]): string {
 }
 
 /**
- * Format a byte count for display in megabytes.
+ * Format a byte count to show in megabytes.
  *
- * Both halves come from the platform rather than from each message: the decimal
+ * Both halves come from the platform, not from each message: the decimal
  * separator (`1.5` / `1,5`) and the unit abbreviation, which CLDR gives as "MB"
- * in English and "Mt" in Finnish. A message that spelled the unit out would
- * need every translator to know the local convention, and would silently go
- * stale the moment the underlying limit moved.
+ * in English and "Mt" in Finnish. A message that contained the unit would need
+ * each translator to know the local convention, and would silently become
+ * incorrect when the limit changed.
  *
- * Divides by 1024², which is how Windows and most file managers label sizes and
- * how `MAX_IMAGE_SOURCE_BYTES` (currently the only value rendered here) is
- * defined. Reads the language on screen, so the same render-body rule as
- * `t()` applies.
+ * Divides by 1024². Windows and most file managers label sizes in this way, and
+ * `MAX_IMAGE_SOURCE_BYTES` (now the only value shown here) is defined in this
+ * way. It reads the language on the screen. Thus, the same render-body rule as
+ * for `t()` applies.
  */
 export function formatFileSize(bytes: number): string {
   return new Intl.NumberFormat(shown.value, {
@@ -161,8 +162,8 @@ export function formatFileSize(bytes: number): string {
 }
 
 /**
- * A whole percentage the way the language writes it ("10%", "10 %"). Reads
- * the language on screen, so the same render-body rule as `t()` applies.
+ * A whole percentage, as the language writes it ("10%", "10 %"). It reads the
+ * language on the screen. Thus, the same render-body rule as for `t()` applies.
  */
 export function formatPercent(percent: number): string {
   return new Intl.NumberFormat(shown.value, { style: "percent" }).format(
@@ -219,7 +220,7 @@ export function getColorPickerColors(): {
   }));
 }
 
-// Keep <html lang> in sync with the language on screen.
+// Keep <html lang> the same as the language on the screen.
 if (typeof document !== "undefined") {
   effect(() => {
     document.documentElement.lang = shown.value;

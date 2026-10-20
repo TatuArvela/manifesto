@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { showWelcome } from "./ui.ts";
 import { markWelcomed, welcomeIfNew } from "./welcome.ts";
 
-// The test build is open mode with the dialog left on, which is the default a
-// fresh instance ships with.
+// The test build is open mode with the dialog on, which is the default of a new
+// instance.
 describe("welcomeIfNew", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -30,7 +30,7 @@ describe("welcomeIfNew", () => {
     localStorage.setItem("manifesto:notes", "[]");
     welcomeIfNew();
     expect(showWelcome.value).toBe(false);
-    // And stays quiet if those notes are later cleared out.
+    // And stays silent if those notes are cleared later.
     localStorage.removeItem("manifesto:notes");
     welcomeIfNew();
     expect(showWelcome.value).toBe(false);

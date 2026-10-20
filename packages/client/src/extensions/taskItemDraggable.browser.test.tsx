@@ -8,8 +8,8 @@ import { defined } from "#/test/defined.ts";
 import "#/styles.css";
 
 /**
- * A checklist row on a touch screen, where the handle and the X are drawn at
- * all times and at finger size, and a drag has only the finger to go by.
+ * A checklist row on a touch screen, where the handle and the X are always
+ * drawn, at finger size, and a drag has only the finger.
  */
 
 type Cdp = { send: (method: string, params?: object) => Promise<unknown> };
@@ -133,7 +133,7 @@ describe("a checklist row on a touch screen", () => {
       clientX: start.left + start.width / 2,
       clientY: start.top + start.height / 2,
     } as const;
-    // Where `useEscapeStack` listens: on the document, as the press bubbles.
+    // Where `useEscapeStack` listens: on the document, when the press bubbles.
     const layer = vi.fn();
     document.addEventListener("keydown", layer);
 

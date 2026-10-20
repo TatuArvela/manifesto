@@ -29,8 +29,8 @@ describe("reporting the app's language", () => {
   });
   afterEach(() => {
     stop();
-    // Back to English before the storage goes: the debounced save still to
-    // come would otherwise leave Finnish for the next file to start with.
+    // Back to English before the storage goes. If not, the debounced save that
+    // is still to come would leave Finnish for the next file.
     locale.value = "en";
     authToken.value = null;
     currentUser.value = null;

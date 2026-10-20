@@ -135,7 +135,7 @@ export function ReminderPickerPanel({
     );
     const perm = await ensureNotificationPermission();
     if (perm === "denied") notifyPermissionDenied();
-    // Just allowed, perhaps: in connected mode the server can now reach this
+    // Possibly just permitted. In connected mode, the server can now reach this
     // browser while the app is closed.
     else if (isServerMode) void ensurePushSubscription();
     onChange({ ...settled, timezone: currentTimezone() });

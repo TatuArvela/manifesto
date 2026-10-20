@@ -6,7 +6,7 @@ import { NoteEditor } from "./NoteEditor.tsx";
 import "#/styles.css";
 
 /**
- * On a phone the editor fills the screen and its middle scrolls. What sits
+ * On a phone, the editor fills the screen, and its middle scrolls. What is
  * under the text (the timestamps, tags, link previews) must follow the text,
  * however long it is, and never be drawn on top of it.
  */
@@ -47,7 +47,7 @@ function renderEditor(content: string) {
 beforeEach(async () => {
   await page.viewport(375, 600);
   host = document.createElement("div");
-  // Where `NoteCard` puts the panel on a phone: the whole screen.
+  // Where `NoteCard` puts the panel on a phone: the full screen.
   host.className = "fixed inset-0";
   document.body.appendChild(host);
 });
@@ -90,7 +90,7 @@ describe("the editor on a phone", () => {
 
     expect(text.scrollWidth).toBeGreaterThan(text.clientWidth);
     expect(text.getBoundingClientRect().right).toBeLessThanOrEqual(375);
-    // Room for an overlay scrollbar, which would otherwise cover the line.
+    // Space for an overlay scrollbar, which would otherwise cover the line.
     expect(getComputedStyle(text).paddingBottom).not.toBe("0px");
   });
 

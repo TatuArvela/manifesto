@@ -5,12 +5,12 @@ import { exportNotes } from "./exportNotes.ts";
 import { ensureImages, notes } from "./notesStore.ts";
 
 /**
- * A server listing sends `imageCount` and an empty `images`, so a note in the
- * signal may be carrying a promise of attachments rather than the attachments.
- * `ensureImages` is what turns one into the other, and everything that needs
- * the bytes (a card scrolling into view, the editor, an export) goes through
- * it. It is also the one place that can turn a note's own pictures into an
- * empty list if it gets the bookkeeping wrong, which is what these check.
+ * A server listing sends `imageCount` and an empty `images`. Thus, a note in
+ * the signal can carry a promise of attachments, not the attachments.
+ * `ensureImages` changes one into the other, and all code that needs the bytes
+ * (a card that scrolls into view, the editor, an export) goes through it. It is
+ * also the one place that can change the own pictures of a note into an empty
+ * list if its records are wrong. These tests check that.
  */
 
 const PNG = "data:image/png;base64,iVBORw0KGgo=";
@@ -43,8 +43,8 @@ beforeEach(() => {
   localStorage.clear();
   notes.value = [];
   loadImages = vi.fn(async () => [PNG]);
-  // The adapter is the seam: `ensureImages` asks storage, and open mode
-  // answers from what it already has.
+  // The adapter is the seam. `ensureImages` asks storage, and open mode answers
+  // from what it already has.
   vi.spyOn(currentStorage, "value", "get").mockReturnValue({
     loadImages,
   } as never);
@@ -81,8 +81,8 @@ describe("ensureImages", () => {
   });
 
   it("asks once when a card and the editor over it both ask", async () => {
-    // They mount in the same tick, and a note's attachments are the last
-    // thing worth fetching twice.
+    // They mount in the same tick, and the attachments of a note must not load
+    // two times.
     notes.value = [listed("a", 1)];
 
     const [first, second] = await Promise.all([
@@ -95,9 +95,9 @@ describe("ensureImages", () => {
   });
 
   it("leaves the note alone when the fetch fails", async () => {
-    // Reporting a failure and resolving is the contract every action follows;
-    // writing an empty list into the note would look like "this note has no
-    // pictures" and then get saved back as exactly that.
+    // To report a failure and resolve is the contract that each action follows.
+    // An empty list written into the note would look like "this note has no
+    // pictures", and would then be saved back as exactly that.
     loadImages.mockRejectedValue(new Error("offline"));
     notes.value = [listed("a", 2)];
 
@@ -107,9 +107,9 @@ describe("ensureImages", () => {
   });
 
   it("answers null for a failure and [] for a note with no attachments", async () => {
-    // The whole point of the null: callers write this value back, and the two
-    // cases must not look alike. "Could not fetch" reaching a write as an
-    // empty list is what deleted a note's pictures.
+    // This is the purpose of the null. Callers write this value back, and the
+    // two cases must not look the same. When "Could not fetch" reached a write
+    // as an empty list, it deleted the pictures of a note.
     notes.value = [listed("empty", 0)];
     expect(await ensureImages("empty")).toEqual([]);
 
@@ -121,9 +121,9 @@ describe("ensureImages", () => {
 
 describe("exportNotes", () => {
   it("fetches the attachments a listing left behind before serializing", async () => {
-    // The bug this covers: the file downloaded as a full backup, every note in
-    // it carrying `images: []`, and importing it back dropped the pictures for
-    // good.
+    // The bug that this covers: the file downloaded as a full backup, with each
+    // note in it carrying `images: []`. An import of it permanently dropped the
+    // pictures.
     notes.value = [listed("a", 1), listed("b", 1)];
 
     const exported = await exportNotes();
@@ -133,8 +133,8 @@ describe("exportNotes", () => {
   });
 
   it("writes nothing at all when an attachment cannot be fetched", async () => {
-    // A backup that is silently missing pictures is worse than no backup: the
-    // user keeps it, deletes the original, and finds out later.
+    // A backup that silently does not include pictures is worse than no backup.
+    // The user keeps it, deletes the original, and finds the problem later.
     loadImages.mockRejectedValue(new Error("offline"));
     notes.value = [listed("a", 3)];
 

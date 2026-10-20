@@ -11,9 +11,9 @@ import { type OfflineOwner, openModeOwner } from "#/storage/offlineNotes.ts";
 import { sealer, storageKeys } from "#/storage/sealing.ts";
 
 /**
- * Whose records `storage/offlineNotes.ts` keeps for at the moment: the
- * unlocked account in connected mode, the browser in open mode. Null while
- * signed out or locked, when nothing can be sealed and nothing is kept.
+ * For whom `storage/offlineNotes.ts` keeps records at the moment: the unlocked
+ * account in connected mode, the browser in open mode. Null while signed out or
+ * locked, when nothing can be sealed and nothing is kept.
  */
 export function offlineOwner(): OfflineOwner | null {
   const { serverUrl, token } = storageConnection.peek();
@@ -25,10 +25,10 @@ export function offlineOwner(): OfflineOwner | null {
 }
 
 /**
- * What opens each image a kept note names, by reference. A note in the app
- * names its images by reference alone and the `Sealer` holds their keys in
- * memory, so a note kept across a reload has to carry them itself, or it
- * could not be sealed when it is sent. Empty in open mode.
+ * What opens each image that a kept note names, by reference. A note in the app
+ * names its images only by reference, and the `Sealer` keeps their keys in
+ * memory. Thus, a note kept across a reload must carry them itself. If not, the
+ * code could not seal it when it is sent. Empty in open mode.
  */
 export function imageKeysOf(
   images: readonly string[],
@@ -44,7 +44,7 @@ export function imageKeysOf(
   return out;
 }
 
-/** Hands kept image keys back to the `Sealer`. */
+/** Gives kept image keys back to the `Sealer`. */
 export function restoreImageKeys(keys: unknown): void {
   const sealing = sealer.peek();
   if (!sealing || typeof keys !== "object" || keys === null) return;
@@ -56,7 +56,9 @@ export function restoreImageKeys(keys: unknown): void {
 const COLORS = new Set<string>(Object.values(NoteColor));
 const FONTS = new Set<string>(Object.values(NoteFont));
 
-/** The fields a kept note carries, as they were written, from anything. */
+/**
+ * The fields that a kept note carries, as they were written, from any source.
+ */
 export interface KeptFields {
   title: string;
   content: string;
@@ -76,9 +78,9 @@ function strings(value: unknown): string[] {
 }
 
 /**
- * A kept note's fields. The records are this app's own, sealed or in open
- * mode beside the notes themselves, so this only makes sure each field has
- * its type; what is sent is checked again as it is sealed.
+ * The fields of a kept note. The records belong to this app, sealed or (in open
+ * mode) next to the notes themselves. Thus, this only makes sure that each
+ * field has its type. The code checks what is sent again when it seals it.
  */
 export function keptFields(raw: Record<string, unknown>): KeptFields {
   const color = raw.color;

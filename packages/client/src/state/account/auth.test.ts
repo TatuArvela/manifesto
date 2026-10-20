@@ -6,9 +6,9 @@ import {
 } from "./auth.ts";
 
 /**
- * The login screen used to show the server's `error` text as it came, which
- * is English whatever the locale. These pin that every refusal it can meet
- * maps to a catalogue message instead.
+ * Before, the login screen showed the `error` text of the server as it came,
+ * which is English whatever the locale. These tests make sure that each refusal
+ * that it can get maps to a catalogue message.
  */
 describe("loginErrorKey", () => {
   const refused = (status: number) =>

@@ -14,18 +14,18 @@ import { initRouter } from "#/state/router.ts";
 import { welcomeIfNew } from "#/state/welcome.ts";
 
 /**
- * Starts what runs for as long as the board is up: the router, the socket,
- * the notes and what is worked out from them, and the first-visit checks.
- * Once, on mount; `loadEditor` is the board's to start, since it is a chunk
- * and not a service.
+ * Starts what runs while the board is open: the router, the socket, the notes
+ * and what the code calculates from them, and the first-visit checks. One time,
+ * on mount. The board starts `loadEditor`, because it is a chunk, not a
+ * service.
  */
 export function useAppServices(): void {
   useEffect(() => {
     initRouter();
     startAppSocket();
     if (isServerMode) startPrefsSync();
-    // The board is empty until the notes are in, so that, not this render,
-    // is when the loading screen can go. A failed load is ready too: its
+    // The board is empty until the notes are in. Thus, the loading screen can
+    // go then, not at this render. A failed load is also ready, because its
     // toast is what there is to see.
     void loadNotes().then(revealApp);
     const stopAutoNotes = initAutoNotes(() => notes.value);

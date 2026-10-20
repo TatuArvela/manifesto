@@ -9,9 +9,10 @@ import { LocalStorageAdapter } from "./LocalStorageAdapter.ts";
 import { getVersions } from "./VersionStorage.ts";
 
 /**
- * The open-mode store's format (`noteFormat.ts` in shared): one for the notes
- * and their versions together, recorded beside them, brought up to date once
- * when an older one is read, and never read or written by an older build.
+ * The format of the open-mode store (`noteFormat.ts` in shared): one for the
+ * notes and their versions together, recorded next to them, updated one time
+ * when the code reads an older one, and never read or written by an older
+ * build.
  */
 
 const NOTES_KEY = "manifesto:notes";
@@ -33,7 +34,7 @@ const sampleNote = {
   reminder: null,
 };
 
-/** Format 2 while it is set: every title in capitals. */
+/** Format 2 while it is set: each title in capitals. */
 const shout = (words: { title?: string }) =>
   words.title === undefined ? {} : { title: words.title.toUpperCase() };
 

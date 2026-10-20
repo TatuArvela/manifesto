@@ -43,12 +43,12 @@ import { Dropdown } from "./Dropdown.tsx";
 import { tagTint } from "./TagChip.tsx";
 import { Tooltip } from "./Tooltip.tsx";
 
-// The actions on the selected tag are a list under the tree, flat so they are
-// not taken for more tags.
+// The actions on the selected tag are a list under the tree. The list is flat,
+// so that nobody thinks that they are more tags.
 const actionClass =
   "flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left rounded-lg cursor-pointer transition-colors text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800";
 
-/** A filter of the view: which of the notes of a tag are shown. */
+/** A filter of the view: which notes of a tag show. */
 function Chip({
   selected,
   onClick,
@@ -80,8 +80,8 @@ function Chip({
   );
 }
 
-// Every tag of the tree is a chip, as it is on a note: an uncoloured one in
-// this, a coloured one in its colour.
+// Each tag of the tree is a chip, as on a note: a tag without a color in this,
+// a colored tag in its color.
 const plainChip = "bg-neutral-200/70 dark:bg-neutral-600/60";
 
 const rowClass = (selected: boolean) =>
@@ -92,8 +92,9 @@ const rowClass = (selected: boolean) =>
   }`;
 
 /**
- * Renames the selected tag on every note. Normalized the way the tag picker
- * does it, so a rename cannot make a tag the picker would never have made.
+ * Renames the selected tag on all notes. It is normalized in the same way as in
+ * the tag picker. Thus, a rename cannot make a tag that the picker would never
+ * make.
  */
 function RenameTagForm({ tag, onDone }: { tag: string; onDone: () => void }) {
   const [name, setName] = useState(tag);
@@ -144,13 +145,13 @@ function RenameTagForm({ tag, onDone }: { tag: string; onDone: () => void }) {
 }
 
 /**
- * The colour of the selected tag: the note colours, with the plain one
- * standing for no colour at all.
+ * The color of the selected tag: the note colors, with the plain color for no
+ * color.
  */
 function TagColorButton({ tag }: { tag: string }) {
   const [open, setOpen] = useState(false);
   const current = tagColors.value[tag] ?? NoteColor.Default;
-  // "Default" is a note's own word; on a tag the plain swatch is no colour.
+  // "Default" is a word for notes. On a tag, the plain swatch means no color.
   const label = (c: { value: NoteColor; label: string }) =>
     c.value === NoteColor.Default ? t("tags.noColor") : c.label;
   return (
@@ -192,9 +193,9 @@ function TagColorButton({ tag }: { tag: string }) {
 }
 
 /**
- * One tag of the tree on a line of its own, and under it, while it is open,
- * the tags directly beneath. The line is what is selected; the tag's colour is
- * on its name alone, so a selected tag and a blue one are not alike.
+ * One tag of the tree on its own line and, while it is open, the tags directly
+ * under it. The line is what is selected. The color of the tag is only on its
+ * name. Thus, a selected tag and a blue tag do not look the same.
  */
 function TagNode({
   tag,
@@ -204,7 +205,9 @@ function TagNode({
   onSelect,
 }: {
   tag: string;
-  /** 0 for a top-level tag, which shows whole; below it, the last part. */
+  /**
+   * 0 for a top-level tag, which shows its full name. Below it, the last part.
+   */
   depth: number;
   isOpen: (tag: string) => boolean;
   onToggle: (tag: string) => void;
@@ -286,8 +289,8 @@ export function TagsView({
   pane = false,
 }: {
   /**
-   * As the sidebar, which is as tall as the window and scrolls as a whole.
-   * Without it, above the notes on a phone, the tree scrolls by itself so
+   * As the sidebar, which has the height of the window and scrolls as a whole.
+   * Without it, above the notes on a phone, the tree scrolls by itself. Thus,
    * the notes are never far below.
    */
   pane?: boolean;
@@ -296,12 +299,13 @@ export function TagsView({
   const selected = activeTag.value;
   const selectedHidden =
     selected !== null && hiddenTags.value.includes(selected);
-  // Hidden because a tag above it is: that tag is where to show it again.
+  // Hidden because a tag above it is hidden. That tag is where to show it
+  // again.
   const hiddenBy = selected === null ? null : hiddenThrough(selected);
   const [renaming, setRenaming] = useState(false);
-  // A tag is open when it is the selected one or on the way to it, so the
-  // selection is always in sight, a link to a nested tag included. The chevron
-  // overrides that for one tag, until the next selection through it.
+  // A tag is open when it is the selected tag, or is on the way to it. Thus,
+  // the selection is always visible, also for a link to a nested tag. The
+  // chevron overrides that for one tag, until the next selection through it.
   const [toggled, setToggled] = useState<ReadonlyMap<string, boolean>>(
     new Map(),
   );
@@ -333,8 +337,9 @@ export function TagsView({
   };
 
   return (
-    // Plain rows either way: whoever mounts it supplies the surface, the
-    // shell's own, so the tree looks the same beside the notes and above them.
+    // Plain rows in both cases. The component that mounts it gives the surface,
+    // that of the shell. Thus, the tree looks the same next to the notes and
+    // above them.
     <div class="flex flex-col gap-3 py-2">
       <div>
         <ul

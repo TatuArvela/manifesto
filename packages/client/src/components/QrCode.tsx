@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 
-/** The dark modules of a QR code as one SVG path, a unit square each. */
+/** The dark modules of a QR code as one SVG path, each a unit square. */
 export function qrPath(modules: readonly (readonly boolean[])[]): string {
   let d = "";
   modules.forEach((row, y) => {
@@ -12,11 +12,11 @@ export function qrPath(modules: readonly (readonly boolean[])[]): string {
 }
 
 /**
- * `value` as a QR code, drawn dark on white whatever the theme, since that is
- * what a camera reads best. The encoder is fetched when the code is first
- * shown, so it costs nothing to anyone who never sets up two-factor sign-in.
- * Until it arrives, and if it cannot, the square is left empty: whatever the
- * code carries is on screen beside it in some other form.
+ * `value` as a QR code, drawn dark on white whatever the theme, because a
+ * camera reads that best. The app gets the encoder when the code shows the
+ * first time. Thus, it costs nothing to a person who never sets up two-factor
+ * sign-in. Until it arrives, and if it cannot arrive, the square stays empty.
+ * The content of the code is on the screen next to it in a different form.
  */
 export function QrCode({
   value,
@@ -34,11 +34,12 @@ export function QrCode({
     setModules(null);
     import("uqr")
       .then(({ encode }) => {
-        // M recovers a smudged or glared screen, and an otpauth link fits.
+        // M recovers a dirty screen or a screen with glare, and an otpauth link
+        // fits.
         if (live) setModules(encode(value, { ecc: "M", border: 2 }).data);
       })
       .catch(() => {
-        // Offline with the chunk not cached: the key is shown as text too.
+        // Offline, and the chunk is not cached. The key also shows as text.
       });
     return () => {
       live = false;

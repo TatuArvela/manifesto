@@ -5,7 +5,10 @@ import {
 import { describe, expect, it } from "vitest";
 import { shrinkPreviewImage } from "./previewImage.ts";
 
-/** A noisy image, which compresses badly, so size limits are actually tested. */
+/**
+ * A noisy image, which compresses badly. Thus, the test really checks the size
+ * limits.
+ */
 function noisyPng(width: number, height: number): string {
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -43,7 +46,7 @@ describe("shrinkPreviewImage", () => {
     expect(shrunk).toMatch(IMAGE_DATA_URL_PATTERN);
     const { width, height } = await dimensions(shrunk as string);
     expect(Math.max(width, height)).toBeLessThanOrEqual(640);
-    // Aspect ratio survives.
+    // The aspect ratio stays.
     expect(width / height).toBeCloseTo(2400 / 1260, 1);
   });
 

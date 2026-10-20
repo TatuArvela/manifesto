@@ -1,6 +1,6 @@
-// Pairing the `<u>`, `<sub>` and `<sup>` tags of a parsed note into mark
-// nodes, for `manifestoInlineMarks.ts`. Kept apart from it, and free of the
-// editor, so it tests in the Node project.
+// Pairs the `<u>`, `<sub>` and `<sup>` tags of a parsed note into mark nodes,
+// for `manifestoInlineMarks.ts`. It is separate from that file, and has no
+// editor. Thus, its tests run in the Node project.
 
 export type InlineTag = "u" | "sub" | "sup";
 
@@ -14,8 +14,9 @@ const OPEN_TAG_RE = /^<(u|sub|sup)(?:\s[^>]*)?>$/i;
 const CLOSE_TAG_RE = /^<\/(u|sub|sup)\s*>$/i;
 
 /**
- * How deep marks may nest before the rest is left as it was written. Nobody
- * underlines an underline a hundred times, and each level is a call deeper.
+ * How deep marks can nest before the remaining text stays as it was written.
+ * Nobody underlines an underline a hundred times, and each level is one call
+ * deeper.
  */
 const MAX_MARK_DEPTH = 100;
 
@@ -32,11 +33,11 @@ function matchCloseTag(value: string): InlineTag | null {
 export type AnyNode = { type: string; value?: string; children?: AnyNode[] };
 
 /**
- * For each opening tag among `children`, where its closing tag is. One pass
- * with a stack per tag, so a paragraph of tags nobody closed costs its length
- * and not its length squared: a note is 100,000 characters, and scanning
- * ahead from every one of 33,000 opening tags froze the editor of whoever
- * opened it.
+ * For each opening tag among `children`, the location of its closing tag. One
+ * pass, with a stack for each tag. Thus, a paragraph of tags that nobody closed
+ * costs its length, not its length squared. A note is 100,000 characters. A
+ * scan ahead from each of 33,000 opening tags stopped the editor of the person
+ * who opened it.
  */
 function closersOf(children: AnyNode[]): Map<number, number> {
   const closers = new Map<number, number>();
@@ -56,9 +57,9 @@ function closersOf(children: AnyNode[]): Map<number, number> {
 }
 
 /**
- * `children` with every tag pair replaced by a mark node holding what was
- * between them, all the way down. A tag with no partner stays as it is, and
- * so does a pair that would cross another's end.
+ * `children`, with each tag pair replaced by a mark node that contains the
+ * content between them, all the way down. A tag with no partner stays as it is.
+ * So does a pair that would cross the end of a different pair.
  */
 export function pairChildren(children: AnyNode[], marks = 0): AnyNode[] {
   const closers = closersOf(children);

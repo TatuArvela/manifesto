@@ -7,9 +7,9 @@ function initials(name: string): string {
 }
 
 /**
- * Stack of small colored dots showing other users (or other tabs of the
- * same user) currently viewing the note. Pulled from the /api/v1/ws presence
- * channel, so it shows users who are NOT the local connection.
+ * A stack of small colored dots that show other users (or other tabs of the
+ * same user) that look at the note now. It comes from the /api/v1/ws presence
+ * channel. Thus, it shows users that are NOT the local connection.
  */
 export function PresenceAvatars({ noteId }: { noteId: string }) {
   const viewers = presenceByNote.value.get(noteId);

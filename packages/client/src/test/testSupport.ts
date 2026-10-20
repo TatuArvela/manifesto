@@ -2,12 +2,11 @@ import type { Note, NoteCreate } from "@manifesto/shared";
 import { createNote } from "#/state/notesStore.ts";
 
 /**
- * `createNote` resolves `null` rather than rejecting when storage fails; see
- * the contract at the top of `actions.ts`. Tests that are about what happens
- * *after* a note exists say so with this, instead of asserting non-null at
- * every call site.
+ * `createNote` resolves `null`, and does not reject, when storage fails. See
+ * the contract at the top of `actions.ts`. Tests about what occurs *after* a
+ * note exists say so with this, and do not assert non-null at each call site.
  *
- * Not a `.test.ts` file, so Vitest does not collect it.
+ * Not a `.test.ts` file. Thus, Vitest does not collect it.
  */
 export async function createNoteOrFail(
   input: Partial<NoteCreate> = {},

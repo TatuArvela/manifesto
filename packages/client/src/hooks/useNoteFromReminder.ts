@@ -2,12 +2,12 @@ import { useEffect } from "preact/hooks";
 import { editingNoteId } from "#/state/ui.ts";
 
 /**
- * Opens the note a reminder is about: one whose notification is tapped while
- * the app is open (`reminder:open-note`, from the page's own notification
- * or the service worker's, by way of `serviceWorker.ts`), and
- * one tapped with no window open, which starts the app on `?note=<id>`
- * (`sw.ts`). That one is taken once and removed from the address, so a
- * reload does not open the note again.
+ * Opens the note of a reminder. One case is a note whose notification is tapped
+ * while the app is open (`reminder:open-note`, from the own notification of the
+ * page or from the service worker, through `serviceWorker.ts`). The other case
+ * is a note tapped with no window open, which starts the app on `?note=<id>`
+ * (`sw.ts`). The code takes that one time, and removes it from the address.
+ * Thus, a reload does not open the note again.
  */
 export function useNoteFromReminder(): void {
   useEffect(() => {

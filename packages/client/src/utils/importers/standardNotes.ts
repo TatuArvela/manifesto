@@ -15,11 +15,11 @@ export class EncryptedBackupError extends Error {
 }
 
 /**
- * A Standard Notes backup: `{ items: [...] }`, notes (`content_type: Note`)
- * and tags (`Tag`) side by side, a tag naming its notes by `references`. Only
- * a decrypted backup can be read; an encrypted one carries each item's
- * content as ciphertext, and is refused as one failed file rather than turned
- * into empty notes.
+ * A Standard Notes backup: `{ items: [...] }`, with notes (`content_type:
+ * Note`) and tags (`Tag`) next to each other. A tag names its notes by
+ * `references`. Only a decrypted backup can be read. An encrypted backup
+ * carries the content of each item as ciphertext. The code refuses it as one
+ * failed file, and does not make empty notes from it.
  */
 export const standardNotesImporter: Importer = {
   format: "Standard Notes",

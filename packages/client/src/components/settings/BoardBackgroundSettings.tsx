@@ -36,8 +36,8 @@ const selectedClass =
   "outline-2 outline-offset-2 outline-blue-500 dark:outline-blue-400";
 
 /**
- * "none" and "random" first, where they sit in every picker on the page,
- * then the patterns themselves.
+ * "none" and "random" first, where they are in each picker on the page, then
+ * the patterns themselves.
  */
 const TEXTURE_CHOICES: readonly BoardTextureChoice[] = [
   "none",
@@ -50,25 +50,28 @@ function textureLabel(texture: BoardTextureChoice): string {
 }
 
 /**
- * Settings > Board Background, a page of its own. The board has two kinds of
- * background, and the page says which one it is composing: a colour with a
- * texture drawn over it, or a picture of the user's own that covers the whole
- * board instead. Every choice applies at once, to the board visible behind
- * the modal.
+ * Settings > Board Background, a separate page. The board has two types of
+ * background, and the page tells which one it makes: a color with a texture
+ * drawn over it, or an own picture of the user that covers the full board in
+ * place of that. Each choice applies immediately, to the board that shows
+ * behind the modal.
  */
 export function BoardBackgroundSettings() {
   const pictureInputRef = useRef<HTMLInputElement>(null);
   const hasPicture = boardImageStamp.value > 0;
   const showingPicture = boardUsePicture.value && hasPicture;
-  // Which kind the page shows. The picture tab can be open with no picture
-  // yet, to choose one, while the board keeps its colour.
+  // The type that the page shows. The picture tab can be open with no picture
+  // yet, to select one, while the board keeps its color.
   const [mode, setMode] = useState<"compose" | "picture">(
     showingPicture ? "picture" : "compose",
   );
   const color = boardColor.value;
   const texture = boardTexture.value;
 
-  /** Choosing a colour or texture is composing, so the picture steps aside. */
+  /**
+   * A selection of a color or a texture makes a composition. Thus, the picture
+   * moves aside.
+   */
   const compose = (change: () => void) => {
     change();
     boardUsePicture.value = false;
@@ -186,7 +189,8 @@ export function BoardBackgroundSettings() {
                       class={`board-texture-tile flex items-center justify-center h-9 sm:h-10 rounded-md cursor-pointer ${ringClass} ${composing && texture === choice ? selectedClass : ""}`}
                       onClick={() =>
                         compose(() => {
-                          // Picking "random" again is how to ask for another.
+                          // A new selection of "random" is how to ask for a
+                          // different one.
                           if (choice === "random" && texture === "random") {
                             rerollBoardTexture();
                           }

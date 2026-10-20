@@ -80,9 +80,9 @@ beforeEach(() => {
   fetchMock.mockReset();
   teams = [];
   teamShares = [];
-  // The team section asks for the owner's teams and the note's team shares
-  // as it opens. Answered here, so each test's queued answers go to the
-  // requests it is about.
+  // The team section asks for the teams of the owner and the team shares of the
+  // note when it opens. The test answers them here. Thus, the queued answers of
+  // each test go to the requests that it is about.
   vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     if (url.endsWith("/api/v1/teams")) {
@@ -149,7 +149,7 @@ describe("the share dialog", () => {
     const select = dialog().querySelector("select") as HTMLSelectElement;
     select.value = "view";
     select.dispatchEvent(new Event("change", { bubbles: true }));
-    // Rendering is batched; a person cannot click in the same tick either.
+    // Rendering is batched. A person also cannot click in the same tick.
     await new Promise((r) => setTimeout(r, 20));
 
     fetchMock.mockResolvedValueOnce(
@@ -207,7 +207,7 @@ describe("the share dialog", () => {
     const text = dialog().textContent ?? "";
     expect(text).toContain(t("sharing.role.owner"));
     expect(text).toContain(t("sharing.you", { name: "Alice" }));
-    // No inviting, and no choosing roles, for anyone but the owner.
+    // Only the owner can invite and select roles.
     expect(dialog().querySelector("select")).toBeNull();
     expect(text).not.toContain(t("sharing.leave.confirm", { name: "Olivia" }));
 
@@ -349,7 +349,7 @@ describe("on a server with sharing turned off", () => {
         button(t("sharing.teams.remove", { team: "Design" })),
       ).toBeTruthy();
     });
-    // No search box, no team to pick, no role to change.
+    // No search box, no team to select, no role to change.
     expect(dialog().querySelector("input")).toBeNull();
     expect(
       dialog().querySelector(`select[aria-label="${t("sharing.teams.pick")}"]`),

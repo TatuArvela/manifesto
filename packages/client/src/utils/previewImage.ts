@@ -6,8 +6,8 @@ import {
 export type PreviewImageKind = "thumbnail" | "favicon";
 
 /**
- * Longest edge, in pixels. A thumbnail fills at most a card-wide hero at 2x;
- * a favicon is drawn at 24px.
+ * The longest edge, in pixels. A thumbnail fills at most a hero as wide as a
+ * card at 2x. A favicon is drawn at 24px.
  */
 const MAX_EDGE: Record<PreviewImageKind, number> = {
   thumbnail: 640,
@@ -17,14 +17,14 @@ const MAX_EDGE: Record<PreviewImageKind, number> = {
 const QUALITIES = [0.8, 0.6, 0.45];
 
 /**
- * Re-encodes an image the server fetched into the small inlined copy a preview
- * stores, or null if it cannot be made to fit.
+ * Encodes an image that the server loaded again into the small inlined copy
+ * that a preview stores, or null if the code cannot make it fit.
  *
- * Every stored preview image goes through a canvas, so what is saved is always
- * pixels this browser decoded and encoded itself, whatever bytes the linked
- * site served. Thumbnails prefer WebP and fall back to JPEG where the browser
- * cannot encode WebP (it hands back PNG instead, which is far larger); favicons
- * are PNG, which keeps their transparency and is tiny at this size.
+ * Each stored preview image goes through a canvas. Thus, the saved data is
+ * always pixels that this browser decoded and encoded itself, whatever bytes
+ * the linked site served. Thumbnails use WebP, and JPEG where the browser
+ * cannot encode WebP (it gives back PNG, which is much larger). Favicons are
+ * PNG, which keeps their transparency and is very small at this size.
  */
 export async function shrinkPreviewImage(
   source: string,
@@ -81,8 +81,10 @@ function drawScaled(
   return canvas;
 }
 
-/** Lazily yields encodings from best to smallest, so a thumbnail that fits at
- * the first quality is only encoded once. */
+/**
+ * Gives encodings lazily from best to smallest. Thus, a thumbnail that fits at
+ * the first quality is encoded only one time.
+ */
 function* encodeThumbnail(
   canvas: HTMLCanvasElement,
   image: HTMLImageElement,
@@ -96,8 +98,8 @@ function* encodeThumbnail(
     }
     return;
   }
-  // JPEG has no transparency, and a transparent pixel would otherwise encode
-  // as black.
+  // JPEG has no transparency, and a transparent pixel would otherwise encode as
+  // black.
   const flat = drawScaled(image, edge, "#ffffff");
   if (!flat) return;
   for (const quality of QUALITIES) {

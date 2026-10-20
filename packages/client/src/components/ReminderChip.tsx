@@ -25,7 +25,7 @@ export function ReminderChip({
   onClick?: (e: MouseEvent) => void;
   onClear?: ((e: MouseEvent) => void) | undefined;
   anchorRef?: Ref<HTMLButtonElement>;
-  /** Whether the picker `onClick` opens is open, for `aria-expanded`. */
+  /** If the picker that `onClick` opens is open, for `aria-expanded`. */
   expanded?: boolean | undefined;
 }) {
   const isPast =
@@ -36,8 +36,8 @@ export function ReminderChip({
 
   const cls = [
     "inline-flex items-center gap-1 pl-2 pr-1 py-0.5 text-xs rounded-full border border-neutral-400/50",
-    // A reminder that has gone off is told apart by its tone alone, and the
-    // quiet one is as pale as a note's text can go (`noteText`).
+    // Only its tone tells a reminder that went off from the others. The quiet
+    // tone is the palest possible text on a note (`noteText`).
     isPast ? noteText.quiet : noteText.read,
   ].join(" ");
 
@@ -48,9 +48,9 @@ export function ReminderChip({
     </>
   );
 
-  // Beside the chip's own button, never inside it: a button's contents are
-  // presentational, so one nested in the chip was not announced, and nesting
-  // buttons is invalid HTML besides.
+  // Next to the own button of the chip, never inside it. The contents of a
+  // button are presentational. Thus, a screen reader did not announce a button
+  // nested in the chip, and nested buttons are also invalid HTML.
   const clear = onClear && (
     <button
       type="button"

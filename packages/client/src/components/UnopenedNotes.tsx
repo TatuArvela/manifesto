@@ -2,11 +2,11 @@ import { plural } from "#/i18n/index.ts";
 import { sealer } from "#/storage/sealing.ts";
 
 /**
- * Says how many notes the server sent that did not open on this device, so
- * they are not on the board: one shared with this account whose key has not
- * arrived yet, or one whose key is damaged, and apart from those, one saved
- * by a newer version of the app, which a reload shows. Without it they would
- * be missing with nothing to say so.
+ * Tells how many notes from the server did not open on this device. Thus, they
+ * are not on the board. One is a note shared with this account whose key did
+ * not arrive yet, or whose key is damaged. Another is a note saved by a newer
+ * version of the app, which a reload shows. Without this, they would be
+ * missing, and nothing would tell it.
  */
 export function UnopenedNotes() {
   const unreadable = sealer.value?.unreadable.value.size ?? 0;

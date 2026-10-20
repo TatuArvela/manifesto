@@ -1,8 +1,8 @@
 import type { TextEdit } from "./formatTypes.ts";
 
-// Raw mode's inline formats (bold, italic, code, strikethrough and the HTML
-// tags): finding the markers around the text and adding or removing them.
-// Pure string work; see `rawFormatting.ts`.
+// The inline formats of raw mode (bold, italic, code, strikethrough and the
+// HTML tags): find the markers around the text, and add or remove them. Only
+// string operations. See `rawFormatting.ts`.
 
 export type InlineFormat =
   | "bold"
@@ -19,7 +19,10 @@ const TAGS: Partial<Record<InlineFormat, string>> = {
   superscript: "sup",
 };
 
-/** Marker characters and tags peeled off a word before looking at its edges. */
+/**
+ * Marker characters and tags removed from a word before the code looks at its
+ * edges.
+ */
 const EDGE_MARKUP_START = /^(?:<(?:u|sub|sup)>|[*_~`])+/;
 const EDGE_MARKUP_END = /(?:<\/(?:u|sub|sup)>|[*_~`])+$/;
 const MARKUP_TOKEN = /<(?:u|sub|sup)>|([*_~`])\1*/g;
@@ -31,7 +34,10 @@ function isMarker(char: string | undefined): boolean {
 const OPEN_TAG_BEFORE = /<(?:u|sub|sup)>$/;
 const CLOSE_TAG_AFTER = /^<\/(?:u|sub|sup)>/;
 
-/** A piece of inline markup beside the text: a tag, or a run of one marker. */
+/**
+ * A piece of inline markup next to the text: a tag, or a sequence of one
+ * marker.
+ */
 interface Token {
   text: string;
   from: number;
@@ -77,14 +83,15 @@ function tokensAfter(value: string, pos: number): Token[] {
 }
 
 /**
- * `from`..`to` with the markup hugging both ends of it removed, or unchanged
- * if there is none to remove.
+ * `from`..`to` with the markup at both ends of it removed, or unchanged if
+ * there is none to remove.
  *
- * Only markup at both ends is a wrapper: `**word` on its own is text with
- * asterisks in it, and formatting just `word` inside it would leave an
- * unbalanced `****word**`. Nor is it one when the same markup turns up again
- * inside: the outer asterisks of `**a** and **b**` belong to two separate runs,
- * and taking them for one would unwrap the selection into `a** and **b`.
+ * Only markup at both ends is a wrapper. `**word` alone is text with asterisks
+ * in it, and a format of only `word` inside it would leave an unbalanced
+ * `****word**`. It is also not a wrapper when the same markup shows again
+ * inside. The outer asterisks of `**a** and **b**` belong to two separate
+ * sequences. If the code took them as one, it would unwrap the selection into
+ * `a** and **b`.
  */
 function peelMarkup(value: string, from: number, to: number): [number, number] {
   const text = value.slice(from, to);
@@ -101,12 +108,12 @@ function peelMarkup(value: string, from: number, to: number): [number, number] {
 }
 
 /**
- * The range an inline format applies to: the selection without surrounding
- * whitespace (`** bold **` is not bold), or with nothing selected, the word
- * under the cursor. Either way minus any markup already wrapping the text, so
- * that pressing Bold on `**word**` finds the markers to take away rather than
- * nesting more, whether the caret is in the word or the selection takes in
- * the asterisks too.
+ * The range to which an inline format applies: the selection without the
+ * whitespace around it (`** bold **` is not bold), or, with nothing selected,
+ * the word under the cursor. In both cases, without the markup that already
+ * wraps the text. Thus, Bold on `**word**` finds the markers to remove, and
+ * does not nest more, whether the caret is in the word or the selection also
+ * includes the asterisks.
  */
 export function inlineRange(
   value: string,
@@ -128,23 +135,23 @@ export function inlineRange(
   const trail = EDGE_MARKUP_END.exec(word.slice(lead))?.[0].length ?? 0;
   const coreFrom = from + lead;
   const coreTo = to - trail;
-  // A word that is all markup has no text to format: leave the cursor where
-  // it is. A cursor in the markup of a word that has text belongs to that
-  // word, the same as one in its letters; measured from the cursor instead,
-  // `*|*aa**` read as an `*` either side of it, which is italic.
+  // A word that is only markup has no text to format. Leave the cursor where it
+  // is. A cursor in the markup of a word that has text belongs to that word, as
+  // a cursor in its letters does. When measured from the cursor, `*|*aa**` read
+  // as an `*` on each side of it, which is italic.
   if (coreFrom >= coreTo) return [start, start];
   return [coreFrom, coreTo];
 }
 
 /**
- * Where the markers that turn `format` on sit around `from`..`to`, as the two
+ * Where the markers that turn `format` on are around `from`..`to`, as the two
  * spans to delete to turn it off, or null if it is not on.
  *
- * Looks through all the markup beside the text rather than only the innermost
- * piece, so `<u>**word**</u>` is underlined even though `**` is what touches
- * the word. `*` and `_` are read as runs because they share a character
- * between two formats: a run of one is italic, two is bold, three is both, and
- * the markers taken are the ones nearest the text.
+ * Looks through all the markup next to the text, not only the innermost piece.
+ * Thus, `<u>**word**</u>` is underlined, although `**` touches the word. `*`
+ * and `_` are read as sequences, because two formats share a character. A
+ * sequence of one is italic, two is bold, three is both, and the code takes the
+ * markers nearest the text.
  */
 export function wrappedBy(
   value: string,

@@ -19,7 +19,7 @@ export {
 
 // --- Public signals ---
 
-/** Reminder fires that the app needs to render as an in-app banner. */
+/** Reminder fires that the app must render as an in-app banner. */
 export const reminderBanner = signal<{
   noteId: string;
   title: string;
@@ -32,11 +32,11 @@ const timers = new Map<string, ReturnType<typeof setTimeout>>();
 const DEDUPE_WINDOW_MS = 60_000;
 const CATCHUP_WINDOW_MS = 60 * 60_000;
 
-// Back-reference to `updateNote` injected at init to avoid a cycle.
+// A back-reference to `updateNote`, injected at init to prevent a cycle.
 let updateNoteFn:
   | ((id: string, changes: { reminder: NoteReminder }) => void)
   | null = null;
-// Back-reference to current notes list.
+// A back-reference to the current notes list.
 let getNotesFn: (() => Note[]) | null = null;
 
 // --- Permission ---
@@ -74,8 +74,8 @@ async function registerPeriodicSync(): Promise<void> {
       minInterval: 15 * 60_000,
     });
   } catch {
-    // periodicSync requires a permission grant on Chromium and isn't available
-    // elsewhere, so fall back to the in-SW polling loop.
+    // periodicSync needs a permission grant on Chromium, and is not available
+    // in other places. Thus, use the polling loop in the service worker.
   }
 }
 
@@ -85,7 +85,8 @@ function fire(note: Note) {
   const reminder = note.reminder;
   if (!reminder) return;
 
-  // Dedupe: skip if the same note fired within the last minute (handles SW races).
+  // Remove duplicates: skip if the same note fired within the last minute (this
+  // handles races in the service worker).
   if (reminder.lastFiredAt) {
     const lastMs = new Date(reminder.lastFiredAt).getTime();
     if (Number.isFinite(lastMs) && Date.now() - lastMs < DEDUPE_WINDOW_MS) {
@@ -96,9 +97,9 @@ function fire(note: Note) {
   const title = note.title.trim() || t("reminder.untitled");
   const body = note.content.replace(/\s+/g, " ").trim().slice(0, 140);
 
-  // Rescheduled before the notification is out, not after: showing one through
-  // the service worker is async, and a reschedule landing in that gap would
-  // find the reminder still due and fire it again.
+  // Scheduled again before the notification is out, not after. To show one
+  // through the service worker is asynchronous. A new schedule in that gap
+  // would find the reminder still due, and fire it again.
   scheduleNext(note, reminder);
 
   const showBanner = () => {
@@ -117,17 +118,16 @@ function fire(note: Note) {
 }
 
 /**
- * Shows a reminder as a system notification, reporting whether one appeared.
+ * Shows a reminder as a system notification, and reports if one showed.
  *
- * Through the service worker wherever there is one. The page's own
- * `new Notification()` is what desktop browsers accept, but Chrome on Android
- * refuses it outright ("Illegal constructor") and an installed app on iOS has
- * no constructor at all, so on a phone every reminder the open app fired came
- * out as the in-app banner instead. A notification the worker shows is also
- * one it handles the click for (`notificationclick` in sw.ts), which opens the
- * note the same way.
+ * Through the service worker wherever there is one. Desktop browsers accept the
+ * own `new Notification()` of the page. But Chrome on Android refuses it
+ * ("Illegal constructor"), and an installed app on iOS has no constructor.
+ * Thus, on a phone, each reminder that the open app fired showed as the in-app
+ * banner. The worker also handles the click for a notification that it shows
+ * (`notificationclick` in sw.ts), which opens the note in the same way.
  *
- * Assumes permission is granted; the caller has checked. Never rejects.
+ * Thinks that permission is given, because the caller checked. Never rejects.
  */
 export async function showReminderNotification(
   noteId: string,
@@ -147,7 +147,7 @@ export async function showReminderNotification(
       });
       return true;
     } catch {
-      // Fall through to the page's own notification.
+      // Continue to the own notification of the page.
     }
   }
   if (typeof Notification === "undefined") return false;
@@ -185,25 +185,27 @@ function scheduleForNote(note: Note) {
   if (!reminder) return;
   if (note.trashed) return;
 
-  // Non-recurring reminders stay visible after firing but must not re-fire.
+  // Non-recurring reminders stay visible after they fire, but must not fire
+  // again.
   if (reminder.recurrence === "none" && reminder.lastFiredAt) return;
 
   const dueMs = parseLocalISO(reminder.time).getTime() - Date.now();
 
   if (dueMs <= 0) {
-    // Overdue: only catch up within the last hour to avoid spamming after long absences.
+    // Overdue: catch up only within the last hour. Thus, after a long absence,
+    // the app does not show too many notifications.
     if (dueMs > -CATCHUP_WINDOW_MS) {
       queueMicrotask(() => fire(note));
     } else if (reminder.recurrence !== "none") {
-      // Very old recurring reminder → snap forward without firing.
+      // A very old recurring reminder: move it forward, and do not fire.
       updateNoteFn?.(note.id, { reminder: snapReminderToFuture(reminder) });
     }
     return;
   }
 
-  // `setTimeout` is clamped to ~24.8 days (2^31 ms), which is fine for our
-  // expected horizon; a reschedule is triggered whenever `notes` changes or
-  // the tab visibility flips.
+  // `setTimeout` is clamped to approximately 24.8 days (2^31 ms), which is
+  // sufficient for our expected horizon. A new schedule starts each time that
+  // `notes` changes or the visibility of the tab changes.
   const delay = Math.min(dueMs, 2_000_000_000);
   const handle = setTimeout(() => {
     const latest = getNotesFn?.().find((n) => n.id === note.id);
@@ -276,7 +278,7 @@ export function initReminderScheduler(deps: SchedulerDeps): void {
   }
 }
 
-/** Notifies the user once that permission was denied. */
+/** Tells the user one time that permission was refused. */
 export function notifyPermissionDenied() {
   if (permissionToastShown) return;
   permissionToastShown = true;

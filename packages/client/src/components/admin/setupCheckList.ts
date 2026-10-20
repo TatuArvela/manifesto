@@ -3,20 +3,23 @@ import type { MessageKey } from "#/i18n/index.ts";
 
 export type SetupCheckStatus = "ok" | "info" | "warn";
 
-/** One line of the overview's setup checks, as keys for render to translate. */
+/**
+ * One line of the setup checks of the overview, as keys that the render
+ * translates.
+ */
 export interface SetupCheck {
   id: "https" | "appUrl" | "proxy" | "backup" | "mail";
   status: SetupCheckStatus;
   title: MessageKey;
   message: MessageKey;
   vars?: Record<string, string>;
-  /** A time the message names, for render to format. */
+  /** A time that the message names, for the render to format. */
   when?: string;
-  /** The section of the deployment guide that says how to fix it. */
+  /** The section of the deployment guide that tells how to correct it. */
   docs?: string;
 }
 
-/** Where the page is, as `location` has it. */
+/** The location of the page, as `location` has it. */
 export interface PageAddress {
   protocol: string;
   hostname: string;
@@ -75,10 +78,10 @@ function appUrl(appUrl: string | null, page: PageAddress): SetupCheck {
 }
 
 /**
- * The proxy, from what it did to the probe and whether the server believes
- * `X-Forwarded-For`. Trusting the header is right exactly when a proxy
- * replaces it; any other pairing either lets a client pick the address it is
- * throttled by or puts every client in one bucket.
+ * The proxy, from what it did to the probe, and if the server believes
+ * `X-Forwarded-For`. It is correct to trust the header exactly when a proxy
+ * replaces it. All other pairs either let a client select the address of its
+ * throttle, or put all clients in one bucket.
  */
 function proxy({ proxy, trustProxy }: AdminChecksResponse): SetupCheck {
   const check = (
@@ -195,9 +198,9 @@ function mail(mail: AdminChecksResponse["mail"]): SetupCheck {
 }
 
 /**
- * The setup checks, from what the server reported and the address this page
- * is on: HTTPS and `APP_URL` are judged here, since only the browser knows
- * the address it used.
+ * The setup checks, from the report of the server and the address of this page.
+ * HTTPS and `APP_URL` are judged here, because only the browser knows the
+ * address that it used.
  */
 export function setupChecks(
   facts: AdminChecksResponse,

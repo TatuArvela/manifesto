@@ -34,7 +34,7 @@ describe("ImageGallery", () => {
     mount(<ImageGallery images={[PIXEL, OTHER]} alts={["A red bicycle"]} />);
     const images = container.querySelectorAll("img");
     expect(images[0]?.getAttribute("alt")).toBe("A red bicycle");
-    // An image nobody described is still named by its button.
+    // An image without a description is still named by its button.
     expect(images[1]?.getAttribute("alt")).toBe("");
     expect(button("Open image: A red bicycle")).toBeTruthy();
     expect(button("Open image")).toBeTruthy();
@@ -57,7 +57,7 @@ describe("ImageGallery", () => {
     );
     button("Open image: A cat").click();
     await tick();
-    // A focused field raises a phone's keyboard over the image.
+    // A focused field opens the keyboard of a phone over the image.
     expect(document.activeElement).toBe(button("Close image"));
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     await tick();
@@ -78,7 +78,7 @@ describe("ImageGallery", () => {
       '[role="dialog"] textarea',
     );
     if (!field) throw new Error("No description field");
-    // "Describe image" goes straight to the field, which has a name.
+    // "Describe image" goes directly to the field, which has a name.
     expect(document.activeElement).toBe(field);
     expect(field.labels?.[0]?.textContent).toBe("Image description");
     field.value = "  A red bicycle ";

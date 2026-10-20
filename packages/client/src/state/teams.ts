@@ -11,10 +11,11 @@ import type {
 import { apiFetch } from "#/storage/apiRequest.ts";
 
 /**
- * Teams: the signed-in user's own, to share a note with, and every team for
- * an admin to manage. Sharing with a team invites its members, and the
- * server keeps that in step as people join and leave. Like the rest of
- * sharing, each call resolves with what happened and never rejects.
+ * Teams: the own teams of the signed-in user, with which to share a note, and
+ * all teams for an admin to manage. A share with a team invites its members,
+ * and the server keeps that correct while people join and leave. As the
+ * remaining sharing code does, each call resolves with what occurred, and never
+ * rejects.
  */
 
 export async function listMyTeams(): Promise<Team[] | null> {

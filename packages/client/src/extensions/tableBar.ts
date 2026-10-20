@@ -10,12 +10,13 @@ import {
 } from "./tableActions.ts";
 
 /**
- * A bar of row and column buttons over the table the caret is in, where the
- * eye already is. It holds what the toolbar's Table menu holds; that menu is
- * the keyboard's way to the same changes, since Tab stays in the table.
+ * A bar of row and column buttons over the table that contains the caret, where
+ * the eye already is. It contains the same items as the Table menu of the
+ * toolbar. That menu is the keyboard way to the same changes, because Tab stays
+ * in the table.
  *
- * Every button is always there, a change that does not apply disabled rather
- * than taken away, so the bar keeps its shape and a button is where it was.
+ * Each button is always there. A change that does not apply is disabled, not
+ * removed. Thus, the bar keeps its shape, and a button stays in its position.
  */
 
 const svg = (paths: string) =>

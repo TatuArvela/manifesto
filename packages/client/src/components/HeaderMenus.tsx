@@ -19,7 +19,7 @@ import {
 import { Dropdown } from "./Dropdown.tsx";
 import { Tooltip } from "./Tooltip.tsx";
 
-/** The header's sort order menu. */
+/** The sort order menu of the header. */
 export function SortMenu({ buttonClass }: { buttonClass: string }) {
   const [showSortMenu, setShowSortMenu] = useState(false);
 
@@ -70,7 +70,7 @@ export function SortMenu({ buttonClass }: { buttonClass: string }) {
   );
 }
 
-/** The header's layout menu: grid or list, card shape, and card size. */
+/** The layout menu of the header: grid or list, card shape, and card size. */
 export function ViewMenu({ buttonClass }: { buttonClass: string }) {
   const [showViewMenu, setShowViewMenu] = useState(false);
 

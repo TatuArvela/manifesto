@@ -17,25 +17,27 @@ import { serverSetupProblem } from "./utils/serverCsp.ts";
 import "./assets/fonts/fonts.css";
 import "./styles.css";
 
-// Asked once, at boot: both the document's CSP and the resolved server are
-// fixed for the life of the page. A copy that names a server its own policy
-// blocks cannot do anything useful, so it says which lines are missing
-// instead of rendering a login screen whose every request dies silently.
+// Asked one time, at start. Both the CSP of the document and the resolved
+// server stay the same for the life of the page. A copy that names a server
+// that its own policy blocks cannot do anything useful. Thus, it tells which
+// lines are missing, and does not show a login screen whose requests all fail
+// silently.
 const setupProblem = serverSetupProblem(SERVER_URL);
 
-// The HTML carries the app's name and icon; the instance's join them here,
-// so a release bundle's meta tags are the one place to set them.
+// The HTML contains the name and icon of the app. Those of the instance join
+// them here. Thus, the meta tags of a release bundle are the one place to set
+// them.
 document.title = WINDOW_TITLE;
 applyFavicon(FAVICON);
 
-// A public link's page stands alone: no account, no board, one note.
+// The page of a public link is alone: no account, no board, one note.
 const publicToken = publicLinkToken(window.location.pathname);
-// So does the page an AI assistant sends the browser to when it signs in.
+// So is the page to which an AI assistant sends the browser when it signs in.
 const oauthConsent = isOAuthConsentPath(window.location.pathname);
 
-// Opened in its language from the first frame: the saved language's
-// catalogue, when it is not English, comes before the first render. It is
-// precached, so this waits on the network only on a first visit.
+// Opened in its language from the first frame. The catalogue of the saved
+// language, when it is not English, comes before the first render. It is
+// precached. Thus, this waits for the network only on a first visit.
 void loadCatalogue(locale.peek()).then(start);
 
 function start() {
@@ -55,10 +57,11 @@ function start() {
       </ErrorBoundary>,
       root,
     );
-  // A setup error is the whole page, and ready now; the app says when it is.
+  // A setup error is the full page, and is ready now. The app tells when it is
+  // ready.
   if (setupProblem) revealApp();
   else capSplash();
-  // Measured now, while the splash is still on screen to be measured.
+  // Measured now, while the splash is still on the screen to measure.
   offerLaunchImage();
   registerServiceWorker();
 }

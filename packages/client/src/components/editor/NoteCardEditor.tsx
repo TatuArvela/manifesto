@@ -41,11 +41,12 @@ import { getEditorMarkdown } from "./MilkdownEditor.tsx";
 import { NoteEditor } from "./NoteEditor.tsx";
 
 /**
- * How long a changed row waits before it is judged to have come from outside
- * the document. Another tab's save reaches this one twice, as a broadcast
- * over `/api/v1/ws` and as its claim over `/api/v1/yjs`, and nothing orders the two
- * sockets; judged before the claim arrives, that save would look like an
- * outside write and be written in over whatever was typed since.
+ * How long a changed row waits before the code decides that it came from
+ * outside the document. The save of a different tab reaches this tab two times:
+ * as a broadcast over `/api/v1/ws`, and as its claim over `/api/v1/yjs`.
+ * Nothing puts the two sockets in order. If the code judged that save before
+ * the claim arrived, it would look like an outside write, and the code would
+ * write it over what was typed since then.
  */
 const PEER_RECORD_DELAY_MS = 1000;
 
@@ -58,17 +59,18 @@ export function NoteCardEditor({
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
-  // What the card asked for as it opened this editor, if anything.
+  // What the card asked for when it opened this editor, if anything.
   const [intent] = useState(() => takeEditorIntent(note.id));
   const { ydoc, awareness, synced, outdated, unreadable } = useNoteYDoc(
     note.id,
   );
-  // Withheld until the provider has synced; see NoteYDoc.synced. NoteEditor
-  // keys the editor on this, so it remounts once collaboration is ready.
+  // Not given until the provider synced. See NoteYDoc.synced. NoteEditor uses
+  // this as the key of the editor. Thus, the editor mounts again when
+  // collaboration is ready.
   const collab =
     ydoc && synced ? { ydoc, awareness: awareness ?? undefined } : undefined;
   const collaborating = collab !== undefined;
-  // Which texts of the row came from the document; see `contentAgreement`.
+  // Which texts of the row came from the document. See `contentAgreement`.
   const openedRowRef = useRef({
     content: note.content,
     updatedAt: note.updatedAt,
@@ -84,23 +86,25 @@ export function NoteCardEditor({
   agreementRef.current = agreement;
   const [editor, setEditor] = useState<Editor | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  // Capture original state for version history (set once on mount)
+  // Record the original state for the version history (set one time on mount).
   const originalTitleRef = useRef(note.title);
   const originalContentRef = useRef(note.content);
 
-  // Track what we've actually persisted, NOT the mount-time prop snapshot. If
-  // a WS `note:updated` event arrives mid-edit, `note.title` becomes the new
-  // server value and a naive `title !== note.title` guard would fire a no-op
-  // (or stale-overwriting) save. Comparing against savedRef instead means
-  // we only ever write when the local state diverges from what we ourselves
-  // last sent.
+  // Record what we really saved, NOT the snapshot of the prop at mount. If a WS
+  // `note:updated` event arrives during an edit, `note.title` becomes the new
+  // server value, and a naive `title !== note.title` guard would fire a save
+  // that does nothing (or that overwrites with old data). A comparison against
+  // savedRef means that we only write when the local state is different from
+  // what we sent last.
   const savedTitleRef = useRef(note.title);
   const savedContentRef = useRef(note.content);
 
   const savedRef = useRef(false);
 
-  /** Every save of what the editor holds goes through here, so the document
-   * records each text it sent and each save that landed. */
+  /**
+   * Each save of the content of the editor goes through here. Thus, the
+   * document records each text that it sent, and each save that arrived.
+   */
   const saveText = useCallback(
     (title: string, content: string) => {
       const records = agreementRef.current;
@@ -147,9 +151,10 @@ export function NoteCardEditor({
   };
   const saveAndClose = () => saveAndCloseRef.current();
 
-  // Save pending changes on unmount (e.g. backdrop click). A layout effect,
-  // so the save happens as the editor goes: an effect's cleanup waits for the
-  // paint, and a tab closed in between would lose the edit.
+  // Save the waiting changes on unmount (for example, a backdrop click). A
+  // layout effect. Thus, the save occurs when the editor goes. The cleanup of
+  // an effect waits for the paint, and a tab closed between them would lose the
+  // edit.
   useLayoutEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -162,7 +167,7 @@ export function NoteCardEditor({
         savedContentRef.current = contentRef.current;
         saveText(titleRef.current, contentRef.current);
       }
-      // Save version if content changed during this editing session
+      // Save a version if the content changed during this editing session.
       if (
         titleRef.current !== originalTitleRef.current ||
         contentRef.current !== originalContentRef.current
@@ -176,31 +181,31 @@ export function NoteCardEditor({
     };
   }, [note.id, saveText]);
 
-  // Escape saves and closes. The version panel and any picker opened from
-  // inside the editor register after this one and take the key first, so a
+  // Escape saves and closes. The version panel and all pickers opened from
+  // inside the editor register after this one, and take the key first. Thus, a
   // press over the version panel closes the panel, not the editor.
   useEscapeStack(true, () => saveAndCloseRef.current());
   const versions = useVersionsPanel(intent?.kind === "versions");
 
-  // The editor is one of the places that needs the bytes, not the count: its
-  // "add an image" handler writes `[...note.images, ...urls]`, and doing that
-  // against a list a listing had emptied would delete every attachment the
-  // note already had. Starting the fetch here is what makes it arrive before
-  // the user reaches for it, but it is not what makes it safe: the handlers
-  // below await it themselves, because this one is still in flight during the
-  // first moments the editor is open and may have failed after that.
+  // The editor is one of the places that need the bytes, not the count. Its
+  // "add an image" handler writes `[...note.images, ...urls]`. If it did that
+  // against a list that a listing had emptied, it would delete each attachment
+  // that the note already had. When the fetch starts here, it arrives before
+  // the user needs it, but this does not make it safe. The handlers below await
+  // it themselves, because this fetch is still in progress during the first
+  // moments when the editor is open, and can fail after that.
   useEffect(() => {
     void ensureImages(note.id);
   }, [note.id]);
 
   /**
-   * The note's attachments, or `null` if they could not be fetched.
+   * The attachments of the note, or `null` if the code could not get them.
    *
-   * Every write to `images` has to go through this. `note.images` on its own
-   * is `[]` both before the load lands and after it fails, and writing
-   * `[...note.images, ...urls]` from either state PATCHes a list holding only
-   * the new file, which the server takes as the whole set and the other
-   * attachments are gone, on every device.
+   * Each write to `images` must go through this. `note.images` alone is `[]`
+   * before the load arrives and after it fails. A write of `[...note.images,
+   * ...urls]` from either state PATCHes a list that contains only the new file.
+   * The server takes it as the full set, and the other attachments are gone, on
+   * all devices.
    */
   const currentImages = async (): Promise<string[] | null> => {
     const images = await ensureImages(note.id);
@@ -208,7 +213,7 @@ export function NoteCardEditor({
     return images;
   };
 
-  // Auto-save on any title/content change
+  // Auto-save on each change of the title or the content.
   useEffect(() => {
     if (title === savedTitleRef.current && content === savedContentRef.current)
       return;
@@ -220,12 +225,13 @@ export function NoteCardEditor({
     }, 500);
   }, [title, content, saveText]);
 
-  // A row written from outside the document (an assistant, a script on the
-  // REST API, a restored version) is written into it, by one client only, and
-  // not saved back: the row already holds it, so it is claimed instead. When
-  // the document also held text never saved, that text is kept as a version
-  // before it is replaced. Judged at once when an editor arrives, since the
-  // records came with the sync; later changes wait for peers' records.
+  // A row written from outside the document (an assistant, a script on the REST
+  // API, a restored version) is written into it, by one client only, and not
+  // saved back. The row already contains it. Thus, the code claims it. When the
+  // document also contained text that was never saved, the code keeps that text
+  // as a version before it is replaced. When an editor arrives, the code judges
+  // it immediately, because the records came with the sync. Later changes wait
+  // for the records of the peers.
   const judgedEditorRef = useRef<Editor | null>(null);
   useEffect(() => {
     if (!editor) return;
@@ -233,9 +239,9 @@ export function NoteCardEditor({
     judgedEditorRef.current = editor;
     const timer = setTimeout(
       () => {
-        // The editor this was scheduled for may be gone by now: the solo one
-        // is torn down when collaboration arrives, and a destroyed editor
-        // throws on every read of its view.
+        // The editor for which this was scheduled can be gone now. The solo
+        // editor is torn down when collaboration arrives, and a destroyed
+        // editor throws on each read of its view.
         if (editor.status !== EditorStatus.Created) return;
         const row = notes.value.find((n) => n.id === note.id);
         if (!row) return;
@@ -243,8 +249,8 @@ export function NoteCardEditor({
         const documentText = getEditorMarkdown(editor);
         if (!records.isOutside(row, documentText)) {
           if (records.wasClaimed(documentText) || !records.leads()) return;
-          // Row and document agree: a document from before the records
-          // starts keeping them here.
+          // The row and the document agree. A document from before the records
+          // starts to keep them here.
           if (documentText.trimEnd() === row.content.trimEnd()) {
             records.claim(row.content);
             records.confirm(row.updatedAt);
@@ -360,15 +366,16 @@ export function NoteCardEditor({
         onReminderChange={(reminder) => updateNote(note.id, { reminder })}
         menuItems={({ checkedItems, datedItems }) =>
           noteMenuItems(note, {
-            // The live buffer, not the stored note: auto-save is debounced, and
-            // duplicating or sharing right after a keystroke must copy it.
+            // The live buffer, not the stored note. The auto-save is debounced,
+            // and a duplicate or a share immediately after a keystroke must
+            // copy it.
             draft: { title, content },
             onShowVersions: versions.open,
             checkedItems,
             datedItems,
-            // Archiving, trashing and restoring all move the note out of the
-            // view it was opened from, so leaving the editor up would strand
-            // it over a grid the note is no longer in.
+            // Archive, trash and restore all move the note out of the view from
+            // which it opened. Thus, if the editor stayed open, it would be
+            // over a grid that does not contain the note now.
             onDismiss: onClose,
           })
         }
@@ -394,15 +401,15 @@ export function NoteCardEditor({
           </>
         }
         // A phone opens a note to read it. The focus would come too late after
-        // the tap for iOS to raise the keyboard, so all it did was send the
-        // caret to the end, where the first tap into the text then had to
-        // move it from. A tap puts it where it lands instead.
+        // the tap for iOS to open the keyboard. Thus, it only sent the caret to
+        // the end, and the first tap into the text then had to move it from
+        // there. A tap puts it where it touches.
         autoFocus={!isPhoneLayout()}
         onEditorReady={setEditor}
         collab={collab}
-        // The server refused this build's editor. Saving the text over REST
-        // instead would write this build's reading of it over whatever newer
-        // content it failed to understand, so the text waits for a reload.
+        // The server refused the editor of this build. A save of the text over
+        // REST would write the reading of this build over the newer content
+        // that it did not understand. Thus, the text waits for a reload.
         contentLocked={outdated}
         notice={
           outdated ? (
@@ -416,7 +423,7 @@ export function NoteCardEditor({
   );
 }
 
-/** Some of what was written to the note's document did not open here. */
+/** Some data written to the document of the note did not open here. */
 function UnopenedEditsNotice() {
   return (
     <div
@@ -438,8 +445,8 @@ function OutdatedEditorNotice() {
       <button
         type="button"
         class="font-medium underline underline-offset-2"
-        // The installed copy is what is out of date, so an ordinary reload
-        // could come back to the same one.
+        // The installed copy is out of date. Thus, a usual reload could come
+        // back to the same copy.
         onClick={() => void forceUpdateApp()}
       >
         {t("editor.outdated.reload")}

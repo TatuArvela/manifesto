@@ -6,29 +6,29 @@ import { useMediaQuery } from "#/hooks/useMediaQuery.ts";
 import { t } from "#/i18n/index.ts";
 
 /**
- * The panel a kebab menu draws itself on. `Dropdown` takes it as `panelClass`;
- * a `CardPopover` wraps `NoteMenu` in a div carrying it.
+ * The panel on which a kebab menu draws itself. `Dropdown` takes it as
+ * `panelClass`. A `CardPopover` wraps `NoteMenu` in a div that has it.
  */
 export const menuPanelClass =
   "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 min-w-48 w-max py-1";
 
-/** One row in that panel. Exported for the rows a surface adds of its own. */
+/** One row in that panel. Exported for the own rows of a surface. */
 export const menuItemClass =
   "flex items-center gap-2 w-full px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer";
 
 export const menuDividerClass =
   "my-1 border-t border-neutral-200 dark:border-neutral-700";
 
-/** A row that does something when chosen. */
+/** A row that does something when you select it. */
 export interface NoteMenuAction {
   kind?: "action";
   id: string;
   icon: VNode;
   label: string;
   /**
-   * What the row reads when it stands at the top level, where its submenu's
-   * name is not there to finish the sentence: "Later" under "Move" is "Move
-   * later" on its own. Only a row inside a submenu needs one.
+   * The text of the row when it is at the top level, where the name of its
+   * submenu is not there to complete the sentence. "Later" under "Move" is
+   * "Move later" alone. Only a row inside a submenu needs one.
    */
   fullLabel?: string;
   onSelect: () => void;
@@ -40,9 +40,9 @@ export interface NoteMenuDivider {
 }
 
 /**
- * A row that opens a list of its own in place of the menu's, with a row back
- * at its head. One level only: a submenu inside a submenu is a menu nobody
- * can find anything in.
+ * A row that opens its own list in place of that of the menu, with a back row
+ * at its start. Only one level: a submenu inside a submenu is a menu in which
+ * nobody can find anything.
  */
 export interface NoteMenuSubmenu {
   kind: "submenu";
@@ -55,9 +55,9 @@ export interface NoteMenuSubmenu {
 export type NoteMenuItem = NoteMenuAction | NoteMenuDivider | NoteMenuSubmenu;
 
 /**
- * Drops a rule that would sit at either end of the menu or next to another
- * one. Callers build their list by omitting items, and a menu that loses
- * everything below its divider should not keep the divider.
+ * Removes a rule that would be at either end of the menu, or next to a
+ * different rule. Callers build their list when they omit items. A menu that
+ * loses all items below its divider must not keep the divider.
  */
 function withoutStrayDividers<T extends { kind?: string }>(items: T[]): T[] {
   const kept: T[] = [];
@@ -77,10 +77,10 @@ function withoutStrayDividers<T extends { kind?: string }>(items: T[]): T[] {
 }
 
 /**
- * The menu as it is drawn. A submenu left with nothing in it goes, and one
- * left with a single row gives way to that row: opening "Move" to find only
- * "Later" in it is a press for nothing. Callers can then build every group
- * the same way and let what applies decide its shape.
+ * The menu as it is drawn. A submenu with nothing in it goes. A submenu with
+ * only one row is replaced by that row. To open "Move" and find only "Later" in
+ * it is a press for nothing. Thus, callers can build all groups in the same
+ * way, and the items that apply decide the shape.
  */
 export function arrangeMenu(items: NoteMenuItem[]): NoteMenuItem[] {
   const arranged: NoteMenuItem[] = [];
@@ -102,32 +102,31 @@ export function arrangeMenu(items: NoteMenuItem[]): NoteMenuItem[] {
 }
 
 /**
- * Whether submenus open beside the menu, on hover, rather than in its place.
- * A mouse or trackpad can point at a row without pressing it; a finger
- * cannot, and a phone has no room beside the panel for a second one.
+ * If submenus open next to the menu, on hover, not in its place. A mouse or
+ * trackpad can point at a row without a press. A finger cannot, and a phone has
+ * no space next to the panel for a second panel.
  */
 const FLYOUT_QUERY = "(hover: hover) and (pointer: fine)";
 
-/** How far a flyout laps over the panel; `.menu-flyout` in popovers.css. */
+/** How far a flyout goes over the panel. `.menu-flyout` in popovers.css. */
 const FLYOUT_OVERLAP = 10;
 
-/** How long the pointer rests on a row before its submenu opens or goes. */
+/** How long the pointer stays on a row before its submenu opens or goes. */
 const HOVER_DELAY_MS = 120;
 
 /**
- * The rows of a note's kebab menu, without the panel around them. The three
- * surfaces that show one (the card, the editor, the read-only view) mount it
- * in their own popover, and the editor puts tools of its own above it
- * (`before`).
+ * The rows of the kebab menu of a note, without the panel around them. The
+ * three surfaces that show one (the card, the editor, the read-only view) mount
+ * it in their own popover. The editor puts its own tools above it (`before`).
  *
- * `onClose` runs after any row that acts, so no row has to remember to close
- * the menu itself. Where there is a pointer that can hover, a submenu opens
- * beside the menu as the pointer rests on its row (or on a press, Enter or
- * the right arrow), on whichever side has room. On a touch screen it opens in
- * place instead: the panel's rows give way to its own under a row back,
- * which Escape also takes. `open` says whether the panel is up, for a surface
- * that keeps the menu mounted while it is closed (a `Dropdown`), so it opens
- * again at the top.
+ * `onClose` runs after each row that acts. Thus, no row has to remember to
+ * close the menu itself. Where there is a pointer that can hover, a submenu
+ * opens next to the menu when the pointer stays on its row (or on a press,
+ * Enter or the right arrow), on the side that has space. On a touch screen, it
+ * opens in place: the rows of the panel are replaced by its own rows, under a
+ * back row. Escape also goes back. `open` tells if the panel is open, for a
+ * surface that keeps the menu mounted while it is closed (a `Dropdown`). Thus,
+ * it opens again at the top.
  */
 export function NoteMenu({
   items,
@@ -143,14 +142,17 @@ export function NoteMenu({
   const flyouts = useMediaQuery(FLYOUT_QUERY);
   const [level, setLevel] = useState<{
     submenuId: string | null;
-    /** Which way the rows slide in; none for the menu as it first opens. */
+    /**
+     * The direction from which the rows slide in. None when the menu first
+     * opens.
+     */
     enter?: "forward" | "back";
   }>({ submenuId: null });
   const { submenuId } = level;
   const rootRef = useRef<HTMLDivElement>(null);
-  // Where focus goes once the rows have changed: into the submenu, or back to
-  // the row that opened it. The row pressed is gone from the page by then, or
-  // (beside the menu) the submenu has only just been drawn.
+  // Where focus goes after the rows changed: into the submenu, or back to the
+  // row that opened it. By then, the pressed row is gone from the page, or
+  // (next to the menu) the submenu was just drawn.
   const focusNext = useRef<string | null>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const arranged = arrangeMenu(items);
@@ -176,7 +178,10 @@ export function NoteMenu({
     focusNext.current = submenuId;
     setLevel({ submenuId: null, enter: "back" });
   };
-  /** Waits for the pointer to settle, so passing over rows opens nothing. */
+  /**
+   * Waits until the pointer stops. Thus, a pointer that passes over rows opens
+   * nothing.
+   */
   const afterHover = (run: () => void) => {
     clearTimeout(hoverTimer.current);
     hoverTimer.current = setTimeout(run, HOVER_DELAY_MS);
@@ -277,9 +282,9 @@ export function NoteMenu({
               data-menu-row={item.id}
               aria-haspopup="true"
               aria-expanded={flyouts ? expanded : undefined}
-              // Opens, never toggles: the pointer has usually opened it by
-              // hovering on the way to pressing, and a press that shut it
-              // again would undo what was asked for. Focus goes in either way.
+              // Opens, never toggles. Usually the pointer already opened it
+              // with a hover on its way to the press, and a press that closed
+              // it again would undo the request. Focus goes in in both cases.
               onClick={() => enterSubmenu(item)}
               onPointerEnter={
                 flyouts
@@ -316,11 +321,11 @@ export function NoteMenu({
 }
 
 /**
- * A submenu drawn beside the menu, level with the row that opened it. It is
- * placed inside the menu's own box, not portalled: the menu may be in the
- * top layer (a `Dropdown`), and anything outside it would be drawn under it.
- * It goes to the right, or to the left where the right edge of the window is
- * too close, and up as far as it has to so its foot stays on screen.
+ * A submenu drawn next to the menu, level with the row that opened it. It is
+ * inside the own box of the menu, not portalled. The menu can be in the top
+ * layer (a `Dropdown`), and all that is outside it would be drawn under it. It
+ * goes to the right, or to the left where the right edge of the window is too
+ * near. It goes up as far as necessary to keep its bottom on the screen.
  */
 function MenuFlyout({
   rowId,
@@ -356,8 +361,9 @@ function MenuFlyout({
       rootBox.right + reach <= viewport.clientWidth || rootBox.left - reach < 0
         ? "right"
         : "left";
-    // The flyout's first row level with the one that opened it (`py-1` is
-    // the panel's 4px), nudged up if its foot would leave the window.
+    // The first row of the flyout is level with the row that opened it (`py-1`
+    // is the 4px of the panel). It moves up if its bottom would go out of the
+    // window.
     const wanted = rowBox.top - 4;
     const top = Math.max(
       gap,

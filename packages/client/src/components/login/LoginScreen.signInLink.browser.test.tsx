@@ -18,7 +18,7 @@ const requested: string[] = [];
 /** How the server answers a request for a link. */
 let asking: "sent" | "throttled" | "invalid" | "failed" = "sent";
 const attempts: { token: string; otp: string | undefined }[] = [];
-/** What the server makes of the link: fine, wanting a code, or spent. */
+/** What the server does with the link: correct, wants a code, or used. */
 let account: "plain" | "twoFactor" | "expired" = "plain";
 
 vi.mock("#/state/account/auth.ts", async (original) => {
@@ -68,7 +68,7 @@ const button = (label: string) =>
 const shown = (text: string) =>
   vi.waitFor(() => expect(host.textContent).toContain(text));
 
-/** Presses Sign in on the step a link lands on. */
+/** Pushes Sign in on the step where a link opens. */
 async function useLink() {
   await shown(t("login.link.ready"));
   button(t("login.submitSignIn"))?.click();
@@ -97,7 +97,7 @@ describe("LoginScreen with sign-in by a mailed link", () => {
     await shown(t("login.submitSignIn"));
     expect(button(t("login.link.open"))).toBeUndefined();
 
-    // Nor by one from before the feature, which says nothing of it.
+    // Also not by a server from before the feature, which says nothing of it.
     const { magicLink: _absent, ...older } = LOCAL;
     auth = older;
     render(null, host);
@@ -156,7 +156,7 @@ describe("LoginScreen with sign-in by a mailed link", () => {
     linkToken = "ab".repeat(32);
     render(<LoginScreen />, host);
     await shown(t("login.link.ready"));
-    // Loading the page is what a mail scanner does too.
+    // A mail scanner also loads the page.
     await new Promise((r) => setTimeout(r, 50));
     expect(attempts).toEqual([]);
 

@@ -1,6 +1,6 @@
 /**
- * The geometry behind drag-to-select on the note grid, kept apart from the
- * hook so it tests without a DOM.
+ * The geometry of drag-to-select on the note grid, kept separate from the hook.
+ * Thus, it is tested without a DOM.
  */
 
 export interface Box {
@@ -10,7 +10,7 @@ export interface Box {
   bottom: number;
 }
 
-/** The box two corners span, whichever way the drag went. */
+/** The box that two corners make, whatever the direction of the drag. */
 export function boxFromPoints(
   a: { x: number; y: number },
   b: { x: number; y: number },
@@ -23,7 +23,7 @@ export function boxFromPoints(
   };
 }
 
-/** Whether two boxes overlap by any area; touching edges do not count. */
+/** If two boxes overlap by some area. Edges that touch do not count. */
 export function boxesIntersect(a: Box, b: Box): boolean {
   return (
     a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
@@ -31,9 +31,9 @@ export function boxesIntersect(a: Box, b: Box): boolean {
 }
 
 /**
- * The selection a drag produces: the notes under the box, added to what was
- * already selected when the drag began with Shift or Cmd/Ctrl held, and in
- * place of it otherwise, the way a file manager behaves.
+ * The selection that a drag makes: the notes under the box. When the drag
+ * started with Shift or Cmd/Ctrl held, they are added to the previous
+ * selection. Otherwise, they replace it, as a file manager does.
  */
 export function marqueeSelection(
   base: ReadonlySet<string>,
@@ -46,9 +46,10 @@ export function marqueeSelection(
 }
 
 /**
- * How far to scroll per frame while the pointer is held near the top or
- * bottom edge of the scroll area, so a selection can reach notes off screen.
- * Faster the closer it gets, up to `max`; zero away from the edges.
+ * How far to scroll in each frame while the pointer is held near the top or
+ * bottom edge of the scroll area. Thus, a selection can reach notes off the
+ * screen. It is faster nearer the edge, up to `max`, and zero away from the
+ * edges.
  */
 export function edgeScrollStep(
   pointerY: number,

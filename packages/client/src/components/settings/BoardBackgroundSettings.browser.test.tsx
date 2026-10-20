@@ -35,7 +35,7 @@ beforeEach(() => {
   host = document.createElement("div");
   board = document.createElement("div");
   board.className = "board-frame";
-  // The board fades between colours; read where it lands, not the fade.
+  // The board fades between colors. Read its final value, not the fade.
   board.style.transition = "none";
   document.body.append(host, board);
   render(<BoardBackgroundSettings />, host);
@@ -65,7 +65,7 @@ describe("board background composer", () => {
     expect(boardColor.value).toBe("green");
     expect(boardTexture.value).toBe("dots");
     expect(layer.getPropertyValue("mask-image")).toContain("radial-gradient");
-    // Hex in the stylesheet, rgb once computed.
+    // Hex in the stylesheet, rgb after computation.
     const probe = document.createElement("span");
     probe.style.color = green;
     document.body.appendChild(probe);
@@ -86,7 +86,7 @@ describe("board background composer", () => {
     await nextFrame();
     expect(boardTextureOpacity.value).toBe(25);
     expect(layer().opacity).toBe("0.25");
-    // The same drawing: the slider never redraws a texture.
+    // The same drawing: the slider never draws a texture again.
     expect(layer().getPropertyValue("mask-image")).toBe(mask);
   });
 
@@ -105,7 +105,7 @@ describe("board background composer", () => {
 
     const dark = getComputedStyle(board).backgroundColor;
     expect(dark).not.toBe("rgb(255, 204, 0)");
-    // Dark enough that the notes on it, dark themselves, stand out.
+    // Sufficiently dark that the notes on it, which are also dark, are clear.
     const channels =
       dark
         .match(/[\d.]+/g)

@@ -26,9 +26,9 @@ import { isZipFile, readZip, type ZipEntry } from "./zip.ts";
 
 export type { ImportResult } from "./importedNote.ts";
 
-// Importing files: which files can be, and reading each (a note, an app's
-// export, an archive) into notes for the handlers to store. What the notes are
-// made from is `importedNote.ts`; exporting one is `noteDownload.ts`.
+// The import of files: which files can be imported, and the read of each (a
+// note, the export of an app, an archive) into notes for the handlers to store.
+// `importedNote.ts` makes the notes. `noteDownload.ts` exports one.
 
 const MARKDOWN_EXTS = [".md", ".markdown"];
 const JSON_EXTS = [".json"];
@@ -58,9 +58,9 @@ export function isImportableFile(file: File): boolean {
   if (file.type === "text/markdown" || file.type === "text/x-markdown") {
     return true;
   }
-  // Takeout: an archive, or an unpacked folder's JSON with its images.
+  // Takeout: an archive, or the JSON of an unpacked folder with its images.
   if (isZipFile(file) || isImageFile(file)) return true;
-  // Another app's export (`importers/`).
+  // The export of a different app (`importers/`).
   if (importerForFile(ext)) return true;
   return false;
 }
@@ -84,7 +84,7 @@ export interface ImportSummary {
   singleCount: number;
   bulkCount: number;
   failedCount: number;
-  /** Archives refused for coming from a newer version of the app. */
+  /** Archives refused because they come from a newer version of the app. */
   newerCount: number;
 }
 
@@ -93,7 +93,10 @@ interface ImportHandlers {
   createNote: (input: Partial<NoteCreate>) => Promise<Note | null>;
   /** Resolves `false` if the merge could not be stored. */
   importBulk: (notes: Note[]) => Promise<boolean>;
-  /** An export's version history, once its notes are stored. Never rejects. */
+  /**
+   * The version history of an export, after its notes are stored. Never
+   * rejects.
+   */
   importVersions?: (versions: NoteVersion[]) => Promise<void>;
 }
 
@@ -108,19 +111,21 @@ function parseJsonOrNull(text: string): unknown {
 }
 
 /**
- * Reads an archive into notes: every Markdown file in it, and every Keep note
- * of a Takeout zip, which holds Keep's per-note JSON files beside their
- * attachments. Everything else (other Google products, Keep's `.html` twins,
- * a vault's settings) is ignored. The byte budget is shared by every entry,
- * so an archive cannot add up to more than one file would be allowed.
+ * Reads an archive into notes: each Markdown file in it, and each Keep note of
+ * a Takeout zip, which has the JSON files of Keep for each note next to their
+ * attachments. The code ignores all other content (other Google products, the
+ * `.html` copies of Keep, the settings of a vault). All entries share the byte
+ * budget. Thus, an archive cannot be more than one file would be permitted to
+ * be.
  *
- * An export (either mode's; see `exportArchiveFiles`) is the exception: its
- * `notes.json` holds every note whole (ids, colors, images, the trash) and its
- * Markdown files are the same notes stripped down for other tools, so when it
- * is there it is the import, with `versions.json` beside it, and the rest of
- * the archive is not read. Its `manifest.json` says the format the notes are
- * in: an older one is brought up to date, and one newer than this build
- * reads refuses the archive (`NewerNoteFormatError`) rather than misread it.
+ * An export (of either mode; see `exportArchiveFiles`) is the exception. Its
+ * `notes.json` contains each note fully (ids, colors, images, the trash), and
+ * its Markdown files are the same notes with less data, for other tools. Thus,
+ * when it is there, it is the import, with `versions.json` next to it, and the
+ * code does not read the remaining archive. Its `manifest.json` tells the
+ * format of the notes. The code updates an older format. It refuses an archive
+ * with a format newer than this build reads (`NewerNoteFormatError`), and does
+ * not read it incorrectly.
  */
 async function notesFromZip(
   file: File,
@@ -171,8 +176,9 @@ async function notesFromZip(
     }
   }
 
-  // A zipped folder puts every file under that folder's name; it names the
-  // archive, not a category, so it is not made a tag.
+  // A zipped folder puts each file under the name of that folder. That name is
+  // the name of the archive, not a category. Thus, the code does not make it a
+  // tag.
   const markdown = entries.filter((e) =>
     MARKDOWN_EXTS.includes(fileExtension(e.name)),
   );
@@ -186,7 +192,7 @@ async function notesFromZip(
 
   const notes: Note[] = [];
   for (const entry of markdown) {
-    // Folders a tool keeps for itself are not notes.
+    // Folders that a tool keeps for itself are not notes.
     if (/(^|\/)\.(obsidian|trash|git)\//.test(entry.name)) continue;
     notes.push(
       markdownFileToNote(
@@ -199,7 +205,8 @@ async function notesFromZip(
     if (fileExtension(entry.name) !== ".json") continue;
     const data = parseJsonOrNull(textDecoder.decode(await read(entry)));
     if (!isKeepNote(data)) {
-      // Another app's JSON: Simplenote's export zips its notes this way.
+      // The JSON of a different app. The export of Simplenote zips its notes in
+      // this way.
       const foreign = await notesFromForeignJson(data);
       if (foreign) notes.push(...foreign);
       continue;
@@ -216,9 +223,9 @@ async function notesFromZip(
 }
 
 /**
- * The format an export's notes are in, from its manifest: 1 for an archive
- * from before formats were recorded, which has none, and for one that does
- * not say.
+ * The format of the notes of an export, from its manifest: 1 for an archive
+ * from before formats were recorded, which has none, and for an archive that
+ * does not tell.
  */
 async function archiveFormat(
   manifest: ZipEntry | undefined,
@@ -236,10 +243,10 @@ async function archiveFormat(
 }
 
 /**
- * Process one or more files: each file becomes either a new single note
- * (markdown / single-note JSON) or a bulk merge (JSON array, archive). Keep
- * notes picked from an unpacked Takeout folder are gathered into one merge,
- * with the images picked alongside them as their attachments.
+ * Process one or more files. Each file becomes a new single note (Markdown or
+ * single-note JSON) or a bulk merge (JSON array, archive). Keep notes selected
+ * from an unpacked Takeout folder are collected into one merge, with the images
+ * selected with them as their attachments.
  */
 export async function importFiles(
   files: Iterable<File>,
@@ -315,9 +322,9 @@ export async function importFiles(
         }
       }
       const result = await parseImportFile(file);
-      // The handlers report their own failure and resolve, so a rejection here
-      // means the *file* was unreadable; a falsy result means it parsed and
-      // could not be stored. Both are one failed file to the user.
+      // The handlers report their own failure and resolve. Thus, a rejection
+      // here means that the *file* was unreadable. A falsy result means that it
+      // parsed and could not be stored. For the user, both are one failed file.
       if (result.kind === "single") {
         if (await handlers.createNote(result.note)) {
           summary.singleCount++;
@@ -333,8 +340,8 @@ export async function importFiles(
     }
   }
   if (keepNotes.length > 0) await bulk(keepNotes);
-  // An image is only ever an attachment; picked with no note to attach it
-  // to, it is one file that did not import.
+  // An image is only an attachment. When it is selected with no note to which
+  // to attach it, it is one file that did not import.
   if (!usedImages && keepNotes.length === 0) summary.failedCount += images.size;
   return summary;
 }

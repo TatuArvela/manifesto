@@ -63,17 +63,17 @@ describe("VersionStorage", () => {
     }
     const versions = getVersions("note1");
     expect(versions).toHaveLength(50);
-    // Newest should be the last one saved
+    // The newest must be the last version saved.
     expect(versions[0]?.title).toBe("Title 59");
-    // Oldest kept should be #10 (0-9 were dropped)
+    // The oldest kept version must be #10 (0-9 were dropped).
     expect(versions[49]?.title).toBe("Title 10");
   });
 
   it("prunes versions older than 90 days", () => {
-    // Manually insert an old version by manipulating storage
+    // Insert an old version manually through a change to storage.
     saveVersion("note1", "Recent", "Content");
 
-    // Read, modify timestamp, write back
+    // Read, change the timestamp, write back.
     const raw = localStorage.getItem(keyFor("note1")) ?? "";
     const list = JSON.parse(decompressFromUTF16(raw) ?? "[]");
     const oldDate = new Date(
@@ -90,7 +90,7 @@ describe("VersionStorage", () => {
       compressToUTF16(JSON.stringify(list)),
     );
 
-    // Saving a new version should prune the old one
+    // A save of a new version must remove the old version.
     saveVersion("note1", "New", "New content");
     const versions = getVersions("note1");
     expect(versions.every((v) => v.title !== "Old")).toBe(true);
@@ -113,7 +113,7 @@ describe("VersionStorage", () => {
   it("stores data compressed (not raw JSON)", () => {
     saveVersion("note1", "Title", "Content");
     const raw = localStorage.getItem(keyFor("note1")) ?? "";
-    // Compressed data should not be valid JSON
+    // Compressed data must not be valid JSON.
     expect(() => JSON.parse(raw)).toThrow();
   });
 
@@ -126,8 +126,9 @@ describe("VersionStorage", () => {
   });
 
   it("keeps each note's history under a key of its own", () => {
-    // Saving one note's version must not rewrite anyone else's: the shared
-    // map this replaced made closing the editor cost the whole history.
+    // A save of the version of one note must not write again the versions of
+    // other notes. The shared map that this replaced made a close of the editor
+    // cost the full history.
     saveVersion("note1", "A", "A");
     const other = compressToUTF16(JSON.stringify([]));
     localStorage.setItem(keyFor("note2"), other);
@@ -143,7 +144,7 @@ describe("VersionStorage", () => {
   it("handles empty/corrupt storage gracefully", () => {
     localStorage.setItem(keyFor("note1"), "corrupt data");
     expect(getVersions("note1")).toHaveLength(0);
-    // Should still be able to save after corruption
+    // A save must still be possible after corruption.
     saveVersion("note1", "A", "A");
     expect(getVersions("note1")).toHaveLength(1);
   });
@@ -194,7 +195,7 @@ describe("VersionStorage legacy migration", () => {
       key: string,
       value: string,
     ) {
-      // Full for as long as the shared key is still taking up room.
+      // Full while the shared key still uses space.
       if (this.getItem(LEGACY_KEY) !== null) {
         throw new DOMException("full", "QuotaExceededError");
       }
@@ -239,7 +240,7 @@ describe("VersionStorage quota fallback", () => {
     };
   }
 
-  /** Throws QuotaExceededError once, then behaves normally. */
+  /** Throws QuotaExceededError one time, then operates usually. */
   function failFirstSetItem(): void {
     const real = Storage.prototype.setItem;
     let thrown = false;
@@ -267,7 +268,7 @@ describe("VersionStorage quota fallback", () => {
       "Third",
       "Second",
     ]);
-    // Another note's history is never what pays for this one.
+    // The history of a different note never pays for this one.
     expect(getVersions("solo").map((v) => v.title)).toEqual(["Only"]);
   });
 });

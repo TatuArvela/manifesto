@@ -13,11 +13,11 @@ import { userKeyKindOf } from "#/utils/userKey.ts";
 import { KeepSheetStep } from "./KeySheet.tsx";
 import { inputClass, quietClass, submitClass } from "./loginFormClasses.ts";
 
-// Using the recovery key, in both places it can be: on the sign-in screen,
-// with the username, by someone who has lost everything else, and on the
-// unlock screen by someone who is signed in and has lost the secret key.
-// Either way it is two steps: the key, then a sheet with the new keys that
-// take the place of the ones used.
+// The use of the recovery key, in both places where it can occur. On the
+// sign-in screen, with the username, by a person who lost all else. On the
+// unlock screen, by a person who is signed in and lost the secret key. In both
+// cases, there are two steps: the key, then a sheet with the new keys that
+// replace the used keys.
 
 const BEGIN_FAILURES: Record<
   Exclude<RecoveryResult["kind"], "ok">,
@@ -85,8 +85,8 @@ export function UserKeyInput({
 }
 
 /**
- * `withUsername` is the sign-in screen's form, where nobody is signed in:
- * the recovery then chooses a new password and signs in.
+ * `withUsername` is the form of the sign-in screen, where nobody is signed in.
+ * The recovery then selects a new password, and signs in.
  */
 export function RecoveryForm({
   withUsername,

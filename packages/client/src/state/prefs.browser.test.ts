@@ -175,7 +175,7 @@ describe("parsePrefs", () => {
   });
 
   it("refuses a custom board colour that is anything but a hex colour", () => {
-    // It is written straight into a CSS custom property.
+    // It is written directly into a CSS custom property.
     const injected = parsePrefs(
       JSON.stringify({ boardCustomColor: "red; background: url(evil)" }),
     );
@@ -191,7 +191,8 @@ describe("parsePrefs", () => {
 });
 
 describe("prefs signal persistence", () => {
-  // Snapshot current signal values so we can restore them after each test.
+  // Keep the current signal values, so that we can restore them after each
+  // test.
   let snapshot: {
     viewMode: typeof viewMode.value;
     sortMode: typeof sortMode.value;
@@ -229,7 +230,7 @@ describe("prefs signal persistence", () => {
     viewMode.value = "list";
     sortMode.value = "updated";
 
-    // Debounced save is 50ms.
+    // The debounced save is 50ms.
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     const raw = localStorage.getItem(PREFS_KEY);
@@ -468,7 +469,7 @@ describe("cross-tab preferences", () => {
 
   /**
    * What the browser delivers to the *other* tabs after a write. The event
-   * never fires in the tab that wrote, which is why adopting it cannot loop.
+   * never fires in the tab that wrote. Thus, its adoption cannot loop.
    */
   function otherTabWrote(prefs: Record<string, unknown>) {
     const value = JSON.stringify(prefs);
@@ -488,9 +489,10 @@ describe("cross-tab preferences", () => {
   });
 
   it("does not overwrite it with a stale copy on the next local change", async () => {
-    // The whole blob is written on every change, so a tab that never heard
-    // about the other's edit puts its own old value back: change the theme in
-    // one tab, switch view mode in another, and the theme is light again.
+    // The full blob is written on each change. Thus, a tab that never got the
+    // edit of the other tab puts its own old value back. Change the theme in
+    // one tab, change the view mode in a different tab, and the theme is light
+    // again.
     otherTabWrote({ theme: "dark", viewMode: "grid" });
 
     viewMode.value = "list";
@@ -502,8 +504,8 @@ describe("cross-tab preferences", () => {
   });
 
   it("does not write back what it just adopted", async () => {
-    // Let any save this test's own setup queued run first, so what we look
-    // for afterwards can only have come from adopting.
+    // Let each save that the own setup of this test queued run first. Thus,
+    // what we look for after that can only come from the adoption.
     await new Promise((resolve) => setTimeout(resolve, 100));
     otherTabWrote({ theme: "dark", viewMode: "grid" });
     localStorage.removeItem(PREFS_KEY);

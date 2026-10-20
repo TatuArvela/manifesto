@@ -22,9 +22,9 @@ function show(problem: ServerSetupProblem): string {
 
 describe("ServerSetupError", () => {
   it("prints the exact origins to add to connect-src", () => {
-    // The screen is read by whoever deployed the copy, so what it is worth
-    // is the two lines they can paste; prose alone would send them back to
-    // the docs to work out the wss:// form.
+    // The person who deployed the copy reads the screen. Thus, its value is the
+    // two lines that they can paste. Text alone would send them back to the
+    // docs to find the wss:// form.
     const text = show({
       kind: "csp-blocked",
       serverUrl: "https://notes.acme.com",
@@ -54,13 +54,13 @@ describe("ServerSetupError", () => {
     });
     expect(text).toContain("notes.acme.com");
     expect(text).toContain("https://notes.example.com");
-    // Nothing to paste into connect-src until the address itself is fixed.
+    // Nothing to paste into connect-src until the address itself is correct.
     expect(host.querySelector("pre")).toBeNull();
   });
 
   it("offers no way past itself", () => {
-    // Every request is blocked before it is sent, so there is nothing on the
-    // other side of a dismiss button.
+    // The browser blocks each request before it goes out. Thus, there is
+    // nothing on the other side of a dismiss button.
     show({
       kind: "csp-blocked",
       serverUrl: "https://notes.acme.com",

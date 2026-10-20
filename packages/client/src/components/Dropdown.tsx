@@ -11,16 +11,16 @@ export type DropdownPlacement =
   | "top-start"
   | "top-end"
   /**
-   * Beside the trigger, after it, centred on it; where that runs off the
-   * viewport, above the trigger with its trailing edge on the trigger's.
+   * Next to the trigger, after it, centered on it. Where that goes off the
+   * viewport, above the trigger, with its trailing edge on that of the trigger.
    */
   | "inline-end";
 
 /**
- * Whether the browser can position the panel against its trigger in CSS.
- * Where it can, placement (including flipping at the viewport edge) is handled
- * entirely by the stylesheet; where it can't, `placePanel` below does the same
- * job in script.
+ * If the browser can position the panel against its trigger in CSS. Where it
+ * can, the stylesheet does all of the placement (also the flip at the edge of
+ * the viewport). Where it cannot, `placePanel` below does the same job in
+ * script.
  */
 const supportsAnchorPositioning =
   typeof CSS !== "undefined" &&
@@ -34,12 +34,12 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /**
- * Where the panel should sit relative to its trigger, for browsers without CSS
- * anchor positioning. Mirrors what the `position-area` rules do: sit on the
- * requested side of the trigger, flip to the opposite side when there isn't
- * room, and stay clear of the viewport edges either way.
+ * Where the panel must be in relation to its trigger, for browsers without CSS
+ * anchor positioning. It does the same as the `position-area` rules: it goes on
+ * the requested side of the trigger, flips to the opposite side when there is
+ * no space, and stays away from the edges of the viewport in both cases.
  *
- * Pure so the geometry can be tested without a layout.
+ * Pure. Thus, a test can check the geometry without a layout.
  */
 export function computePanelPosition(
   anchor: { top: number; bottom: number; left: number; right: number },
@@ -55,8 +55,8 @@ export function computePanelPosition(
   const below = anchor.bottom + EDGE_GAP;
   const above = anchor.top - panel.height - EDGE_GAP;
   let top = block === "bottom" ? below : above;
-  // Flip only when the opposite side actually has room, so a panel taller than
-  // the viewport doesn't swap to an equally bad position.
+  // Flip only when the opposite side really has space. Thus, a panel that is
+  // taller than the viewport does not change to a position that is equally bad.
   if (
     block === "bottom" &&
     below + panel.height > viewport.height &&
@@ -68,8 +68,9 @@ export function computePanelPosition(
     top = below;
   }
 
-  // "start" aligns the panel's leading edge with the trigger's, "end" its
-  // trailing edge, matching `span-inline-end` / `span-inline-start` in CSS.
+  // "start" aligns the leading edge of the panel with that of the trigger,
+  // "end" its trailing edge. This agrees with `span-inline-end` /
+  // `span-inline-start` in CSS.
   const left = inline === "start" ? anchor.left : anchor.right - panel.width;
 
   return {
@@ -78,7 +79,7 @@ export function computePanelPosition(
   };
 }
 
-/** `inline-end`, as `@position-try --dd-above-end` falls back in CSS. */
+/** `inline-end`, as the fallback of `@position-try --dd-above-end` in CSS. */
 function besideTrigger(
   anchor: { top: number; bottom: number; left: number; right: number },
   panel: { width: number; height: number },
@@ -122,29 +123,34 @@ function placePanel(
   panel.style.top = `${top}px`;
 }
 
-/** How long a panel takes to leave; the `.dropdown-panel` transition's. */
+/**
+ * How long a panel takes to leave: the duration of the `.dropdown-panel`
+ * transition.
+ */
 export const DROPDOWN_EXIT_MS = 140;
 
 /**
- * Generic dropdown built on the Popover API + CSS anchor positioning, so the
- * panel renders in the top layer and is not clipped by ancestor
- * `overflow: hidden`.
+ * A generic dropdown built on the Popover API and CSS anchor positioning. Thus,
+ * the panel renders in the top layer, and an ancestor with `overflow: hidden`
+ * does not clip it.
  *
- * The popover is `manual`, and this component dismisses it (outside presses,
- * Escape) and decides when it leaves the top layer: only once its exit has
- * played. With `popover="auto"` the browser hid the panel the moment it was
- * dismissed, and the exit could only be seen where the top layer itself can be
- * transitioned (`overlay`, Chromium only). Elsewhere the panel dropped out
- * from over the page and was cut off or drawn under the header as it faded.
+ * The popover is `manual`. This component dismisses it (outside presses,
+ * Escape), and decides when it leaves the top layer: only after its exit
+ * animation is complete. With `popover="auto"`, the browser hid the panel
+ * immediately at the dismissal. The exit could only show where the top layer
+ * itself can transition (`overlay`, only in Chromium). In other browsers, the
+ * panel dropped out from over the page, and was cut off or drawn under the
+ * header while it faded.
  *
- * Before opening, any other open dropdown panel is asked to close through its
- * `toggle` event: neither the browser's auto-popover stack nor a module-level
- * tracker proved reliable across the modal portal, so the DOM is queried.
+ * Before it opens, the component asks each other open dropdown panel to close,
+ * through its `toggle` event. Neither the auto-popover stack of the browser nor
+ * a tracker at module level was reliable across the modal portal. Thus, the
+ * code queries the DOM.
  *
- * A `persistent` panel is a bar to work from rather than a menu to choose
- * from: a press outside it does not close it, nor does another dropdown
- * opening (one inside it, say), and it stays until its trigger is pressed
- * again or Escape.
+ * A `persistent` panel is a bar to work from, not a menu to select from. A
+ * press outside it does not close it, and another dropdown that opens (for
+ * example, one inside it) does not close it. It stays until its trigger is
+ * pressed again, or until Escape.
  */
 export function Dropdown({
   open,
@@ -171,23 +177,23 @@ export function Dropdown({
   onCloseRef.current = onClose;
   const openRef = useRef(open);
   openRef.current = open;
-  // Whether the panel is in the top layer, which outlasts `open` by the exit.
-  // `leaving` is derived in render rather than set by an effect: an effect
-  // runs after a frame in which the panel is neither open nor leaving, and
-  // that frame's `display: none` cancelled the exit before it started.
+  // If the panel is in the top layer, which lasts longer than `open` by the
+  // exit. The render calculates `leaving`. An effect does not set it. An effect
+  // runs after a frame in which the panel is not open and not leaving, and the
+  // `display: none` of that frame cancelled the exit before it started.
   const [shown, setShown] = useState(false);
   const leaving = !open && shown;
-  // Whether the panel was open when the pointer last went down on the
-  // trigger. A tap delivers its click as a separate gesture, after an outside
-  // press has already closed the panel, so the trigger would see it closed and
-  // open it again: the menu could not be shut from its own button.
+  // If the panel was open when the pointer last went down on the trigger. A tap
+  // delivers its click as a separate gesture, after an outside press already
+  // closed the panel. Thus, the trigger would see it closed, and open it again.
+  // The menu could not be closed from its own button.
   const openAtPointerDownRef = useRef(false);
 
   useEscapeStack(open, () => onCloseRef.current());
 
-  // Another dropdown opening closes this one by hiding its popover, which
-  // arrives here as `toggle`. Only reported while this panel is meant to be
-  // open, since its own exit ends with a hide too.
+  // When a different dropdown opens, it closes this one: it hides its popover,
+  // which arrives here as `toggle`. Only reported while this panel must be
+  // open, because its own exit also ends with a hide.
   useEffect(() => {
     const el = panelRef.current;
     if (!el) return;
@@ -199,8 +205,8 @@ export function Dropdown({
     return () => el.removeEventListener("toggle", handleToggle);
   }, []);
 
-  // A press anywhere but the panel and its trigger dismisses it, as the
-  // browser's light-dismiss did. The trigger's own press is left to the
+  // A press anywhere other than the panel and its trigger dismisses it, as the
+  // light-dismiss of the browser did. The press on the trigger goes to the
   // trigger, which toggles.
   useEffect(() => {
     if (!open || persistent) return;
@@ -219,9 +225,9 @@ export function Dropdown({
     if (!el) return;
     const isOpen = el.matches(":popover-open");
     if (open) {
-      if (isOpen) return; // Reopened mid-exit: it transitions back.
-      // The trigger's own tooltip would otherwise sit on top of the panel we
-      // are about to open, because the pointer never leaves the trigger, so
+      if (isOpen) return; // Opened again during the exit: it transitions back.
+      // If not, the own tooltip of the trigger would be on top of the panel
+      // that will open, because the pointer never leaves the trigger. Thus,
       // nothing hides it.
       hideAllTooltips();
       document
@@ -246,11 +252,12 @@ export function Dropdown({
     return () => clearTimeout(timer);
   }, [open]);
 
-  // The trigger says whether its panel is open, for every dropdown at once
-  // rather than each caller remembering to (most had not). And a panel that
-  // closes with focus in it hands focus back to the trigger. Where the focus
-  // was is read in render, before the commit makes the panel inert: Chromium
-  // moves focus out of inert content to the page before any effect runs.
+  // The trigger tells if its panel is open, for all dropdowns at the same time.
+  // Each caller does not have to remember it (most callers had not). Also, a
+  // panel that closes with focus in it gives focus back to the trigger. The
+  // render reads where the focus was, before the commit makes the panel inert.
+  // Chromium moves focus out of inert content to the page before an effect
+  // runs.
   const focusWasInPanel = useRef(false);
   if (!open && panelRef.current?.contains(document.activeElement)) {
     focusWasInPanel.current = true;
@@ -266,8 +273,8 @@ export function Dropdown({
     focusWasInPanel.current = false;
   }, [open]);
 
-  // Script-side placement, only where CSS can't do it. Kept in sync while open
-  // because the trigger moves with any scrolling ancestor.
+  // Placement in script, only where CSS cannot do it. It updates while open,
+  // because the trigger moves with each ancestor that scrolls.
   useEffect(() => {
     if (supportsAnchorPositioning || !open) return;
     const el = panelRef.current;
@@ -283,7 +290,10 @@ export function Dropdown({
     };
   }, [open, placement]);
 
-  /** Presses inside the panel are the panel's; only the trigger's count. */
+  /**
+   * Presses inside the panel belong to the panel. Only those of the trigger
+   * count.
+   */
   const onTrigger = (e: Event) =>
     !panelRef.current?.contains(e.target as Node | null);
 
@@ -300,8 +310,8 @@ export function Dropdown({
         const wasOpen = openAtPointerDownRef.current;
         openAtPointerDownRef.current = false;
         if (!wasOpen || !onTrigger(e)) return;
-        // The press was meant to close. Keep it from reaching the trigger,
-        // which by now may see the panel closed and open it again.
+        // The press was to close. Keep it from the trigger, which possibly sees
+        // the panel closed now and would open it again.
         e.stopPropagation();
         onCloseRef.current();
       }}

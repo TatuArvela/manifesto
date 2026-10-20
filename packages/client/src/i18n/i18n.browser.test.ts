@@ -17,8 +17,8 @@ beforeEach(() => {
   locale.value = "en";
 });
 
-// The debounced save persists whatever the last test chose, and the next file
-// to start reads it; leave English there.
+// The debounced save keeps the value that the last test selected, and the next
+// file that starts reads it. Leave English there.
 afterEach(() => {
   locale.value = "en";
 });
@@ -42,8 +42,8 @@ describe("t()", () => {
     expect(t("editor.removeTag")).toBe(raw);
   });
 
-  // The product name is a build-time parameter, so no catalogue spells it out:
-  // messages carry `{appName}` and t() fills it in without being asked.
+  // The product name is a build-time parameter. Thus, no catalogue contains it.
+  // Messages contain `{appName}`, and t() fills it without a request.
   test("fills {appName} from the build-time app name", () => {
     expect(t("welcome.title")).toBe(`This is ${APP_NAME}`);
     expect(t("error.body")).toContain(APP_NAME);
@@ -107,10 +107,10 @@ describe("detectBrowserLocale()", () => {
 });
 
 describe("message shape parity", () => {
-  // A hard-coded product name would survive a rebrand and read as someone
-  // else's app, so the catalogues must go through `{appName}` instead. Every
-  // message is phrased so that the placeholder stands uninflected, which is
-  // what lets one wording serve every deployment name.
+  // A hard-coded product name would stay after a rebrand, and would look like
+  // the app of a different person. Thus, the catalogues must use `{appName}`.
+  // Each message keeps the placeholder in its base form. Thus, one text is
+  // correct for all deployment names.
   test("no catalogue hard-codes the default product name", () => {
     for (const [key, value] of Object.entries({ en, fi })) {
       for (const [messageKey, message] of Object.entries(value)) {
@@ -151,9 +151,9 @@ describe("formatFileSize()", () => {
     expect(formatFileSize(MAX_IMAGE_SOURCE_BYTES)).toBe("5 MB");
   });
 
-  // "Mt" (megatavu) rather than "MB", and a decimal comma. Both come from CLDR
-  // rather than from a hand-written translation, which is the point of routing
-  // the size through Intl instead of spelling it out in each message.
+  // "Mt" (megatavu), not "MB", and a decimal comma. Both come from CLDR, not
+  // from a manual translation. That is the reason to send the size through
+  // Intl, and not to write it in each message.
   test("renders megabytes with the Finnish unit and separator", () => {
     locale.value = "fi";
     expect(formatFileSize(MAX_IMAGE_SOURCE_BYTES)).toBe("5 Mt");

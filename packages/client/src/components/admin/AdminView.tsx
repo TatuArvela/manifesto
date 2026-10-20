@@ -40,18 +40,18 @@ import { AdminTeams } from "./AdminTeams.tsx";
 import { AuditLog } from "./AuditLog.tsx";
 
 /**
- * `/admin`: every account on the server, for an admin to create, reset,
- * promote and delete.
+ * `/admin`: all accounts on the server, for an admin to create, reset, promote
+ * and delete.
  *
- * Only rendered for an admin in connected mode (`App` sees to that), but the
- * server decides: a request from someone who has lost admin since the page
- * loaded is refused, and `state/admin.ts` takes them back to their notes.
+ * `App` renders it only for an admin in connected mode, but the server decides.
+ * It refuses a request from a person who lost admin rights after the page
+ * loaded, and `state/admin.ts` takes them back to their notes.
  */
 export function AdminView() {
   const users = adminUsers.value;
   const providers = authProviders.value;
-  // Accounts with passwords exist only where local sign-in is on. Under SSO
-  // the identity provider creates them and owns their passwords.
+  // Accounts with passwords exist only where local sign-in is on. With SSO, the
+  // identity provider creates them and owns their passwords.
   const passwordsHere = providers.includes("local");
   const [loadFailed, setLoadFailed] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -71,7 +71,7 @@ export function AdminView() {
   useEffect(() => {
     load();
     if (authProviders.value.length === 0) void fetchCapabilities();
-    // A temporary password is shown once; leaving the view is dismissing it.
+    // A temporary password shows one time. To leave the view dismisses it.
     return () => {
       issuedPassword.value = null;
     };
@@ -192,7 +192,8 @@ function CreateAccountForm({ onDone }: { onDone: () => void }) {
     const name = username.trim();
     if (!name || busy) return;
     setBusy(true);
-    // A failure has already been reported; the form stays open to fix it.
+    // The failure was already reported. The form stays open, so that you can
+    // correct it.
     const created = await createAccount(name, email.trim() || undefined);
     setBusy(false);
     if (created) onDone();
@@ -255,8 +256,8 @@ function IssuedPasswordPanel({ issued }: { issued: IssuedPassword }) {
   const [copied, setCopied] = useState(false);
   const copyRef = useRef<HTMLButtonElement>(null);
 
-  // Focus follows the new panel, so a keyboard user lands on what they came
-  // for rather than on a menu that has just closed.
+  // Focus follows the new panel. Thus, a keyboard user goes to what they came
+  // for, not to a menu that just closed.
   useEffect(() => {
     copyRef.current?.focus();
     setCopied(false);
@@ -267,7 +268,7 @@ function IssuedPasswordPanel({ issued }: { issued: IssuedPassword }) {
       await navigator.clipboard.writeText(issued.password);
       setCopied(true);
     } catch {
-      // No clipboard access; the password is selectable text all the same.
+      // No clipboard access. The password is still text that you can select.
     }
   };
 
@@ -356,7 +357,8 @@ function UserRow({
     setMenuOpen(false);
     setBusy(true);
     await action();
-    // A deleted row is already gone from the list, and nothing here outlives it.
+    // A deleted row is already gone from the list, and nothing here stays after
+    // it.
     setBusy(false);
     setConfirming(null);
   };
@@ -530,9 +532,9 @@ function UserRow({
 }
 
 /**
- * An admin setting someone's address, for an account created without one or
- * holding one that belongs to somebody else. Under single sign-on the next
- * sign-in brings the identity provider's address back.
+ * An admin sets the address of a person, for an account created without one, or
+ * with one that belongs to a different person. With single sign-on, the next
+ * sign-in brings back the address of the identity provider.
  */
 function EmailForm({ user, onDone }: { user: AdminUser; onDone: () => void }) {
   const [email, setEmail] = useState(user.email ?? "");
@@ -545,7 +547,8 @@ function EmailForm({ user, onDone }: { user: AdminUser; onDone: () => void }) {
     if (busy) return;
     setBusy(true);
     const next = email.trim();
-    // A failure has already been reported; the form stays open to fix it.
+    // The failure was already reported. The form stays open, so that you can
+    // correct it.
     const saved = await setAccountEmail(user.id, next.length > 0 ? next : null);
     setBusy(false);
     if (saved) onDone();

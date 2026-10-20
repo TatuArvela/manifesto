@@ -10,17 +10,18 @@ import { type Random, SEEDS, seeded } from "#/test/testRandom.ts";
 import { forgetNote, notes, receiveNote, updateNote } from "./notesStore.ts";
 
 /**
- * Clicks on one note, sent while earlier ones are still in the air, against a
- * server that keeps `If-Match`. Every request, reply and broadcast is held and
- * delivered in an order the seed picks: requests reach the server in any
- * order, replies come back in any order, and broadcasts come in the order the
- * server sent them, since they share one socket. The real `updateNote`,
- * `receiveNote`, `pendingWrites` and `mergeNoteUpdate` run in between.
+ * Clicks on one note, sent while earlier clicks are still in progress, against
+ * a server that keeps `If-Match`. The test holds each request, reply and
+ * broadcast, and delivers them in an order that the seed selects. Requests
+ * reach the server in any order, and replies come back in any order. Broadcasts
+ * come in the order in which the server sent them, because they share one
+ * socket. The real `updateNote`, `receiveNote`, `pendingWrites` and
+ * `mergeNoteUpdate` run between them.
  *
  * Two properties:
- * - while a click's write is outstanding, the board shows what was clicked,
- *   whatever arrives meanwhile;
- * - once everything has arrived, the board shows what the server has.
+ * - While the write of a click is not complete, the board shows what was
+ *   clicked, whatever arrives in the meantime.
+ * - After all arrived, the board shows what the server has.
  */
 
 const SERVER = "https://notes.example.com";
@@ -87,9 +88,10 @@ function json(body: unknown, status = 200): Response {
 }
 
 /**
- * Lets every promise chain that can move, move: a reply's `res.json()` and the
- * store's handling of it. A task per turn rather than `setTimeout`, which the
- * browser clamps to 4ms once nested and made a few thousand steps slow.
+ * Lets each promise chain that can move, move: the `res.json()` of a reply, and
+ * how the store handles it. One task for each turn, not `setTimeout`. The
+ * browser clamps a nested `setTimeout` to 4ms, which made a few thousand steps
+ * slow.
  */
 const channel = new MessageChannel();
 function nextTask(): Promise<void> {
@@ -145,7 +147,9 @@ async function run(seed: number): Promise<void> {
     broadcasts.push(structuredClone(server));
   };
 
-  /** The newest click touching each field, and whether it is still out. */
+  /**
+   * The newest click that changes each field, and if it is still in progress.
+   */
   const newest = new Map<Field, { value: unknown; done: boolean }>();
   const shown = () => notes.value.find((n) => n.id === ID) as Note;
   const fail = (what: string) =>
@@ -226,8 +230,8 @@ describe("pending writes, over generated interleavings", () => {
 
   it("never undoes a pending click, and ends where the server is", async () => {
     for (const seed of SEEDS) {
-      // The store remembers the last copy it confirmed, which would be newer
-      // than this run's first.
+      // The store remembers the last copy that it confirmed, which would be
+      // newer than the first copy of this run.
       forgetNote(ID);
       receiveNote(makeNote());
       await run(seed);

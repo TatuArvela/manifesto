@@ -73,7 +73,7 @@ describe("dates on checklist items in the editor", () => {
       view().state.tr.insertText("5", view().state.doc.content.size - 3),
     );
     await vi.waitFor(() => expect(markdown).toContain("@2000-01-015"));
-    // No longer a date, so no longer a chip.
+    // It is not a date now. Thus, it is not a chip now.
     expect(chips()).toHaveLength(0);
   });
 

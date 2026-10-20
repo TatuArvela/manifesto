@@ -1,6 +1,6 @@
-/* Markdown content, alike in a card's preview and in the editor. */
+/* Markdown content, the same in the preview of a card and in the editor. */
 
-/* Prose heading styles for markdown content */
+/* Prose heading styles for Markdown content. */
 .prose h1,
 .milkdown-editor h1 {
   font-size: 1.5em;
@@ -39,7 +39,7 @@
   line-height: 1.4;
 }
 
-/* GFM task list checkboxes rendered by marked */
+/* GFM task list checkboxes that marked renders. */
 .prose ul,
 .milkdown-editor ul {
   list-style: disc;
@@ -62,7 +62,7 @@
   margin-bottom: 0.125em;
 }
 
-/* Task list items: remove bullet; keep nested lists flowing below */
+/* Task list items: remove the bullet, and keep nested lists below. */
 .prose .task-list-item {
   list-style: none;
   margin-left: -1.5em;
@@ -79,7 +79,7 @@
   top: 1px;
 }
 
-/* Custom checkbox checkmark */
+/* The custom checkmark of the checkbox. */
 .checkbox-custom:checked {
   background-color: #3b82f6;
   border-color: #3b82f6;
@@ -125,11 +125,13 @@
   margin-bottom: 0.5em;
 }
 
-/* Inside a fenced block the `pre` provides the background, so the chip above
-   is reset, once for each theme. The dark reset is not redundant: its two
-   classes are what let it outrank `.dark … code`, which would otherwise paint
-   the inline chip behind every line of a code block. Specificity decides
-   that, not source order. */
+/*
+ * Inside a fenced block, the `pre` gives the background. Thus, the chip above
+ * is reset, one time for each theme. The dark reset is necessary. Its two
+ * classes let it override `.dark … code`, which would otherwise paint the
+ * inline chip behind each line of a code block. Specificity decides that, not
+ * the source order.
+ */
 .prose pre code,
 .milkdown-editor pre code {
   background: none;
@@ -163,9 +165,11 @@
   margin-bottom: 0.75em;
 }
 
-/* Tables. A wide one scrolls sideways (the editor's text does, see
-   `editor.css`, and on a card the table does by itself), so cells keep to the
-   width of their text rather than squeezing it into a column a word wide. */
+/*
+ * Tables. A wide table scrolls sideways (the text of the editor does, see
+ * `editor.css`, and on a card the table does by itself). Thus, cells keep the
+ * width of their text, and do not squeeze it into a column one word wide.
+ */
 .prose table,
 .milkdown-editor table {
   border-collapse: collapse;
@@ -201,23 +205,30 @@
   background-color: rgb(255 255 255 / 0.05);
 }
 
-/* On a card nothing else scrolls, so a table too wide for it scrolls by
-   itself rather than running out over the board. */
+/*
+ * On a card, nothing else scrolls. Thus, a table too wide for it scrolls by
+ * itself, and does not go out over the board.
+ */
 .prose table {
   display: block;
   max-width: 100%;
   overflow-x: auto;
 }
 
-/* A cell holds one paragraph, whose margins would double the padding. */
+/*
+ * A cell contains one paragraph, whose margins would make the padding two times
+ * as large.
+ */
 .milkdown-editor th p,
 .milkdown-editor td p {
   margin: 0;
 }
 
-/* Cells selected together (a drag across them, Shift and an arrow from one
-   cell to the next). `prosemirror-tables` hides the browser's own selection
-   then, so without this a selection of cells is invisible. */
+/*
+ * Cells selected together (a drag across them, Shift and an arrow from one cell
+ * to the next). `prosemirror-tables` then hides the own selection of the
+ * browser. Thus, without this, a selection of cells is invisible.
+ */
 .milkdown-editor .selectedCell {
   background-color: rgb(59 130 246 / 0.15);
 }
@@ -228,11 +239,13 @@
   font-weight: 600;
 }
 
-/* Links: underlined in the note's own text colour, alike on the card, in
-   read-only views and in the editor. A blue link fought every note colour and
-   read as a different thing on a card than in its own editor; and a checklist
-   label, rendered outside `.prose`, had no underline at all, so a link there
-   looked like plain text. */
+/*
+ * Links: underlined in the own text color of the note, the same on the card, in
+ * read-only views and in the editor. A blue link did not agree with any note
+ * color, and looked different on a card than in its own editor. A checklist
+ * label, rendered outside `.prose`, had no underline. Thus, a link there looked
+ * like plain text.
+ */
 .prose a,
 .milkdown-editor a,
 .note-inline-markdown a {

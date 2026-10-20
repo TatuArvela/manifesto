@@ -26,14 +26,15 @@ import { LoginScreen } from "./login/LoginScreen.tsx";
 const inputClass =
   "w-full rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
 
-/** Choices for how long the connection lasts; null does not end. */
+/** The choices for the duration of the connection. Null does not end. */
 const EXPIRY_DAYS = [30, 90, 365, null] as const;
 
 /**
- * The page an AI assistant opens to sign in to this server's MCP endpoint,
- * rendered in place of the app like a public link's page. Signed out, it is
- * the sign-in screen; signed in, it names the assistant and what it would get,
- * and sends the browser back to it with the answer.
+ * The page that an AI assistant opens to sign in to the MCP endpoint of this
+ * server. It renders in place of the app, as the page of a public link does.
+ * When signed out, it is the sign-in screen. When signed in, it names the
+ * assistant and what it would get, and sends the browser back to it with the
+ * answer.
  */
 export function OAuthConsentPage() {
   const request = useMemo(
@@ -43,7 +44,7 @@ export function OAuthConsentPage() {
   const signedIn = authToken.value !== null;
 
   useEffect(() => {
-    // Single sign-on returns to the board; this is how it finds its way back.
+    // Single sign-on goes back to the board. This is how it finds its way back.
     if (request) rememberConsentPage();
     revealApp();
   }, [request]);

@@ -27,9 +27,9 @@ import { createAccountKeys } from "#/utils/keyMaterial.ts";
 import { Sealer, setOfferHandler } from "./sealing.ts";
 
 /**
- * A note's key going from its owner to someone it is shared with: wrapped to
- * their public key, signed, checked and kept. Real keys throughout; no server
- * is involved in any of it but to pass the values on.
+ * The key of a note goes from its owner to a person with whom it is shared:
+ * wrapped to their public key, signed, checked and kept. Real keys in all
+ * places. The server only passes the values on.
  */
 
 const draft: NoteCreate = {
@@ -48,7 +48,7 @@ const draft: NoteCreate = {
   reminder: null,
 };
 
-/** An account as a device and the server each hold it. */
+/** An account as a device and the server each have it. */
 async function account(userId: string) {
   const made = await createAccountKeys(userId);
   const held: AccountKeys = {
@@ -67,7 +67,7 @@ async function account(userId: string) {
   };
 }
 
-/** What the server stores of a new note, and hands back. */
+/** What the server stores of a new note, and gives back. */
 function stored(sealed: SealedNoteCreate): SealedNote {
   const { imageRefs: _i, previewRefs: _p, ...note } = sealed;
   return { ...note, createdAt: "c", updatedAt: "u" };
@@ -98,18 +98,18 @@ describe("handing a note's key to someone it is shared with", () => {
     expect(held.keyVersion).toBe(1);
     expect(held.key.startsWith("e1.")).toBe(true);
 
-    // The preview an invitation shows: the note's words, not the owner's
-    // colour or tags, which are the owner's own.
+    // The preview that an invitation shows: the words of the note, not the
+    // color or tags of the owner, which belong to the owner.
     expect(await alice.sealer.openPreview("n1", 1, note)).toEqual({
       title: "Trip plan",
       content: "Fly on the third.",
       font: NoteFont.Serif,
     });
 
-    // As the server sends it once accepted: her copy of the key, and no
-    // colour or tags of hers yet.
+    // As the server sends it after the accept: her copy of the key, and no
+    // color or tags of hers yet.
     const hers: SealedNote = { ...note, key: held.key, color: "", tags: "" };
-    // Another device of hers, which has only what the server holds.
+    // A different device of hers, which has only what the server has.
     const otherDevice = new Sealer(alice.keys);
     expect(await otherDevice.open(hers)).toMatchObject({
       title: "Trip plan",
@@ -145,27 +145,27 @@ describe("handing a note's key to someone it is shared with", () => {
       signerKey = owner.publicKeys.signing,
     ) => alice.sealer.adoptOffered(noteId, offered, signerKey, alice.load);
 
-    // The server's own key in place of the signer's: the first thing a
-    // dishonest server would try.
+    // The own key of the server in place of that of the signer: the first thing
+    // that a dishonest server would try.
     expect(await adopt("n1", good, mallory.publicKeys.signing)).toBeNull();
-    // A key of mallory's making, passed off as the owner's.
+    // A key that mallory made, given as that of the owner.
     const hers = stored(await mallory.sealer.sealNew("n1", draft));
     const forged = await offerTo(mallory, "n1", hers, alice);
     if (!forged) throw new Error("no offer");
     expect(await adopt("n1", { ...forged, signer: "u-owner" })).toBeNull();
-    // The key of another note, moved onto this one.
+    // The key of a different note, moved onto this one.
     const moved = await offerTo(owner, "n2", other, alice);
     if (!moved) throw new Error("no offer");
     expect(await adopt("n1", moved)).toBeNull();
-    // One wrapped for someone else.
+    // A key wrapped for a different person.
     const theirs = await offerTo(owner, "n1", note, mallory);
     if (!theirs) throw new Error("no offer");
     expect(await adopt("n1", theirs)).toBeNull();
-    // And one said to be a later key than it is.
+    // And a key that says it is a later key than it is.
     expect(await adopt("n1", { ...good, keyVersion: 2 })).toBeNull();
-    // A key of mallory's making under her own name: the signature checks,
-    // since she is on the note, but it is not the key the note's words are
-    // under, and a note opened with it would read as empty.
+    // A key that mallory made under her own name. The signature passes the
+    // check, because she is on the note. But it is not the key under which the
+    // words of the note are, and a note opened with it would read as empty.
     expect(
       await alice.sealer.adoptOffered(
         "n1",
@@ -175,8 +175,8 @@ describe("handing a note's key to someone it is shared with", () => {
         note,
       ),
     ).toBeNull();
-    // Nor once she has written one field of the note under it, which an
-    // editor may: the words are still under the note's key.
+    // Also not after she wrote one field of the note under it, which an editor
+    // can do. The words are still under the key of the note.
     const written: SealedNote = { ...note, font: hers.font };
     expect(
       await alice.sealer.adoptOffered(
@@ -212,7 +212,7 @@ describe("handing a note's key to someone it is shared with", () => {
       owner.load,
     );
     if (!offered) throw new Error("no offer");
-    // No copy of her own: nothing opens until the offer is taken.
+    // No copy of her own: nothing opens until she takes the offer.
     const behind: SealedNote = {
       ...note,
       key: "",
@@ -301,7 +301,8 @@ describe("publishing a note by link", () => {
     if (!made?.fields.wrappedKey) throw new Error("no link");
     expect(made.fields.snapshot).toBeUndefined();
 
-    // The page: the link key from its address, the rest from the server.
+    // The page: the link key from its address, the remaining data from the
+    // server.
     const key = await openLinkedKey(
       made.linkKey,
       "n1",
@@ -312,7 +313,8 @@ describe("publishing a note by link", () => {
       title: "Trip plan",
       content: "Fly on the third.",
     });
-    // Another link's key, or this one on another note, opens nothing.
+    // The key of a different link, or the key of this link on a different note,
+    // opens nothing.
     expect(
       await openLinkedKey(newLinkKey(), "n1", 1, made.fields.wrappedKey),
     ).toBeNull();
@@ -320,7 +322,8 @@ describe("publishing a note by link", () => {
       await openLinkedKey(made.linkKey, "n2", 1, made.fields.wrappedKey),
     ).toBeNull();
 
-    // The owner can copy the address again, and nobody else's account can.
+    // The owner can copy the address again, and the account of no other person
+    // can.
     expect(
       await owner.sealer.openLinkKey("n1", made.fields.sealedLinkKey),
     ).toBe(made.linkKey);
@@ -348,7 +351,8 @@ describe("publishing a note by link", () => {
       title: "Trip plan",
       content: "Fly on the third.",
     });
-    // The copy is not under the note's key: the link gives nothing else away.
+    // The copy is not under the key of the note. The link gives nothing else
+    // away.
     expect(await shownBy(await snapshotKey(newLinkKey()), snapshot)).toEqual({
       title: "",
       content: "",
@@ -371,13 +375,13 @@ describe("publishing a note by link", () => {
     expect(await openSharedFieldsUnder(right, "n1", snapshot)).toEqual(
       await openSharedFields(right, "n1", snapshot),
     );
-    // Another link's key derives a key all the same; only opening tells.
+    // The key of a different link also derives a key. Only the open tells.
     expect(await openSharedFieldsUnder(wrong, "n1", snapshot)).toBeNull();
   });
 });
 
 describe("replacing a note's key", () => {
-  /** The note as the server holds it once it took `body`. */
+  /** The note as the server has it after it took `body`. */
   const moved = (note: SealedNote, body: NoteRekeyRequest): SealedNote => {
     const { links: _links, ...fields } = body;
     return { ...note, ...fields };
@@ -441,7 +445,7 @@ describe("replacing a note's key", () => {
       ...(await owner.sealer.sealComment("n1", "c1", "Which airport?", fetch)),
     };
 
-    // Alice is removed; the owner's app gives the note a new key.
+    // Alice is removed. The app of the owner gives the note a new key.
     const made = await owner.sealer.rekey({ ...note, rekeyDue: true }, []);
     if (!made) throw new Error("not replaced");
     expect(made.body.keyVersion).toBe(2);
@@ -451,7 +455,7 @@ describe("replacing a note's key", () => {
     const after = moved(note, made.body);
     expect(owner.sealer.replaced.value.get("n1")).toBe(2);
 
-    // The owner reads it as before, and what the old key wrote with it.
+    // The owner reads it as before, and also what the old key wrote with it.
     expect(await owner.sealer.open(after)).toMatchObject({
       title: "Trip plan",
       content: "Fly on the third.",
@@ -474,15 +478,15 @@ describe("replacing a note's key", () => {
       ),
     ).toEqual(["Which airport?", "The small one."]);
 
-    // Alice's copy of the first key opens nothing of the note as it is now,
-    // whatever the server hands her.
+    // The copy of the first key of Alice opens nothing of the note as it is
+    // now, whatever the server gives her.
     expect(
       await alice.sealer.open({ ...after, key: aliceKey.key, keyVersion: 1 }),
     ).toMatchObject({ title: "", content: "" });
     expect(await alice.sealer.open({ ...after, key: "" })).toBeNull();
 
-    // Bob, still on the note, has nothing that opens it until the owner's
-    // app wraps the new key for him; then he reads all of it, old and new.
+    // Bob, still on the note, has nothing that opens it until the app of the
+    // owner wraps the new key for him. Then he reads all of it, old and new.
     expect(await bob.sealer.open({ ...after, key: "" })).toBeNull();
     await expect(
       bob.sealer.sealUpdate("n1", { title: "x" }, async () => ({
@@ -497,12 +501,12 @@ describe("replacing a note's key", () => {
     expect(
       await bob.sealer.openVersions("n1", [version], async () => bobs),
     ).toHaveLength(1);
-    // What he writes now says which key it is under.
+    // What he writes now tells under which key it is.
     expect(
       await bob.sealer.sealUpdate("n1", { title: "New" }, async () => bobs),
     ).toMatchObject({ keyVersion: 2 });
 
-    // A second replacement keeps the first key too.
+    // A second replacement also keeps the first key.
     const again = await owner.sealer.rekey({ ...after, rekeyDue: true }, []);
     if (!again) throw new Error("not replaced again");
     again.commit();
@@ -523,7 +527,7 @@ describe("replacing a note's key", () => {
     expect(sealed.length).toBeLessThanOrEqual(MAX_PREVIOUS_KEYS_LENGTH);
     const opened = await openPreviousKeys(key, "n1", sealed);
     expect(opened.size).toBe(MAX_PREVIOUS_KEYS);
-    // The oldest are the ones let go.
+    // The oldest are the ones that go.
     expect(opened.has(9)).toBe(false);
     expect(opened.get(10)).toEqual(previous.get(10));
     expect(opened.has(key.version - 1)).toBe(true);
@@ -540,8 +544,8 @@ describe("replacing a note's key", () => {
     if (!published) throw new Error("no link");
     const made = await owner.sealer.rekey(note, [
       link({ sealedLinkKey: published.fields.sealedLinkKey }),
-      // A snapshot holds no key of the note's, and a link whose key does
-      // not open here is left behind.
+      // A snapshot has no key of the note, and the code leaves a link whose key
+      // does not open here.
       link({ token: "copy", mode: "snapshot" }),
       link({ token: "lost", sealedLinkKey: "e1.AAAA" }),
     ]);
@@ -564,7 +568,8 @@ describe("replacing a note's key", () => {
     const owner = await account("u-owner");
     const other = await account("u-other");
     const note = stored(await owner.sealer.sealNew("n1", draft));
-    // Another account's copy, and a note with a field that is not its own.
+    // The copy of a different account, and a note with a field that is not its
+    // own.
     expect(await other.sealer.rekey(note, [])).toBeNull();
     const elsewhere = stored(await owner.sealer.sealNew("n2", draft));
     expect(

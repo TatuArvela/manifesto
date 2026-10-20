@@ -2,12 +2,12 @@ import { useEffect } from "preact/hooks";
 import { handOffHref } from "#/state/externalLinks.ts";
 
 /**
- * With "Open Links in Browser" on in the installed app, a link that would
- * open in a new tab (a note's own, a preview card's, any `target="_blank"`)
- * is handed to the system browser instead (`state/externalLinks.ts`). One
- * listener for the whole app, in the capture phase: a card stops a link's
- * click from bubbling so that it does not open the note too, and that must
- * not stop this.
+ * With "Open Links in Browser" on in the installed app, a link that would open
+ * in a new tab (a link of a note, of a preview card, each `target="_blank"`)
+ * goes to the system browser (`state/externalLinks.ts`). One listener for the
+ * full app, in the capture phase. A card stops the click of a link from
+ * bubbling, so that it does not also open the note, and that must not stop
+ * this.
  */
 export function useSystemBrowserLinks(): void {
   useEffect(() => {

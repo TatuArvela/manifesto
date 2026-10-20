@@ -6,12 +6,13 @@ import { NoteCard } from "./card/NoteCard.tsx";
 import { gridColumns } from "./gridColumns.ts";
 
 /**
- * One masonry section of note cards, reorderable by mouse drag and by touch.
+ * One masonry section of note cards. You can reorder it with a mouse drag and
+ * with touch.
  *
- * Drag state is per-section on purpose: the pinned and unpinned grids, and
- * each auto-note plugin's grid, are separate orderings and a card never
- * crosses between them. A drag from another section simply finds no source
- * here and is ignored.
+ * The drag state is for each section, on purpose. The pinned and unpinned
+ * grids, and the grid of each auto-note plugin, are separate orders, and a card
+ * never moves between them. A drag from a different section finds no source
+ * here, and is ignored.
  */
 export function ReorderableGrid({
   notes,
@@ -22,18 +23,19 @@ export function ReorderableGrid({
   notes: Note[];
   reorderable: boolean;
   /**
-   * One card-wide column whatever the view mode, for a section that is itself
-   * one column of a wider grid (each auto-note plugin's in grid mode).
+   * One column with the width of a card, whatever the view mode, for a section
+   * that is itself one column of a wider grid (that of each auto-note plugin in
+   * grid mode).
    */
   stacked?: boolean;
-  /** `ids` is this section's order before the move. */
+  /** `ids` is the order of this section before the move. */
   onReorder: (ids: string[], fromIndex: number, toIndex: number) => void;
 }) {
   const isList = viewMode.value === "list";
   const isColumn = isList || stacked;
   const isSquare = noteSize.value === "square";
-  // By id: a note whose text changed is re-spanned by the grid's observer, and
-  // the list is a new array on every auto-save of any note.
+  // By id. The observer of the grid gives a note whose text changed a new span.
+  // The list is a new array on each auto-save of any note.
   const gridRef = useMasonryGrid<HTMLDivElement>(
     notes.map((n) => n.id).join(" "),
     {

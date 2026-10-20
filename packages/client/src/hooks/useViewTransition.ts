@@ -4,19 +4,24 @@ import { useEffect, useLayoutEffect, useRef } from "preact/hooks";
 import { animations } from "#/state/prefs.ts";
 import { activeTag, activeView } from "#/state/ui.ts";
 
-/** The view before is gone a little before the new one is all there, so the
- *  two never read as one muddled board. */
+/**
+ * The old view is gone a little before the new view is fully there. Thus, the
+ * two never look like one confused board.
+ */
 const VIEW_LEAVE_MS = 200;
 const VIEW_ENTER_MS = 240;
-/** A note on both boards travels from one place to the other. */
+/** A note on both boards moves from one position to the other. */
 const NOTE_MOVE_MS = 320;
 const NOTE_MOVE_EASING = "cubic-bezier(0.2, 0, 0, 1)";
-/** How long the Tags view's sidebar takes to open or close. */
+/** How long the sidebar of the Tags view takes to open or close. */
 export const PANE_SLIDE_MS = 240;
 const PANE_EASING = "cubic-bezier(0.32, 0.72, 0, 1)";
 
-/** What the transition follows from one board to the next: each note's card,
- *  and anything marked to slide in from the top edge (the new-note pad). */
+/**
+ * What the transition follows from one board to the next: the card of each
+ * note, and all elements marked to slide in from the top edge (the new-note
+ * pad).
+ */
 const TRACKED = "[data-note-id], [data-view-slide]";
 
 function keyOf(el: HTMLElement): string {
@@ -31,17 +36,17 @@ interface Before {
 }
 
 /**
- * Carries the board from one view to the next when the view or the tag
- * changes. A note on both boards moves from where it was to where it is now;
- * one only on the board before fades out where it stood, and one new to the
- * board fades in. Everything else (the composer, the search filters, a
- * section's heading) cross-fades.
+ * Moves the board from one view to the next when the view or the tag changes. A
+ * note on both boards moves from its old position to its new position. A note
+ * that is only on the old board fades out where it was, and a note new on the
+ * board fades in. All other content (the composer, the search filters, the
+ * heading of a section) cross-fades.
  *
- * How the board before is kept to fade out, the new-note pad's slide, and
- * why `App` calls this after `usePaneSlide`, are in `.claude/rules/routing.md`.
- * The copy laid over the board is only a picture: inert, hidden from
- * assistive technology and without ids. Nothing plays on the first render,
- * which the splash covers.
+ * `.claude/rules/routing.md` tells how the old board stays to fade out, about
+ * the slide of the new-note pad, and why `App` calls this after `usePaneSlide`.
+ * The copy over the board is only a picture: inert, hidden from assistive
+ * technology, and without ids. Nothing plays on the first render, which the
+ * splash covers.
  */
 export function useViewTransition(
   boardRef: RefObject<HTMLElement | null>,
@@ -71,8 +76,8 @@ export function useViewTransition(
       }
       const ghost = ghostOf(board, content);
       before.current = { ghost, places };
-      // The copy fades rather than its frame, so a pad lifted out of it into
-      // the frame can slide away whole; the frame then goes with the pad.
+      // The copy fades, not its frame. Thus, a pad lifted out of it into the
+      // frame can slide away fully. The frame then goes with the pad.
       const done = () => {
         if (!ghost.dataset.sliding) ghost.remove();
       };
@@ -91,9 +96,10 @@ export function useViewTransition(
   }, [boardRef, contentRef]);
 
   const first = useRef(true);
-  // Keyed on the view and tag, which the effect does not read: they are what it
-  // plays on. A layout effect, so the first frame of each animation is the
-  // first one drawn: after paint, the new view showed whole for a frame first.
+  // The key is the view and the tag, which the effect does not read. It plays
+  // on them. A layout effect. Thus, the first frame of each animation is the
+  // first drawn frame. After paint, the new view showed fully for one frame
+  // first.
   useLayoutEffect(() => {
     if (first.current) {
       first.current = false;
@@ -135,7 +141,7 @@ export function useViewTransition(
       const dx = from.left - to.left;
       const dy = from.top - to.top;
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
-      // Out of sight at both ends, it has nothing to show on the way.
+      // Out of sight at both ends. Thus, it has nothing to show on the way.
       if (offScreen(from) && offScreen(to)) continue;
       const move = card.animate(
         [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
@@ -160,9 +166,9 @@ export function useViewTransition(
 }
 
 /**
- * Lifts the copy of a pad leaving the board out of the fading copy into the
- * frame over it, where it is drawn, and slides it up under the board's top
- * edge. The frame is taken down once it is out of sight.
+ * Lifts the copy of a pad that leaves the board out of the fading copy into the
+ * frame over it, where it is drawn, and slides it up under the top edge of the
+ * board. The frame goes after it is out of sight.
  */
 function slideAway(
   ghost: HTMLElement,
@@ -194,7 +200,7 @@ function slideAway(
     .finished.then(gone, gone);
 }
 
-/** Fades in everything under `el` that is not tracked and holds nothing that is. */
+/** Fades in all under `el` that is not tracked and contains nothing that is. */
 function fadeInAround(el: Element, fadeIn: (el: Element) => void): void {
   for (const child of el.children) {
     if (child.matches(TRACKED)) continue;
@@ -208,8 +214,8 @@ function offScreen(box: DOMRect): boolean {
 }
 
 /**
- * A copy of `content` as it is drawn now, laid over the visible part of
- * `board` (its scrollbar left uncovered) beside it in the shell.
+ * A copy of `content` as it is drawn now, over the visible part of `board` (its
+ * scrollbar not covered), next to it in the shell.
  */
 function ghostOf(board: HTMLElement, content: HTMLElement): HTMLElement {
   const boardBox = board.getBoundingClientRect();
@@ -247,16 +253,16 @@ function ghostOf(board: HTMLElement, content: HTMLElement): HTMLElement {
 }
 
 /**
- * Opens and closes the Tags view's sidebar like a drawer: its width grows from
- * the rail or shrinks back into it, so the board beside it is carried along by
- * its edge rather than jumping to make room. The pane itself has to stay
- * mounted until it has closed, which the caller sees to (`usePresence` for
+ * Opens and closes the sidebar of the Tags view as a drawer. Its width grows
+ * from the rail, or shrinks back into it. Thus, its edge carries the board next
+ * to it, and the board does not jump to make space. The pane itself must stay
+ * mounted until it closed. The caller does that (`usePresence` for
  * `PANE_SLIDE_MS`).
  *
- * The board's content is held at the width it ends at while the pane moves:
- * the masonry grid would otherwise reflow its columns on every frame. On
- * closing that is wider than the board until the end, so the board clips it
- * sideways rather than offering a horizontal scrollbar for the moment.
+ * The content of the board stays at its final width while the pane moves. The
+ * masonry grid would otherwise change its columns in each frame. On close, that
+ * is wider than the board until the end. Thus, the board clips it at the sides,
+ * and does not show a horizontal scrollbar for that moment.
  */
 export function usePaneSlide(
   paneRef: RefObject<HTMLElement | null>,

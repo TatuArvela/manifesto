@@ -6,11 +6,12 @@ import {
 } from "./connectionOutage.ts";
 
 /**
- * The banner is the one thing that tells someone their notes have stopped
- * travelling, and it used to say so on every resume: an app coming back from
- * the background always finds its socket closed, so "Disconnected" flashed up
- * while the reconnect that takes a moment was already under way. The rule has
- * to sit out the ordinary case and still report an outage that lasts.
+ * The banner is the only thing that tells a person that their notes stopped to
+ * go across. Before, it said so on each resume. An app that comes back from the
+ * background always finds its socket closed. Thus, "Disconnected" showed for a
+ * moment while the reconnect, which takes a short time, was already in
+ * progress. The rule must ignore the usual case, and still report an outage
+ * that lasts.
  */
 beforeEach(() => {
   vi.useFakeTimers();
@@ -23,8 +24,8 @@ afterEach(() => {
 
 describe("trackConnection", () => {
   it("says nothing while an ordinary reconnect happens", () => {
-    // What a resume looks like: the browser closed the socket while the app
-    // was frozen, and appSocket dials again straight away.
+    // This is a resume: the browser closed the socket while the app was frozen,
+    // and appSocket connects again immediately.
     trackConnection("open");
     trackConnection("closed");
     vi.advanceTimersByTime(1200);
@@ -46,8 +47,8 @@ describe("trackConnection", () => {
   });
 
   it("keeps counting across the backoff's retries", () => {
-    // "connecting" and "closed" alternate while the backoff retries. They are
-    // all one outage, so none of them restarts the wait.
+    // "connecting" and "closed" alternate while the backoff tries again. They
+    // are all one outage. Thus, none of them starts the wait again.
     trackConnection("closed");
     vi.advanceTimersByTime(OUTAGE_AFTER_MS - 500);
     trackConnection("connecting");
@@ -67,8 +68,8 @@ describe("trackConnection", () => {
   });
 
   it("does not report a socket nobody asked for", () => {
-    // A logout or open mode: no server is wanted, so there is nothing to wait
-    // for and nothing to announce.
+    // A logout or open mode: no server is wanted. Thus, there is nothing to
+    // wait for, and nothing to announce.
     trackConnection("idle");
     vi.advanceTimersByTime(10 * OUTAGE_AFTER_MS);
     expect(connectionOutage.value).toBe(false);

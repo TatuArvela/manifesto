@@ -34,9 +34,9 @@ function statusLine(webhook: Webhook): string {
 }
 
 /**
- * Webhooks: URLs this server posts the user's note events to, for n8n, Home
- * Assistant or a chat bot. Each delivery is signed with the webhook's secret,
- * shown once when it is added.
+ * Webhooks: URLs to which this server sends the note events of the user, for
+ * n8n, Home Assistant or a chat bot. The secret of the webhook signs each
+ * delivery. The secret shows one time, when you add the webhook.
  */
 export function WebhooksSettings() {
   const [webhooks, setWebhooks] = useState<Webhook[] | null>(null);
@@ -47,7 +47,8 @@ export function WebhooksSettings() {
   const [password, setPassword] = useState("");
   const [refusal, setRefusal] = useState<ConfirmationRefusal | null>(null);
   const [busy, setBusy] = useState(false);
-  // The form opens on a press, so the page leads with the webhooks there are.
+  // The form opens on a press. Thus, the page starts with the existing
+  // webhooks.
   const [adding, setAdding] = useState(false);
 
   const reload = useCallback(async () => {

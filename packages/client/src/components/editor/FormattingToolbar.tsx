@@ -50,8 +50,8 @@ interface FormattingToolbarProps {
   editor: Editor;
   /**
    * The raw-mode textarea, while raw mode is on. The rich editor is still
-   * mounted then, only hidden, so without this every button would read and
-   * change a document the user cannot see; see `utils/rawFormatting.ts`.
+   * mounted then, only hidden. Thus, without this, each button would read and
+   * change a document that the user cannot see. See `utils/rawFormatting.ts`.
    */
   rawTextarea?: HTMLTextAreaElement | null;
   tick: number;
@@ -117,10 +117,10 @@ export function FormattingToolbar({
     />
   );
 
-  // The rarer marks, the whole blocks, indenting and clearing. A wide screen
-  // keeps them on a floating bar; a phone puts them in the fold, since a bar
-  // as wide as these wraps over the button that opened it there, and a
-  // phone has no Escape to put it away with.
+  // The rarer marks, the full blocks, the indent and the clear. A wide screen
+  // keeps them on a floating bar. A phone puts them in the fold, because a bar
+  // as wide as these wraps over the button that opened it there, and a phone
+  // has no Escape to close it.
   const extras = () => (
     <>
       {fmtBtn(

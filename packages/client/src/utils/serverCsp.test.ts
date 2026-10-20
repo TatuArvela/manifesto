@@ -21,14 +21,14 @@ describe("requiredConnectOrigins", () => {
   });
 
   it("asks for nothing when the server is this page's own origin", () => {
-    // `VITE_MANIFESTO_SERVER=/` trims to the empty string, which is the
-    // single-proxy deployment: `'self'` already covers it.
+    // `VITE_MANIFESTO_SERVER=/` becomes the empty string, which is the
+    // single-proxy deployment. `'self'` already covers it.
     expect(requiredConnectOrigins("")).toEqual([]);
     expect(requiredConnectOrigins("/api/v1")).toEqual([]);
   });
 
   it("refuses anything that is not an http(s) address", () => {
-    // The likeliest typo: a host with no scheme.
+    // The most probable typing error: a host with no scheme.
     expect(requiredConnectOrigins("notes.example.com")).toBeNull();
     expect(requiredConnectOrigins("ftp://notes.example.com")).toBeNull();
     expect(requiredConnectOrigins("not a url at all")).toBeNull();
@@ -52,9 +52,9 @@ describe("missingConnectSources", () => {
   });
 
   it("reports only the half that was forgotten", () => {
-    // Adding the https origin and missing the wss one is the likelier
-    // mistake, and the one whose symptom (sign-in works, sockets die) says
-    // least about itself.
+    // When a person adds the https origin and forgets the wss origin, that is
+    // the more probable error. Its symptom (the sign-in works, the sockets die)
+    // tells the least about its cause.
     const policy = "connect-src 'self' https://notes.example.com";
     expect(missingConnectSources(policy, required, page)).toEqual([
       "wss://notes.example.com",
@@ -90,8 +90,8 @@ describe("missingConnectSources", () => {
   });
 
   it("judges nothing when there is nothing to judge by", () => {
-    // A host that sends its policy as a response header leaves no meta tag,
-    // and a false alarm would take down a deployment that works.
+    // A host that sends its policy as a response header leaves no meta tag, and
+    // a false alarm would stop a deployment that works.
     expect(missingConnectSources(null, required, page)).toEqual([]);
     expect(missingConnectSources("script-src 'self'", required, page)).toEqual(
       [],
@@ -131,9 +131,9 @@ describe("findServerSetupProblem", () => {
   });
 
   it("leaves a single-origin deployment alone", () => {
-    // The shape server/deployment.md now recommends: one proxy, one origin,
-    // stock CSP, nothing to edit. Written either as the site's own absolute
-    // URL or relatively, both of which `'self'` covers.
+    // The shape that server/deployment.md now recommends: one proxy, one
+    // origin, the usual CSP, nothing to edit. Written as the own absolute URL
+    // of the site or relatively. `'self'` covers both.
     expect(
       findServerSetupProblem("https://app.example.com", SHIPPED_CSP, page),
     ).toBeNull();

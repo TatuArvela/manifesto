@@ -1,22 +1,22 @@
 import { useLayoutEffect, useRef } from "preact/hooks";
 
 /**
- * One document-level listener for the board's single-key shortcuts, the way
- * `useEscapeStack` is the one listener for Escape. A component binds a key
- * with `useShortcut(key, run)` and never listens itself.
+ * One listener at document level for the single-key shortcuts of the board, as
+ * `useEscapeStack` is the one listener for Escape. A component binds a key with
+ * `useShortcut(key, run)`, and never listens itself.
  *
- * A single key is only a shortcut when nothing else wants it, so the
- * dispatcher, not each binding, decides when to stand aside:
+ * A single key is a shortcut only when nothing else needs it. Thus, the
+ * dispatcher, not each binding, decides when the shortcuts do not operate:
  *
- * - while typing: focus in a text field, a select or anything editable, the
- *   note editor included;
- * - while a layer is up: any `aria-modal` dialog (the editor, Settings, a
- *   confirmation) or open popover (a dropdown, a card menu). Those own the
- *   keyboard, and `c` there must type or do nothing;
- * - with a modifier held, so the browser's and the system's own shortcuts are
- *   never taken. Shift is allowed: it is how `?` and `#` are typed.
+ * - While you type: focus is in a text field, a select or an editable element,
+ *   also the note editor.
+ * - While a layer is open: an `aria-modal` dialog (the editor, Settings, a
+ *   confirmation) or an open popover (a dropdown, a card menu). Those own the
+ *   keyboard, and `c` there must type or do nothing.
+ * - With a modifier held. Thus, the shortcuts of the browser and the system are
+ *   never taken. Shift is permitted, because you use it to type `?` and `#`.
  *
- * A key bound twice goes to the binding made last, as Escape does.
+ * If two bindings use the same key, the last binding gets it, as for Escape.
  */
 
 interface Binding {
@@ -38,7 +38,7 @@ export function hasOpenLayer(): boolean {
   try {
     return document.querySelector(":popover-open") !== null;
   } catch {
-    // A browser without the Popover API cannot have one open.
+    // A browser without the Popover API cannot have an open popover.
     return false;
   }
 }

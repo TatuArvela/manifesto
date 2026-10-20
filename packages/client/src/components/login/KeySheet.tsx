@@ -8,11 +8,13 @@ import type { KeySheet } from "#/state/account/accountKeys.ts";
 import { downloadFile } from "#/utils/noteDownload.ts";
 import { submitClass } from "./loginFormClasses.ts";
 
-/** While a sheet is on screen, printing the page prints the sheet alone
- * (`styles.css`). */
+/**
+ * While a sheet is on the screen, a print of the page prints only the sheet
+ * (`styles.css`).
+ */
 const PRINTING_CLASS = "key-sheet-open";
 
-/** The sheet as a text file: what it shows, and what each key is for. */
+/** The sheet as a text file: what it shows, and the purpose of each key. */
 function sheetText(sheet: KeySheet): string {
   const lines = [
     t("keys.sheet.title"),
@@ -69,10 +71,10 @@ function Entry({
 }
 
 /**
- * The sheet with an account's keys, to save or print: the server's address
- * and the username it belongs to, and whichever of the secret key and the
- * recovery key it carries. Shown when the keys are made and never again, so
- * it comes with both ways of keeping it.
+ * The sheet with the keys of an account, to save or print: the address of the
+ * server and the username to which it belongs, and the secret key or the
+ * recovery key that it contains. It shows when the keys are made, and never
+ * again. Thus, it comes with both ways to keep it.
  */
 export function KeySheetView({ sheet }: { sheet: KeySheet }) {
   useEffect(() => {
@@ -137,10 +139,10 @@ export function KeySheetView({ sheet }: { sheet: KeySheet }) {
 }
 
 /**
- * A sheet that has to be kept before anything goes on: the keys on it are
- * shown this once, so the button waits for the user to say they have it.
- * `children` are whatever else the step asks for, between the sheet and the
- * promise.
+ * A sheet that you must keep before anything continues. The keys on it show
+ * this one time. Thus, the button waits until the user says that they have it.
+ * `children` are the other items that the step asks for, between the sheet and
+ * the promise.
  */
 export function KeepSheetStep({
   sheet,

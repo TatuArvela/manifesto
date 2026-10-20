@@ -15,7 +15,7 @@ import {
 const selectedClass =
   "outline-2 outline-offset-2 outline-blue-500 dark:outline-blue-400";
 
-/** Where each handle sits on the preview: a side's middle or a corner. */
+/** Where each handle is on the preview: the middle of a side, or a corner. */
 const HANDLE_PLACE: Record<BoardGradientDirectionChoice, string> = {
   "top-left": "top-2 left-2",
   top: "top-2 left-1/2 -translate-x-1/2",
@@ -28,7 +28,7 @@ const HANDLE_PLACE: Record<BoardGradientDirectionChoice, string> = {
   "bottom-right": "bottom-2 right-2",
 };
 
-/** How far the one arrow icon turns to point each way. */
+/** How far the one arrow icon turns to point in each direction. */
 const ARROW_TURN: Record<BoardGradientDirection, number> = {
   top: 0,
   "top-right": 45,
@@ -41,10 +41,10 @@ const ARROW_TURN: Record<BoardGradientDirection, number> = {
 };
 
 /**
- * The board as it is composed now, colour, gradient and pattern, since on a
- * phone the page covers the real one. With a gradient it is also where the
- * direction is chosen: a handle on each side and corner fades the board
- * toward it, and the one in the middle is "random".
+ * The board as it is now, with color, gradient and pattern, because on a phone
+ * the page covers the real board. With a gradient, you also select the
+ * direction here. A handle on each side and corner fades the board toward it,
+ * and the handle in the middle is "random".
  */
 export function BoardPreview({
   composing,
@@ -78,7 +78,8 @@ export function BoardPreview({
                 }`}
                 onClick={() =>
                   compose(() => {
-                    // Picking "random" again is how to ask for another.
+                    // A new selection of "random" is how to ask for a different
+                    // one.
                     if (way === "random" && direction === "random") {
                       rerollBoardGradientDirection();
                     }
@@ -106,8 +107,8 @@ export function BoardPreview({
 }
 
 /**
- * Picks again for every choice set to "random", shown only while there is
- * one and the board is composed rather than a picture.
+ * Selects again for each choice set to "random". Shown only while there is one,
+ * and while the board is a composition, not a picture.
  */
 export function BoardRerollButton({ composing }: { composing: boolean }) {
   if (!composing || boardRerolls.value.length === 0) return null;

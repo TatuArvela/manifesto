@@ -45,12 +45,12 @@ function computeState(
   const textBefore = $from.parent.textContent.slice(0, $from.parentOffset);
   if (!textBefore.endsWith("=")) return { active: false, dismissedAt };
 
-  // Don't show the preview if the user already typed something after the "="
-  // that the cursor has moved past; only light up when "=" is the char
+  // Do not show the preview if the user already typed something after the "="
+  // that the cursor moved past. Only show it when "=" is the character
   // immediately before the cursor.
   const remaining = $from.parent.textContent.slice($from.parentOffset);
   if (remaining.length > 0 && remaining[0] !== "\n") {
-    // Something's there after the cursor on this line, so skip.
+    // There is something after the cursor on this line. Thus, skip.
     return { active: false, dismissedAt };
   }
 
@@ -59,7 +59,8 @@ function computeState(
   if (!match) return { active: false, dismissedAt };
 
   const pos = $from.pos;
-  // Respect a previous Escape-dismissal at the same position until the user moves or edits.
+  // Obey a previous dismissal by Escape at the same position, until the user
+  // moves or edits.
   if (dismissedAt === pos) return { active: false, dismissedAt };
 
   return {
@@ -93,7 +94,7 @@ const calcPlugin = new Plugin<CalcState>({
       if (meta?.type === "dismiss") {
         dismissedAt = meta.pos;
       } else if (tr.docChanged) {
-        // Any doc change invalidates a dismissal.
+        // Each change of the document cancels a dismissal.
         dismissedAt = null;
       }
       if (!tr.docChanged && !tr.selectionSet && meta === undefined) {
@@ -102,10 +103,10 @@ const calcPlugin = new Plugin<CalcState>({
       return computeState(newState, dismissedAt);
     },
   },
-  // The result is drawn as a widget inside the text, which a screen reader
-  // must not read as part of it (`aria-hidden` above), so it is announced
-  // through a polite live region beside the editor instead: once when it
-  // appears or changes, not again as the caret moves along the same line.
+  // The result is drawn as a widget inside the text. A screen reader must not
+  // read it as part of the text (`aria-hidden` above). Thus, a polite live
+  // region next to the editor announces it: one time when it shows or changes,
+  // and not again when the caret moves along the same line.
   view(editorView) {
     const status = document.createElement("span");
     status.className = "sr-only";

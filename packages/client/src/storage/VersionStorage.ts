@@ -8,15 +8,18 @@ import { compressToUTF16, decompressFromUTF16 } from "lz-string";
 import { isQuotaError, reportQuotaRefusal } from "./quota.ts";
 
 /**
- * One key per note, `manifesto:versions:<id>`, each an LZ-compressed list.
+ * One key for each note, `manifesto:versions:<id>`, each an LZ-compressed list.
  *
- * Per note so that saving a version costs one note's history. LZ-String
- * compresses at a few MB a second and a well-used history is several MB of
- * JSON, so re-compressing every note's history on each save would freeze the
- * page as the editor closes.
+ * One for each note. Thus, a save of a version costs the history of one note.
+ * LZ-String compresses at a few MB each second, and a history in frequent use
+ * is several MB of JSON. Thus, a new compression of the history of each note on
+ * each save would freeze the page when the editor closes.
  */
 const KEY_PREFIX = "manifesto:versions:";
-/** The single shared key the per-note ones replaced; migrated on first use. */
+/**
+ * The single shared key that the keys for each note replaced. Migrated on first
+ * use.
+ */
 const LEGACY_KEY = "manifesto:versions";
 const MAX_VERSIONS_PER_NOTE = MAX_NOTE_VERSIONS;
 const MAX_AGE_MS = NOTE_VERSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
@@ -36,7 +39,7 @@ function decode<T>(raw: string | null, fallback: T): T {
   }
 }
 
-/** Writes one note's list, or reports whether the browser refused it. */
+/** Writes the list of one note, or reports if the browser refused it. */
 function write(noteId: string, versions: NoteVersion[]): "ok" | "quota" {
   try {
     localStorage.setItem(
@@ -53,9 +56,10 @@ function write(noteId: string, versions: NoteVersion[]): "ok" | "quota" {
 let migrated = false;
 
 /**
- * Splits the old shared map into per-note keys, once. The shared key is
- * dropped only after its notes are written, so a refusal part way through
- * frees its space and tries the note again rather than losing the rest.
+ * Splits the old shared map into keys for each note, one time. The shared key
+ * is dropped only after its notes are written. Thus, a refusal halfway makes
+ * its space free and tries the note again, and does not lose the remaining
+ * notes.
  */
 function migrateLegacy(): void {
   if (migrated) return;
@@ -84,9 +88,9 @@ function load(noteId: string): NoteVersion[] {
 }
 
 /**
- * Adds a version, now or, when bringing one back from an export, at the
- * `timestamp` it was taken. Kept oldest first, so both limits trim from the
- * front, and a version that is already past the age limit is not kept.
+ * Adds a version, now or, when the code brings one back from an export, at the
+ * `timestamp` on which it was taken. Kept oldest first. Thus, both limits trim
+ * from the front, and a version that is already past the age limit is not kept.
  */
 export function saveVersion(
   noteId: string,
@@ -118,13 +122,14 @@ export function saveVersion(
   }
 
   if (write(noteId, fresh) === "ok") return;
-  // Out of room: give up this note's oldest version for the new one, once.
+  // No space: give up the oldest version of this note for the new one, one
+  // time.
   reportQuotaRefusal();
   if (fresh.length > 1) write(noteId, fresh.slice(1));
 }
 
 export function getVersions(noteId: string): NoteVersion[] {
-  // Newest first: the history panel lists most-recent at the top.
+  // Newest first: the history panel lists the most recent at the top.
   return [...load(noteId)].reverse();
 }
 
@@ -134,9 +139,9 @@ export function deleteVersions(noteId: string): void {
 }
 
 /**
- * Brings every note's versions from `from` up to the current format, as the
+ * Brings the versions of each note from `from` up to the current format, as the
  * open-mode store does with its notes (`LocalStorageAdapter`), which records
- * the format for both. A list that does not read is left as it is.
+ * the format for both. The code does not change a list that does not read.
  */
 export function upgradeAllVersions(from: number): void {
   migrateLegacy();

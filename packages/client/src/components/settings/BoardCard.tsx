@@ -2,9 +2,9 @@ import type { ComponentChildren } from "preact";
 import { useId } from "preact/hooks";
 
 /**
- * One choice of the board's composer, as a card: the colours side by side,
- * and the pattern beside its colour and opacity. `detail` names what is
- * chosen, for a card whose choices carry no names of their own.
+ * One choice of the composer of the board, as a card: the colors next to each
+ * other, and the pattern next to its color and opacity. `detail` names the
+ * choice, for a card whose choices have no names of their own.
  */
 export function BoardCard({
   legend,

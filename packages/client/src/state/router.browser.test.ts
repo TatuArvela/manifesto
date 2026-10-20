@@ -139,8 +139,8 @@ describe("initRouter", () => {
     expect(activeView.value).toBe("trash");
   });
 
-  // Checked by going back rather than by `history.length`, which Chromium caps
-  // at 50 and every test file in the run shares.
+  // Checked with a back navigation, not by `history.length`. Chromium limits
+  // that to 50, and all test files in the run share it.
   it("pushes a new history entry when the view changes", async () => {
     initRouter();
     activeView.value = "archived";

@@ -1,6 +1,6 @@
 import { IMAGE_DATA_URL_SUBTYPES } from "@manifesto/shared";
 
-/** Longest edge an attached photo is kept at, in pixels. */
+/** The longest edge at which the app keeps an attached photo, in pixels. */
 export const MAX_IMAGE_EDGE = 2560;
 /** Below this, an image inside the edge is kept exactly as it came. */
 const KEEP_AS_IS_BYTES = 1024 * 1024;
@@ -9,22 +9,23 @@ const QUALITY = 0.85;
 const ACCEPTED = new Set<string>(IMAGE_DATA_URL_SUBTYPES);
 
 /**
- * Makes an attached image a sensible size before it is stored: a phone photo
- * is 4000 pixels across and several megabytes, far more than a card or the
- * viewer shows, and every copy of it is paid for in uploads, storage and
- * backups.
+ * Gives an attached image a usable size before it is stored. A phone photo is
+ * 4000 pixels across and several megabytes, much more than a card or the viewer
+ * shows, and each copy of it costs uploads, storage and backups.
  *
- * - An image within `MAX_IMAGE_EDGE` and under a megabyte is kept as it is.
- *   Screenshots and small images stay byte for byte, PNGs stay PNG.
- * - A larger one is redrawn through a canvas at most `MAX_IMAGE_EDGE` on its
- *   long edge and re-encoded: PNG stays PNG (lossless, so text stays crisp),
- *   anything else becomes WebP, or JPEG where the browser cannot encode WebP.
- *   The redraw also drops the photo's EXIF data (camera, location).
- * - A GIF is left alone, since redrawing it would stop the animation.
+ * - An image within `MAX_IMAGE_EDGE` and under one megabyte is kept as it is.
+ *   Screenshots and small images stay byte for byte, and PNGs stay PNG.
+ * - A larger image is drawn again through a canvas, at a maximum of
+ *   `MAX_IMAGE_EDGE` on its long edge, and encoded again. PNG stays PNG
+ *   (lossless, so that text stays sharp). All other types become WebP, or JPEG
+ *   where the browser cannot encode WebP. The new draw also drops the EXIF data
+ *   of the photo (camera, location).
+ * - The code does not change a GIF, because a new draw would stop the
+ *   animation.
  *
- * An image over the edge is always redrawn; one within it but heavy is
- * re-encoded only if that makes it smaller. An image the browser cannot
- * decode comes back unchanged, for the size check to judge.
+ * An image over the edge is always drawn again. An image within it, but large,
+ * is encoded again only if that makes it smaller. An image that the browser
+ * cannot decode comes back unchanged, and the size check decides about it.
  */
 export async function shrinkImage(image: Blob): Promise<Blob> {
   const subtype = image.type.replace(/^image\//, "").toLowerCase();
@@ -57,8 +58,8 @@ export async function shrinkImage(image: Blob): Promise<Blob> {
         : ((await encode(canvas, "image/webp", QUALITY)) ??
           (await encode(canvas, "image/jpeg", QUALITY)));
     if (!encoded) return image;
-    // Past the edge, the redrawn copy is the point, whatever its bytes; within
-    // it (a heavy image of modest size), only a copy that is smaller helps.
+    // Past the edge, the new copy is the purpose, whatever its bytes. Within it
+    // (a large image of usual dimensions), only a smaller copy helps.
     return longEdge > MAX_IMAGE_EDGE || encoded.size < image.size
       ? encoded
       : image;
@@ -67,8 +68,10 @@ export async function shrinkImage(image: Blob): Promise<Blob> {
   }
 }
 
-/** A canvas as `type`, or null if the browser produced another type (a
- * browser that cannot encode WebP hands back PNG, which is far larger). */
+/**
+ * A canvas as `type`, or null if the browser made a different type (a browser
+ * that cannot encode WebP gives back PNG, which is much larger).
+ */
 function encode(
   canvas: HTMLCanvasElement,
   type: string,

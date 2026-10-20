@@ -7,13 +7,13 @@ import { tagCoverage } from "#/utils/tagCoverage.ts";
 import { Dropdown, type DropdownPlacement } from "./Dropdown.tsx";
 import { Tooltip } from "./Tooltip.tsx";
 
-/** The panel a tag picker draws itself on, wherever it opens. */
+/** The panel on which a tag picker draws itself, wherever it opens. */
 export const tagPickerPanelClass =
   "py-1 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 min-w-[180px] max-w-72";
 
 /**
- * The field a tag is typed into. Calls back with the trimmed, lowercased tag,
- * which is the one place a tag is normalized.
+ * The field in which you type a tag. It calls back with the trimmed, lowercase
+ * tag. This is the only place where a tag is normalized.
  */
 function TagField({
   onAddTag,
@@ -58,19 +58,21 @@ const tagRowClass =
   "w-full text-left px-2 py-1 text-sm rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer";
 
 /**
- * Inline tag picker with a text input and list of existing tags.
- * Used on the card and in the note editor.
+ * An inline tag picker with a text input and a list of existing tags. The card
+ * and the note editor use it.
  */
 export function TagPicker({
   tags,
   onAddTag,
   autoFocus,
 }: {
-  /** Currently applied tags (to filter them out of the suggestion list) */
+  /**
+   * The tags that are applied now (to remove them from the suggestion list).
+   */
   tags: string[];
-  /** Called with the trimmed, lowercased tag string */
+  /** Called with the trimmed, lowercase tag string. */
   onAddTag: (tag: string) => void;
-  /** Puts the caret in the field as the picker opens. */
+  /** Puts the caret in the field when the picker opens. */
   autoFocus?: boolean;
 }) {
   return (
@@ -95,16 +97,17 @@ export function TagPicker({
 const coverageIcon = { all: SquareCheck, some: SquareMinus, none: Square };
 
 /**
- * The tag picker of a selection: every tag is listed with a box saying whether
- * all, some or none of the selected notes carry it. A tag they all carry is
- * taken from them on click; any other is given to those still missing it.
+ * The tag picker of a selection. Each tag is listed with a box that tells if
+ * all, some or none of the selected notes have it. A click on a tag that they
+ * all have removes it from them. A click on any other tag gives it to the notes
+ * that do not have it yet.
  */
 export function SelectionTagPicker({
   selected,
   onSetTag,
 }: {
   selected: { tags: string[] }[];
-  /** Called with a normalized tag, and whether the selection is to carry it. */
+  /** Called with a normalized tag, and if the selection must have it. */
   onSetTag: (tag: string, on: boolean) => void;
 }) {
   return (
@@ -138,9 +141,9 @@ export function SelectionTagPicker({
 }
 
 /**
- * A note's tag button: the tag icon, opening the picker below it. It stays
- * open after a tag is added, since a note often takes several at once, and the
- * one just added drops out of the suggestions.
+ * The tag button of a note: the tag icon, which opens the picker below it. It
+ * stays open after you add a tag, because a note frequently gets many tags at
+ * one time. The tag that you just added goes out of the suggestions.
  */
 export function TagPickerButton({
   tags,
@@ -150,7 +153,7 @@ export function TagPickerButton({
   placement = "bottom-start",
 }: {
   tags: string[];
-  /** Called with a normalized tag the note does not have yet. */
+  /** Called with a normalized tag that the note does not have yet. */
   onAddTag: (tag: string) => void;
   triggerClass: string;
   iconClass?: string;
@@ -182,8 +185,9 @@ export function TagPickerButton({
           tags={tags}
           autoFocus
           onAddTag={(tag) => {
-            // TagPicker trims and lowercases before it calls back, so all that
-            // is left here is not adding a tag twice.
+            // TagPicker trims and changes to lowercase before it calls back.
+            // Thus, here the code only has to prevent a tag from being added
+            // two times.
             if (!tags.includes(tag)) onAddTag(tag);
           }}
         />

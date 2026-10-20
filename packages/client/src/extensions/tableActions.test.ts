@@ -15,7 +15,7 @@ import {
 } from "./tableActions.ts";
 
 // The table nodes as `@milkdown/preset-gfm` has them: a header row of its own
-// type, then at least one row of plain cells.
+// type, then one or more rows of plain cells.
 const cells = tableNodes({
   tableGroup: "block",
   cellContent: "paragraph",
@@ -34,7 +34,10 @@ const schema = new Schema({
   },
 });
 
-/** The table's cells row by row, `H` for a header cell and `c` for the rest. */
+/**
+ * The cells of the table row by row: `H` for a header cell, and `c` for the
+ * others.
+ */
 function shape(state: EditorState): string[] {
   const rows: string[] = [];
   state.doc.descendants((node) => {
@@ -54,7 +57,9 @@ function shape(state: EditorState): string[] {
   return rows;
 }
 
-/** A document of one new table, the caret in the cell at `row`, `column`. */
+/**
+ * A document of one new table, with the caret in the cell at `row`, `column`.
+ */
 function tableWithCaret(row: number, column: number): EditorState {
   const table = defined(createTable(schema) ?? undefined);
   const doc = schema.node("doc", null, [table]);

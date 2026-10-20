@@ -13,9 +13,9 @@ import {
 } from "./sealedDocument.ts";
 
 /**
- * Two editors and the server between them. The server here is what the real
- * one is for a note's document: a Yjs document it merges and stores, and
- * never reads.
+ * Two editors, with the server between them. The server here is what the real
+ * server is for the document of a note: a Yjs document that it merges and
+ * stores, and never reads.
  */
 
 interface Client {
@@ -48,8 +48,10 @@ function client(
   };
 }
 
-/** Carries everything each outer document has to the others, as the socket
- * would, and waits for every client to have opened what arrived. */
+/**
+ * Carries all that each outer document has to the others, as the socket would,
+ * and waits until each client opened what arrived.
+ */
 async function sync(server: Y.Doc, ...clients: Client[]): Promise<void> {
   for (const c of clients) await c.joined.settled();
   for (const c of clients)
@@ -84,7 +86,7 @@ describe("a sealed shared document", () => {
 
     const stored = Y.encodeStateAsUpdate(server);
     expect(contains(stored, "harbour")).toBe(false);
-    // The readable document is a different thing, and it does hold it.
+    // The readable document is a different thing, and it does contain it.
     expect(contains(Y.encodeStateAsUpdate(a.inner), "harbour")).toBe(true);
   });
 
@@ -116,8 +118,8 @@ describe("a sealed shared document", () => {
     a.type("before ");
     await sync(server, a);
 
-    // The note's key is replaced: whoever joins now holds the new one, and
-    // the old one to read with.
+    // The key of the note is replaced. The person who joins now has the new
+    // key, and the old key to read with.
     const next = await noteSealKey(newNoteKey(), 2);
     const join = (older?: ReadonlyMap<number, NoteSealKey>) => {
       const inner = new Y.Doc();
@@ -145,8 +147,8 @@ describe("a sealed shared document", () => {
     b.type("after");
     await sync(server, b);
 
-    // Someone with the new key alone opens nothing the old one wrote;
-    // someone still on the old one, only what came before.
+    // A person with only the new key opens nothing that the old key wrote. A
+    // person still on the old key opens only what came before.
     const fresh = join();
     await sync(server, fresh);
     expect(fresh.text()).not.toContain("before");
@@ -166,7 +168,7 @@ describe("a sealed shared document", () => {
     expect(stranger.text()).toBe("");
     expect(stranger.joined.unreadable()).toBeGreaterThan(0);
 
-    // The same key, the log moved under another note.
+    // The same key, but the log moved under a different note.
     const moved = client(key, "n2");
     await sync(server, moved);
     expect(moved.text()).toBe("");
@@ -180,8 +182,8 @@ describe("a sealed shared document", () => {
     const before = log.length;
     expect(before).toBe(30);
 
-    // The first snapshot keeps the edits it covers; the one after lets
-    // them go.
+    // The first snapshot keeps the edits that it covers. The snapshot after it
+    // releases them.
     await a.joined.compact(true);
     expect(log.length).toBe(before + 1);
     a.type("tail");
@@ -204,8 +206,8 @@ describe("a sealed shared document", () => {
     await sync(server, behind, moved);
     expect(behind.joined.unreadable()).toBe(1);
 
-    // Two snapshots, the second of which would let go of the edits before
-    // the first: the newer key's among them, which neither of them holds.
+    // Two snapshots. The second would release the edits before the first. Those
+    // include the edits of the newer key, which neither snapshot contains.
     await behind.joined.compact(true);
     behind.type("more ");
     await behind.joined.compact(true);
@@ -240,7 +242,7 @@ describe("a sealed shared document", () => {
   it("writes an edit made just before it was closed", async () => {
     const a = client(key);
     a.type("last words");
-    // Closed at once, with the edit still being sealed.
+    // Closed immediately, while the seal of the edit is in progress.
     const closed = a.joined.destroy();
     expect(a.outer.getArray("log").length).toBe(0);
     await closed;
@@ -259,7 +261,7 @@ describe("a sealed shared document", () => {
     const a = client(key);
     a.type("kept");
     await sync(server, a);
-    // What a faulty or hostile writer might append.
+    // What a faulty or hostile writer can append.
     const junk = new Uint8Array(60);
     junk[0] = 1;
     junk[4] = 1;
@@ -279,7 +281,8 @@ describe("presence over a sealed document", () => {
     const gate = new Promise<void>((r) => {
       release = r;
     });
-    // A presence key that is slow to come, so the cursor is caught mid-seal.
+    // A presence key that comes slowly. Thus, the cursor is caught during its
+    // seal.
     const key: NoteSealKey = {
       ...real,
       edits: () => real.edits(),
@@ -297,7 +300,7 @@ describe("presence over a sealed document", () => {
     const stop = joinSealedAwareness({ noteId: NOTE, key, inner, outer });
     inner.setLocalState({ cursor: { anchor: 1, head: 1 } });
     await started;
-    // Closed with that cursor still being sealed, as an editor that leaves
+    // Closed while that cursor is still in its seal, as an editor that leaves
     // clears what it sent.
     stop();
     outer.setLocalState(null);
@@ -320,7 +323,7 @@ describe("presence over a sealed document", () => {
     try {
       aInner.setLocalState({
         cursor: { anchor: 3, head: 7 },
-        // What a client says of itself is not what anyone is shown.
+        // What a client says of itself is not what anybody sees.
         user: { name: "Someone Else", color: "#000" },
       });
       await new Promise((r) => setTimeout(r, 30));
@@ -329,7 +332,7 @@ describe("presence over a sealed document", () => {
       expect(Object.keys(sent)).toEqual(["sealed"]);
       expect(JSON.stringify(sent)).not.toContain("anchor");
 
-      // The server passes the state on with the account it authenticated.
+      // The server sends the state on with the account that it authenticated.
       const stampDoc = new Y.Doc();
       stampDoc.clientID = aOuter.clientID;
       const stamp = new Awareness(stampDoc);
@@ -349,7 +352,7 @@ describe("presence over a sealed document", () => {
         user: { id: "u-alice", name: "Alice", color: "#f00" },
       });
 
-      // Leaving takes the cursor away.
+      // The departure removes the cursor.
       stamp.setLocalState(null);
       applyAwarenessUpdate(
         bOuter,

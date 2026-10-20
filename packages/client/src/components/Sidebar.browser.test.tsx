@@ -1,15 +1,15 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// The test build is open mode, where no one is an admin; the entry is about
-// connected mode, so the server is switched on for this file.
+// The test build is in open mode, where nobody is an admin. The entry is about
+// connected mode. Thus, this file switches the server on.
 vi.mock("#/state/account/auth.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("#/state/account/auth.ts")>()),
   isServerMode: true,
 }));
 
 const { currentUser } = await import("#/state/account/auth.ts");
-// Whatever language an earlier test left the page in.
+// The language that an earlier test left on the page.
 const { t } = await import("#/i18n/index.ts");
 const { MobileNav, Sidebar } = await import("./Sidebar.tsx");
 

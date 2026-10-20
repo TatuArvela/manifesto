@@ -1,7 +1,10 @@
-/** How much of a selection carries a tag. */
+/** How much of a selection has a tag. */
 export type TagCoverage = "all" | "some" | "none";
 
-/** Every known tag with how many of `selected` carry it, in `allTags` order. */
+/**
+ * Each known tag with how many of `selected` have it, in the order of
+ * `allTags`.
+ */
 export function tagCoverage(
   allTags: string[],
   selected: { tags: string[] }[],

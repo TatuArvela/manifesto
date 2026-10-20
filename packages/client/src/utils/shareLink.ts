@@ -7,7 +7,7 @@ import {
 const NOTE_COLORS = new Set<string>(Object.values(NoteColor));
 const NOTE_FONTS = new Set<string>(Object.values(NoteFont));
 
-/** The subset of note fields that are shared via URL. */
+/** The subset of note fields that are shared through a URL. */
 export interface SharedNotePayload {
   title: string;
   content: string;
@@ -18,7 +18,10 @@ export interface SharedNotePayload {
 
 const HASH_PREFIX = "#share=";
 
-/** Encode a note payload into a share URL hash fragment (without the leading #). */
+/**
+ * Encode a note payload into the hash fragment of a share URL (without the
+ * leading #).
+ */
 export function encodeSharePayload(payload: SharedNotePayload): string {
   const json = JSON.stringify(payload);
   return `share=${compressToEncodedURIComponent(json)}`;
@@ -30,7 +33,10 @@ export function buildShareUrl(payload: SharedNotePayload): string {
   return `${base}#${encodeSharePayload(payload)}`;
 }
 
-/** Try to decode a share payload from the current URL hash. Returns null if not a share URL. */
+/**
+ * Try to decode a share payload from the current URL hash. Returns null if it
+ * is not a share URL.
+ */
 export function decodeShareFromHash(hash: string): SharedNotePayload | null {
   if (!hash.startsWith(HASH_PREFIX)) return null;
 
@@ -50,7 +56,7 @@ export function decodeShareFromHash(hash: string): SharedNotePayload | null {
   }
 }
 
-/** Clear the share hash from the URL without triggering a navigation. */
+/** Clear the share hash from the URL without a navigation. */
 export function clearShareHash(): void {
   history.replaceState(null, "", window.location.pathname);
 }

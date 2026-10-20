@@ -4,8 +4,8 @@ import { locale } from "./prefs.ts";
 import { toasts } from "./ui.ts";
 
 /**
- * How note actions report what went wrong: one toast for one failed action,
- * one toast naming the total for a group, and never a rejection.
+ * How note actions report what went wrong: one toast for one failed action, one
+ * toast that names the total for a group, and never a rejection.
  */
 
 const messages = () => toasts.value.map((t) => t.message);
@@ -23,7 +23,7 @@ afterEach(() => {
   localStorage.clear();
 });
 
-/** An action as the store writes one: reports its failure, then resolves. */
+/** An action as the store writes one: it reports its failure, then resolves. */
 async function action(ok: boolean, batch?: Batch): Promise<boolean> {
   await Promise.resolve();
   if (!ok) {

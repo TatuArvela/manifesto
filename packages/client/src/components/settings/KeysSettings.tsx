@@ -20,7 +20,7 @@ import {
 import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.ts";
 import { SettingsHeading } from "./SettingsControls.tsx";
 
-/** What each button asks the password for. */
+/** Why each button asks for the password. */
 type Purpose = "reveal" | "newSecret" | "newRecovery";
 
 type Step =
@@ -51,14 +51,14 @@ function Section({
 }
 
 /**
- * The two keys an account's notes are opened with. The secret key is on this
- * device, so it can be shown, to type or scan on another one; the recovery key
- * is on the sheet alone, so it can only be replaced. Each step asks for the
- * password first (or a recent sign-in), since a session left open should not
- * be enough to read a key off the screen or to lock every other device out.
- * A new key is shown before it is sent, and replaces the old one only once
- * the user says they kept it; the password is held until then, since the
- * server asks for it again with the new key.
+ * The two keys with which the notes of an account open. The secret key is on
+ * this device. Thus, it can show, to type or scan on a different device. The
+ * recovery key is only on the sheet. Thus, you can only replace it. Each step
+ * asks for the password first (or a recent sign-in), because a session that
+ * stays open must not be sufficient to read a key off the screen, or to lock
+ * out all other devices. A new key shows before it is sent. It replaces the old
+ * key only after the user says that they kept it. The code keeps the password
+ * until then, because the server asks for it again with the new key.
  */
 export function KeysSettings() {
   const [step, setStep] = useState<Step>({ kind: "idle" });

@@ -18,11 +18,11 @@ import { activeView } from "#/state/ui.ts";
 import { currentStorage } from "#/storage/index.ts";
 import { loadEditor } from "./lazyEditor.ts";
 
-// The composer keeps its draft on the device, which outlives a test: one
-// left behind would open in the next.
-// The app fetches the editor as soon as the board is up (`MainApp`), well
-// before a note is usually opened. Fetched here the same way, or the first
-// test to open one also waits out the whole chunk loading.
+// The composer keeps its draft on the device, which stays after a test. A draft
+// that a test left would open in the next test. The app gets the editor
+// immediately after the board shows (`MainApp`), usually long before a note
+// opens. The test gets it here in the same way. If not, the first test that
+// opens a note also waits for the full chunk to load.
 beforeAll(() => loadEditor());
 
 beforeEach(() => clearDraft());
@@ -186,7 +186,7 @@ describe("attaching an image", () => {
     draw?.click();
     await vi.waitFor(() => expect(drawingRequest.value).not.toBeNull());
 
-    // The pad's part is tested with the pad; here it hands over its picture.
+    // The tests of the pad test its part. Here, it gives its picture.
     drawingRequest.value?.onDone(
       new File([PNG], "drawing.png", { type: "image/png" }),
     );

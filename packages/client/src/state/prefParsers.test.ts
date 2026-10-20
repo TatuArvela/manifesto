@@ -14,10 +14,10 @@ import {
 } from "./prefParsers.ts";
 
 /**
- * A preferences blob is whatever another tab, an older version, the server
- * or a hand edit left in `localStorage`, so every parser has to take any
- * value and give back one it would give back again unchanged. Otherwise a
- * value would drift on each load and save, and the server copy with it.
+ * A preferences blob is what a different tab, an older version, the server or a
+ * manual edit left in `localStorage`. Thus, each parser must take any value,
+ * and give back a value that it would give back again without change. If not, a
+ * value would change on each load and save, and the server copy with it.
  */
 
 const SAMPLES: readonly unknown[] = [
