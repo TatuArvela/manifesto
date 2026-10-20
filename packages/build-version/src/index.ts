@@ -3,25 +3,29 @@ import { readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 
 /**
- * Release-please rewrites this file in every release commit and nowhere else,
- * so the last commit to touch it is the release that `package.json` names.
+ * Release-please writes this file again in each release commit and in no other
+ * commit. Thus, the last commit that changes it is the release that
+ * `package.json` names.
  */
 const RELEASE_MANIFEST = ".release-please-manifest.json";
 
 export interface BuildVersionOptions {
-  /** The repository root: the directory holding the root `package.json`. */
+  /**
+   * The repository root: the directory that contains the root `package.json`.
+   */
   root: string;
   env?: Record<string, string | undefined>;
 }
 
 /**
- * The version a build should report: `0.1.5` for the release commit itself,
- * `0.1.5+14.bf5a6dd` for the fourteenth commit after it. The suffix is semver
- * build metadata; a `-` would make it a prerelease, which sorts *before* 0.1.5.
+ * The version that a build must report: `0.1.5` for the release commit itself,
+ * and `0.1.5+14.bf5a6dd` for the fourteenth commit after it. The suffix is
+ * semver build metadata. A `-` would make it a prerelease, which sorts *before*
+ * 0.1.5.
  *
- * The distance is counted from the last release commit rather than from a
- * tag, because the tag is created by the Release workflow while the Pages
- * build of that same push is already running, and would usually be missed.
+ * The distance is counted from the last release commit, not from a tag. The
+ * Release workflow creates the tag while the Pages build of the same push
+ * already runs. Thus, the build would usually miss it.
  */
 export function resolveBuildVersion({
   root,
@@ -42,8 +46,8 @@ export function resolveBuildVersion({
     }).trim();
 
   // No git, no repository (a source tarball, a Docker build context without
-  // `.git`), or `root` sitting inside some unrelated repository: nothing here
-  // says which commit this is, so the release number is all we have.
+  // `.git`), or `root` inside an unrelated repository. Nothing here tells which
+  // commit this is. Thus, the release number is all that we have.
   try {
     if (git("rev-parse", "--show-toplevel") !== realpathSync(root)) {
       return version;
@@ -52,16 +56,16 @@ export function resolveBuildVersion({
     return version;
   }
 
-  // A tag checkout can be shallow, and the tag is enough on its own.
+  // A tag checkout can be shallow, and the tag alone is sufficient.
   if (git("tag", "--points-at", "HEAD").split("\n").includes(`v${version}`)) {
     return version;
   }
 
   const sha = git("rev-parse", "--short", "HEAD");
 
-  // In a shallow clone the oldest fetched commit appears to add every file,
-  // so the manifest would seem to have changed right there and the distance
-  // would read as zero: a false release. Say which commit it is instead.
+  // In a shallow clone, the oldest loaded commit seems to add each file. Thus,
+  // the manifest would seem to change at that commit, and the distance would be
+  // zero: a false release. Tell which commit it is in place of that.
   if (git("rev-parse", "--is-shallow-repository") === "true") {
     return `${version}+${sha}`;
   }

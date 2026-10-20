@@ -2,19 +2,20 @@
 //
 // Example auto-note plugin: year progress.
 //
-// Shows how far through the calendar year we are, with day number and a little
-// progress bar. Works in any locale, needs no personal config.
+// Shows how much of the calendar year is complete, with the day number and a
+// small progress bar. It works in each locale, and needs no personal
+// configuration.
 //
-// Paste this into Settings → Auto-notes → Paste code, or host it at an HTTPS
+// Paste this into Settings → Auto-notes → Paste code, or put it on an HTTPS
 // URL and add it as a URL source.
 //
-// Each plugin receives a `ctx` argument: { today, locale, stdlib }.
+// Each plugin gets a `ctx` argument: { today, locale, stdlib }.
 //   - today:   ISO 8601 timestamp for the current moment, fixed for the run
 //   - locale:  "en" / "fi" / ...
 //   - stdlib:  date helpers (addDays, daysBetween, approxUntil,
 //              formatDate, lastOccurrence, ...)
 //
-// Return a single card or an array of cards. Each card is a plain object:
+// Return one card or an array of cards. Each card is a plain object:
 //   { title, content /* markdown */, color?, font?, tags?, pinned?,
 //     position?, key? }
 
@@ -40,6 +41,6 @@ function yearProgress({ today, locale, stdlib }) {
   };
 }
 
-// `_default` is the export convention the sandbox looks for.
-// Assign a single function for one card, or an array of functions for many.
+// `_default` is the export convention that the sandbox looks for.
+// Assign one function for one card, or an array of functions for many cards.
 _default = yearProgress;

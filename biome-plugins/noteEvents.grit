@@ -1,9 +1,9 @@
 language js
 
-// .claude/rules/sharing.md: each participant sees different personal fields
-// and a different sharing.role, and a note's arrival, change or loss has to
-// reach every one of them (and their webhooks) the same way. So every note
-// and invitation event is built in sharing/noteEvents.ts and nowhere else.
+// .claude/rules/sharing.md: each participant sees different personal fields and
+// a different sharing.role, and the arrival, change or loss of a note must
+// reach each of them (and their webhooks) in the same way. Thus, each note and
+// invitation event is built in sharing/noteEvents.ts and in no other place.
 `{ type: $type, $props }` as $event where {
   $type <: or {
     `"note:created"`,

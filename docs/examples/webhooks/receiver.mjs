@@ -1,25 +1,26 @@
 // A webhook receiver for Manifesto, in one file with no dependencies.
 //
-// Run it where your server can reach it, then add its address under
-// Settings > Webhooks and put the secret shown there in WEBHOOK_SECRET:
+// Run it where your server can reach it. Then add its address under Settings >
+// Webhooks, and put the secret that shows there in WEBHOOK_SECRET:
 //
 //   WEBHOOK_SECRET=whsec_... node receiver.mjs
 //
-// It checks every delivery's signature, drops what it has already seen, and
-// hands the rest to the recipes listed at the bottom, one delivery at a time
-// in the order they came. Each recipe is a function of the delivery; one that
-// throws is logged and does not stop the others. See
-// docs/specification/features/webhooks.md for what is sent.
+// It checks the signature of each delivery, and drops the deliveries that it
+// already saw. It gives the others to the recipes listed at the bottom, one
+// delivery at a time, in the order in which they came. Each recipe is a
+// function of the delivery. If a recipe throws, the receiver logs it, and the
+// other recipes continue. See docs/specification/features/webhooks.md for what
+// is sent.
 //
-// Notes are encrypted, and a webhook fires when no key is on the server, so a
-// delivery says which note changed and not what it says. A recipe that needs
-// the title, the text or the tags reads the note with an API token (Settings >
-// API tokens, with "Read notes"), which carries the key to open it:
+// Notes are encrypted, and a webhook fires when no key is on the server. Thus,
+// a delivery tells which note changed, and not what it says. A recipe that
+// needs the title, the text or the tags reads the note with an API token
+// (Settings > API tokens, with "Read notes"), which carries the key to open it:
 //
 //   MANIFESTO_URL=https://notes.example MANIFESTO_TOKEN=mfp_... \
 //     WEBHOOK_SECRET=whsec_... node receiver.mjs
 //
-// Whoever holds that token can read every note of the account, so keep it
+// A person who has that token can read each note of the account. Thus, keep it
 // where you keep the webhook secret, and give it no more than "Read notes".
 
 import { createHmac, timingSafeEqual } from "node:crypto";
@@ -30,17 +31,20 @@ import { pathToFileURL } from "node:url";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const SECRET = process.env.WEBHOOK_SECRET ?? "";
-/** How far a delivery's timestamp may be from this machine's clock. */
+/**
+ * The maximum distance of the timestamp of a delivery from the clock of this
+ * machine.
+ */
 const MAX_SKEW_SECONDS = 5 * 60;
-/** Bodies larger than this are refused before they are read in full. */
+/** The receiver refuses bodies larger than this before it reads them fully. */
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
 
 // --- Verifying a delivery ---
 
 /**
- * Whether `signature` is the HMAC-SHA256 of `<timestamp>.<body>` under the
- * secret, and the timestamp is recent. The body must be the raw bytes as they
- * arrived: parsing and re-serializing the JSON changes them.
+ * If `signature` is the HMAC-SHA256 of `<timestamp>.<body>` under the secret,
+ * and the timestamp is recent. The body must be the raw bytes as they arrived.
+ * A parse and a new serialization of the JSON change them.
  */
 export function isAuthentic(
   secret,
@@ -61,9 +65,10 @@ export function isAuthentic(
 }
 
 /**
- * Delivery ids already handled. A delivery that got no answer in time is sent
- * again with the same id, so a recipe that is not idempotent needs this. Held
- * in memory: a restart forgets it, which the recipes below can live with.
+ * Delivery ids that the receiver already handled. A delivery that got no answer
+ * in time comes again with the same id. Thus, a recipe that is not idempotent
+ * needs this. Kept in memory. A restart forgets it, which is acceptable for the
+ * recipes below.
  */
 const seen = new Set();
 function firstTime(deliveryId) {
@@ -76,14 +81,14 @@ function firstTime(deliveryId) {
 // --- Reading the note a delivery is about ---
 
 /**
- * The note as it is now, read with the API token, or null when it is gone or
- * no token is set. A delivery is a hint that something changed: by the time
- * a recipe runs the note may have changed again, and this is the latest.
+ * The note as it is now, read with the API token, or null when it is gone or no
+ * token is set. A delivery is a hint that something changed. When a recipe
+ * runs, the note can have changed again, and this is the latest version.
  */
 export async function readNote(noteId, env = process.env) {
   const { MANIFESTO_URL: base, MANIFESTO_TOKEN: token } = env;
   if (!base || !token) return null;
-  // An id is a ULID; anything else is not put into an address.
+  // An id is a ULID. The receiver puts no other value into an address.
   if (!/^[0-9A-Za-z_-]{1,64}$/.test(noteId)) return null;
   const res = await fetch(
     `${base.replace(/\/+$/, "")}/api/v1/notes/${noteId}`,
@@ -99,19 +104,20 @@ export async function readNote(noteId, env = process.env) {
 // --- Recipes ---
 
 /**
- * Notes this process knows to have an issue. GitHub's search learns of a new
- * issue some seconds after it is made, and a note being typed in is delivered
- * again sooner than that, so the search alone would open a second one. The
- * search is still what answers after a restart, when this is empty.
+ * Notes that this process knows to have an issue. The search of GitHub learns
+ * of a new issue some seconds after it is made, and a note in which a person
+ * types is delivered again before that. Thus, the search alone would open a
+ * second issue. After a restart, when this is empty, the search still gives the
+ * answer.
  */
 const notesWithIssue = new Set();
 /** GitHub refuses an issue title longer than this. */
 const MAX_ISSUE_TITLE = 256;
 
 /**
- * A `todo` tag opens an issue. The note's id goes in the issue body, and an
- * issue that already names it is left alone, so tagging, editing and
- * re-tagging a note makes one issue and not three.
+ * A `todo` tag opens an issue. The id of the note goes in the issue body. The
+ * recipe does not change an issue that already names it. Thus, when you tag,
+ * edit and tag a note again, it makes one issue and not three.
  *
  *   GITHUB_REPO=owner/name GITHUB_TOKEN=github_pat_...
  *
@@ -121,7 +127,7 @@ export async function todoTagOpensIssue(delivery, env = process.env) {
   const { GITHUB_REPO: repo, GITHUB_TOKEN: token } = env;
   if (!repo || !token) return;
   if (delivery.event === "note.deleted") return;
-  // The delivery says the note is in the trash without a read.
+  // The delivery tells that the note is in the trash, without a read.
   if (delivery.note.trashed || notesWithIssue.has(delivery.note.id)) return;
   const note = await readNote(delivery.note.id, env);
   if (!note?.tags.includes("todo") || note.trashed) return;

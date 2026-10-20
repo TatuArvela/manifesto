@@ -1,23 +1,24 @@
 // @title Open tasks
 // @reads todo
 //
-// Example auto-note plugin that reads other notes: every unticked checklist
-// item across the notes tagged `todo`, gathered on one card.
+// Example auto-note plugin that reads other notes: each checklist item that is
+// not ticked, from the notes tagged `todo`, collected on one card.
 //
 // Paste this into Settings → Auto-notes → Paste code. The line above asks to
-// read your notes tagged `todo`; nothing is read until you press Allow on the
-// plugin's row, and Stop takes it back. Name several tags with commas, or on
-// several `// @reads` lines.
+// read your notes tagged `todo`. Nothing is read until you push Allow on the
+// row of the plugin, and Stop removes the permission. Name several tags with
+// commas, or on several `// @reads` lines.
 //
-// A plugin that reads gets two more things in `ctx`:
-//   - notes:  the notes carrying one of the allowed tags, most recently
+// A plugin that reads gets two more values in `ctx`:
+//   - notes:  the notes that have one of the permitted tags, most recently
 //             changed first, each as { id, title, content, tags, color,
-//             pinned, archived, createdAt, updatedAt }. Frozen: there is
-//             nothing to write to. Trashed notes are left out.
-//   - reads:  the tags it is reading right now ([] until allowed).
+//             pinned, archived, createdAt, updatedAt }. Frozen: you cannot
+//             write to them. Trashed notes are not included.
+//   - reads:  the tags that it reads now ([] until permitted).
 //
-// It runs again a moment after any of those notes changes, so the card keeps
-// up with the lists it gathers. Its cards are drawn without images.
+// It runs again a moment after one of those notes changes. Thus, the card
+// stays current with the lists that it collects. Its cards are drawn without
+// images.
 
 const UNTICKED = /^\s*(?:[-*+] )?\[ \] (.+)$/;
 
