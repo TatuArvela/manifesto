@@ -148,10 +148,10 @@ browser.
 | Surface | Set by |
 |---|---|
 | Window title, header, login screen, crash screen, PWA name | `VITE_APP_NAME` |
-| The mark of the app in the header, login screen and welcome dialog | `VITE_APP_LOGO` (or `logo.svg` in `VITE_APP_ICONS_DIR`) |
-| Which copy this is: adjacent to the name in the header and tab, on the login screen, in About and in the authenticator entry | `VITE_INSTANCE_NAME` |
-| The logo of the instance, in About and (with the next row) the header | `VITE_INSTANCE_LOGO` |
-| The logo and name of the instance in the header in place of those of the app, and its logo as the tab icon | `VITE_HEADER_BRAND=instance` |
+| The mark of the app in the header, login and loading screens and welcome dialog | `VITE_APP_LOGO` (or `logo.svg` in `VITE_APP_ICONS_DIR`) |
+| Which copy this is: adjacent to the name in the header and tab, on the login and loading screens, in About and in the authenticator entry | `VITE_INSTANCE_NAME` |
+| The logo of the instance, in About and (with the next row) the header and loading screen | `VITE_INSTANCE_LOGO` |
+| The logo and name of the instance in the header and on the loading screen in place of those of the app, and its logo as the tab icon | `VITE_HEADER_BRAND=instance` |
 | The window title as only the name of the instance, without " · Manifesto" | `VITE_TITLE_APP_NAME=off` |
 | The dark-theme version of each logo | `VITE_APP_LOGO_DARK`, `VITE_INSTANCE_LOGO_DARK`, `VITE_ORG_LOGO_DARK` |
 | The name and logo of the owner organization, on the login screen and in About | `VITE_ORG_NAME`, `VITE_ORG_LOGO` |

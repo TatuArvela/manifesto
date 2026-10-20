@@ -303,7 +303,9 @@ export function resolveHeaderBrand(
 
 /**
  * The mark and name of the top bar on the Notes view. An instance without a
- * logo shows only its name.
+ * logo shows only its name. The loading screen shows the same brand.
+ * `public/splash-brand.js` resolves it before the bundle, and must agree with
+ * this.
  */
 export const HEADER_BRAND: {
   name: string;

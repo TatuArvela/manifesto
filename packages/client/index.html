@@ -89,23 +89,50 @@
         background: #171717;
         color: #fafafa;
       }
-      /*
-       * Inverted in the dark, exactly as the header does to the same file. The
-       * brand mark is a solid black shape. Unchanged, it would be a black mark
-       * on a background that is almost black.
-       */
       #splash img {
         width: 76px;
         height: 76px;
       }
-      html.dark #splash img {
+      /*
+       * The logo of an instance can be wider than it is tall. Thus, it keeps
+       * the height and its own shape.
+       */
+      #splash img[data-wide] {
+        width: auto;
+        max-width: min(240px, 80vw);
+        object-fit: contain;
+      }
+      /*
+       * Inverted in the dark, exactly as the header does to the same file. The
+       * mark of the app is a solid black shape. Unchanged, it would be a black
+       * mark on a background that is almost black. A logo with a dark variant
+       * is replaced by that variant, and is not inverted.
+       */
+      html.dark #splash img[data-invert] {
         filter: invert(1);
+      }
+      html.dark #splash img[data-light],
+      html:not(.dark) #splash img[data-dark] {
+        display: none;
       }
       #splash p {
         margin: 0;
         font-size: 1.05rem;
         font-weight: 600;
         letter-spacing: 0.01em;
+      }
+      /*
+       * The name of the instance under the name of the app, as on the sign-in
+       * screen.
+       */
+      #splash p[data-secondary] {
+        margin-top: -0.55rem;
+        font-size: 0.875rem;
+        font-weight: 400;
+        color: #525252;
+      }
+      html.dark #splash p[data-secondary] {
+        color: #a3a3a3;
       }
       /*
        * A segment that moves along a track, not a spinner. It tells that the
@@ -162,10 +189,14 @@
   <body class="bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
     <div id="app"></div>
     <div id="splash" role="status" aria-live="polite">
-      <img src="/logo.svg" alt="" />
+      <img src="/logo.svg" alt="" data-invert />
       <p>%APP_NAME%</p>
       <div></div>
     </div>
+    <!-- Blocking on purpose, as theme-init.js is. It puts in the brand of the
+         top bar (that of the instance, or that of the app with the name of the
+         instance) before the splash is first drawn. -->
+    <script src="/splash-brand.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
