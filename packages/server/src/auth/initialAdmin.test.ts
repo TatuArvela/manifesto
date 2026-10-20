@@ -77,7 +77,7 @@ describe("ensureInitialAdmin", () => {
     expect(second?.password).not.toBe(first?.password);
     expect((await rig.storage.users.listAdmins()).length).toBe(1);
 
-    // The lost password no longer works; the new one does.
+    // The lost password does not work now. The new one does.
     expect(
       (
         await signIn(rig, {
@@ -115,16 +115,16 @@ describe("ensureInitialAdmin", () => {
   });
 
   it("does nothing for a server that already has an admin", async () => {
-    // What an upgraded server looks like: the migration promoted the oldest
-    // account, which has a password of its own.
+    // This is an upgraded server: the migration made the oldest account an
+    // admin, and it has its own password.
     await registerTestUser(rig, "existing");
     expect(await ensureInitialAdmin(rig.storage, rig.cfg)).toBeNull();
     expect(await rig.storage.users.findByUsername("admin")).toBeNull();
   });
 
   it("leaves someone else's account named admin alone", async () => {
-    // A server whose only admin signs in through an identity provider it no
-    // longer uses, with a local user who happens to be called admin.
+    // A server whose only admin signs in through an identity provider that the
+    // server does not use now, with a local user who has the name admin.
     await rig.storage.users.create({
       id: "sso-admin",
       username: "sso-person",

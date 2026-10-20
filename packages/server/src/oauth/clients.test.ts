@@ -11,7 +11,7 @@ type Storage = Parameters<typeof createClientResolver>[0]["storage"];
 const CLIENT_ID = "https://assistant.example/oauth/client.json";
 const REDIRECT = "http://127.0.0.1:3000/callback";
 
-/** Storage holding one registered client, and nothing else of use. */
+/** Storage that contains one registered client, and nothing else of use. */
 function storageWith(
   clients: Record<string, { name: string; redirectUris: string[] }> = {},
 ): { storage: Storage; lookups: string[] } {
@@ -66,8 +66,8 @@ describe("isMetadataDocumentId", () => {
       "https://assistant.example",
       "https://assistant.example/client.json#frag",
       "https://user:pw@assistant.example/client.json",
-      // Not in the form the URL parser writes, so a document could claim a
-      // different spelling of the address it was fetched from.
+      // Not in the form that the URL parser writes. Thus, a document could
+      // claim a different spelling of the address from which the server got it.
       "https://ASSISTANT.example/client.json",
       "https://assistant.example/a/../client.json",
       "https://",

@@ -6,14 +6,14 @@ import {
   SERVER_URL,
 } from "./auth.ts";
 
-// The links the server mails: one to set a new password, one to sign in
-// without it. Asked for and spent with nobody signed in, so every request
-// goes out with no session (`requestWithoutSession`).
+// The links that the server mails: one to set a new password, one to sign in
+// without it. Requested and used with nobody signed in. Thus, each request goes
+// out with no session (`requestWithoutSession`).
 
 /**
- * Asks for a reset link to be mailed. The server answers the same whether or
- * not the address has an account, so this says only whether the request got
- * there. `locale` picks the mail's language.
+ * Asks the server to mail a reset link. The server answers the same, whether
+ * the address has an account or not. Thus, this tells only if the request
+ * arrived. `locale` selects the language of the mail.
  */
 export async function requestPasswordReset(
   email: string,
@@ -30,7 +30,7 @@ export async function requestPasswordReset(
   }
 }
 
-/** Sets a new password with a mailed link's token. */
+/** Sets a new password with the token of a mailed link. */
 export async function confirmPasswordReset(
   token: string,
   newPassword: string,
@@ -49,8 +49,9 @@ export async function confirmPasswordReset(
 }
 
 /**
- * A mailed link's token, taken from the fragment once and removed from the
- * address bar, so it is not left in history or shown over someone's shoulder.
+ * The token of a mailed link, taken from the fragment one time and removed from
+ * the address bar. Thus, it does not stay in the history, and nobody behind the
+ * person can see it.
  */
 function takeLinkToken(name: "reset" | "signin"): string | null {
   if (typeof window === "undefined") return null;
@@ -66,21 +67,21 @@ function takeLinkToken(name: "reset" | "signin"): string | null {
   return match[2] ?? null;
 }
 
-/** A mailed reset link's token, from `#reset=`. */
+/** The token of a mailed reset link, from `#reset=`. */
 export function takeResetToken(): string | null {
   return takeLinkToken("reset");
 }
 
-/** A mailed sign-in link's token, from `#signin=`. */
+/** The token of a mailed sign-in link, from `#signin=`. */
 export function takeSignInLinkToken(): string | null {
   return takeLinkToken("signin");
 }
 
 /**
- * Asks for a sign-in link to be mailed. As with a reset, the server answers
- * the same whether or not the address has an account, so `sent` says only
- * that the request got there. The refusals are told apart because each asks
- * something different of the person: wait, or fix the address.
+ * Asks the server to mail a sign-in link. As for a reset, the server answers
+ * the same, whether the address has an account or not. Thus, `sent` tells only
+ * that the request arrived. The code tells the refusals apart, because each
+ * asks the person for a different thing: wait, or correct the address.
  */
 export async function requestSignInLink(
   email: string,
@@ -100,10 +101,11 @@ export async function requestSignInLink(
 }
 
 /**
- * Signs in with a mailed link's token. Throws as `login` does: a
+ * Signs in with the token of a mailed link. Throws as `login` does. It throws a
  * `TwoFactorRequiredError` when the account has a second factor, after which
- * the same token is sent again with the code or the passkey's answer, and an
- * `AuthRequestError` with status 410 for a link that is spent or expired.
+ * the same token goes again with the code or the answer of the passkey. It
+ * throws an `AuthRequestError` with status 410 for a link that was used or
+ * expired.
  */
 export async function signInWithLink(
   token: string,

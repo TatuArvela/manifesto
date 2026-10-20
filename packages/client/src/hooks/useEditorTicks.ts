@@ -4,10 +4,10 @@ import type { RefObject } from "preact";
 import { useEffect, useState } from "preact/hooks";
 
 /**
- * A count that goes up with every change the toolbar has to look at again:
- * each transaction of the rich editor, and in raw mode the textarea's typing
- * and caret moves. Whatever reads the editor on render is as fresh as the
- * last tick, since the tick is what schedules the render.
+ * A count that increases with each change that the toolbar must look at again:
+ * each transaction of the rich editor, and in raw mode the typing and caret
+ * moves of the textarea. All code that reads the editor on render is as recent
+ * as the last tick, because the tick schedules the render.
  */
 export function useEditorTicks(
   editor: Editor | null,

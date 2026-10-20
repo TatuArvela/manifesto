@@ -38,10 +38,10 @@ interface SqliteError {
 }
 
 /**
- * better-sqlite3 surfaces uniqueness violations with `code = SQLITE_CONSTRAINT_UNIQUE`
- * and a message that includes the constraint origin (`users.username`). We
- * verify both so a future addition of another unique index doesn't get
- * misclassified.
+ * better-sqlite3 reports uniqueness violations with `code =
+ * SQLITE_CONSTRAINT_UNIQUE`, and a message that contains the origin of the
+ * constraint (`users.username`). We verify both. Thus, if a different unique
+ * index is added in the future, the code does not classify it incorrectly.
  */
 function isSqliteUniqueViolation(err: unknown, column: string): boolean {
   if (!(err instanceof Error)) return false;
@@ -75,8 +75,10 @@ function rowToSummary(row: UserSummaryRow): UserSummary {
   };
 }
 
-/** Aggregated in derived tables rather than per-row subqueries, the shape the
- * Postgres driver has to use, so both read the same way. */
+/**
+ * Aggregated in derived tables, not in subqueries for each row. The Postgres
+ * driver must use that shape. Thus, both read in the same way.
+ */
 const SUMMARY_SELECT = `
   SELECT u.*, COALESCE(n.note_count, 0) AS note_count, s.last_seen_at
   FROM users u
@@ -89,9 +91,9 @@ const SUMMARY_SELECT = `
   ) s ON s.user_id = u.id`;
 
 export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
-  // `is_admin` is computed by the insert itself. better-sqlite3 runs one
-  // statement at a time, so the NOT EXISTS and the row it decides about cannot
-  // be split by another insert.
+  // The insert itself calculates `is_admin`. better-sqlite3 runs one statement
+  // at a time. Thus, no other insert can come between the NOT EXISTS and the
+  // row that it decides about.
   const insertStmt = db.prepare(
     `INSERT INTO users (
       id, username, password_hash, display_name, avatar_color, email,
@@ -102,7 +104,7 @@ export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
       @mustChangePassword, @createdAt
     )`,
   );
-  // The column is `COLLATE NOCASE`, so `=` already ignores case.
+  // The column is `COLLATE NOCASE`. Thus, `=` already ignores case.
   const findByEmailStmt = db.prepare(`SELECT * FROM users WHERE email = ?`);
   const searchStmt = db.prepare(
     `SELECT * FROM users
@@ -136,9 +138,10 @@ export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
   const deleteStmt = db.prepare(`DELETE FROM users WHERE id = ?`);
 
   /**
-   * Would removing this user's admin leave the server without one? Run inside
-   * an immediate transaction, which takes the write lock before the count, so
-   * another process on the same file cannot demote the other admin in between.
+   * Would the removal of the admin rights of this user leave the server without
+   * an admin? Runs inside an immediate transaction, which takes the write lock
+   * before the count. Thus, a different process on the same file cannot demote
+   * the other admin between the two.
    */
   function isLastAdmin(row: UserRow): boolean {
     if (row.is_admin !== 1) return false;

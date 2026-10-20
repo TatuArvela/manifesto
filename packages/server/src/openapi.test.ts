@@ -12,16 +12,16 @@ import { defined } from "./test/defined.ts";
 import { TEST_CONFIG } from "./test/setup.ts";
 
 /**
- * The document lists operations by hand, so this is what keeps it honest: it
- * must name every route the app registers, and nothing the app does not.
- * Adding an endpoint without describing it fails here.
+ * The document lists operations manually. Thus, this test keeps it honest. It
+ * must name each route that the app registers, and nothing that the app does
+ * not register. If you add an endpoint without a description, this test fails.
  */
 describe("OpenAPI document", () => {
   async function registered(): Promise<Set<string>> {
     const cfg = {
       ...TEST_CONFIG,
       webhooks: "public" as const,
-      // So the OAuth endpoints that come with it are registered.
+      // Thus, the OAuth endpoints that come with it are registered.
       appUrl: "http://localhost:5173",
     };
     const storage = await createStorage(cfg);
@@ -79,8 +79,8 @@ describe("OpenAPI document", () => {
 
   it("leaves no reference a generator could not follow", () => {
     // A request schema that refers to itself (any JSON value, in the
-    // preferences patch) comes out of zod pointing into its own `$defs`,
-    // which dangles once the schema sits inside the document.
+    // preferences patch) comes out of zod with a pointer into its own `$defs`.
+    // That pointer is broken when the schema is inside the document.
     const doc = buildOpenApiDocument("test");
     const json = JSON.stringify(doc);
     expect(json).not.toContain('"$defs"');
@@ -107,7 +107,8 @@ describe("OpenAPI document", () => {
     expect(stability("get", "/api/v1/calendar/:file")).toBe("public");
     expect(stability("get", "/api/v1/tokens")).toBe("client");
     expect(stability("post", "/api/v1/auth/login")).toBe("client");
-    // Nothing a session alone may call is promised to anything but the client.
+    // The document promises nothing that only a session can call to anything
+    // other than the client.
     expect(
       OPERATIONS.filter(
         (op) =>

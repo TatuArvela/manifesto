@@ -18,11 +18,11 @@ interface State {
 }
 
 /**
- * The stored notes with each `local:` image reference, previews' included,
- * replaced by its bytes from IndexedDB, since a backup of references alone
- * has no pictures. Best
- * effort: anything unreadable (the JSON, the database, one image) keeps what
- * is on disk, because a backup missing a picture beats no backup.
+ * The stored notes, with each `local:` image reference, also those of previews,
+ * replaced by its bytes from IndexedDB, because a backup of only references has
+ * no pictures. This is best effort. If something cannot be read (the JSON, the
+ * database, one image), the code keeps what is on disk, because a backup
+ * without a picture is better than no backup.
  */
 async function withImagesInlined(raw: string): Promise<string> {
   let notes: unknown;
@@ -50,7 +50,7 @@ async function withImagesInlined(raw: string): Promise<string> {
   return JSON.stringify(notes);
 }
 
-/** A `local:` reference as a `data:` URL, or anything else as it is. */
+/** A `local:` reference as a `data:` URL, or any other value as it is. */
 async function inlineLocal(image: unknown): Promise<unknown> {
   if (typeof image !== "string" || !image.startsWith(LOCAL_IMAGE_REF_PREFIX))
     return image;
@@ -62,15 +62,16 @@ async function inlineLocal(image: unknown): Promise<unknown> {
 }
 
 /**
- * Catches render-time errors so a single bad note can't white-screen the app.
+ * Catches errors at render time. Thus, one bad note cannot make the app show
+ * only a white screen.
  *
- * The failure this exists for is persistent, not transient: a note carrying an
- * unknown `color` or `font` throws inside `NoteCard`, and because it is stored
- * in `localStorage` it throws again on every subsequent load. So the fallback
- * has to offer a way *out*; reloading alone would trap the user in the same
- * crash forever. The backup button reads `localStorage` directly rather than
- * going through the storage layer, because that layer may be what's broken;
- * only the open-mode images are read from IndexedDB, and only best effort.
+ * The failure for which this exists is persistent, not temporary. A note with
+ * an unknown `color` or `font` throws inside `NoteCard`. It is stored in
+ * `localStorage`. Thus, it throws again on each later load. Thus, the fallback
+ * must give a way *out*. A reload alone would keep the user in the same crash
+ * forever. The backup button reads `localStorage` directly, not through the
+ * storage layer, because that layer can be the broken part. Only the open-mode
+ * images come from IndexedDB, and only as best effort.
  */
 export class ErrorBoundary extends Component<Props, State> {
   override state: State = { error: null };
@@ -90,8 +91,8 @@ export class ErrorBoundary extends Component<Props, State> {
     try {
       raw = localStorage.getItem(NOTES_KEY) ?? "[]";
     } catch {
-      // Storage unreadable (private mode, blocked cookies): fall through and
-      // hand the user an empty file rather than failing the click silently.
+      // Storage cannot be read (private mode, blocked cookies). Continue, and
+      // give the user an empty file. Do not fail the click silently.
     }
     raw = await withImagesInlined(raw);
     const url = URL.createObjectURL(

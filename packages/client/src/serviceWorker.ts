@@ -20,8 +20,8 @@ export function registerServiceWorker(): void {
     if (data.type === "reminder-fired" && data.noteId) {
       const note = notes.value.find((n) => n.id === data.noteId);
       if (!note?.reminder) return;
-      // The worker says when; the note's own reminder keeps the day it repeats
-      // on, which the worker's copy may predate.
+      // The worker tells when. The own reminder of the note keeps the day on
+      // which it repeats, because the copy of the worker can be older.
       const updated: NoteReminder = {
         ...(data.nextTime
           ? reminderAt(note.reminder, data.nextTime)
@@ -65,9 +65,9 @@ export function registerServiceWorker(): void {
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60_000;
 
 /**
- * The browser looks for a new worker on navigation, and an installed app
- * resumed from the background never navigates. So look on every return to the
- * foreground, and hourly while it stays there.
+ * The browser looks for a new worker on navigation, and an installed app that
+ * resumes from the background never navigates. Thus, look each time the app
+ * comes back to the foreground, and each hour while it stays there.
  */
 function keepCheckingForUpdates(
   registration: ServiceWorkerRegistration,
@@ -75,7 +75,7 @@ function keepCheckingForUpdates(
 ): void {
   const check = () => {
     registration.update().catch(() => {
-      // Offline, or the server is down: the next check tries again.
+      // Offline, or the server is down. The next check tries again.
     });
   };
   document.addEventListener("visibilitychange", () => {
@@ -88,14 +88,14 @@ function keepCheckingForUpdates(
 }
 
 /**
- * Throws away the installed app and loads it again from the server: the way
- * out when an update is stuck, or a cached copy is broken, and waiting for
- * the next visibility change will not do. The worker is unregistered and its
- * caches emptied, so the reload asks the network for every file and installs
- * a fresh worker. A shared item still waiting to be picked up is kept.
+ * Removes the installed app and loads it again from the server. Use this when
+ * an update is stuck, or a cached copy is broken, and a wait for the next
+ * visibility change is not sufficient. The code unregisters the worker and
+ * empties its caches. Thus, the reload asks the network for each file, and
+ * installs a new worker. A shared item that still waits to be picked up stays.
  *
- * Refuses offline (returns false), since the page it reloads onto would have
- * nowhere to come from.
+ * Refuses offline (returns false), because the page that it reloads would have
+ * no source.
  */
 export async function forceUpdateApp(): Promise<boolean> {
   if (!navigator.onLine) return false;
@@ -113,7 +113,7 @@ export async function forceUpdateApp(): Promise<boolean> {
       );
     }
   } catch (err) {
-    // Reload regardless: the network still serves the page the same way.
+    // Reload in all cases. The network still serves the page in the same way.
     console.warn("Clearing the installed app failed:", err);
   }
   window.location.reload();

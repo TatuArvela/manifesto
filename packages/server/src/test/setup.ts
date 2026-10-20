@@ -31,8 +31,8 @@ export const TEST_CONFIG: ServerConfig = {
   publicLinks: true,
   calendar: true,
   apiTokens: true,
-  // Off, so the rest of the suite does not deliver to nothing after a test's
-  // storage has closed; the webhook tests switch it on.
+  // Off. Thus, the other tests do not deliver to nothing after the storage of a
+  // test closed. The webhook tests switch it on.
   webhooks: "off",
   mcp: true,
   passkeys: true,
@@ -43,7 +43,7 @@ export const TEST_CONFIG: ServerConfig = {
   mail: null,
   backup: null,
   metricsToken: null,
-  // A key of the tests' own, so nothing is written beside a database.
+  // A key for the tests. Thus, nothing is written next to a database.
   dataEncryptionKey: "dGVzdC1zZXJ2ZXIta2V5LXRlc3Qtc2VydmVyLWtleS0",
   dataEncryptionKeyPrevious: null,
   dataKeyFile: null,
@@ -51,7 +51,7 @@ export const TEST_CONFIG: ServerConfig = {
   metricsHost: "127.0.0.1",
   clientDir: null,
   auditRetentionDays: 180,
-  // Off: no test should reach GitHub.
+  // Off: no test must reach GitHub.
   updateCheckRepo: null,
   userLookup: "search",
   initialAdminPassword: null,
@@ -90,19 +90,20 @@ export interface TestRig {
   broadcaster: Broadcaster;
   app: Hono;
   /**
-   * A request as the app makes it: a note in it is sealed on the way out and
-   * what comes back is opened (`sealingClient`), so a test speaks of a
-   * note's words as its user does.
+   * A request as the app makes it: a note in it is sealed on the way out, and
+   * the answer is opened (`sealingClient`). Thus, a test uses the words of a
+   * note as its user does.
    */
   request: (input: string, init?: RequestInit) => Promise<Response>;
-  /** The request exactly as given, for what the server does with it. */
+  /** The request exactly as given, to test what the server does with it. */
   rawRequest: (input: string, init?: RequestInit) => Promise<Response>;
   close: () => Promise<void>;
 }
 
 export async function bootTestApp(): Promise<TestRig> {
-  // A copy, so a test that switches a feature on `rig.cfg` (as a restart with
-  // a different setting would) leaves the next test's server as it was.
+  // A copy. Thus, a test that switches a feature on `rig.cfg` (as a restart
+  // with a different setting would) does not change the server of the next
+  // test.
   const cfg = { ...TEST_CONFIG };
   const storage = await createStorage(cfg);
   const authProvider = createAuthProvider(cfg, storage);

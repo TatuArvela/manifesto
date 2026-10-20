@@ -7,9 +7,9 @@ import { authToken, currentUser } from "./auth.ts";
 import { deleteOwnAccount, signOut } from "./signOut.ts";
 
 /**
- * Signing out must leave none of the account's notes in this browser. The
- * list in memory empties when the session ends; the offline copies of notes
- * opened for editing are IndexedDB databases that outlive it, and only
+ * A sign-out must leave none of the notes of the account in this browser. The
+ * list in memory empties when the session ends. The offline copies of notes
+ * opened for editing are IndexedDB databases that stay after it, and only
  * `signOut` deletes them.
  */
 
@@ -59,12 +59,13 @@ beforeEach(() => {
   notes.value = [];
   authToken.value = "session-token";
   currentUser.value = null;
-  // The browser cannot list its databases here, so only the ids signOut is
-  // given can find the copies: exactly the case that depends on reading the
+  // The browser cannot list its databases here. Thus, only the ids that signOut
+  // gets can find the copies. This is exactly the case that needs a read of the
   // list before the session empties it.
   vi.spyOn(indexedDB, "databases").mockResolvedValue([]);
-  // What connected mode does when the session ends (notesStore.ts): the
-  // list leaves memory at once. Mirrored here, since this build is open mode.
+  // What connected mode does when the session ends (notesStore.ts): the list
+  // goes out of memory immediately. Done here too, because this build is open
+  // mode.
   stopEmptying = effect(() => {
     if (authToken.value === null) notes.value = [];
   });
@@ -113,8 +114,8 @@ describe("signOut", () => {
 
 describe("deleteOwnAccount", () => {
   it("keeps the session and the offline copies when the account was not deleted", async () => {
-    // This build is open mode, so the request cannot be made: the case of
-    // any refusal, after which nothing on the device may be lost.
+    // This build is open mode. Thus, the request cannot occur. This is the case
+    // of each refusal, after which nothing on the device must be lost.
     const id = `d-${unique()}`;
     const copy = `${LOCAL_COPY_PREFIX}${id}`;
     await createDatabase(copy);

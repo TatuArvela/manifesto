@@ -8,8 +8,8 @@ import {
 import { withoutImages } from "#/utils/stripImages.ts";
 
 /**
- * Renders note content as a read-only preview with interactive checkboxes.
- * Reuses segmentContent to split into checklist and markdown blocks.
+ * Renders note content as a read-only preview with interactive checkboxes. It
+ * uses segmentContent to split the content into checklist and markdown blocks.
  */
 export function ContentPreview({
   note,
@@ -18,25 +18,31 @@ export function ContentPreview({
   readOnly = false,
   noImages = false,
 }: {
-  /** Only the text is read, so an invitation can preview a note it holds
-   * just the text of. */
+  /**
+   * Only the text is read. Thus, an invitation can show the preview of a note
+   * of which it has only the text.
+   */
   note: Pick<Note, "content">;
   onCheckboxToggle: (lineIndex: number) => void;
   hasTitle: boolean;
-  /** Boxes that show their state but cannot be ticked: a note shared with
-   * this user only to view. */
+  /**
+   * Boxes that show their state, but cannot be ticked: a note shared with this
+   * user only to view.
+   */
   readOnly?: boolean;
-  /** Draws no images: the card of a plugin that reads notes, see
-   * `withoutImages`. */
+  /**
+   * Draws no images: the card of a plugin that reads notes. See
+   * `withoutImages`.
+   */
   noImages?: boolean;
 }) {
   const id = useId();
   const drawn = (html: string) => (noImages ? withoutImages(html) : html);
   if (!note.content) return null;
 
-  // Drop empty text segments sandwiched between two checklist segments:
-  // they come from mdast's "spread" list serialization and would otherwise
-  // render as a full-line gap between items that visually belong together.
+  // Remove empty text segments between two checklist segments. They come from
+  // the "spread" list serialization of mdast. If not, they show as a full-line
+  // gap between items that belong together.
   const rawSegments = segmentContent(note.content);
   const segments = rawSegments.filter((seg, i) => {
     if (seg.type !== "text") return true;
@@ -46,7 +52,7 @@ export function ContentPreview({
     return !(prev?.type === "checklist" && next?.type === "checklist");
   });
 
-  // Count leading/trailing empty lines per segment for spacing
+  // Count the empty lines at the start and end of each segment, for spacing.
   const hasLeadingBlank = (seg: (typeof segments)[number]) =>
     seg.lines[0]?.trim() === "";
   const hasTrailingBlank = (seg: (typeof segments)[number]) =>
@@ -58,8 +64,8 @@ export function ContentPreview({
     <div
       class={`${hasTitle ? "mt-2" : ""} text-sm text-neutral-600 dark:text-neutral-300 line-clamp-12`}
       onClick={(e) => {
-        // A link opens in a new tab (see `renderMarkdown`); the card behind
-        // it opening its editor as well would leave the note in two places.
+        // A link opens in a new tab (see `renderMarkdown`). If the card behind
+        // it also opened its editor, the note would be in two places.
         if ((e.target as Element).closest("a")) e.stopPropagation();
       }}
     >
@@ -79,7 +85,8 @@ export function ContentPreview({
               {seg.lines.map((line, j) => {
                 const lineIndex = seg.startLine + j;
                 // One parser, shared with the actions that toggle and delete
-                // these items, so every box drawn here is one they can touch.
+                // these items. Thus, these actions can change each box drawn
+                // here.
                 const item = parseChecklistLine(line);
                 if (!item) return null;
                 return (
@@ -125,11 +132,12 @@ export function ContentPreview({
             </div>
           );
         }
-        // Render text block as markdown
+        // Render a text block as markdown.
         const text = seg.lines.join("\n");
         if (!text.trim()) {
-          // Empty text segment between checklists: render a spacer that
-          // mirrors the editor's empty <p><br></p> so spacing matches.
+          // An empty text segment between checklists: render a spacer that is
+          // the same as the empty <p><br></p> of the editor. Thus, the spacing
+          // agrees.
           return (
             <div
               key={seg.startLine}

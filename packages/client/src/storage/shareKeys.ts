@@ -17,23 +17,26 @@ import { ApiError, apiFetch, apiJson } from "./apiRequest.ts";
 import { type NoteSealing, sealer, setOfferHandler } from "./sealing.ts";
 
 /**
- * Handing a shared note's key from account to account
- * (`docs/specification/features/encryption.md`, "Sharing"): the requests
- * around what `Sealer` wraps, checks and opens. Apart from `sealing.ts`
- * because these reach the server through `apiRequest.ts`, which the sealing
- * itself must not import.
+ * The supply of the key of a shared note from account to account
+ * (`docs/specification/features/encryption.md`, "Sharing"): the requests around
+ * what `Sealer` wraps, checks and opens. Separate from `sealing.ts`, because
+ * these reach the server through `apiRequest.ts`, which the sealing itself must
+ * not import.
  */
 
-/** What asking for an account's public keys came to: its keys, `none` for
- * an account not set up yet, or `failed` when the request did not get
- * through. */
+/**
+ * The result of a request for the public keys of an account: its keys, `none`
+ * for an account that is not set up yet, or `failed` when the request did not
+ * get through.
+ */
 type KeysLookup = AccountPublicKeysResponse | "none" | "failed";
 
 /**
- * Each account's public keys, as the server gave them to the sealing in
- * `cachedFor`. Only keys are kept: an account with none yet may set them up
- * at any moment, and a request that failed is asked again. Another account
- * unlocked (or the same one unlocked again) starts with nothing kept.
+ * The public keys of each account, as the server gave them to the sealing in
+ * `cachedFor`. Only keys are kept. An account with none yet can set them up at
+ * any moment, and the code asks again after a request that failed. A different
+ * account that unlocks (or the same account unlocked again) starts with nothing
+ * kept.
  */
 const publicKeys = new Map<string, Promise<KeysLookup>>();
 let cachedFor: NoteSealing | null = null;
@@ -65,8 +68,10 @@ function lookUpKeys(userId: string): Promise<KeysLookup> {
   return pending;
 }
 
-/** An account's public keys, or null when it has none yet or they could not
- * be read. */
+/**
+ * The public keys of an account, or null when it has none yet or the code could
+ * not read them.
+ */
 export async function publicKeysOf(
   userId: string,
 ): Promise<AccountPublicKeysResponse | null> {
@@ -74,17 +79,20 @@ export async function publicKeysOf(
   return typeof found === "string" ? null : found;
 }
 
-/** Forget what was learned of an account's keys, so the next use asks. */
+/**
+ * Forget what the code learned of the keys of an account. Thus, the next use
+ * asks.
+ */
 export function forgetPublicKeys(userId: string): void {
   publicKeys.delete(userId);
 }
 
 /**
- * What each unlocked account remembers of other people's keys, read from the
- * server once. The server hands out public keys, so it could hand out one of
- * its own: the first key seen for an account is remembered, sealed under this
- * account's key, and a different one later is used for nothing until the
- * person agrees to it.
+ * What each unlocked account remembers of the keys of other persons, read from
+ * the server one time. The server gives out public keys. Thus, it could give
+ * out one of its own. The first key seen for an account is remembered, sealed
+ * under the key of this account. A different key later is used for nothing
+ * until the person agrees to it.
  */
 const remembered = new WeakMap<
   NoteSealing,
@@ -92,8 +100,8 @@ const remembered = new WeakMap<
 >();
 
 /**
- * The accounts whose keys are no longer the ones remembered, with the keys
- * the server now gives for them. Nothing is wrapped to such a key and no
+ * The accounts whose keys are not the remembered keys now, with the keys that
+ * the server now gives for them. Nothing is wrapped to such a key, and no
  * signature is checked against it.
  */
 export const changedKeys = signal<
@@ -120,8 +128,8 @@ function rememberedBy(
     pending = apiJson<SeenKeysResponse>("GET", "/auth/keys/seen")
       .then((body) => sealing.openSeenKeys(body?.seen ?? {}))
       .catch(() => {
-        // Not read: nobody's key is taken on trust meanwhile, and the next
-        // use asks again.
+        // Not read. In the meantime, the code trusts the key of nobody, and the
+        // next use asks again.
         remembered.delete(sealing);
         return null;
       });
@@ -131,9 +139,9 @@ function rememberedBy(
 }
 
 /**
- * Remembers `given` as the account's keys, on the server and then here. A key
- * the server did not keep is not remembered at all: in the next session it
- * would be met as a first sight, and so would whatever key the server gave
+ * Remembers `given` as the keys of the account, on the server and then here. A
+ * key that the server did not keep is not remembered. In the next session, it
+ * would look like a first sight, and so would each key that the server gave
  * then.
  */
 async function remember(
@@ -161,9 +169,10 @@ const sameKeys = (seen: SeenKeys, given: AccountPublicKeysResponse) =>
   seen.signing === given.publicKeys.signing;
 
 /**
- * An account's public keys, if they are the ones this account remembers for
- * it, or the first it has seen. Null when it has none, when they could not be
- * read, and when they have changed: then `changedKeys` names the account.
+ * The public keys of an account, if they are the keys that this account
+ * remembers for it, or the first that it saw. Null when it has none, when they
+ * could not be read, and when they changed. Then `changedKeys` names the
+ * account.
  */
 export async function trustedKeysOf(
   userId: string,
@@ -171,15 +180,15 @@ export async function trustedKeysOf(
   const given = await publicKeysOf(userId);
   if (!given) return null;
   const sealing = sealer.peek();
-  // Sealing that seals nothing has no keys to tell apart.
+  // A sealing that seals nothing has no keys to tell apart.
   if (!sealing?.handsKeysOn) return given;
   const seen = await rememberedBy(sealing);
   if (!seen) return null;
   const known = seen.get(userId);
   if (!known) {
     if (await remember(sealing, seen, given)) return given;
-    // Not kept, so not taken. The list is read again next time, which also
-    // marks this as worth trying again (`wrapKeyFor`).
+    // Not kept. Thus, not taken. The list is read again next time, which also
+    // marks this as worth another try (`wrapKeyFor`).
     remembered.delete(sealing);
     return null;
   }
@@ -192,9 +201,9 @@ export async function trustedKeysOf(
 }
 
 /**
- * Takes the keys the server now gives for an account in place of the ones
- * remembered: the person has compared the fingerprint, or decided to go on
- * without. Resolves whether it is remembered on the server; never rejects.
+ * Takes the keys that the server now gives for an account in place of the
+ * remembered keys. The person compared the fingerprint, or decided to continue
+ * without that. Resolves with if it is remembered on the server. Never rejects.
  */
 export async function trustChangedKeys(userId: string): Promise<boolean> {
   const sealing = sealer.peek();
@@ -202,17 +211,17 @@ export async function trustChangedKeys(userId: string): Promise<boolean> {
   if (!sealing || !given) return false;
   const seen = await rememberedBy(sealing);
   if (!seen) return false;
-  // Not kept, the key remembered before stays: with no entry the changed
-  // key would be met as a first sighting, and trusted.
+  // Not kept. The key remembered before stays. With no entry, the changed key
+  // would look like a first sight, and would be trusted.
   if (!(await remember(sealing, seen, given))) return false;
   markChanged(userId, null);
   return true;
 }
 
 /**
- * The fingerprint of the keys the server gives for an account, for two
- * people to compare, and whether they are other than the ones remembered.
- * Null for an account with no keys yet. Never rejects.
+ * The fingerprint of the keys that the server gives for an account, for two
+ * persons to compare, and if they are different from the remembered keys. Null
+ * for an account with no keys yet. Never rejects.
  */
 export async function keyStatusOf(
   userId: string,
@@ -230,7 +239,10 @@ export async function keyStatusOf(
   }
 }
 
-/** This account's own keys as the server holds them, private halves wrapped. */
+/**
+ * The own keys of this account as the server has them, with the private halves
+ * wrapped.
+ */
 async function ownKeys() {
   try {
     return (
@@ -254,8 +266,8 @@ export const sealedNote = (noteId: string) => async () => {
 };
 
 /**
- * A note's key wrapped for someone, or why there is none: `unable` when
- * asking again changes nothing, `failed` when it may. See `SupplyResult`.
+ * The key of a note wrapped for a person, or why there is none. `unable` when a
+ * new request changes nothing, `failed` when it can. See `SupplyResult`.
  */
 async function wrapKeyFor(
   noteId: string,
@@ -267,15 +279,15 @@ async function wrapKeyFor(
   // An account with no keys yet has nothing to wrap to.
   if (found === "none") return "unable";
   if (found === "failed") return "failed";
-  // Only to a key this account has seen for them before, or sees first now.
+  // Only to a key that this account saw for them before, or sees first now.
   const recipient = await trustedKeysOf(recipientId);
   if (!recipient) {
-    // A changed key nobody has agreed to, or a list that could not be read:
-    // `rememberedBy` forgets a request that failed, so what is still there
-    // says which it was.
+    // A changed key to which nobody agreed, or a list that could not be read.
+    // `rememberedBy` forgets a request that failed. Thus, what is still there
+    // tells which it was.
     return remembered.has(sealing) ? "unable" : "failed";
   }
-  // A note not opened here is read for its key, which is a request too.
+  // A note that did not open here is read for its key, which is also a request.
   const held = sealing.holds(noteId);
   try {
     const offered = await sealing.offerKey(
@@ -284,7 +296,7 @@ async function wrapKeyFor(
       sealedNote(noteId),
       ownKeys,
     );
-    // None: this account's own keys could not be read just now.
+    // None: the own keys of this account could not be read at this moment.
     return offered ?? "failed";
   } catch (err) {
     console.warn("Failed to wrap a note's key:", err);
@@ -293,9 +305,9 @@ async function wrapKeyFor(
 }
 
 /**
- * The key of a note this account holds, wrapped to `recipientId`'s public
- * key and signed. Null when the recipient has no keys yet, or this device
- * cannot wrap: the invitation then waits for a key.
+ * The key of a note of this account, wrapped to the public key of `recipientId`
+ * and signed. Null when the recipient has no keys yet, or this device cannot
+ * wrap. The invitation then waits for a key.
  */
 export async function offerKeyTo(
   noteId: string,
@@ -306,10 +318,11 @@ export async function offerKeyTo(
 }
 
 /**
- * Takes a key offered to this account: checked against the signer's key,
- * opened, held to `words` (the note's sealed fields, which it has to open),
- * and wrapped under this account's own notes key. Null when it does not
- * check or open, and then nothing of the note is used.
+ * Takes a key offered to this account. It is checked against the key of the
+ * signer, opened, checked against `words` (the sealed fields of the note, which
+ * it must open), and wrapped under the own notes key of this account. Null when
+ * it does not pass the check or does not open. Then nothing of the note is
+ * used.
  */
 export async function adoptOfferedKey(
   sealing: NoteSealing,
@@ -317,12 +330,12 @@ export async function adoptOfferedKey(
   offered: OfferedKey,
   words: Partial<SharedSealed>,
 ): Promise<HeldKeyRequest | null> {
-  // Sealing that seals nothing has no signature to check either.
+  // A sealing that seals nothing also has no signature to check.
   if (!sealing.handsKeysOn) {
     return sealing.adoptOffered(noteId, offered, "", ownKeys, words);
   }
-  // Checked against the key remembered for the signer: one the server
-  // swapped since checks nothing.
+  // Checked against the key remembered for the signer. A key that the server
+  // changed since then checks nothing.
   const signer = await trustedKeysOf(offered.signer);
   if (!signer) return null;
   try {
@@ -341,8 +354,8 @@ export async function adoptOfferedKey(
 
 /**
  * A note whose key was replaced reaches a recipient with the new key offered
- * and no copy of their own. Their client takes the offer and keeps it, so
- * the next device of theirs opens the note without doing this again.
+ * and no copy of their own. Their client takes the offer and keeps it. Thus,
+ * their next device opens the note without this step again.
  */
 setOfferHandler(async (sealing, sealed) => {
   if (!sealed.offered) return;
@@ -356,15 +369,16 @@ setOfferHandler(async (sealing, sealed) => {
 });
 
 /**
- * How handing someone a key went: `unable` when there is nothing to hand
- * them or nothing to wrap it to (an account with no keys yet, a changed key
- * nobody has agreed to), which asking again does not change; `failed` when a
- * request did not get through, which it may.
+ * The result of the supply of a key to a person. `unable` when there is nothing
+ * to give them or nothing to wrap it to (an account with no keys yet, a changed
+ * key to which nobody agreed), which a new request does not change. `failed`
+ * when a request did not get through, which a new request can change.
  */
 export type SupplyResult = "supplied" | "unable" | "failed";
 
-/** Hands `recipientId`, who is on the note and waiting, its key. Never
- * rejects. */
+/**
+ * Gives `recipientId`, who is on the note and waits, its key. Never rejects.
+ */
 export async function supplyKey(
   noteId: string,
   recipientId: string,
@@ -380,10 +394,10 @@ export async function supplyKey(
 }
 
 /**
- * The public links a note's new key has to be handed to. A server with
- * public links switched off answers 404 for the listing, and has none to
- * hand it to: the key is replaced all the same, since the person who left
- * still holds the old one. Rejects when the listing could not be read.
+ * The public links to which the new key of a note must go. A server with public
+ * links switched off answers 404 for the listing, and has none to which to give
+ * it. The key is replaced anyway, because the departed person still has the old
+ * key. Rejects when the listing could not be read.
  */
 async function liveLinksOf(noteId: string): Promise<PublicLink[]> {
   try {
@@ -398,16 +412,18 @@ async function liveLinksOf(noteId: string): Promise<PublicLink[]> {
   }
 }
 
-/** How often a replacement is sealed again when the note is written under
- * it, before it is left for the next try. */
+/**
+ * How many times a replacement is sealed again when the note is written under
+ * it, before the code leaves it for the next try.
+ */
 const REKEY_ATTEMPTS = 3;
 
 /**
- * Gives a note this account owns a new key, because someone who held the old
- * one no longer holds the note: everything everyone on it shares is sealed
- * again, and each live public link is handed the new key. The people still
- * on the note are then waiting for it, and are supplied like anyone else
- * who waits. Resolves whether the note is under a new key; never rejects.
+ * Gives a note of this account a new key, because a person who had the old key
+ * does not have the note now. All that the persons on it share is sealed again,
+ * and each live public link gets the new key. The persons still on the note
+ * then wait for it, and get it as all other persons who wait. Resolves with if
+ * the note is under a new key. Never rejects.
  */
 export async function replaceNoteKey(noteId: string): Promise<boolean> {
   const sealing = sealer.peek();
@@ -415,13 +431,13 @@ export async function replaceNoteKey(noteId: string): Promise<boolean> {
   try {
     for (let attempt = 0; attempt < REKEY_ATTEMPTS; attempt++) {
       const sealed = await sealedNote(noteId)();
-      // Not due any more: another device of this account got there first.
+      // Not due now: a different device of this account did it first.
       if (!sealed?.rekeyDue) return false;
       const made = await sealing.rekey(sealed, await liveLinksOf(noteId));
       if (!made) return false;
       // The fields were sealed again from the note as just read. The server
-      // takes them only if nothing has written it since, or an edit made
-      // meanwhile would be undone.
+      // takes them only if nothing wrote it since then. If not, an edit made in
+      // the meantime would be undone.
       const res = await apiFetch("PUT", `/notes/${noteId}/key`, made.body, {
         "If-Match": sealed.updatedAt,
       });
@@ -429,20 +445,20 @@ export async function replaceNoteKey(noteId: string): Promise<boolean> {
         made.commit();
         return true;
       }
-      // Written since (412): read again and seal what is there now.
+      // Written since then (412): read again, and seal the current data.
       if (res?.status !== 412) break;
     }
   } catch (err) {
     console.warn("Failed to replace a note's key:", err);
   }
-  // Lost to another device, written under too often, or offline: the note
-  // stays due, and whoever asked tries again.
+  // A different device did it, there were too many writes during the tries, or
+  // offline. The note stays due, and the caller tries again.
   return false;
 }
 
 /**
- * Leaves a calendar feed the key of a note that has a reminder and no copy
- * for it yet. Resolves whether the server took it; never rejects.
+ * Leaves for a calendar feed the key of a note that has a reminder and no copy
+ * for it yet. Resolves with if the server took it. Never rejects.
  */
 export async function leaveFeedKey(noteId: string): Promise<boolean> {
   const sealing = sealer.peek();

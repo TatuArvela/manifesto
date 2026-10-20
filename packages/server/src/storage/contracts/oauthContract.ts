@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageDriver, StoredOAuthCode } from "#/storage/types.ts";
 
 /**
- * The OAuth rows, the same in both drivers: a code is good once and not after
- * it expires, a grant's refresh token is replaced by exactly one refresh, and
- * a client never given a grant is swept.
+ * The OAuth rows, the same in both drivers: a code is good one time, and not
+ * after it expires. Exactly one refresh replaces the refresh token of a grant.
+ * The sweep removes a client that never got a grant.
  */
 
 const T0 = "2026-04-01T00:00:00.000Z";
@@ -60,7 +60,7 @@ export function describeOAuthContract(
 
       await storage.oauth.createCode(code({ codeHash: "code-2" }));
       expect(await storage.oauth.redeemCode("code-2", T2)).toBeNull();
-      // Taken out all the same.
+      // Taken out anyway.
       expect(await storage.oauth.redeemCode("code-2", T0)).toBeNull();
     });
 
@@ -145,7 +145,7 @@ export function describeOAuthContract(
       expect(await storage.apiTokens.rotate("refresh-1", next)).toBe(true);
       expect(await storage.apiTokens.rotate("refresh-1", next)).toBe(false);
       expect(await storage.apiTokens.findByHash("access-1")).toBeNull();
-      // The copies of its keys under the tokens before are written over.
+      // The copies of its keys under the previous tokens are written over.
       expect(await storage.apiTokens.findByHash("access-2")).toMatchObject({
         wrappedKeys: "e1.under-access-2",
         refreshWrappedKeys: "e1.under-refresh-2",

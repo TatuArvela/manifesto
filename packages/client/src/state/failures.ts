@@ -6,25 +6,25 @@ import { showError } from "./ui.ts";
 
 /**
  * How the note actions report what went wrong. An action reports its own
- * failure and resolves; it never rejects, and says whether it worked in its
- * return value: `false`, or `null` where a value was expected. Its call sites
- * are JSX handlers with nowhere to put a `catch`, so a rejection there would be
- * an unhandled rejection the user never sees.
+ * failure and resolves. It never rejects, and its return value tells if it
+ * worked: `false`, or `null` where a value was expected. Its call sites are JSX
+ * handlers with no place to put a `catch`. Thus, a rejection there would be an
+ * unhandled rejection that the user never sees.
  */
 
 /**
- * One group of actions reported together, see {@link asBatch}. Passed down
- * explicitly rather than held in module state: two groups can be in flight at
- * once, and each has to count its own failures.
+ * One group of actions reported together. See {@link asBatch}. Given
+ * explicitly, not kept in module state. Two groups can be in progress at the
+ * same time, and each must count its own failures.
  */
 export interface Batch {
   failures: number;
 }
 
 /**
- * Reports one failed action: in `batch` when given, or as a toast of
- * `message`. A failure because a newer version of the app saved the notes
- * says so instead, since what helps then is a reload, not trying again.
+ * Reports one failed action: in `batch` when given, or as a toast of `message`.
+ * A failure because a newer version of the app saved the notes tells that,
+ * because then a reload helps, not a retry.
  */
 export function reportFailure(
   context: string,
@@ -43,8 +43,8 @@ export function reportFailure(
 }
 
 /**
- * Runs a group of actions as one operation. Each action given the batch counts
- * its failure there instead of raising its own toast, and one message names
+ * Runs a group of actions as one operation. Each action that gets the batch
+ * counts its failure there, and does not show its own toast. One message names
  * the total at the end.
  */
 export async function asBatch(
@@ -58,9 +58,9 @@ export async function asBatch(
 }
 
 /**
- * One user action can exhaust the quota several times over (`NoteCardEditor`
- * saves the note and a version), so the message is held back for a minute
- * after it is shown. Storage reports the refusal; the wording and the throttle
+ * One user action can go over the quota several times (`NoteCardEditor` saves
+ * the note and a version). Thus, after the message shows, it does not show
+ * again for one minute. Storage reports the refusal. The words and the throttle
  * are here.
  */
 const QUOTA_MESSAGE_QUIET_MS = 60 * 1000;

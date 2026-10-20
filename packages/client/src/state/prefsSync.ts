@@ -18,28 +18,32 @@ import {
 import { defaultPrefsOf, serverDefaultPrefs } from "./serverDefaults.ts";
 
 /**
- * Connected mode keeps the account's preferences on the server, so hidden
- * tags and the rest follow the account from device to device. The ones
- * `prefs.ts` counts as the device's own stay here.
+ * Connected mode keeps the preferences of the account on the server. Thus,
+ * hidden tags and the other preferences follow the account from device to
+ * device. The preferences that `prefs.ts` counts as those of the device stay
+ * here.
  *
- * On sign-in the server's copy wins for every key it has, and this device
- * fills in the keys it lacks; an account with none stored takes this device's
- * as they are. After that each change here is sent as a patch of the keys it
- * touched, and each change elsewhere arrives as `prefs:updated` on the app
- * socket. A change made here and not yet sent wins over one that arrives,
- * since it is newer to the person making it.
+ * On sign-in, the copy of the server wins for each key that it has, and this
+ * device fills the keys that it does not have. An account with none stored
+ * takes those of this device as they are. After that, each change here goes as
+ * a patch of the keys that it changed. Each change in a different place arrives
+ * as `prefs:updated` on the app socket. A change made here and not sent yet
+ * wins over a change that arrives, because it is newer for the person who makes
+ * it.
  *
- * The server holds each value sealed under the account's personal key (the
- * names of hidden tags are among them), so nothing here runs until the
+ * The server keeps each value sealed under the personal key of the account (the
+ * names of hidden tags are among them). Thus, nothing here runs until the
  * account is unlocked.
  */
 
-/** Each account key's value as this module last saw it, as JSON. */
+/** The value of each account key as this module last saw it, as JSON. */
 let known = new Map<string, string>();
-/** Keys changed here and not yet accepted by the server. */
+/** Keys changed here that the server did not accept yet. */
 const dirty = new Set<string>();
-/** Whether the server's copy has been read this session. Until then a
- * change is only noted, since the server's copy may be about to replace it. */
+/**
+ * If the code read the copy of the server in this session. Until then, a change
+ * is only recorded, because the copy of the server can replace it soon.
+ */
 let ready = false;
 let pushTimer: ReturnType<typeof setTimeout> | undefined;
 let started = false;
@@ -61,9 +65,9 @@ function schedulePush() {
 }
 
 /**
- * Whether `sealing` is still the account's: a lock, an unlock or another
- * account signing in while something was being sealed or opened makes what
- * it was doing another session's business.
+ * If `sealing` still belongs to the account. A lock, an unlock or a sign-in of
+ * a different account during a seal or an open makes that operation part of a
+ * different session.
  */
 const stillCurrent = (sealing: NoteSealing) => sealer.peek() === sealing;
 
@@ -76,11 +80,11 @@ async function push(): Promise<void> {
   const prefs = await sealing.sealPrefs(patch);
   if (!stillCurrent(sealing)) return;
   const res = await apiFetch("PATCH", "/auth/me/prefs", { prefs });
-  // Offline or refused: the keys stay dirty, for the next change or the
-  // next time the socket reconnects.
+  // Offline or refused. The keys stay dirty, for the next change or the next
+  // reconnect of the socket.
   if (!res?.ok) return;
   for (const [key, value] of Object.entries(patch)) {
-    // Changed again while this was in flight: that change still has to go.
+    // Changed again while this was in progress. That change must still go.
     if (JSON.stringify(accountPrefsSnapshot()[key]) === JSON.stringify(value)) {
       dirty.delete(key);
     }
@@ -88,7 +92,10 @@ async function push(): Promise<void> {
   if (dirty.size > 0) schedulePush();
 }
 
-/** Takes the server's copy, keeping what was changed here and not yet sent. */
+/**
+ * Takes the copy of the server, and keeps what was changed here and not sent
+ * yet.
+ */
 function adopt(prefs: AccountPrefs) {
   const incoming: AccountPrefs = {};
   for (const [key, value] of Object.entries(prefs)) {
@@ -98,10 +105,10 @@ function adopt(prefs: AccountPrefs) {
 }
 
 /**
- * The host's default preferences, asking the server for them if it has not
- * been asked yet: an account signing in for the first time may get here
- * before the app's own request for the capabilities has come back. Empty
- * when the server cannot say.
+ * The default preferences of the host. The code asks the server for them if it
+ * did not ask yet. An account that signs in for the first time can get here
+ * before the own request of the app for the capabilities came back. Empty when
+ * the server cannot tell.
  */
 async function hostDefaults(): Promise<AccountPrefs> {
   const known = serverDefaultPrefs.peek();
@@ -120,9 +127,9 @@ async function hostDefaults(): Promise<AccountPrefs> {
 }
 
 /**
- * Reads the server's copy and adopts it: at sign-in, and again after the app
- * socket reconnects, since a change made elsewhere meanwhile was never heard.
- * Never rejects.
+ * Reads the copy of the server and adopts it: at sign-in, and again after the
+ * app socket reconnects, because the code never got a change made in a
+ * different place in the meantime. Never rejects.
  */
 export async function refreshAccountPrefs(): Promise<void> {
   const sealing = sealer.peek();
@@ -136,17 +143,17 @@ export async function refreshAccountPrefs(): Promise<void> {
     return;
   }
   if (!sealed || typeof sealed !== "object" || Array.isArray(sealed)) return;
-  // A value that does not open reads as one the server lacks, and is sent
-  // again from here.
+  // A value that does not open reads as a value that the server does not have,
+  // and this client sends it again.
   const prefs = await sealing.openPrefs(sealed);
   if (!stillCurrent(sealing)) return;
-  // The keys the server lacks: every one for an account with nothing stored,
-  // or a preference newer than the client that last wrote.
+  // The keys that the server does not have: each key for an account with
+  // nothing stored, or a preference newer than the client that wrote last.
   const missing = ACCOUNT_PREF_KEYS.filter((key) => !(key in prefs));
   const defaults = missing.length > 0 ? await hostDefaults() : {};
   if (!stillCurrent(sealing)) return;
-  // Each takes the host's default where there is one, and this device's
-  // value where not; either is then stored as the account's own.
+  // Each takes the default of the host where there is one, and the value of
+  // this device where not. Either is then stored as the value of the account.
   const filled: AccountPrefs = {};
   for (const key of missing) {
     if (key in defaults) filled[key] = defaults[key];
@@ -157,8 +164,10 @@ export async function refreshAccountPrefs(): Promise<void> {
   if (dirty.size > 0) schedulePush();
 }
 
-/** `prefs:updated` from the app socket: another device changed something.
- * Never rejects. */
+/**
+ * `prefs:updated` from the app socket: a different device changed something.
+ * Never rejects.
+ */
 export async function receiveAccountPrefs(
   sealed: SealedAccountPrefs,
 ): Promise<void> {
@@ -169,8 +178,9 @@ export async function receiveAccountPrefs(
 }
 
 /**
- * Starts following the session: reads the server's copy whenever one begins,
- * and sends each change made here. Once per page; open mode never starts it.
+ * Starts to follow the session. It reads the copy of the server each time a
+ * session starts, and sends each change made here. One time for each page. Open
+ * mode never starts it.
  */
 export function startPrefsSync(): void {
   if (started) return;
@@ -183,16 +193,16 @@ export function startPrefsSync(): void {
       ready = false;
       dirty.clear();
       clearTimeout(pushTimer);
-      // Signed in, the server's copy is read at the unlock, so another
-      // tab's account preferences are no longer this tab's to take.
+      // When signed in, the copy of the server is read at the unlock. Thus,
+      // this tab does not take the account preferences of a different tab now.
       setAccountPrefsFromServer(serverUrl !== null && !!token);
       if (serverUrl === null || !token || !unlocked) return;
       void refreshAccountPrefs();
     });
   });
 
-  // The first run records where this device stands; after that, a difference
-  // is a change made here, unless it came from elsewhere.
+  // The first run records the state of this device. After that, a difference is
+  // a change made here, unless it came from a different place.
   let first = true;
   effect(() => {
     const snapshot = accountPrefsSnapshot();

@@ -2,46 +2,52 @@ import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
 
 /**
- * Tells a note row written from outside the editor apart from one that is
- * merely behind it, so the editor can take the first in and keep ignoring the
+ * Tells a note row written from outside the editor from a row that is only
+ * behind it. Thus, the editor can take the first in, and continue to ignore the
  * second.
  *
- * Once a note has a shared document, the editor shows the document and never
- * the row. That is right when the row is behind (an edit saved from another
- * tab that has not reached this one, or offline typing whose saves failed),
- * and wrong when the row was written by something that never touches the
- * document: an assistant's `update_note`, a script on the REST API, a
- * restored version. The editor would show the old text, and its next save
- * would write that back over the change.
+ * When a note has a shared document, the editor shows the document, and never
+ * the row. That is correct when the row is behind (an edit saved from a
+ * different tab that did not reach this tab, or offline typing whose saves
+ * failed). It is wrong when the row was written by a source that never changes
+ * the document: the `update_note` of an assistant, a script on the REST API, a
+ * restored version. The editor would show the old text, and its next save would
+ * write that back over the change.
  *
  * The document keeps two records to decide which it is:
- * - **claims**: a hash of each text an editor sent to the row, made *before*
- *   sending. A row holding a claimed text came from the document, however
- *   late it arrives, and another tab's save is always claimed by the time its
- *   broadcast lands (give or take the delay the caller allows for).
- * - **savedAt**: the server's `updatedAt` for the last save that landed. A
- *   row no newer than it cannot hold anything the document lacks.
+ * - **claims**: a hash of each text that an editor sent to the row, made
+ *   *before* the send. A row that contains a claimed text came from the
+ *   document, however late it arrives. The save of a different tab is always
+ *   claimed when its broadcast arrives (approximately, within the delay that
+ *   the caller permits).
+ * - **savedAt**: the `updatedAt` of the server for the last save that arrived.
+ *   A row that is not newer than it cannot contain anything that the document
+ *   does not have.
  *
- * A row that is newer than `savedAt`, holds an unclaimed text and differs from
- * the document was written from outside. A document with neither record
- * (every document from before this) never judges a row outside, and starts
- * keeping them the first time row and document agree.
+ * A row that is newer than `savedAt`, contains an unclaimed text, and is
+ * different from the document was written from outside. A document with neither
+ * record (each document from before this) never decides that a row is outside,
+ * and starts to keep them the first time that the row and the document agree.
  *
- * Only `import type` from Yjs: this module sits in the editor's chunk, and the
- * Yjs runtime must stay out of the entry (see `realtime/yjsSession.ts`).
+ * Only `import type` from Yjs. This module is in the chunk of the editor, and
+ * the Yjs runtime must stay out of the entry (see `realtime/yjsSession.ts`).
  */
 export interface ContentAgreement {
-  /** Just before the editor sends `text` to the row, or once the document
-   * has taken in a row's text. */
+  /**
+   * Just before the editor sends `text` to the row, or after the document took
+   * in the text of a row.
+   */
   claim(text: string): void;
-  /** Once a save of the document has landed, with the row's `updatedAt`. */
+  /** After a save of the document arrived, with the `updatedAt` of the row. */
   confirm(updatedAt: string): void;
-  /** Whether the row now holds a text that never came from the document. */
+  /** If the row now contains a text that never came from the document. */
   isOutside(row: RowContent, documentText: string): boolean;
   wasClaimed(text: string): boolean;
-  /** Whether this client is the one to write an outside change in. Every
-   * client that has the document open sees the same row, and two of them
-   * writing it in would put the text in twice. */
+  /**
+   * If this client must write an outside change in. Each client that has the
+   * document open sees the same row. If two of them wrote it in, the text would
+   * be there two times.
+   */
   leads(): boolean;
 }
 
@@ -50,19 +56,22 @@ export interface RowContent {
   updatedAt: string;
 }
 
-/** Enough claims to cover the saves still in flight, and those that failed
- * since the last one landed while offline, which `savedAt` covers anyway. */
+/**
+ * Sufficient claims to cover the saves that are still in progress, and the
+ * saves that failed while offline since the last save that arrived, which
+ * `savedAt` covers anyway.
+ */
 const MAX_CLAIMS = 50;
 
 const CLAIMS_MAP = "manifesto:claims";
 const AGREEMENT_MAP = "manifesto:agreement";
 
-/** The serializer ends a document with a newline and a textarea does not. */
+/** The serializer ends a document with a newline, and a textarea does not. */
 function trimEnd(text: string): string {
   return text.replace(/\n+$/, "");
 }
 
-/** cyrb53: a claim only has to tell texts of one note apart. */
+/** cyrb53: a claim only has to tell the texts of one note apart. */
 export function contentHash(text: string): string {
   const s = trimEnd(text);
   let h1 = 0xdeadbeef;
@@ -125,7 +134,7 @@ function agreement(records: Records): ContentAgreement {
   };
 }
 
-/** Kept in the shared document, so every tab and device reads the same. */
+/** Kept in the shared document. Thus, all tabs and devices read the same. */
 export function sharedAgreement(
   ydoc: Y.Doc,
   awareness: Awareness | null,
@@ -136,20 +145,21 @@ export function sharedAgreement(
     claims,
     savedAt: () => meta.get("savedAt") ?? null,
     setSavedAt: (at) => meta.set("savedAt", at),
-    // The lowest client id among those with the document open. Awareness
-    // always holds this client's own state, so alone it leads.
+    // The lowest client id among the clients with the document open. Awareness
+    // always contains the own state of this client. Thus, when alone, it leads.
     leads: () =>
       !awareness || Math.min(...awareness.getStates().keys()) === ydoc.clientID,
   });
 }
 
-/** For an editor with no shared document: open mode, a viewer, or a server
- * whose collaboration stack could not be reached. Only this editor writes.
+/**
+ * For an editor with no shared document: open mode, a viewer, or a server whose
+ * collaboration stack was not available. Only this editor writes.
  *
- * Starts from the row the editor was built from, which it holds by
- * construction. Left to be recorded by the first check instead, a row that
- * changed before that check (a restore in the first moments) found no
- * records and was kept out. */
+ * Starts from the row from which the editor was built, which it has by
+ * construction. When the first check recorded it, a row that changed before
+ * that check (a restore in the first moments) found no records, and stayed out.
+ */
 export function localAgreement(opened: RowContent): ContentAgreement {
   let savedAt: string | null = opened.updatedAt;
   return agreement({

@@ -55,7 +55,7 @@ function CardColorPicker({
   );
 }
 
-/** The editor's font picker, from the card: the same "Aa" in each font. */
+/** The font picker of the editor, from the card: the same "Aa" in each font. */
 function CardFontPicker({
   note,
   anchorRef,
@@ -132,7 +132,7 @@ function CardMenu({
 }
 
 /**
- * Whichever of a card's popovers is drawn: the open one, or the one just
+ * The popover of a card that is drawn: the open one, or the one that just
  * closed while it fades (`shown` and `leaving` come from `usePresence`).
  */
 export function NoteCardPopovers({
@@ -162,7 +162,9 @@ export function NoteCardPopovers({
   menuBtnRef: Anchor;
   /** The reminder chip or the bell, whichever opened the picker. */
   reminderAnchorRef: Anchor;
-  /** Opens the note's editor on its history; left out where it has none. */
+  /**
+   * Opens the editor of the note on its history. Not given where it has none.
+   */
   onShowVersions?: (() => void) | undefined;
 }) {
   const close = () => setOpen(null);

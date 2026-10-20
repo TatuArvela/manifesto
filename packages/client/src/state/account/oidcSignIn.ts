@@ -3,8 +3,8 @@ import { signal } from "@preact/signals";
 import { adoptSession, requestWithoutSession, SERVER_URL } from "./auth.ts";
 import { markOidcFlow, takeOidcFlow } from "./oidcFlow.ts";
 
-// Signing in through the server's identity provider: the addresses that
-// start it, and taking up the session it comes back with.
+// The sign-in through the identity provider of the server: the addresses that
+// start it, and the start of the session with which it comes back.
 
 export function buildOidcLoginUrl(): string | null {
   if (SERVER_URL === null) return null;
@@ -13,15 +13,17 @@ export function buildOidcLoginUrl(): string | null {
 
 export const oidcLoginUrl = buildOidcLoginUrl();
 
-/** Signs in through the identity provider again, which asks for real rather
- * than reusing its own session: what an account without a password is sent to
- * when an action needs a recent sign-in. */
+/**
+ * Signs in through the identity provider again, which asks for real, and does
+ * not use its own session again. An account without a password goes here when
+ * an action needs a recent sign-in.
+ */
 export const oidcReauthUrl =
   oidcLoginUrl === null ? null : `${oidcLoginUrl}?reauth=1`;
 
 /**
- * What a link to either address above runs as it is followed: the session
- * that comes back is taken only in a tab that left this mark.
+ * What a link to one of the addresses above runs when you follow it. Only a tab
+ * that left this mark takes the session that comes back.
  */
 export const beginOidcSignIn = (): void => markOidcFlow();
 
@@ -31,18 +33,18 @@ export type OidcRefusal =
   | "groups_unavailable";
 
 /**
- * Why the server turned away a single sign-on the identity provider accepted:
- * not in the group allowed to sign in, no account while registration is off,
- * or groups that could not be read. Set from the callback's `#error=`, for
- * the login screen to say.
+ * Why the server refused a single sign-on that the identity provider accepted:
+ * not in the group that can sign in, no account while registration is off, or
+ * groups that it could not read. Set from the `#error=` of the callback, for
+ * the login screen to tell.
  */
 export const oidcRefusal = signal<OidcRefusal | null>(null);
 
 /**
- * After an OIDC callback the server redirects to the client with the session
- * token in the URL fragment (`#token=...`). Picks it up, fetches the current
- * user via /api/v1/auth/me, populates the auth signals, and clears the fragment
- * from the address bar so refreshes don't re-trigger the flow.
+ * After an OIDC callback, the server redirects to the client with the session
+ * token in the URL fragment (`#token=...`). This gets it, gets the current user
+ * through /api/v1/auth/me, fills the auth signals, and clears the fragment from
+ * the address bar. Thus, a refresh does not start the flow again.
  */
 export async function consumeOidcRedirect(): Promise<boolean> {
   if (typeof window === "undefined") return false;
@@ -64,16 +66,16 @@ export async function consumeOidcRedirect(): Promise<boolean> {
   const token = params.get("token");
   if (!token) return false;
 
-  // Wipe the hash before any await so a slow /me round-trip doesn't leave the
-  // token sitting in the address bar.
+  // Clear the hash before any await. Thus, a slow /me round trip does not leave
+  // the token in the address bar.
   history.replaceState(
     null,
     "",
     `${window.location.pathname}${window.location.search}`,
   );
 
-  // Only a sign-in this tab sent the browser to: a `#token=` in a link
-  // someone was handed is the sender's session, not theirs (`oidcFlow.ts`).
+  // Only a sign-in to which this tab sent the browser. A `#token=` in a link
+  // that a person got is the session of the sender, not theirs (`oidcFlow.ts`).
   if (!takeOidcFlow()) return false;
 
   try {

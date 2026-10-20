@@ -14,7 +14,7 @@ export function createSqlitePrefsRepo(db: SqliteDB): PrefsRepo {
     parsePrefs(
       (getStmt.get(userId) as { prefs: string } | undefined)?.prefs ?? null,
     );
-  // One synchronous transaction: nothing can land between the read and the
+  // One synchronous transaction. Nothing can occur between the read and the
   // write.
   const merge = db.transaction(
     (

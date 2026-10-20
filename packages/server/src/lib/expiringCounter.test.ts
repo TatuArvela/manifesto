@@ -65,8 +65,8 @@ describe("createExpiringCounter", () => {
     const counter = createExpiringCounter({ windowMs: 100, maxEntries: 2 });
     counter.hit("a", 0);
     counter.hit("b", 50);
-    // "a" opens a second window here, so it is now the newer of the two and
-    // "b" is the one closest to expiring.
+    // "a" opens a second window here. Thus, it is now the newer of the two, and
+    // "b" is the key nearest to expiry.
     counter.hit("a", 150);
     counter.hit("c", 160);
     expect(counter.peek("b", 160)).toBeNull();

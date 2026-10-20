@@ -7,10 +7,10 @@ import {
 import { BoardCard } from "./BoardCard.tsx";
 
 /**
- * How opaque the pattern is drawn. One value for every texture and colour,
- * so moving it between them keeps the board as strong as it was; the texture
- * tiles above take it at once, so they are the preview. With no pattern there
- * is nothing for it to change, so it waits disabled.
+ * The opacity of the pattern. One value for all textures and colors. Thus, when
+ * you move between them, the board stays as strong as it was. The texture tiles
+ * above use it immediately. Thus, they are the preview. With no pattern, it has
+ * nothing to change. Thus, it is disabled.
  */
 export function BoardOpacitySlider({
   compose,

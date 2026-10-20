@@ -33,9 +33,10 @@ type Form =
   | { kind: "remove"; passkey: Passkey };
 
 /**
- * The account's passkeys, under the authenticator app in the two-factor tab:
- * each a second factor after the password, and a way to sign in alone. Adding
- * one asks for the password and then the browser's own prompt.
+ * The passkeys of the account, under the authenticator app in the two-factor
+ * tab. Each one is a second factor after the password, and a way to sign in
+ * alone. To add one, the app asks for the password, and then the browser shows
+ * its own prompt.
  */
 export function PasskeySettings({ onChange }: { onChange: () => void }) {
   const [passkeys, setPasskeys] = useState<Passkey[] | null>(null);

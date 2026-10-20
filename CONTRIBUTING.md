@@ -1,41 +1,53 @@
 # Contributing to Manifesto
 
-Thanks for taking the time to look. Manifesto is a small, MIT-licensed side project, so the contribution process is light.
+Thank you for your interest. Manifesto is a small side project with the MIT license. Thus, the
+procedure to contribute is simple.
 
 ## Licensing of contributions
 
-By submitting a contribution (pull request, patch, issue with code, etc.), you agree that your contribution is licensed under the [MIT License](LICENSE), the same license as the project. There is no Contributor License Agreement to sign; the inbound license matches the outbound license.
+When you send a contribution (a pull request, a patch, an issue with code, or other), you agree that
+your contribution has the [MIT License](LICENSE). This is the same license as the project. You do
+not sign a Contributor License Agreement. The license for contributions is the same as the license
+for the project.
 
-You retain copyright on your contribution. You are not assigning it to anyone.
+You keep the copyright on your contribution. You do not give it to a different person.
 
 ## Before opening a pull request
 
-- Run `pnpm lint`, `pnpm typecheck`, and `pnpm test` locally.
-- Write commit subjects and the PR title as conventional commits (`fix(client): ...`); they become
-  the changelog. `pnpm install` sets up a `commit-msg` hook that checks them, and CI checks again.
-- Keep changes focused. Smaller PRs are easier to review and more likely to land.
-- For larger changes, open an issue first to check that the direction makes sense.
+- Run `pnpm lint`, `pnpm typecheck`, and `pnpm test` on your computer.
+- Write the commit subjects and the PR title as conventional commits (`fix(client): ...`). They
+  become the changelog. `pnpm install` installs a `commit-msg` hook that checks them. CI checks them
+  again.
+- Make each change about one topic. A small PR is easier to review, and it is more likely to merge.
+- For a large change, open an issue first. This lets you make sure that the direction is correct.
 
 ## Dependency updates
 
-Dependabot opens grouped pull requests every Monday (`.github/dependabot.yml`): one for minor and patch
-updates of runtime dependencies, one for development ones, one for GitHub Actions, and a pull request of
-its own for each major update or base image. A release is proposed once it is a week old, security
-updates at once. They run the same CI as any other pull request.
+Each Monday, Dependabot opens grouped pull requests (`.github/dependabot.yml`):
 
-Actions in `.github/workflows/` are pinned to a commit, with the release it is in as a comment
-(`uses: actions/checkout@<sha> # v7.0.1`), because a tag can be moved to other code after it is
-reviewed. Dependabot updates both together. `zizmor` audits the workflows on every change to them
-(`.github/workflows/zizmor.yml`); it does not fail the run, and its findings land in code scanning.
+- One for minor and patch updates of runtime dependencies.
+- One for development dependencies.
+- One for GitHub Actions.
+- A separate pull request for each major update or base image.
+
+Dependabot proposes a release when the release is one week old. It proposes security updates
+immediately. These pull requests run the same CI as all other pull requests.
+
+The actions in `.github/workflows/` are pinned to a commit. A comment gives the release that
+contains the commit (`uses: actions/checkout@<sha> # v7.0.1`). We do this because a person can move
+a tag to different code after a review. Dependabot updates the commit and the comment together.
+`zizmor` audits the workflows each time they change (`.github/workflows/zizmor.yml`). It does not
+make the run fail. Its findings go to code scanning.
 
 ## Scope
 
-Manifesto is intentionally small. The maintainer is not committing to active development, so:
+Manifesto is small on purpose. The maintainer does not promise active development. Thus:
 
 - Bug fixes and small improvements are welcome.
-- Large new features may not be accepted into the main repo; feel free to fork.
-- Issues may not always get a response. That's not personal.
+- The main repository possibly does not accept large new features. You can make a fork.
+- Issues possibly do not always get a response. This is not personal.
 
 ## Name and logo
 
-The name "Manifesto" and the project logo are free to use. Fork it, rename it, keep the name, swap the logo, ship a competing version, whatever works for you. There is no trademark to defend here.
+You can use the name "Manifesto" and the project logo freely. You can make a fork, change the name,
+keep the name, change the logo, or release a competing version. There is no trademark to protect.

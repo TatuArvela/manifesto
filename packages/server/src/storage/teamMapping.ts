@@ -19,9 +19,9 @@ export interface NoteTeamShareRow {
 }
 
 /**
- * Selects teams with how many members each has: `${TEAM_SELECT} WHERE …
- * ${TEAM_GROUP} ORDER BY …`. A join and a group rather than a correlated
- * subquery, which pg-mem (the Postgres tests) cannot run.
+ * Selects teams with the number of members of each: `${TEAM_SELECT} WHERE …
+ * ${TEAM_GROUP} ORDER BY …`. A join and a group, not a correlated subquery,
+ * which pg-mem (the Postgres tests) cannot run.
  */
 export const TEAM_SELECT = `SELECT t.id, t.name, t.source, t.created_at,
   COUNT(m.user_id) AS member_count

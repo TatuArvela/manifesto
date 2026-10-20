@@ -1,4 +1,4 @@
-/** Hands a file to the browser as a download under `name`. */
+/** Gives a file to the browser as a download under `name`. */
 export function saveFile(blob: Blob, name: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

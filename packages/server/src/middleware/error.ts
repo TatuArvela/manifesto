@@ -13,8 +13,11 @@ export class HttpError extends Error {
   }
 }
 
-/** An email address another account holds. Coded, because the same status
- * also means a taken username and the client says the two differently. */
+/**
+ * An email address that a different account has. It has a code, because the
+ * same status also means a taken username, and the client tells the two
+ * differently.
+ */
 export function emailTaken(): HttpError {
   return new HttpError(
     409,

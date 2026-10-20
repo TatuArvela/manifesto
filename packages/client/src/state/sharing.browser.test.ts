@@ -71,9 +71,11 @@ function sharedAs(role: NoteSharing["role"]): NoteSharing {
   };
 }
 
-/** An invitation as the server sends it. This project hands notes through
- * unsealed, so its words are readable here; the key that came with it is
- * taken as it is. */
+/**
+ * An invitation as the server sends it. This project lets notes through
+ * unsealed. Thus, its words are readable here, and the key that came with it is
+ * taken as it is.
+ */
 function invitation(overrides: Partial<ShareInvitation> = {}): ShareInvitation {
   return {
     noteId: "n1",

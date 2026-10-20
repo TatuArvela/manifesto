@@ -6,12 +6,12 @@ import { currentStorage } from "#/storage/index.ts";
 import { useNoteImages } from "./useNoteImages.ts";
 
 /**
- * The point of leaving attachments out of a listing is only realised if a card
- * asks for them when it is actually going to draw them. A grid of four hundred
- * notes should fetch the pictures of the handful the reader scrolls past, not
- * of all four hundred, so the fetch hangs off an IntersectionObserver, and
- * these check both halves: nothing while the card is far away, and the bytes
- * once it is near.
+ * The removal of attachments from a listing only helps if a card asks for them
+ * when it will really draw them. A grid of four hundred notes must get the
+ * pictures of the few cards past which the reader scrolls, not of all four
+ * hundred. Thus, the fetch comes from an IntersectionObserver, and these tests
+ * check both halves: nothing while the card is far away, and the bytes when it
+ * is near.
  */
 
 const PNG = "data:image/png;base64,iVBORw0KGgo=";
@@ -96,7 +96,7 @@ describe("useNoteImages", () => {
     notes.value = [note];
     render(<Card note={note} spacer={window.innerHeight * 5} />, host);
 
-    // Long enough for an observer that was going to fire to have fired.
+    // Sufficiently long for an observer that was to fire to have fired.
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(loadImages).not.toHaveBeenCalled();
     expect(shown()).toBe("loading");

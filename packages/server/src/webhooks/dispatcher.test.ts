@@ -3,12 +3,13 @@ import { describe, expect, it } from "vitest";
 import { signDelivery } from "./dispatcher.ts";
 
 /**
- * The signature is public surface: every receiver recomputes it from the
- * spec (docs/specification/features/webhooks.md), not from this code. These
- * check it against that description, written out as a receiver would.
+ * The signature is public surface. Each receiver calculates it again from the
+ * specification (docs/specification/features/webhooks.md), not from this code.
+ * These tests check it against that description, written as a receiver would
+ * write it.
  */
 
-/** A receiver's check, as the spec tells one to write it. */
+/** The check of a receiver, as the specification tells you to write it. */
 function receiverAccepts(
   secret: string,
   headers: { timestamp: string; signature: string },
@@ -49,7 +50,7 @@ describe("signDelivery", () => {
         BODY.replace("Ää", "Aa"),
       ),
     ).toBe(false);
-    // A captured delivery replayed with a fresh timestamp.
+    // A captured delivery, sent again with a new timestamp.
     expect(
       receiverAccepts(SECRET, { timestamp: "1767225601", signature }, BODY),
     ).toBe(false);

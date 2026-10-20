@@ -31,19 +31,19 @@ import { serverFeature } from "./serverFeatures.ts";
 import { editingNoteId, showError, showSuccess } from "./ui.ts";
 
 /**
- * Sharing notes with other accounts, in connected mode.
+ * Sharing of notes with other accounts, in connected mode.
  *
- * Every action here follows the contract in `actions.ts`: it reports its own
- * failure and resolves, saying whether it worked in its return value. The
- * server's error text is English and written for a log, so failures are mapped
+ * Each action here follows the contract in `actions.ts`. It reports its own
+ * failure and resolves, and its return value tells if it worked. The error text
+ * of the server is English and written for a log. Thus, the code maps failures
  * to catalogue messages by status, as `admin.ts` does.
  */
 
 /**
- * An invitation as the app shows it: the note's title, text and font opened
- * with the key that came with it. `waiting` while no key has come, or the one
- * that came did not check against its signer: nothing of the note is shown
- * then, and it cannot be accepted yet.
+ * An invitation as the app shows it: the title, text and font of the note,
+ * opened with the key that came with it. `waiting` while no key came, or while
+ * the key that came did not pass the check against its signer. Then nothing of
+ * the note shows, and the person cannot accept it yet.
  */
 export interface Invitation
   extends Omit<
@@ -52,16 +52,18 @@ export interface Invitation
   > {
   title: string;
   content: string;
-  /** The owner's colour is their own; an invitation has none. */
+  /** The color of the owner belongs to the owner. An invitation has none. */
   color: NoteColor;
   font: NoteFont;
   waiting: boolean;
 }
 
-/** Notes other people have offered, newest first. */
+/** Notes that other persons offered, newest first. */
 export const invitations = signal<Invitation[]>([]);
 
-/** The key each open invitation came with, as this account will keep it. */
+/**
+ * The key that came with each open invitation, as this account will keep it.
+ */
 const heldKeys = new Map<string, HeldKeyRequest>();
 
 /** Opens an invitation as it arrived from the server. Never rejects. */
@@ -82,8 +84,9 @@ async function opened(raw: ShareInvitation): Promise<Invitation> {
     font: NoteFont.Default,
     waiting: true,
   };
-  // A refreshed invitation is judged on what it carries now: the key an
-  // earlier copy came with may be one the note has since moved away from.
+  // The code decides about a refreshed invitation from what it carries now. The
+  // key that an earlier copy came with can be a key that the note moved away
+  // from since then.
   heldKeys.delete(raw.noteId);
   const sealing = sealer.peek();
   if (!sealing || !offered) return waiting;
@@ -100,7 +103,9 @@ async function opened(raw: ShareInvitation): Promise<Invitation> {
   }
 }
 
-/** A note the server answered with, opened; null when it does not open. */
+/**
+ * A note with which the server answered, opened. Null when it does not open.
+ */
 async function openedNote(
   sealed: SealedNote | undefined,
 ): Promise<Note | null> {
@@ -109,15 +114,14 @@ async function openedNote(
 }
 
 /**
- * The note whose people are being looked at, if any. One dialog for the whole
- * app: it is opened from a note's menu, which closes as soon as a row is
- * chosen.
+ * The note whose people the user looks at, if any. One dialog for the full app.
+ * A menu of a note opens it, and the menu closes when the user selects a row.
  */
 export const shareDialog = signal<{ noteId: string } | null>(null);
 
 /**
- * Say what went wrong. A `fetch` that never reached the server is a network
- * failure, and the fallback is the most honest thing to say about it.
+ * Tell what went wrong. A `fetch` that never reached the server is a network
+ * failure, and the fallback is the most correct thing to say about it.
  */
 function report(
   context: string,
@@ -127,16 +131,16 @@ function report(
 ) {
   console.error("%s", context, err);
   const status = err instanceof ApiError ? err.status : 0;
-  if (status === 401) return; // signed out; the login screen says enough
+  if (status === 401) return; // signed out; the login screen tells sufficient
   showError(t(byStatus[status] ?? fallback));
 }
 
 const byId = (noteId: string) => (i: Invitation) => i.noteId === noteId;
 
 /**
- * The notes whose invitation the socket added or took away while a load was
- * opening its list. The load's answer is older than those, so it leaves them
- * as they are now.
+ * The notes whose invitation the socket added or removed while a load opened
+ * its list. The answer of the load is older than those. Thus, it keeps them as
+ * they are now.
  */
 const changedDuringLoad = new Set<string>();
 let loading = 0;
@@ -178,7 +182,7 @@ export async function loadInvitations(): Promise<boolean> {
   loading++;
   try {
     const body = await apiJson<InvitationsResponse>("GET", "/invitations");
-    // Each may wait on a key lookup, so they open side by side.
+    // Each can wait for a key lookup. Thus, they open in parallel.
     const list = await Promise.all((body?.invitations ?? []).map(opened));
     const settled = invitations.value.filter((i) =>
       changedDuringLoad.has(i.noteId),
@@ -187,14 +191,15 @@ export async function loadInvitations(): Promise<boolean> {
       ...settled,
       ...list.filter((i) => !changedDuringLoad.has(i.noteId)),
     ];
-    // One taken away meanwhile keeps no key this load may have opened for it.
+    // An invitation removed in the meantime keeps no key that this load
+    // possibly opened for it.
     for (const noteId of changedDuringLoad) {
       if (!settled.some(byId(noteId))) heldKeys.delete(noteId);
     }
     return true;
   } catch (err) {
-    // Not worth a toast on start: the notes are what the user came for, and
-    // the next reconnect or reload asks again.
+    // Not worth a toast on start. The user came for the notes, and the next
+    // reconnect or reload asks again.
     console.error("Failed to load invitations:", err);
     return false;
   } finally {
@@ -204,8 +209,8 @@ export async function loadInvitations(): Promise<boolean> {
 }
 
 export async function acceptInvitation(noteId: string): Promise<boolean> {
-  // Accepting keeps the note's key under this account's own notes key. An
-  // invitation still waiting for one has nothing to keep.
+  // An accept keeps the key of the note under the own notes key of this
+  // account. An invitation that still waits for a key has nothing to keep.
   const held = heldKeys.get(noteId);
   if (!held) {
     showError(t("sharing.error.waitingForKey"));
@@ -223,7 +228,7 @@ export async function acceptInvitation(noteId: string): Promise<boolean> {
     return true;
   } catch (err) {
     // Gone: withdrawn, or the note was trashed or deleted in the meantime.
-    // There is nothing left to accept, so the offer goes too.
+    // There is nothing left to accept. Thus, the offer also goes.
     if (err instanceof ApiError && err.status === 404) {
       forgetInvitation(noteId);
     }
@@ -259,9 +264,9 @@ export async function declineInvitation(noteId: string): Promise<boolean> {
 }
 
 /**
- * Accounts matching what the owner typed: any part of a name or address, or
- * only a whole one, depending on the server. `null` when the lookup failed,
- * which is not the same as nobody matching.
+ * Accounts that match what the owner typed: any part of a name or address, or
+ * only a full one, as the server decides. `null` when the lookup failed, which
+ * is not the same as no match.
  */
 export async function findUsers(
   query: string,
@@ -286,9 +291,9 @@ export async function shareNote(
   role: ShareRole,
 ): Promise<boolean> {
   try {
-    // The note's key, wrapped to their public key and signed. Without one
-    // (an account not set up yet) the invitation waits, and whoever holds
-    // the note wraps it for them later.
+    // The key of the note, wrapped to their public key and signed. Without one
+    // (an account that is not set up yet), the invitation waits, and a holder
+    // of the note wraps it for them later.
     const key = await offerKeyTo(noteId, userId);
     const body = await apiJson<NoteResponse<SealedNote>>(
       "POST",
@@ -344,15 +349,16 @@ export async function setShareRole(
   }
 }
 
-/** The owner takes someone off a note, or withdraws an invitation. */
+/** The owner removes a person from a note, or withdraws an invitation. */
 export async function removeShare(
   noteId: string,
   userId: string,
 ): Promise<boolean> {
   try {
     await apiJson<null>("DELETE", `/notes/${noteId}/shares/${userId}`);
-    // The server's `note:updated` says the same a moment later; saying it
-    // here keeps the dialog from showing someone who is already gone.
+    // The `note:updated` of the server tells the same a moment later. When this
+    // code tells it here, the dialog does not show a person who is already
+    // gone.
     reviseNote(noteId, (note) => {
       if (!note.sharing) return note;
       const members = note.sharing.members.filter((m) => m.id !== userId);
@@ -377,8 +383,9 @@ export async function removeShare(
 }
 
 /**
- * Take a note someone shared out of the signed-in user's notes. It stays with
- * its owner and everyone else; getting it back takes a new invitation.
+ * Remove a note that a different person shared from the notes of the signed-in
+ * user. It stays with its owner and all other persons. To get it back, the user
+ * needs a new invitation.
  */
 export async function leaveNote(
   noteId: string,
@@ -387,7 +394,7 @@ export async function leaveNote(
   try {
     await apiJson<null>("DELETE", `/notes/${noteId}/shares/${userId}`);
   } catch (err) {
-    // Already gone is as good as left.
+    // Already gone is the same as left.
     if (!(err instanceof ApiError && err.status === 404)) {
       report(
         `Failed to leave note ${noteId}:`,
@@ -403,10 +410,10 @@ export async function leaveNote(
 }
 
 /**
- * What each unlocked account has set about, by a name for the work, so an
- * effect that runs again does not start the same thing twice. Kept for the
- * `Sealer` it was done with and not for the page: a lock and unlock, or
- * another account signing in, starts with nothing in hand.
+ * What each unlocked account started, by a name for the work. Thus, an effect
+ * that runs again does not start the same work two times. Kept for the `Sealer`
+ * with which it was done, not for the page. A lock and unlock, or a sign-in of
+ * a different account, starts with nothing in progress.
  */
 const inHand = new WeakMap<NoteSealing, Set<string>>();
 
@@ -420,12 +427,12 @@ function handOf(sealing: NoteSealing): Set<string> {
 }
 
 /**
- * Starts `work` unless this unlocked account already has `what` under way.
- * It is in hand only while it runs. Work that did not succeed is tried again
- * by whatever runs the effect again (the connection coming back, the next
- * listing that changes it), and work that did is no longer asked for, until
- * the note is due it once more: a second person removed in one session
- * needs a second new key. `work` never rejects.
+ * Starts `work`, unless this unlocked account already has `what` in progress.
+ * It is in progress only while it runs. The next run of the effect (the
+ * connection comes back, the next listing that changes it) tries again the work
+ * that did not succeed. The code does not ask again for work that did succeed,
+ * until the note needs it again. A second person removed in one session needs a
+ * second new key. `work` never rejects.
  */
 function setAbout(
   sealing: NoteSealing,
@@ -441,33 +448,35 @@ function setAbout(
 }
 
 /**
- * Supplying one person a note's key, as `inHand` names it. Kept once tried,
- * so someone who cannot be supplied (an account with no keys yet) is not
- * asked about on every change of a note; `trustKeys` forgets. The name
- * carries the key the note was last moved to here: a key replaced again
- * leaves everyone waiting again, whoever was supplied the one before.
+ * The supply of the key of a note to one person, as `inHand` names it. Kept
+ * after one try. Thus, the code does not ask about a person whom it cannot
+ * supply (an account with no keys yet) on each change of a note. `trustKeys`
+ * forgets. The name carries the key to which the note last moved here. A key
+ * replaced again makes all persons wait again, whoever got the previous key.
  */
 const supplyOf = (sealing: NoteSealing, noteId: string, userId: string) =>
   `supply ${noteId} ${sealing.replaced.peek().get(noteId) ?? 0} ${userId}`;
 
 /**
- * Hands the note's key to whoever on it is still waiting for one: a member
- * of a team the note was shared with, or someone invited before they had
- * keys. Whichever holder of the note is online first does it, the owner or
- * not. Never rejects.
+ * Gives the key of the note to each person on it who still waits for one: a
+ * member of a team with which the note was shared, or a person invited before
+ * they had keys. The first holder of the note that is online does it, the owner
+ * or not. Never rejects.
  */
 async function supplyWaiting(note: Note): Promise<void> {
   const sealing = sealer.peek();
   if (!sealing) return;
   const supplied = handOf(sealing);
-  // A viewer holds the key as much as anyone, so anyone on the note may.
+  // A viewer has the key as much as all other persons. Thus, all persons on the
+  // note can do it.
   for (const member of note.sharing?.members ?? []) {
     if (!member.waitingForKey) continue;
     const tried = supplyOf(sealing, note.id, member.id);
     if (supplied.has(tried)) continue;
     supplied.add(tried);
-    // A request that did not get through is tried again the next time the
-    // effect below runs: when the connection is back, or the notes change.
+    // The code tries again a request that did not get through the next time
+    // that the effect below runs: when the connection is back, or when the
+    // notes change.
     if ((await supplyKey(note.id, member.id)) === "failed") {
       supplied.delete(tried);
     }
@@ -475,9 +484,9 @@ async function supplyWaiting(note: Note): Promise<void> {
 }
 
 /**
- * The person looked at an account's changed key and takes it: remembered in
- * place of the old one, and whatever waited on it is tried again. Never
- * rejects.
+ * The person looked at the changed key of an account and accepts it. It is
+ * remembered in place of the old key, and the code tries again all that waited
+ * on it. Never rejects.
  */
 export async function trustKeys(userId: string): Promise<boolean> {
   if (!(await trustChangedKeys(userId))) {
@@ -498,19 +507,19 @@ export async function trustKeys(userId: string): Promise<boolean> {
       void supplyWaiting(note);
     }
   }
-  // An invitation whose key they signed can be opened now.
+  // An invitation whose key they signed can open now.
   void loadInvitations();
   return true;
 }
 
 export { changedKeys, keyStatusOf } from "#/storage/shareKeys.ts";
 
-// A note is due a new key once someone who held the old one is gone: the
-// owner's app makes it, whichever of their devices is online first. One
-// that fails stays due, under the key the person who left still holds, so
-// it is not given up on: tried again when the connection is back after an
-// outage, when the set of due notes changes, and when the account is next
-// unlocked.
+// A note needs a new key after a person who had the old key is gone. The app of
+// the owner makes it, on the first of their devices that is online. A note that
+// fails stays due, under the key that the departed person still has. Thus, the
+// code does not stop. It tries again when the connection is back after an
+// outage, when the set of due notes changes, and at the next unlock of the
+// account.
 effect(() => {
   const sealing = sealer.value;
   if (!sealing?.handsKeysOn) return;
@@ -520,9 +529,9 @@ effect(() => {
   }
 });
 
-// A note with a reminder and no copy of its key for a calendar feed: a
-// script set the reminder, or the note's key was replaced. Whichever device
-// of the account sees it leaves the copy, and tries again as above.
+// A note with a reminder and no copy of its key for a calendar feed: a script
+// set the reminder, or the key of the note was replaced. The device of the
+// account that sees it leaves the copy, and tries again as above.
 effect(() => {
   const sealing = sealer.value;
   if (!sealing?.handsKeysOn) return;
@@ -532,13 +541,13 @@ effect(() => {
   }
 });
 
-// Follows the notes: a share to a team reaches its members with no key, and
-// this is the "first client of anyone holding the note" that wraps it.
+// Follows the notes. A share to a team reaches its members with no key, and
+// this is the "first client of a person who has the note" that wraps it.
 effect(() => {
   const sealing = sealer.value;
   if (!sealing?.handsKeysOn) return;
   if (connectionOutage.value) return;
-  // Read so the effect runs again when a note's key is replaced.
+  // Read, so that the effect runs again when the key of a note is replaced.
   void sealing.replaced.value;
   for (const note of notes.value) {
     if (roleOf(note) === "view" && !note.sharing) continue;

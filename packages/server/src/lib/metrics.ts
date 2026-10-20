@@ -1,12 +1,12 @@
 import { jobStatuses } from "./periodic.ts";
 
 /**
- * Prometheus metrics, in its text format, for `GET /metrics`. Written out
- * rather than taken from a client library: counters, gauges read at scrape
- * time, and a request duration sum and count cover what "is it well" needs,
- * and the format is a few lines of text.
+ * Prometheus metrics, in its text format, for `GET /metrics`. We wrote them
+ * here, and did not use a client library. Counters, gauges read at scrape time,
+ * and a sum and a count of request durations give what "is it well" needs. The
+ * format is a few lines of text.
  *
- * Module state, like the job statuses: there is one server per process.
+ * Module state, as for the job statuses: there is one server for each process.
  */
 
 type Labels = Record<string, string>;
@@ -53,7 +53,7 @@ export function countMetric(
   else f.values.set(k, { labels, value: by });
 }
 
-/** A gauge read when scraped, from whoever knows its value. */
+/** A gauge read at the scrape, from the code that knows its value. */
 export function gaugeMetric(
   name: string,
   help: string,
@@ -102,7 +102,7 @@ export async function renderMetrics(version: string): Promise<string> {
     try {
       out.push(line(name, {}, await gauge.read()));
     } catch {
-      // A gauge that cannot be read is left out of this scrape.
+      // This scrape does not include a gauge that the code cannot read.
     }
   }
   const jobs = jobStatuses();
@@ -142,7 +142,7 @@ export async function renderMetrics(version: string): Promise<string> {
   return `${out.join("\n")}\n`;
 }
 
-/** Test seam: the registry is module state and outlives a test. */
+/** Test seam: the registry is module state, and stays after a test. */
 export function resetMetrics(): void {
   families.clear();
   gauges.clear();

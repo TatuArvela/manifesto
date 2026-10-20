@@ -22,17 +22,19 @@ import {
 } from "./shareKeys.ts";
 
 /**
- * Whose key it is. The server hands out public keys and keeps the list of
- * the ones an account has seen, sealed; here it is a few maps that a test
- * can tamper with, as a server could.
+ * The owner of a key. The server gives out public keys, and keeps the list of
+ * the keys that an account saw, sealed. Here it is a few maps that a test can
+ * change, as a server could.
  */
 
 const publicKeysOf = new Map<string, AccountPublicKeys>();
 let seen: Record<string, string>;
 let seenReadable: boolean;
 let seenWritable: boolean;
-/** A note the server holds, what it answers for its public links, and the
- * replacement of its key the server was last sent. */
+/**
+ * A note that the server has, what it answers for its public links, and the
+ * last replacement of its key that the server got.
+ */
 let held: SealedNote | null;
 let linksStatus: number;
 let rekeyed: NoteRekeyRequest | null;
@@ -125,7 +127,7 @@ describe("remembering other people's keys", () => {
     // Nothing of the key is readable there.
     expect(seen["u-alice"]).toMatch(/^e1\./);
     expect(JSON.stringify(seen)).not.toContain(alice.signing);
-    // Someone with no keys yet is nobody to remember.
+    // A person with no keys yet is nobody to remember.
     expect(await trustedKeysOf("u-nobody")).toBeNull();
     expect(Object.keys(seen)).toEqual(["u-alice"]);
   });
@@ -138,7 +140,7 @@ describe("remembering other people's keys", () => {
     await trustedKeysOf("u-alice");
     const fingerprint = (await keyStatusOf("u-alice"))?.fingerprint;
 
-    // The server gives another key for her, to a device that starts fresh.
+    // The server gives a different key for her, to a device that starts new.
     const swapped = await someKeys();
     publicKeysOf.set("u-alice", swapped);
     await unlock(mine);
@@ -149,7 +151,7 @@ describe("remembering other people's keys", () => {
     expect(status?.fingerprint).not.toBe(fingerprint);
     expect(status?.fingerprint).toMatch(/^([0-9A-F]{4} ){5}[0-9A-F]{4}$/);
 
-    // She did start again, and said so: the new key is the one remembered.
+    // She did start again, and said so: the new key is the remembered key.
     expect(await trustChangedKeys("u-alice")).toBe(true);
     expect(changedKeys.value.has("u-alice")).toBe(false);
     expect((await trustedKeysOf("u-alice"))?.publicKeys).toEqual(swapped);
@@ -163,7 +165,7 @@ describe("remembering other people's keys", () => {
     publicKeysOf.set("u-alice", await someKeys());
     seenWritable = false;
     expect(await trustedKeysOf("u-alice")).toBeNull();
-    // Worth trying again: the request did not get through.
+    // Worth another try: the request did not get through.
     expect(await supplyKey("n1", "u-alice")).toBe("failed");
     expect(seen).toEqual({});
 
@@ -182,10 +184,10 @@ describe("remembering other people's keys", () => {
     forgetPublicKeys("u-alice");
     expect(await trustedKeysOf("u-alice")).toBeNull();
 
-    // The server does not take the new key: nothing was agreed to.
+    // The server does not take the new key: nothing was agreed.
     seenWritable = false;
     expect(await trustChangedKeys("u-alice")).toBe(false);
-    // The swapped key is not met as a first sighting afterwards.
+    // After that, the changed key does not look like a first sight.
     expect(await trustedKeysOf("u-alice")).toBeNull();
     expect(changedKeys.value.get("u-alice")?.publicKeys).toEqual(swapped);
 
@@ -201,12 +203,12 @@ describe("remembering other people's keys", () => {
     seenReadable = false;
     expect(await trustedKeysOf("u-alice")).toBeNull();
     expect(seen).toEqual({});
-    // Once it can be read, it is asked again.
+    // After it can be read, the code asks again.
     seenReadable = true;
     expect(await trustedKeysOf("u-alice")).not.toBeNull();
 
-    // The same entry handed to another account, or put under another
-    // person's name, opens for neither: each then meets the key as new.
+    // The same entry given to a different account, or put under the name of a
+    // different person, opens for neither. Each then sees the key as new.
     const entry = seen["u-alice"] ?? "";
     publicKeysOf.set("u-bob", await someKeys());
     seen = { "u-bob": entry };
@@ -220,10 +222,10 @@ describe("handing someone a note's key", () => {
   it("is worth trying again only when a request did not get through", async () => {
     await unlock(await testKeys("u-me"));
     publicKeysOf.set("u-alice", await someKeys());
-    // Their keys were read; what this account remembers of them was not.
+    // Their keys were read. What this account remembers of them was not.
     seenReadable = false;
     expect(await supplyKey("n1", "u-alice")).toBe("failed");
-    // Nobody to wrap to, however often it is asked.
+    // Nobody to wrap to, however frequently the code asks.
     expect(await supplyKey("n1", "u-nobody")).toBe("unable");
     seenReadable = true;
     expect(await trustedKeysOf("u-alice")).not.toBeNull();
@@ -249,7 +251,7 @@ describe("asking for someone's keys", () => {
     await keysGiven("u-alice");
     const now = await someKeys();
     publicKeysOf.set("u-alice", now);
-    // Another account in the same tab, with nothing forgotten by hand.
+    // A different account in the same tab, with nothing forgotten manually.
     storageKeys.value = { ...(await testKeys("u-other")) };
     expect((await keysGiven("u-alice"))?.publicKeys).toEqual(now);
   });

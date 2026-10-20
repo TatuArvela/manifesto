@@ -10,31 +10,31 @@ import {
 } from "./seal.ts";
 
 /**
- * A token that carries a key
- * (`docs/specification/features/encryption.md`, "Tokens that carry a key").
+ * A token that carries a key (`docs/specification/features/encryption.md`,
+ * "Tokens that carry a key").
  *
- * A script cannot run the app, so it cannot open a note. The app therefore
- * makes the token's secret itself and hands the server, beside the token's
- * hash, the keys the token needs wrapped under a key derived from that
- * secret. The server can open them only while a request presents the token,
- * and keeps nothing afterwards. The wrapping key is derived apart from the
- * hash the server stores, which is a plain SHA-256 of the token and must not
- * be the key as well.
+ * A script cannot run the app. Thus, it cannot open a note. For this reason,
+ * the app makes the secret of the token itself. It gives the server the hash of
+ * the token, and the keys that the token needs, wrapped under a key derived
+ * from that secret. The server can open them only while a request has the
+ * token, and keeps nothing after that. The wrapping key has a different
+ * derivation than the hash that the server stores. The hash is a plain SHA-256
+ * of the token, and must not also be the key.
  *
- * An API or MCP token carries the notes key and the personal key, never the
- * account key: it opens no private key, accepts no invitation and wraps
- * nothing for another token.
+ * An API or MCP token contains the notes key and the personal key, never the
+ * account key. Thus, it opens no private key, accepts no invitation, and wraps
+ * nothing for a different token.
  */
 
-/** The keys a token carries, as bytes, before they are wrapped. */
+/** The keys of a token, as bytes, before they are wrapped. */
 export interface TokenKeyMaterial {
-  /** The version of the account key they come from. */
+  /** The version of the account key from which they come. */
   version: number;
   notes: Uint8Array<ArrayBuffer>;
   personal: Uint8Array<ArrayBuffer>;
 }
 
-/** The longest a token's wrapped keys may be. */
+/** The maximum length of the wrapped keys of a token. */
 export const MAX_TOKEN_KEYS_LENGTH = 512;
 
 const DATA = associatedData({ id: "", field: "token/keys", version: 1 });
@@ -43,7 +43,7 @@ async function wrapKeyOf(secret: string): Promise<CryptoKey> {
   return deriveKey(await derivable(utf8(secret)), "token/wrap");
 }
 
-/** The hash a server finds a token by: SHA-256 of the secret, in hex. */
+/** The hash by which a server finds a token: SHA-256 of the secret, in hex. */
 export async function tokenHashOf(secret: string): Promise<string> {
   const digest = new Uint8Array(
     await crypto.subtle.digest("SHA-256", utf8(secret)),
@@ -56,7 +56,7 @@ export function newTokenSecret(prefix: string): string {
   return `${prefix}${bytesToBase64url(crypto.getRandomValues(new Uint8Array(32)))}`;
 }
 
-/** The keys a token carries, wrapped under a key derived from its secret. */
+/** The keys of a token, wrapped under a key derived from its secret. */
 export async function wrapTokenKeys(
   secret: string,
   keys: TokenKeyMaterial,
@@ -75,9 +75,9 @@ export async function wrapTokenKeys(
 }
 
 /**
- * The keys a presented token carries, as bytes: for the one place that has
- * to wrap them again under another secret, the exchange that turns an
- * assistant's code or refresh token into its next tokens. Null when
+ * The keys of a presented token, as bytes. This is for the one place that must
+ * wrap them again under a different secret: the exchange that changes the code
+ * or the refresh token of an assistant into its next tokens. Null when
  * `wrapped` does not open with this secret. The caller wipes them.
  */
 export async function openTokenKeyMaterial(
@@ -110,9 +110,9 @@ export async function openTokenKeyMaterial(
 }
 
 /**
- * The keys a presented token carries, ready to open and seal `userId`'s
- * notes with. Null when `wrapped` does not open with this secret. The keys
- * live for the request that asked and are never stored.
+ * The keys of a presented token, ready to open and seal the notes of `userId`.
+ * Null when `wrapped` does not open with this secret. The keys exist only for
+ * the request that asked, and are never stored.
  */
 export async function unwrapTokenKeys(
   secret: string,
@@ -143,11 +143,11 @@ const FEED_DATA = associatedData({
 });
 
 /**
- * The key a calendar feed's address carries: the account's reminder key and
- * nothing else, wrapped under a key derived from the address's secret. A
- * feed address is the weakest of the secrets (the calendar service has it,
- * and every proxy on the way), so it opens the notes that have a reminder
- * and no others.
+ * The key that the address of a calendar feed contains: only the reminder key
+ * of the account, wrapped under a key derived from the secret of the address. A
+ * feed address is the weakest of the secrets (the calendar service has it, and
+ * each proxy on the way). Thus, it opens the notes that have a reminder, and no
+ * other notes.
  */
 export async function wrapFeedKey(
   secret: string,
@@ -165,8 +165,10 @@ export async function wrapFeedKey(
   );
 }
 
-/** The reminder key a presented feed address carries; null when `wrapped`
- * does not open with this secret. Lives for the request that asked. */
+/**
+ * The reminder key of a presented feed address. Null when `wrapped` does not
+ * open with this secret. It exists only for the request that asked.
+ */
 export async function unwrapFeedKey(
   secret: string,
   wrapped: string,

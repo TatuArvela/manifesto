@@ -27,19 +27,20 @@ import { attachYjsSocket } from "./ws/yjsSocket.ts";
 
 const cfg = loadConfig();
 const storage = await createStorage(cfg).catch((err: unknown) => {
-  // A database this version will not run on: said plainly, with no stack,
-  // since nothing is wrong with the server.
+  // A database on which this version will not run. The message is plain, with
+  // no stack, because nothing is wrong with the server.
   if (err instanceof MigrationRefusedError) {
     logger.error(err.message);
     process.exit(1);
   }
   throw err;
 });
-// What the server stores for itself goes under its current key: a value
-// from before it had one, or under the key before, is rewritten.
+// What the server stores for itself goes under its current key. The server
+// writes again a value from before it had a key, or a value under the previous
+// key.
 await moveToCurrentKey(storage, cfg.dataEncryptionKeyPrevious !== null);
-// Before the server listens, so no request can reach a server nobody can
-// administer.
+// Before the server listens. Thus, no request can reach a server that nobody
+// can administer.
 const initialAdmin = await ensureInitialAdmin(storage, cfg);
 if (initialAdmin) announceInitialAdmin(initialAdmin);
 const authProvider = createAuthProvider(cfg, storage);
@@ -87,8 +88,8 @@ const server = serve({ fetch: app.fetch, port: cfg.port }, (info) => {
 
 ws.injectWebSocket(server);
 
-// Metrics on a port of their own, which a deployment does not publish: a
-// scraper on the same host or network reaches it, the internet does not.
+// Metrics on their own port, which a deployment does not publish. A scraper on
+// the same host or network reaches it. The internet does not.
 const metricsServer = cfg.metricsPort
   ? (serve(
       {
@@ -134,8 +135,8 @@ const shutdown = createShutdown({
       server.close((err) => (err ? reject(err) : resolve()));
     }),
   destroyRealtime: () => yjs.destroy(),
-  // `close()` waits for open sockets and a collaboration socket is open by
-  // design, so its callback only arrives once these are gone.
+  // `close()` waits for open sockets, and a collaboration socket is open by
+  // design. Thus, its callback arrives only after these are gone.
   dropConnections: () => server.closeAllConnections?.(),
   stopJobs: [
     stopTrashCleanup,

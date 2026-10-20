@@ -47,7 +47,7 @@ export function rowToPasskey(row: PasskeyRow): StoredPasskey {
   };
 }
 
-/** A passkey as its owner sees it listed. */
+/** A passkey as its owner sees it in the list. */
 export function listedPasskey(passkey: StoredPasskey): Passkey {
   return {
     id: passkey.id,

@@ -4,8 +4,8 @@ import type { StorageDriver, StoredComment } from "#/storage/types.ts";
 import { claimed } from "./claimed.ts";
 
 /**
- * Comments, the same in both drivers: kept in the order written, gone with
- * their note, and left behind, with no author, when the author's account goes.
+ * Comments, the same in both drivers: kept in the order of writing, gone with
+ * their note, and kept, with no author, when the account of the author goes.
  */
 
 const T0 = "2026-04-01T00:00:00.000Z";
@@ -101,7 +101,7 @@ export function describeCommentsContract(
         await storage.comments.create(comment({ id: "c4", noteId: "n2" }), 2),
       ).toBe(true);
 
-      // Room again once one is gone.
+      // There is space again when one is gone.
       await storage.comments.delete("c1");
       expect(await storage.comments.create(comment({ id: "c3" }), 2)).toBe(
         true,
@@ -110,7 +110,7 @@ export function describeCommentsContract(
 
     it("changes a comment's text and says when", async () => {
       await storage.comments.create(comment(), 10);
-      // With the key it is now under, which may have been replaced since.
+      // With its current key, which can have been replaced after that.
       expect(await storage.comments.setBody("c1", "Second", 2, T2)).toBe(true);
       expect(await storage.comments.get("c1")).toEqual(
         comment({ body: "Second", keyVersion: 2, editedAt: T2 }),

@@ -1,7 +1,9 @@
 import type { MailedLinksRepo, MailedLinksTable } from "#/storage/types.ts";
 import type { PgPool } from "./database.ts";
 
-/** `table` is one of two names written here, never anything a caller sent. */
+/**
+ * `table` is one of two names written here, never a value that a caller sent.
+ */
 export function createPostgresMailedLinksRepo(
   pool: PgPool,
   table: MailedLinksTable,

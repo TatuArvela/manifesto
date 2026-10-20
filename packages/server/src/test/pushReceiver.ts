@@ -9,9 +9,10 @@ import { createServer, type IncomingHttpHeaders, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 
 /**
- * The receiving end of Web Push, for tests: a browser's subscription keys,
- * and a push service on loopback that keeps what it is sent. RFC 8291 from
- * the side the server never implements, so the two are written independently.
+ * The receiving end of Web Push, for tests: the subscription keys of a browser,
+ * and a push service on loopback that keeps what it gets. This is RFC 8291 from
+ * the side that the server never implements. Thus, the two are written
+ * separately.
  */
 
 export interface TestSubscription {
@@ -74,10 +75,10 @@ export function newTestSubscription(): TestSubscription {
 }
 
 export interface TestPushService {
-  /** The endpoint a subscription at `path` would have. */
+  /** The endpoint that a subscription at `path` would have. */
   endpoint(path: string): string;
   received: { path: string; headers: IncomingHttpHeaders; body: Buffer }[];
-  /** What the service answers with; 201 unless a test says otherwise. */
+  /** The answer of the service. 201, unless a test gives a different value. */
   status: number;
   close(): Promise<void>;
 }

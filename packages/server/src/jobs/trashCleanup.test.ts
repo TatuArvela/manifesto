@@ -84,7 +84,7 @@ describe("startTrashCleanup", () => {
       intervalMs: 1_000_000,
     });
 
-    // The cleanup runs asynchronously on startup; give it a tick.
+    // The cleanup runs asynchronously at startup. Give it one tick.
     await new Promise((r) => setTimeout(r, 10));
 
     expect(await storage.notes.getById("expired", "u1")).toBeNull();

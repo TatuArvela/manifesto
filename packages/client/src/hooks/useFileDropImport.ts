@@ -7,13 +7,13 @@ import { restoreVersions } from "#/state/versions.ts";
 import { importFiles, isImportableFile } from "#/utils/importExport.ts";
 import { hasOpenLayer } from "./useShortcut.ts";
 
-/** What is being dragged over the window, for the drop zone to say. */
+/** What is dragged over the window, for the drop zone to show. */
 export type FileDrag = "none" | "import" | "images";
 
 /**
- * Whether every file in a drag or drop is a picture. During a drag only the
- * kinds and types are known, and a browser that hides even those (Safari)
- * reads as not all pictures, so the zone says "import" until the drop.
+ * If each file in a drag or drop is a picture. During a drag, only the kinds
+ * and types are known. A browser that also hides those (Safari) reads as not
+ * all pictures. Thus, the zone says "import" until the drop.
  */
 function allImages(items: readonly { kind: string; type: string }[]): boolean {
   return (
@@ -25,9 +25,9 @@ function allImages(items: readonly { kind: string; type: string }[]): boolean {
 }
 
 /**
- * Takes the files dropped anywhere on the window. Pictures alone, dropped
- * with no note open, start a new note holding them; anything else is
- * imported, as Settings' import does. Says what is being dragged over the
+ * Takes the files dropped anywhere on the window. Only pictures, dropped with
+ * no note open, start a new note that contains them. All other files are
+ * imported, as the import of Settings does. It tells what is dragged over the
  * window now.
  */
 export function useFileDropImport(): FileDrag {

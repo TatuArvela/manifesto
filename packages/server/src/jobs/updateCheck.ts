@@ -8,23 +8,23 @@ const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
 export interface UpdateStatus {
   /** The newest release, as `1.2.3`. */
   latest: string;
-  /** Its page, for the notes on what changed. */
+  /** Its page, for the notes about the changes. */
   url: string;
   checkedAt: string;
-  /** Whether it is newer than the running version. */
+  /** If it is newer than the running version. */
   available: boolean;
 }
 
-/** `1.2.3` from `v1.2.3`, `1.2.3+14.abc` or `1.2.3`; null if it is none. */
+/** `1.2.3` from `v1.2.3`, `1.2.3+14.abc` or `1.2.3`. Null if it is none. */
 export function releaseCore(version: string): [number, number, number] | null {
   const match = /^v?(\d+)\.(\d+)\.(\d+)/.exec(version.trim());
   return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : null;
 }
 
 /**
- * Whether `latest` is a newer release than `running`. A build past a release
- * (`0.1.8+14.bf5a6dd`) counts as that release: it is ahead of it, not behind,
- * and only a later release is news.
+ * If `latest` is a newer release than `running`. A build after a release
+ * (`0.1.8+14.bf5a6dd`) counts as that release. It is after it, not before. Only
+ * a later release is news.
  */
 export function isNewer(latest: string, running: string): boolean {
   const a = releaseCore(latest);
@@ -43,9 +43,9 @@ export interface UpdateChecker {
 }
 
 /**
- * Asks GitHub for the newest release of `repo` twice a day, so the admin
- * overview can say when there is one. One request, to a public API, through
- * the same outbound boundary as link previews; opt out with
+ * Asks GitHub for the newest release of `repo` two times each day. Thus, the
+ * admin overview can tell when there is one. It is one request to a public API,
+ * through the same outbound boundary as link previews. To stop it, set
  * `UPDATE_CHECK=off`. A failed check keeps the last answer.
  */
 export function startUpdateCheck(

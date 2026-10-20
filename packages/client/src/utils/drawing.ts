@@ -1,11 +1,11 @@
-// A drawing as the strokes it was made of, and how they are put on a canvas.
-// Kept apart from the pad that collects them so the geometry can be tested
-// without a pointer.
+// A drawing as the strokes from which it was made, and how they are put on a
+// canvas. Kept separate from the pad that collects them. Thus, the geometry can
+// be tested without a pointer.
 
 import { carriedImageAlts, type Note } from "@manifesto/shared";
 import { MAX_IMAGE_EDGE } from "./shrinkImage.ts";
 
-/** The drawing's own size, whatever size it is shown at: 4 by 3. */
+/** The own size of the drawing, whatever size it shows at: 4 by 3. */
 export const DRAWING_WIDTH = 1600;
 export const DRAWING_HEIGHT = 1200;
 
@@ -14,17 +14,17 @@ export interface PaperSize {
   height: number;
 }
 
-/** A new drawing's paper. */
+/** The paper of a new drawing. */
 export const BLANK_PAPER: PaperSize = {
   width: DRAWING_WIDTH,
   height: DRAWING_HEIGHT,
 };
 
 /**
- * The paper for drawing over an image: the image's own shape, with its long
- * edge no shorter than a new drawing's (a line on a thumbnail would be a row
- * of blocks) and no longer than an attached image is kept at. Null for an
- * image with no size to speak of.
+ * The paper for a drawing over an image: the own shape of the image. Its long
+ * edge is not shorter than that of a new drawing (a line on a thumbnail would
+ * be a row of blocks), and not longer than the size at which an attached image
+ * is kept. Null for an image with almost no size.
  */
 export function paperSizeFor(image: PaperSize): PaperSize | null {
   const longEdge = Math.max(image.width, image.height);
@@ -37,27 +37,31 @@ export function paperSizeFor(image: PaperSize): PaperSize | null {
   };
 }
 
-/** How much wider a pen is on `paper` than on a new drawing's, so it looks
- * the same width on screen whatever the paper's size. */
+/**
+ * How much wider a pen is on `paper` than on a new drawing. Thus, it looks the
+ * same width on the screen, whatever the size of the paper.
+ */
 export function penScale(paper: PaperSize): number {
   return Math.max(paper.width, paper.height) / DRAWING_WIDTH;
 }
-/** Paper: a drawing is opaque, so it reads the same on a note of any colour
- * and in either theme, where transparent ink on a dark note would vanish. */
+/**
+ * Paper: a drawing is opaque. Thus, it looks the same on a note of any color
+ * and in both themes, where transparent ink on a dark note would disappear.
+ */
 export const PAPER = "#ffffff";
 
 export type Point = readonly [x: number, y: number];
 
 export interface Stroke {
   color: string;
-  /** In the drawing's own pixels. */
+  /** In the own pixels of the drawing. */
   width: number;
   points: Point[];
 }
 
 /**
- * Where a pointer is on the drawing, from where it is on the screen. The
- * canvas is shown smaller than it is, so both axes scale by how much.
+ * Where a pointer is on the drawing, from where it is on the screen. The canvas
+ * shows smaller than it is. Thus, both axes scale by that ratio.
  */
 export function drawingPoint(
   pointer: { clientX: number; clientY: number },
@@ -73,9 +77,9 @@ export function drawingPoint(
 }
 
 /**
- * One stroke, as a line through the middle of each pair of points with the
- * points themselves as the curve's handles: a hand moving fast leaves points
- * far apart, and straight segments between them show every corner.
+ * One stroke, as a line through the middle of each pair of points, with the
+ * points themselves as the handles of the curve. A hand that moves fast leaves
+ * points far apart, and straight segments between them show each corner.
  */
 export function drawStroke(
   ctx: CanvasRenderingContext2D,
@@ -88,8 +92,8 @@ export function drawStroke(
   ctx.lineWidth = stroke.width;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  // A tap, or a finger that pressed and never moved: a path with no length
-  // draws nothing, so it is a dot the width of the pen.
+  // A tap, or a finger that pushed and never moved. A path with no length draws
+  // nothing. Thus, it is a dot with the width of the pen.
   if (rest.every((point) => point[0] === first[0] && point[1] === first[1])) {
     ctx.beginPath();
     ctx.arc(first[0], first[1], stroke.width / 2, 0, Math.PI * 2);
@@ -113,9 +117,9 @@ export function drawStroke(
 }
 
 /**
- * The whole drawing from nothing: paper, the image being drawn over if there
- * is one, then every stroke in order. The paper stays under the image, so
- * one with see-through parts is as opaque as any other drawing.
+ * The full drawing from nothing: paper, the image under the drawing if there is
+ * one, then each stroke in order. The paper stays under the image. Thus, an
+ * image with transparent parts is as opaque as all other drawings.
  */
 export function renderDrawing(
   ctx: CanvasRenderingContext2D,
@@ -129,7 +133,7 @@ export function renderDrawing(
   for (const stroke of strokes) drawStroke(ctx, stroke);
 }
 
-/** Above this a PNG is a photograph, not line art, and is saved as one. */
+/** Above this, a PNG is a photograph, not line art, and is saved as one. */
 const PNG_BYTES = 1024 * 1024;
 const PHOTO_QUALITY = 0.92;
 
@@ -137,10 +141,11 @@ const encoded = (canvas: HTMLCanvasElement, type: string, quality?: number) =>
   new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
 
 /**
- * The canvas as an image file's bytes, or null where the browser made none.
- * A PNG, which keeps a line crisp however often the drawing is reopened,
- * unless it is drawn over a photograph: that as a PNG runs to many megabytes,
- * past what a note takes, so it is a JPEG like the photograph was.
+ * The canvas as the bytes of an image file, or null where the browser made
+ * none. A PNG, which keeps a line sharp however frequently the drawing opens
+ * again, unless it is drawn over a photograph. As a PNG, that becomes many
+ * megabytes, more than a note accepts. Thus, it is a JPEG, as the photograph
+ * was.
  */
 export async function encodeDrawing(
   canvas: HTMLCanvasElement,
@@ -155,9 +160,9 @@ export async function encodeDrawing(
 }
 
 /**
- * A note's images with `added` put in: in place of `replaces` where the note
- * still has it, and at the end otherwise, so a drawing made over an image
- * that was meanwhile removed is kept rather than dropped.
+ * The images of a note with `added` put in: in place of `replaces` where the
+ * note still has it, and at the end otherwise. Thus, a drawing made over an
+ * image that was removed in the meantime is kept, not dropped.
  */
 export function placeImages(
   images: readonly string[],
@@ -171,9 +176,9 @@ export function placeImages(
 }
 
 /**
- * The descriptions to go with `placeImages`' answer: each image keeps its
- * own, and a drawing made over an image takes that image's, which still says
- * what is under the lines. Empty when no image has one.
+ * The descriptions for the answer of `placeImages`. Each image keeps its own,
+ * and a drawing made over an image takes the description of that image, which
+ * still tells what is under the lines. Empty when no image has one.
  */
 export function placedImageAlts(
   before: Pick<Note, "images" | "imageAlts">,

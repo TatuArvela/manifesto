@@ -3,21 +3,22 @@ import type { AuthProvider } from "#/auth/types.ts";
 import { logger } from "#/lib/logger.ts";
 
 /**
- * How often an open socket's credential is looked at again.
+ * How frequently the server checks the credential of an open socket again.
  *
- * A socket is authenticated once, at connect. Ending a session by hand
- * reaches it through `auth/revocations.ts`, but one that simply runs out (a
- * session past its absolute lifetime, an API token past its expiry) announces
- * nothing, and its sockets would go on carrying notes for as long as they
- * stayed connected. Looking again is also a use of the session, as a request
- * is, so a tab left open and connected does not slide into expiry.
+ * A socket authenticates one time, at connect. A manual end of a session
+ * reaches it through `auth/revocations.ts`. But a session or token that only
+ * expires (a session past its absolute lifetime, an API token past its expiry)
+ * announces nothing. Its sockets would continue to carry notes while they stay
+ * connected. A check is also a use of the session, as a request is. Thus, a tab
+ * that stays open and connected does not slide into expiry.
  */
 export const SOCKET_RECHECK_MS = 5 * 60 * 1000;
 
 /**
- * Whether `token` still opens a socket that asks for `scope`. A check that
- * could not be made (the database away for a moment) counts as yes: the next
- * pass asks again, and dropping every socket at once would not be safer.
+ * If `token` still opens a socket that asks for `scope`. If the code could not
+ * do the check (the database was not available for a moment), the answer is
+ * yes. The next pass asks again, and to drop all sockets at the same time would
+ * not be safer.
  */
 export async function stillOpens(
   authProvider: AuthProvider,
@@ -40,8 +41,8 @@ export async function stillOpens(
 }
 
 /**
- * One pass: asks once per distinct token and calls `close` for each holder
- * of one that no longer opens the socket.
+ * One pass. It asks one time for each different token, and calls `close` for
+ * each holder of a token that does not open the socket now.
  */
 export async function recheckSockets<T>(
   authProvider: AuthProvider,

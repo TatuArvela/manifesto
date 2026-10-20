@@ -1,13 +1,13 @@
 /**
- * HTML as Markdown, for the formats that store notes as HTML (Evernote's
- * ENML, exported HTML pages). Hand-written over the DOM rather than a
- * library: a note's HTML is paragraphs, emphasis, links, lists, checkboxes,
- * headings, quotes and code, and anything else keeps its text.
+ * HTML as Markdown, for the formats that store notes as HTML (the ENML of
+ * Evernote, exported HTML pages). Written manually over the DOM, not a library.
+ * The HTML of a note is paragraphs, emphasis, links, lists, checkboxes,
+ * headings, quotes and code. All other content keeps its text.
  *
- * The HTML is parsed with `DOMParser`, which builds an inert document: no
- * script in it runs and no image in it loads, so a hostile file is text here.
- * What comes out is Markdown, rendered later through the sanitizing renderer
- * like every other note.
+ * `DOMParser` parses the HTML, and builds an inert document. No script in it
+ * runs, and no image in it loads. Thus, a hostile file is only text here. The
+ * result is Markdown, rendered later through the sanitizing renderer, as each
+ * other note is.
  */
 export function htmlToMarkdown(html: string): string {
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -15,8 +15,8 @@ export function htmlToMarkdown(html: string): string {
   return (
     out
       .replace(/\n{3,}/g, "\n\n")
-      // Evernote puts each checkbox in a division of its own; consecutive
-      // ones are one list.
+      // Evernote puts each checkbox in its own division. Consecutive divisions
+      // are one list.
       .replace(/^(- \[[ x]\] .*)\n\n(?=- \[[ x]\] )/gm, "$1\n")
       .trim()
   );
@@ -47,7 +47,7 @@ const BLOCK = new Set([
 
 const SKIP = new Set(["SCRIPT", "STYLE", "HEAD", "TITLE", "NOSCRIPT"]);
 
-/** Markdown's own characters, escaped where text would read as syntax. */
+/** The own characters of Markdown, escaped where text would read as syntax. */
 function escapeText(text: string): string {
   return text.replace(/([\\`*_[\]])/g, "\\$1");
 }
@@ -56,7 +56,9 @@ function isBlock(node: Node): boolean {
   return node.nodeType === Node.ELEMENT_NODE && BLOCK.has(node.nodeName);
 }
 
-/** The block-level Markdown of an element's children, one entry each. */
+/**
+ * The block-level Markdown of the children of an element, one entry for each.
+ */
 function blocks(parent: Node): string[] {
   const out: string[] = [];
   let inline = "";
@@ -109,7 +111,7 @@ function blockOf(el: Element): string {
       .filter((row) => row.replace(/[\s|]/g, ""))
       .join("\n");
   }
-  // A paragraph or a division; Evernote nests one division per line.
+  // A paragraph or a division. Evernote nests one division for each line.
   return blocks(el).join("\n\n");
 }
 

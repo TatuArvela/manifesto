@@ -72,7 +72,7 @@ describe("nested tags in the Tags view", () => {
       ]),
     );
     expect(activeTag.value).toBe("work/clients");
-    // Only a top-level tag shows whole.
+    // Only a top-level tag shows its full name.
     expect(host.textContent).toContain("#work");
     expect(host.textContent).not.toContain("#work/clients");
   });

@@ -28,7 +28,9 @@ const baseNote: NoteCreate = {
 
 type Account = { token: string; userId: string };
 
-/** Far enough past the overlap that a checkpoint no longer re-reads it. */
+/**
+ * Sufficiently far past the overlap that a checkpoint does not read it again.
+ */
 const LATER = SYNC_OVERLAP_MS + 60_000;
 
 describe("sync route", () => {
@@ -37,7 +39,7 @@ describe("sync route", () => {
   let alice: Account;
 
   beforeEach(async () => {
-    // Past every stamp an earlier test left: `nowIso` never goes backwards.
+    // After all stamps that an earlier test left. `nowIso` never goes back.
     vi.useFakeTimers({
       toFake: ["Date"],
       now: Date.parse(nowIso()) + 3_600_000,
@@ -89,7 +91,7 @@ describe("sync route", () => {
     return (await res.json()) as SyncResponse;
   }
 
-  /** Every page of one sync, as a client drains it. */
+  /** All pages of one sync, as a client reads them. */
   async function sync(who: Account, since?: string) {
     const notes: Note[] = [];
     let cursor: string | null = null;
@@ -132,8 +134,8 @@ describe("sync route", () => {
   });
 
   it("reads the overlap again, so a write stamped before the checkpoint is not lost", async () => {
-    // Stamped a moment before the sync, as a slow request's write would be
-    // if it committed after the sync had read.
+    // Stamped a moment before the sync, as the write of a slow request would be
+    // if it committed after the sync read.
     await create("slow");
     vi.setSystemTime(Date.now() + SYNC_OVERLAP_MS - 1000);
     const { checkpoint } = await sync(owner);
@@ -217,7 +219,7 @@ describe("sync route", () => {
       );
       const alicesView = await sync(alice, aliceCheckpoint);
       expect(alicesView.notes[0]?.sharing?.role).toBe("view");
-      // The note's concurrency token is left alone.
+      // The concurrency token of the note does not change.
       expect(alicesView.notes[0]?.updatedAt).toBe(note.updatedAt);
 
       const ownerCheckpoint2 = (await sync(owner, ownerCheckpoint)).checkpoint;

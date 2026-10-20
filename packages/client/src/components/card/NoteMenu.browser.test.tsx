@@ -12,10 +12,10 @@ import { NoteReadonlyView } from "./NoteReadonlyView.tsx";
 import { noteMenuItems } from "./noteMenuItems.tsx";
 
 /**
- * Three surfaces used to carry three copies of the same menu, and the copies
- * had drifted: the read-only view stayed open over a note it had just
- * archived, and the card listed Duplicate above Share where the other two had
- * it below. Both are tested below, along with the order they now share.
+ * Before, three surfaces had three copies of the same menu, and the copies
+ * became different. The read-only view stayed open over a note that it just
+ * archived, and the card listed Duplicate above Share, where the other two had
+ * it below. The tests below check both, and the order that they share now.
  */
 
 const NOTE_ID = "01JQZK8V0000000000000MENU";
@@ -44,7 +44,7 @@ function makeNote(overrides: Partial<Note> = {}): Note {
 
 let host: HTMLDivElement;
 
-/** The storage adapter reads notes back on write, so seed both. */
+/** The storage adapter reads notes back on write. Thus, seed both. */
 function storeNote(note: Note) {
   notes.value = [note];
   localStorage.setItem("manifesto:notes", JSON.stringify([note]));
@@ -68,8 +68,8 @@ afterEach(() => {
 
 /**
  * A menu is either a `CardPopover` (mounted only while open) or a `Dropdown`
- * (mounted always, shown as a popover), so "the rows on screen" means the ones
- * inside an open panel.
+ * (always mounted, shown as a popover). Thus, "the rows on the screen" means
+ * the rows inside an open panel.
  */
 function openMenuPanel(): HTMLElement {
   const panel =
@@ -93,7 +93,7 @@ function clickRow(label: string) {
   button.click();
 }
 
-/** Clicks the kebab of whichever surface is on screen and waits for its rows. */
+/** Clicks the kebab of the surface on the screen, and waits for its rows. */
 async function openKebab(root: ParentNode = host) {
   const kebab = [...root.querySelectorAll("button")].find(
     (el) => el.getAttribute("aria-label") === t("noteMenu.moreOptions"),
@@ -106,8 +106,9 @@ async function openKebab(root: ParentNode = host) {
 }
 
 /**
- * The rows every surface shows at the top level, in the order they share. In
- * open mode "Share" holds one row, so that row stands in its place.
+ * The rows that each surface shows at the top level, in the order that they
+ * share. In open mode, "Share" contains one row. Thus, that row is in its
+ * place.
  */
 const sharedRows = [
   t("noteMenu.shareLink"),
@@ -126,7 +127,8 @@ describe("the note menu across its three surfaces", () => {
     expect(menuRows().filter((row) => sharedRows.includes(row))).toEqual(
       sharedRows,
     );
-    // The bell is on the card's toolbar, as on the editor's, not in here.
+    // The bell is on the toolbar of the card, as on that of the editor, not in
+    // here.
     expect(menuRows()).not.toContain(t("reminder.set"));
     expect(menuRows()).toContain(t("noteMenu.versionHistory"));
     expect(menuRows()).toContain(t("noteMenu.delete"));
@@ -156,9 +158,9 @@ describe("the note menu across its three surfaces", () => {
   });
 
   it("closes the read-only view when the note is archived from it", async () => {
-    // Archiving moves the note out of the view it was opened from. Trashing
-    // already closed; archiving did not, so the view stayed up over a note
-    // that had left the grid behind it.
+    // Archive moves the note out of the view from which it opened. Trash
+    // already closed. Archive did not. Thus, the view stayed open over a note
+    // that left the grid behind it.
     const note = makeNote();
     storeNote(note);
     const onClose = vi.fn();
@@ -191,7 +193,7 @@ describe("a note shared with the user", () => {
     uncheck: () => {},
   };
   const datedItems = { present: true, sort: () => {} };
-  /** Every row's id, those inside a submenu included. */
+  /** The id of each row, also the rows inside a submenu. */
   const ids = (note: Note) =>
     noteMenuItems(note, { checkedItems, datedItems }).flatMap((item) =>
       item.kind === "submenu"
@@ -244,7 +246,7 @@ describe("a note shared with the user", () => {
 });
 
 describe("the tag button", () => {
-  /** Opens the tag picker from its own button and adds `tag` through it. */
+  /** Opens the tag picker from its own button, and adds `tag` through it. */
   async function addTagThroughButton(tag: string) {
     const button = [...host.querySelectorAll("button")].find(
       (el) => el.getAttribute("aria-label") === t("noteMenu.tags"),
@@ -258,8 +260,8 @@ describe("the tag button", () => {
     });
     input.value = tag;
     input.dispatchEvent(new InputEvent("input", { bubbles: true }));
-    // Let the typed text render before Enter reads it, as it would between
-    // real keystrokes.
+    // Let the typed text render before Enter reads it, as it would between real
+    // keystrokes.
     await new Promise((resolve) => setTimeout(resolve, 0));
     input.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
@@ -322,8 +324,8 @@ describe("NoteMenu dividers", () => {
   });
 
   it("drops a rule with nothing under it", () => {
-    // What a menu builds when everything below the divider is conditional and
-    // none of it applies: a read-only note with no checked items to delete.
+    // What a menu builds when each item below the divider has a condition, and
+    // none of them applies: a read-only note with no checked items to delete.
     expect(dividersIn([row("a"), { kind: "divider", id: "d" }])).toBe(0);
   });
 
@@ -380,8 +382,8 @@ describe("submenus", () => {
 });
 
 /**
- * Says whether the pointer can hover, which decides where a submenu opens:
- * beside the menu for a mouse, in its place for a finger.
+ * Tells if the pointer can hover. That decides where a submenu opens: next to
+ * the menu for a mouse, in its place for a finger.
  */
 function pointerCanHover(can: boolean) {
   const real = window.matchMedia.bind(window);
@@ -420,7 +422,7 @@ describe("a submenu on a touch screen", () => {
         t("noteMenu.jsonFile"),
       ]);
     });
-    // Focus follows into the submenu, or a keyboard is left on nothing.
+    // Focus follows into the submenu. If not, a keyboard has no element.
     expect(document.activeElement?.textContent?.trim()).toBe(
       t("noteMenu.markdownFile"),
     );
@@ -469,7 +471,7 @@ describe("a submenu with a mouse", () => {
     });
     expect(menuRows()).toContain(t("noteMenu.archive"));
     expect(flyout.textContent).toContain(t("noteMenu.jsonFile"));
-    // Beside the panel, lapping 10px over its edge.
+    // Next to the panel, 10px over its edge.
     const panel = openMenuPanel().getBoundingClientRect();
     await vi.waitFor(() => {
       const box = flyout.getBoundingClientRect();

@@ -7,11 +7,14 @@ paths:
 
 # Notes That Compute
 
-Two unrelated features make a note more than text, and both run on every render of a card:
+Two features make a note more than text. The features are not related. Both run each time a card
+renders:
 
-- `utils/evaluateExpression.ts` is a hand-written tokenizer and shunting-yard parser for trailing
-  arithmetic (`200+300` at the end of a line), wired in by `extensions/inlineCalculations.ts`. It
-  is hand-written rather than `eval`-shaped on purpose, and it accepts the comma decimal separator.
-- `utils/linkPreview.ts` extracts URLs for the preview cards. Its trailing-punctuation regex uses a
-  *bounded* quantifier, since an unbounded one backtracks quadratically on a long note and freezes
-  the tab during render. Keep quantifiers bounded in anything reachable from a card render.
+- `utils/evaluateExpression.ts` is a tokenizer and shunting-yard parser for arithmetic at the end of
+  a line (`200+300`). `extensions/inlineCalculations.ts` connects it to the editor. We wrote the
+  parser by hand on purpose, so that it does not operate like `eval`. It accepts a comma as the
+  decimal separator.
+- `utils/linkPreview.ts` finds the URLs for the preview cards. Its regex for punctuation at the end
+  of a URL uses a *bounded* quantifier. An unbounded quantifier backtracks quadratically on a long
+  note, and the tab stops during the render. Keep quantifiers bounded in all code that a card
+  render can reach.

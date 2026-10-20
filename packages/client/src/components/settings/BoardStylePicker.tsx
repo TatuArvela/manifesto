@@ -3,7 +3,9 @@ import type { NoteTilt } from "#/state/prefParsers.ts";
 import { noteTilt } from "#/state/prefs.ts";
 import { SettingsTiles } from "./SettingsControls.tsx";
 
-/** The sample's four cards: their colour, and how far each leans when messy. */
+/**
+ * The four cards of the sample: their color, and how far each leans when messy.
+ */
 const SAMPLE_CARDS = [
   { bg: "bg-yellow-200 dark:bg-yellow-800", tilt: -5 },
   { bg: "bg-sky-200 dark:bg-sky-800", tilt: 4 },
@@ -12,9 +14,9 @@ const SAMPLE_CARDS = [
 ] as const;
 
 /**
- * A miniature board in each style, four cards in a grid, leaning a few
- * degrees on the messy one. The real tilt is only a degree or two, which would
- * not show at this size, so the sample leans further.
+ * A small board in each style, with four cards in a grid that lean a few
+ * degrees on the messy board. The real tilt is only one or two degrees, which
+ * would not show at this size. Thus, the sample leans more.
  */
 function BoardSample({ style }: { style: NoteTilt }) {
   return (

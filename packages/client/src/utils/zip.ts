@@ -1,19 +1,20 @@
 /**
- * A minimal zip reader for imports (a Google Takeout archive, a zipped
- * Markdown folder, an export), and at the end the writer for exports. It
- * reads the central directory and inflates entries with the platform's own
- * `DecompressionStream`, so no library ships for a feature most sessions
- * never touch.
+ * A minimal zip reader for imports (a Google Takeout archive, a zipped Markdown
+ * folder, an export), and at the end the writer for exports. It reads the
+ * central directory, and inflates entries with the own `DecompressionStream` of
+ * the platform. Thus, no library ships for a feature that most sessions never
+ * use.
  *
  * Only what those archives use is supported: stored (0) and deflated (8)
- * entries, no encryption, no spanning. Zip64 is refused rather than misread;
- * the import cap keeps every legitimate archive well under 4 GB.
+ * entries, no encryption, no spanning. The code refuses Zip64, and does not
+ * read it incorrectly. The import limit keeps each legitimate archive well
+ * under 4 GB.
  */
 
 export interface ZipEntry {
-  /** Path inside the archive, with `/` separators. */
+  /** The path inside the archive, with `/` separators. */
   name: string;
-  /** Uncompressed size as the directory records it. */
+  /** The uncompressed size as the directory records it. */
   size: number;
   /** Rejects if the entry inflates past `limit` bytes. */
   read(limit: number): Promise<Uint8Array>;
@@ -26,9 +27,10 @@ const LOCAL_SIGNATURE = 0x04034b50;
 const EOCD_SEARCH = 22 + 0xffff;
 
 /**
- * Inflates one entry, giving up once it passes `limit`. The directory's
- * recorded size is checked first, but it is the archive's own claim; a bomb
- * that understates it is stopped here, before the tab allocates the rest.
+ * Inflates one entry, and stops after it passes `limit`. The code checks the
+ * size that the directory records first, but that is only what the archive
+ * says. A bomb that gives a smaller size is stopped here, before the tab
+ * allocates the remaining data.
  */
 async function inflateRaw(
   data: Uint8Array,
@@ -149,8 +151,10 @@ const CRC_TABLE = (() => {
   return table;
 })();
 
-/** The CRC-32 a zip records for each entry; the reader above never checks
- * it, but every other unzip tool does. */
+/**
+ * The CRC-32 that a zip records for each entry. The reader above never checks
+ * it, but each other unzip tool does.
+ */
 function crc32(data: Uint8Array): number {
   let crc = 0xffffffff;
   for (const byte of data) {
@@ -170,11 +174,11 @@ async function deflateRaw(data: Uint8Array): Promise<Uint8Array> {
 }
 
 /**
- * A zip archive built in memory, for an open-mode export: the counterpart of
- * the server's `export/zip.ts`, with the platform's `CompressionStream` in
- * place of Node's zlib. Every entry is deflated and dated 1980-01-01, the
- * earliest time the format can say, since the files carry their own dates.
- * No zip64, which one browser's notes never need.
+ * A zip archive built in memory, for an open-mode export. It is the equivalent
+ * of the `export/zip.ts` of the server, with the `CompressionStream` of the
+ * platform in place of the zlib of Node. Each entry is deflated and dated
+ * 1980-01-01, the earliest time that the format can record, because the files
+ * carry their own dates. No zip64, which the notes of one browser never need.
  */
 export async function writeZip(
   files: { name: string; data: Uint8Array }[],

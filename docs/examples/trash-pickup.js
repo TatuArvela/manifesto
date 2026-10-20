@@ -1,21 +1,21 @@
 // @title Trash pickup
 //
-// Example auto-note plugin: recurring trash pickup.
+// Example auto-note plugin: a trash pickup that repeats.
 //
-// Paste this into Settings → Auto-notes → Paste code, or host it at an HTTPS
+// Paste this into Settings → Auto-notes → Paste code, or put it on an HTTPS
 // URL and add it as a URL source.
 //
-// Each plugin receives a `ctx` argument: { today, locale, stdlib }.
+// Each plugin gets a `ctx` argument: { today, locale, stdlib }.
 //   - today:   ISO 8601 timestamp for the current moment, fixed for the run
 //   - locale:  "en" / "fi" / ...
 //   - stdlib:  date helpers (addDays, lastOccurrence, relativeDays,
 //              approxUntil, formatDate, ...)
 //
-// Return a single card or an array of cards. Each card is a plain object:
+// Return one card or an array of cards. Each card is a plain object:
 //   { title, content /* markdown */, color?, font?, tags?, pinned?,
 //     position?, key? }
 
-// Personal data: the whole point is that this lives outside Manifesto.
+// Personal data. The purpose is that this stays outside Manifesto.
 const LAST_CONFIRMED_PICKUP = "2024-05-04";
 const INTERVAL_DAYS = 42;
 
@@ -35,6 +35,6 @@ function trashPickup({ today, locale, stdlib }) {
   };
 }
 
-// `_default` is the export convention the sandbox looks for.
-// Assign a single function for one card, or an array of functions for many.
+// `_default` is the export convention that the sandbox looks for.
+// Assign one function for one card, or an array of functions for many cards.
 _default = trashPickup;

@@ -74,7 +74,8 @@ export const fi: Messages = {
   "selection.deletePermanently": "Poista pysyvästi",
   "selection.deleteSelectedPermanently": "Poista valitut pysyvästi",
 
-  // Confirming a deletion (Settings > Confirm Deletions, and every bulk one)
+  // Confirmation of a deletion (Settings > Confirm Deletions, and each bulk
+  // deletion)
   "confirm.cancel": "Peruuta",
   "confirm.trash.title": "Poistetaanko muistiinpano?",
   "confirm.trash.body": "Se siirtyy roskakoriin, josta voit palauttaa sen.",
@@ -164,8 +165,8 @@ export const fi: Messages = {
   "editor.removeUpload": "Poista",
   "editor.imageTooLarge":
     "{name} on liian suuri liitettäväksi (enintään {size})",
-  // Note menu: one kebab menu, shared by the card, the editor and the
-  // read-only view.
+  // The note menu: one kebab menu that the card, the editor and the read-only
+  // view share.
   "noteMenu.more": "Lisää",
   "noteMenu.moreOptions": "Lisää toimintoja",
   "noteMenu.tags": "Tunnisteet",
@@ -1112,7 +1113,7 @@ export const fi: Messages = {
   "reminder.dismiss": "Sulje",
   "reminder.chip": "Muistutus: {date}",
 
-  // Shared-note dialog, shown when the app opens on a #share=... link.
+  // The shared-note dialog, shown when the app opens on a #share=... link.
   "welcome.title": "Tämä on {appName}",
   "welcome.intro":
     "Muistilappuja ajatuksille, listoille ja muistutuksille. Kirjoita Markdownilla tai käytä muotoilupalkkia, ja järjestä lappuja vetämällä.",

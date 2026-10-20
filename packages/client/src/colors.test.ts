@@ -9,10 +9,11 @@ import {
   tagChipColors,
 } from "./colors.ts";
 
-// Read from disk: Vitest blanks a stylesheet imported in a test, `?raw` too.
+// Read from disk. Vitest empties a stylesheet imported in a test, also with
+// `?raw`.
 const read = (path: string) =>
   readFileSync(new URL(path, import.meta.url), "utf8");
-// The palette as the build has it: the client's own Tailwind install.
+// The palette as the build has it: the own Tailwind installation of the client.
 const tailwindTheme = read("../node_modules/tailwindcss/theme.css");
 const lightShade = read("./styles/light-shade.css");
 const darkShade = read("./styles/dark-shade.css");
@@ -32,9 +33,9 @@ for (const [, name = "", l = "", c = "", h = ""] of tailwindTheme.matchAll(
 }
 
 /**
- * A shade moves the neutral ramp's lightness (its tint barely moves the
- * contrast), so each step is read back from the shade's stylesheet with that
- * shade's dim in place of the variable.
+ * A shade moves the lightness of the neutral ramp (its tint almost does not
+ * change the contrast). Thus, the test reads each step back from the stylesheet
+ * of the shade, with the dim of that shade in place of the variable.
  */
 function shadedLightness(
   css: string,
@@ -121,7 +122,7 @@ function contrast(a: number[], b: number[]): number {
   return ((light ?? 0) + 0.05) / ((dark ?? 0) + 0.05);
 }
 
-/** The colour a utility list gives one property in one theme. */
+/** The color that a utility list gives one property in one theme. */
 function utility(classes: string, prefix: string, theme: Theme): string {
   const lead = theme === "dark" ? `dark:${prefix}-` : `${prefix}-`;
   const name = classes
@@ -209,14 +210,14 @@ describe("contrast on notes", () => {
   });
 
   it("keeps text on a board card legible over any board", () => {
-    // Opaque, so no board, picture or texture behind it shows through.
+    // Opaque. Thus, no board, picture or texture behind it shows through.
     expect(boardCard).not.toMatch(/\bbg-[a-z]+(-\d+)?\//);
     const surface = [{ label: "board card", classes: boardCard }];
     expect(failures(surface, roles)).toEqual([]);
   });
 
   it("keeps a section heading legible over any board", () => {
-    // Drawn on `--board-page`, which is the page's white or neutral-900.
+    // Drawn on `--board-page`, which is the white or neutral-900 of the page.
     expect(boardLabel).toContain("bg-(--board-page)");
     const page = [
       { label: "the page", classes: "bg-white dark:bg-neutral-900" },

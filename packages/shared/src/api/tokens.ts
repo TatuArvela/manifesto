@@ -1,19 +1,20 @@
 /**
- * What a token is for. `api` (`mfp_`) works on the REST API and the sockets,
- * as a session does; `mcp` (`mfm_`) works only at `/api/v1/mcp`, for an AI
- * assistant, so a secret copied into an assistant's settings can do only what
- * its tools do; `calendar` (`mfc_`) is the secret in a reminder feed's
- * address (`/api/v1/calendar/<token>.ics`), since a calendar app sends no
- * header, and opens that feed and nothing else.
+ * The purpose of a token. `api` (`mfp_`) works on the REST API and the sockets,
+ * as a session does. `mcp` (`mfm_`) works only at `/api/v1/mcp`, for an AI
+ * assistant. Thus, a secret copied into the settings of an assistant can only
+ * do what its tools do. `calendar` (`mfc_`) is the secret in the address of a
+ * reminder feed (`/api/v1/calendar/<token>.ics`), because a calendar app sends
+ * no header. It opens that feed and nothing else.
  */
 export const API_TOKEN_KINDS = ["api", "mcp", "calendar"] as const;
 export type ApiTokenKind = (typeof API_TOKEN_KINDS)[number];
 
 /**
- * What a token may reach. Each route a token can call names one, and so does
- * each socket (`/api/v1/ws` reads notes, `/api/v1/yjs` writes them). A `:write`
- * scope includes its `:read`. A session has them all, and none of them
- * reaches what only a session may do (passwords, tokens, webhooks, admin).
+ * What a token can reach. Each route that a token can call names one, and each
+ * socket also names one (`/api/v1/ws` reads notes, `/api/v1/yjs` writes them).
+ * A `:write` scope includes its `:read`. A session has all of them. None of
+ * them reaches the functions that only a session can use (passwords, tokens,
+ * webhooks, admin).
  */
 export const API_TOKEN_SCOPES = [
   "notes:read",
@@ -24,14 +25,16 @@ export const API_TOKEN_SCOPES = [
 ] as const;
 export type ApiTokenScope = (typeof API_TOKEN_SCOPES)[number];
 
-/** What a token gets when minted without naming any, and what every token
- * minted before scopes was narrowed to. */
+/**
+ * The scopes of a token made without scopes. All tokens made before scopes also
+ * got only these.
+ */
 export const DEFAULT_API_TOKEN_SCOPES: readonly ApiTokenScope[] = [
   "notes:read",
   "notes:write",
 ];
 
-/** Whether `granted` covers `needed`, a `:write` covering its `:read`. */
+/** If `granted` includes `needed`. A `:write` includes its `:read`. */
 export function hasScope(
   granted: readonly ApiTokenScope[],
   needed: ApiTokenScope,
@@ -44,7 +47,7 @@ export function hasScope(
 }
 
 /**
- * A personal API token as listed: never the secret, which is shown once, in
+ * A personal API token as listed. Never the secret, which shows one time, in
  * the response that created it.
  */
 export interface ApiToken {
@@ -52,16 +55,18 @@ export interface ApiToken {
   name: string;
   kind: ApiTokenKind;
   scopes: ApiTokenScope[];
-  /** The secret's first characters, so a user can tell tokens apart. */
+  /**
+   * The first characters of the secret, so that a user can tell tokens apart.
+   */
   prefix: string;
   createdAt: string;
   lastUsedAt: string | null;
   /** Null for a token that does not expire. */
   expiresAt: string | null;
   /**
-   * For an assistant's token given by signing in through the browser (OAuth),
-   * the client it was given to; absent for one minted by hand. Such a grant
-   * hands out a new secret every hour, so `prefix` names only its first.
+   * For the token of an assistant given through a sign-in in the browser
+   * (OAuth): the client that got it. Absent for a manual token. Such a grant
+   * gives a new secret each hour. Thus, `prefix` names only the first.
    */
   oauthClientId?: string;
 }
@@ -72,18 +77,20 @@ export interface ApiTokensResponse {
 
 export interface ApiTokenCreateRequest {
   name: string;
-  /** `api` when left out. */
+  /** `api` when not given. */
   kind?: ApiTokenKind;
-  /** `DEFAULT_API_TOKEN_SCOPES` when left out. An `mcp` token takes only
-   * `notes:*`, which is all its tools reach. */
+  /**
+   * `DEFAULT_API_TOKEN_SCOPES` when not given. An `mcp` token accepts only
+   * `notes:*`, which is all that its tools reach.
+   */
   scopes?: ApiTokenScope[];
-  /** Days until it stops working; left out for a token that does not expire. */
+  /** The days until it stops. Not given for a token that does not expire. */
   expiresInDays?: number;
   /**
-   * For a token that reaches notes, which the app makes itself: the hash of
-   * its secret, the start of the secret that a list of tokens shows, and the
-   * keys it carries, wrapped under a key derived from the secret. The server
-   * never sees the secret until the token is used. All three, or none.
+   * For a token that reaches notes, which the app makes itself: the hash of its
+   * secret, the start of the secret that a list of tokens shows, and its keys,
+   * wrapped under a key derived from the secret. The server never sees the
+   * secret until the token is used. All three, or none.
    */
   tokenHash?: string;
   prefix?: string;
@@ -93,31 +100,32 @@ export interface ApiTokenCreateRequest {
 export interface ApiTokenCreatedResponse {
   token: ApiToken;
   /**
-   * The bearer token itself, for one the server made. Shown this once; the
-   * server keeps only a hash. Absent for a token the app made, whose secret
-   * the server was never told.
+   * The bearer token itself, for a token that the server made. It shows this
+   * one time. The server keeps only a hash. Absent for a token that the app
+   * made, because the server never got its secret.
    */
   secret?: string;
 }
 
 /**
- * An assistant asking to be let in by OAuth (`GET /api/v1/oauth/client`), as the
- * consent screen shows it. The client id is the address of the client's own
- * metadata document, or one this server gave out when the client registered.
+ * An assistant that asks for access through OAuth (`GET /api/v1/oauth/client`),
+ * as the consent screen shows it. The client id is the address of the own
+ * metadata document of the client, or an id that this server gave when the
+ * client registered.
  */
 export interface OAuthClientInfo {
   clientId: string;
-  /** What the client calls itself. */
+  /** The name that the client gives itself. */
   name: string;
   /**
-   * The host that published the client's metadata document, which vouches
-   * for the name; null for a client that registered itself here, whose name
-   * nobody vouches for.
+   * The host that published the metadata document of the client, which vouches
+   * for the name. Null for a client that registered itself here. Nobody vouches
+   * for its name.
    */
   publisher: string | null;
-  /** Where the browser goes once the user answers. */
+  /** Where the browser goes after the user answers. */
   redirectUri: string;
-  /** What it asked for, of what an assistant can be given. */
+  /** What it asked for, of the scopes that an assistant can get. */
   scopes: ApiTokenScope[];
 }
 
@@ -125,20 +133,20 @@ export interface OAuthClientInfo {
 export interface OAuthAuthorizeRequest {
   clientId: string;
   redirectUri: string;
-  /** PKCE, S256 only. */
+  /** PKCE, only S256. */
   codeChallenge: string;
-  /** The client's, handed back to it untouched. */
+  /** The value of the client, given back to it unchanged. */
   state?: string;
-  /** What the user granted: `notes:read`, with or without `notes:write`. */
+  /** What the user permitted: `notes:read`, with or without `notes:write`. */
   scopes: ApiTokenScope[];
-  /** Days until the grant ends; left out for one that does not. */
+  /** The days until the grant ends. Not given for a grant that does not end. */
   expiresInDays?: number;
   password?: string;
   /**
-   * For a grant that reaches notes: the SHA-256 of a code the app made, and
-   * the keys the grant carries wrapped under a key derived from that code.
-   * The server first sees the code when the assistant trades it in. They
-   * come together.
+   * For a grant that reaches notes: the SHA-256 of a code that the app made,
+   * and the keys of the grant wrapped under a key derived from that code. The
+   * server sees the code for the first time when the assistant trades it in.
+   * They come together.
    */
   codeHash?: string;
   wrappedKeys?: string;
@@ -146,9 +154,9 @@ export interface OAuthAuthorizeRequest {
 
 export interface OAuthAuthorizeResponse {
   /**
-   * The client's redirect address, to send the browser to: with the code on
-   * it when the server made the code, and without when the app did, which
-   * then adds `code` itself.
+   * The redirect address of the client, for the browser. It has the code when
+   * the server made the code. It has no code when the app made it. The app then
+   * adds `code` itself.
    */
   redirectTo: string;
 }

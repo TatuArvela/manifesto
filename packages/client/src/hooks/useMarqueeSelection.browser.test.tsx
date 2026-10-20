@@ -98,8 +98,8 @@ describe("useMarqueeSelection", () => {
   });
 
   it("selects the cards a drag from empty space passes over", async () => {
-    // Cards at x 100, 250, 400; the box runs from the gap left of the first
-    // to the middle of the second.
+    // Cards at x 100, 250, 400. The box goes from the gap to the left of the
+    // first to the middle of the second.
     pointer("pointerdown", 70, 60);
     pointer("pointermove", 180, 150);
     pointer("pointermove", 300, 150);
@@ -179,7 +179,7 @@ describe("useMarqueeSelection", () => {
     await vi.waitFor(() =>
       expect([...selectedNotes.value]).toEqual([created[0]?.id]),
     );
-    // The Escape layer registers once the box has rendered.
+    // The Escape layer registers after the box rendered.
     await frame();
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     expect([...selectedNotes.value]).toEqual([created[2]?.id]);

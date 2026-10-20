@@ -1,29 +1,35 @@
 import { logger } from "./logger.ts";
 
 /**
- * The pieces a running server holds open, in the order they have to be let go
- * of. Each is optional so a test (or a future entrypoint that wires less than
- * `index.ts` does) can supply only what it has.
+ * The parts that a running server keeps open, in the order in which it must
+ * release them. Each one is optional. Thus, a test (or a future entrypoint that
+ * connects less than `index.ts`) can give only what it has.
  */
 export interface ShutdownSteps {
-  /** Stop accepting new connections. Existing ones are dropped afterwards. */
+  /**
+   * Stop the acceptance of new connections. Existing connections drop after
+   * that.
+   */
   closeServer?: () => Promise<void>;
-  /** Drop connections the server is still holding, once nothing is in flight. */
+  /**
+   * Drop the connections that the server still has, when nothing is in
+   * progress.
+   */
   dropConnections?: () => void;
-  /** Flush pending Yjs stores and close collaboration sockets. */
+  /** Flush waiting Yjs stores, and close collaboration sockets. */
   destroyRealtime?: () => Promise<void>;
   /** Stop the background sweeps. */
   stopJobs?: Array<() => void>;
-  /** Close the database last, since everything above may still write. */
+  /** Close the database last, because all of the above can still write. */
   closeStorage?: () => Promise<void>;
 }
 
 export interface ShutdownOptions extends ShutdownSteps {
   /**
-   * How long the whole sequence may take before the process is abandoned.
-   * Hocuspocus debounces persistence up to 10s, so this has to clear that with
-   * room to spare, and it still has to be under the 30s a container runtime
-   * typically allows between SIGTERM and SIGKILL.
+   * The maximum duration of the full sequence before the process is abandoned.
+   * Hocuspocus debounces persistence up to 10s. Thus, this must be longer than
+   * that, with spare time. It must still be less than the 30s that a container
+   * runtime usually permits between SIGTERM and SIGKILL.
    */
   timeoutMs?: number;
 }
@@ -31,17 +37,17 @@ export interface ShutdownOptions extends ShutdownSteps {
 export const DEFAULT_SHUTDOWN_TIMEOUT_MS = 15_000;
 
 /**
- * Builds the shutdown routine. Returns a function that runs the sequence once,
- * however many times it is called: a container that sends SIGTERM and then
- * SIGINT, or an impatient operator pressing Ctrl-C twice, must not start a
- * second teardown over a half-finished one.
+ * Builds the shutdown routine. Returns a function that runs the sequence one
+ * time, however many times a caller calls it. A container that sends SIGTERM
+ * and then SIGINT, or an impatient operator who pushes Ctrl-C two times, must
+ * not start a second teardown over a teardown that is half complete.
  *
- * Order is the whole point. Realtime is torn down before storage because
- * flushing a debounced Yjs document is a write, and the background sweeps are
- * stopped before storage for the same reason. The server is *asked* to close
- * first but not waited on until after the connections are gone: `close()`
- * refuses new connections at once and calls back only when the open ones end,
- * and a collaboration socket is open by design.
+ * The order is the purpose. Realtime is torn down before storage, because a
+ * flush of a debounced Yjs document is a write. The background sweeps stop
+ * before storage for the same reason. The code *asks* the server to close
+ * first, but does not wait for it until after the connections are gone.
+ * `close()` refuses new connections immediately, and calls back only when the
+ * open connections end. A collaboration socket is open by design.
  */
 export function createShutdown(options: ShutdownOptions): () => Promise<void> {
   const {
@@ -56,11 +62,11 @@ export function createShutdown(options: ShutdownOptions): () => Promise<void> {
   let running: Promise<void> | null = null;
 
   async function sequence(): Promise<void> {
-    // Started, not awaited: `close()` stops new connections immediately but
-    // only calls back once the open ones are gone, and a collaboration socket
-    // is open by design. Awaiting here would stall the two steps that are
-    // what make those sockets go away, and the whole shutdown would sit until
-    // the timeout with pending Yjs writes unflushed.
+    // Started, but not awaited. `close()` stops new connections immediately,
+    // but calls back only after the open connections are gone, and a
+    // collaboration socket is open by design. If the code awaited here, the two
+    // steps that make those sockets go away would stop. The full shutdown would
+    // then wait until the timeout, with Yjs writes that did not flush.
     const closed = closeServer?.().catch((err) => {
       logFailure("close server", err);
     });
@@ -93,8 +99,8 @@ async function step(name: string, run?: () => Promise<void>): Promise<void> {
   try {
     await run();
   } catch (err) {
-    // A step that fails must not strand the ones after it: a database left
-    // open is worse than a socket that refused to close.
+    // A step that fails must not stop the steps after it. A database that stays
+    // open is worse than a socket that did not close.
     logFailure(name, err);
   }
 }

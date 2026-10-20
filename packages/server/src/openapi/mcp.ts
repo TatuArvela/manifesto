@@ -4,7 +4,9 @@ import {
 } from "#/validation/accessSchemas.ts";
 import { type Operation, ok } from "./operation.ts";
 
-/** The MCP endpoint and the OAuth flow that lets an assistant sign in to it. */
+/**
+ * The MCP endpoint, and the OAuth flow with which an assistant signs in to it.
+ */
 export const MCP_OPERATIONS: Operation[] = [
   {
     method: "post",

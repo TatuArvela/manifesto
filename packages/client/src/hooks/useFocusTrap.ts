@@ -1,16 +1,16 @@
 import { useLayoutEffect, useRef } from "preact/hooks";
 
 /**
- * Keeps Tab inside a modal and gives focus back when it closes.
+ * Keeps Tab inside a modal, and gives focus back when it closes.
  *
- * `aria-modal="true"` tells a screen reader that the rest of the page is
- * inert, but it does nothing to the tab order: without this, Tab walks out of
- * the note editor and through the grid behind it, where the cards are still
- * clickable and the browser still scrolls to whatever it lands on.
+ * `aria-modal="true"` tells a screen reader that the remaining page is inert,
+ * but it does not change the tab order. Without this, Tab goes out of the note
+ * editor and through the grid behind it, where the cards are still clickable
+ * and the browser still scrolls to the element where focus goes.
  *
- * Focus is only moved *in* if it isn't already there. The note editor focuses
- * its own content as it mounts, and stealing that would put the caret in the
- * title field of every note opened.
+ * The code moves focus *in* only if it is not already there. The note editor
+ * focuses its own content when it mounts. If the trap took that away, the caret
+ * would be in the title field of each note that opens.
  */
 
 const FOCUSABLE = [
@@ -26,24 +26,24 @@ const FOCUSABLE = [
 
 function isVisible(el: HTMLElement): boolean {
   // `checkVisibility` covers `display:none`, `visibility:hidden` and
-  // `content-visibility`, which is what a collapsed panel in a modal uses.
+  // `content-visibility`, which a collapsed panel in a modal uses.
   return el.checkVisibility({
     checkOpacity: false,
     checkVisibilityCSS: true,
   });
 }
 
-/** Tabbable elements within `root` alone, in tab order. */
+/** The tabbable elements only within `root`, in tab order. */
 export function tabbableIn(root: HTMLElement): HTMLElement[] {
   return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(isVisible);
 }
 
 /**
- * Tabbable elements, in tab order, across the modal *and* any popover panel
- * portalled out of it. `CardPopover` renders into `document.body`, so a
- * reminder picker opened from inside the editor is not a descendant of the
- * modal, and scoping to the container alone would make its controls unreachable
- * by keyboard, which is the opposite of the point.
+ * The tabbable elements, in tab order, across the modal *and* each popover
+ * panel portalled out of it. `CardPopover` renders into `document.body`. Thus,
+ * a reminder picker opened from inside the editor is not a descendant of the
+ * modal. If the trap applied only to the container, the keyboard could not
+ * reach its controls, which is the opposite of the purpose.
  */
 function tabbable(container: HTMLElement): HTMLElement[] {
   const roots: HTMLElement[] = [
@@ -59,20 +59,24 @@ function tabbable(container: HTMLElement): HTMLElement[] {
   return [...seen];
 }
 
-/** Stand-ins focused by `holdFocus`, each with what had focus before it. */
+/**
+ * Stand-ins that `holdFocus` focused, each with the element that had focus
+ * before it.
+ */
 const standIns = new WeakMap<Element, Element | null>();
 
 /**
- * Focuses `standIn` on behalf of a modal that doesn't exist yet, and remembers
- * what had focus before it.
+ * Focuses `standIn` for a modal that does not exist yet, and remembers the
+ * element that had focus before it.
  *
- * iOS opens the soft keyboard only for a focus made inside the tap itself, and
- * the note editor focuses its content well after that, once Milkdown has built.
- * `NoteInput` bridges the gap with a hidden input. The trap has to treat that
- * input as the modal's own: moving focus off it onto the first button drops the
- * keyboard, and giving focus back to it on close raises the keyboard again over
- * a page with nothing to type into. So a trap that opens over a stand-in leaves
- * focus where it is, and on close returns it to what had it before.
+ * iOS opens the soft keyboard only for a focus inside the tap itself, and the
+ * note editor focuses its content long after that, when Milkdown completed its
+ * build. `NoteInput` fills the gap with a hidden input. The trap must treat
+ * that input as part of the modal. When focus moved off it onto the first
+ * button, the keyboard closed. When focus went back to it on close, the
+ * keyboard opened again over a page with nothing to type into. Thus, a trap
+ * that opens over a stand-in keeps focus where it is, and on close returns it
+ * to the element that had it before.
  */
 export function holdFocus(standIn: HTMLElement | null) {
   if (!standIn) return;
@@ -87,19 +91,19 @@ function holdsFocus(container: HTMLElement): boolean {
 }
 
 /**
- * The traps that are up, oldest first. Only the newest handles Tab: a dialog
+ * The traps that are open, oldest first. Only the newest handles Tab. A dialog
  * portalled over the note editor (the share dialog, version history) is not
- * inside the editor's container, and the editor's trap, which registered its
- * listener first, would otherwise see focus "outside" it and pull it back on
- * every press.
+ * inside the container of the editor. The trap of the editor, which registered
+ * its listener first, would otherwise see focus "outside" it, and pull it back
+ * on each press.
  */
 const openTraps: object[] = [];
 
 export function useFocusTrap<T extends HTMLElement>(active: boolean) {
   const ref = useRef<T>(null);
 
-  // Layout, not effect: Preact defers `useEffect` past a frame, and moving
-  // focus after the modal has painted is a visible jump.
+  // Layout, not effect. Preact delays `useEffect` past one frame, and a move of
+  // focus after the modal painted is a visible jump.
   useLayoutEffect(() => {
     const container = ref.current;
     if (!active || !container) return;
@@ -122,16 +126,15 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
         event.preventDefault();
         return;
       }
-      // Focus outside the modal at all (a click on the page behind, or a
-      // browser-restored position) comes back to the near end rather than
-      // being left to wander.
+      // Focus outside the modal (a click on the page behind, or a position that
+      // the browser restored) comes back to the near end. It does not wander.
       if (!holdsFocus(container)) {
         event.preventDefault();
         (event.shiftKey ? last : first).focus();
         return;
       }
-      // Only the two ends are intercepted, so Tab keeps its meaning
-      // everywhere else; inside ProseMirror it still indents a list item.
+      // Only the two ends are intercepted. Thus, Tab keeps its meaning in all
+      // other places. Inside ProseMirror, it still indents a list item.
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
         last.focus();
@@ -141,13 +144,13 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
       }
     };
 
-    // Capture, so the trap sees Tab before an editor that would consume it.
+    // Capture. Thus, the trap sees Tab before an editor that would use it.
     document.addEventListener("keydown", onKeyDown, true);
     return () => {
       document.removeEventListener("keydown", onKeyDown, true);
       openTraps.splice(openTraps.indexOf(trap), 1);
-      // Only if it is still on the page: the element that opened a note can be
-      // a card that archiving has just removed from the grid.
+      // Only if it is still on the page. The element that opened a note can be
+      // a card that an archive just removed from the grid.
       if (restoreTo instanceof HTMLElement && restoreTo.isConnected) {
         restoreTo.focus();
       }

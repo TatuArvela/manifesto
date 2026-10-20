@@ -12,21 +12,23 @@ import { prefsSnapshot } from "./prefs.ts";
 import { showError } from "./ui.ts";
 
 /**
- * How many attachment fetches an export has in flight at once. Firing one per
- * note together trips the server's per-user rate limit, and the failures that
- * come back are exactly the lossy backup this exists to prevent.
+ * How many attachment fetches an export has in progress at the same time. When
+ * one fetch for each note started together, it went over the rate limit of the
+ * server for each user. The failures that come back are exactly the incomplete
+ * backup that this code prevents.
  */
 const EXPORT_IMAGE_CONCURRENCY = 6;
 
 /**
- * Every note as it goes into a backup, attachments included, or `null` if
- * they could not all be gathered. A server listing leaves the bytes behind, so the missing ones
- * are fetched first, and a partial backup is refused rather than handed back
- * as a file the user would trust.
+ * Each note as it goes into a backup, with its attachments, or `null` if the
+ * code could not collect all of them. A server listing does not include the
+ * bytes. Thus, the code loads the missing bytes first. It refuses a partial
+ * backup, and does not give back a file that the user would trust.
  */
 export async function exportNotes(): Promise<Note[] | null> {
-  // A note this account owns that did not open on this device is not in
-  // `notes`, and a backup without it is the partial one refused below.
+  // A note that this account owns and that did not open on this device is not
+  // in `notes`. A backup without it is the partial backup that the code below
+  // refuses.
   if (sealer.peek()?.missesOwnNotes()) {
     showError(t("error.exportUnopened"));
     return null;
@@ -39,17 +41,18 @@ export async function exportNotes(): Promise<Note[] | null> {
         .map((id) => ensureImages(id)),
     );
   }
-  // `ensureImages` has already said what went wrong. Re-reading the signal
-  // rather than trusting its return values also covers a note that arrived
-  // mid-export.
+  // `ensureImages` already told what went wrong. A new read of the signal, in
+  // place of trust in its return values, also covers a note that arrived during
+  // the export.
   if (notes.value.some(hasUnloadedImages)) {
     showError(t("error.exportFailed"));
     return null;
   }
-  // Who else holds a note, and the server's attachment references, mean
-  // nothing in a file imported somewhere else: the file carries the bytes.
-  // A note shared with this account is its owner's to back up, and imported
-  // it would only be refused as someone else's.
+  // The other holders of a note, and the attachment references of the server,
+  // mean nothing in a file imported in a different place. The file carries the
+  // bytes. The owner of a note shared with this account must make its backup.
+  // If imported, the import would only refuse it as the note of a different
+  // person.
   const plain: Note[] = [];
   for (const { sharing, ...note } of notes.value) {
     if ((sharing?.role ?? "owner") !== "owner") continue;
@@ -68,11 +71,11 @@ export async function exportNotes(): Promise<Note[] | null> {
 }
 
 /**
- * The export archive, built here in both modes: `notes.json`, a Markdown
- * copy of each note, `versions.json` and this browser's `preferences.json`
- * (see `exportArchiveFiles`). Connected, the server holds only sealed notes
- * and has nothing readable to build one from. Null if the notes could not
- * all be gathered, which has already been said.
+ * The export archive, built here in both modes: `notes.json`, a Markdown copy
+ * of each note, `versions.json` and the `preferences.json` of this browser (see
+ * `exportArchiveFiles`). When connected, the server has only sealed notes, and
+ * nothing readable from which to build one. Null if the code could not collect
+ * all notes, which it already told.
  */
 export async function exportArchive(): Promise<Blob | null> {
   const backup = await exportNotes();
@@ -82,8 +85,8 @@ export async function exportArchive(): Promise<Blob | null> {
     try {
       versions.push(...(await storage.listVersions(note.id)));
     } catch (err) {
-      // A history is a safety net under the notes; a backup without one
-      // note's history still restores every note.
+      // A history is a safety net under the notes. A backup without the history
+      // of one note still restores each note.
       console.warn("Failed to read versions for export:", err);
     }
   }
@@ -99,9 +102,9 @@ export async function exportArchive(): Promise<Blob | null> {
 }
 
 /**
- * Downloads every note this account owns as the export zip, built in this
- * browser from the notes it has opened. Resolves whether a file was handed
- * over, and never rejects.
+ * Downloads each note that this account owns as the export zip, built in this
+ * browser from the notes that it opened. Resolves with if a file was given, and
+ * never rejects.
  */
 export async function downloadExport(): Promise<boolean> {
   try {

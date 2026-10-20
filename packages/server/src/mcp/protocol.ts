@@ -2,19 +2,19 @@ import { logger } from "#/lib/logger.ts";
 import type { McpTool, RestCall } from "./tools.ts";
 
 /**
- * The Model Context Protocol, as much of it as a server of tools needs:
- * `initialize`, `ping`, `tools/list` and `tools/call` over JSON-RPC 2.0.
- * Written here rather than taken from the SDK, whose server brings express,
- * cors and a dozen more packages for these four methods.
+ * The Model Context Protocol, the part that a server of tools needs:
+ * `initialize`, `ping`, `tools/list` and `tools/call` over JSON-RPC 2.0. We
+ * wrote it here, and did not take it from the SDK. The server of the SDK brings
+ * express, cors and a dozen more packages for these four methods.
  *
- * Stateless: nothing is kept between requests, so there is no session id,
- * every request is answered on its own, and the server never starts a
- * message of its own. Everything this leaves out (prompts, resources,
- * sampling, subscriptions, server-sent events) is optional in the protocol,
- * and a client learns that from the capabilities `initialize` answers with.
+ * It is stateless. It keeps nothing between requests. Thus, there is no session
+ * id, each request gets its own answer, and the server never starts a message
+ * itself. All that this leaves out (prompts, resources, sampling,
+ * subscriptions, server-sent events) is optional in the protocol. A client
+ * learns that from the capabilities in the answer to `initialize`.
  */
 
-/** Newest first. The first is what a client asking for an unknown one gets. */
+/** Newest first. A client that asks for an unknown version gets the first. */
 export const PROTOCOL_VERSIONS = [
   "2025-11-25",
   "2025-06-18",
@@ -40,7 +40,7 @@ export type JsonRpcResponse =
     };
 
 export interface McpContext {
-  /** The tools this caller may see and call. */
+  /** The tools that this caller can see and call. */
   tools: readonly McpTool[];
   rest: RestCall;
   serverVersion: string;
@@ -79,8 +79,8 @@ function describeTool(tool: McpTool) {
 }
 
 /**
- * The answer to one JSON-RPC message, or null for one that gets none: a
- * notification, or a response from the client (to a request this server
+ * The answer to one JSON-RPC message, or null for a message that gets none: a
+ * notification, or a response from the client (to a request that this server
  * never sends).
  */
 export async function handleMessage(

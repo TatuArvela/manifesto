@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CONFETTI_TILE, SAWTOOTH_TILE } from "#/utils/boardTextures.ts";
 
-// Read from disk: Vitest blanks a stylesheet imported in a test, `?raw` too.
+// Read from disk. Vitest makes a stylesheet imported in a test blank, also with
+// `?raw`.
 const css = readFileSync(new URL("./preferences.css", import.meta.url), "utf8");
 
 /** Splits a CSS value on its top-level commas, as a layer list is. */
@@ -25,9 +26,9 @@ function layers(value: string): string[] {
 }
 
 describe("board textures", () => {
-  // The board lays its gradient under the texture with one more size,
-  // `100% 100%`. A texture listing fewer sizes than layers has its list
-  // cycle, and the gradient takes the texture's tile size and repeats.
+  // The board puts its gradient under the texture with one more size, `100%
+  // 100%`. When a texture lists fewer sizes than layers, its list cycles, and
+  // the gradient takes the tile size of the texture and repeats.
   const sizes = new Map(
     [...css.matchAll(/--board-texture-([a-z]+)-size:\s*([^;]+);/g)].map(
       ([, name = "", value = ""]) => [name, value],

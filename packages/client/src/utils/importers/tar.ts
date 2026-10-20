@@ -1,8 +1,8 @@
 /**
- * The regular files of a tar archive (ustar or plain), for Joplin's `.jex`.
- * Hand-written: a tar is 512-byte headers each followed by its file, padded
- * to 512, ending in empty blocks. Only names and sizes are read; links,
- * directories and extended headers are stepped over.
+ * The regular files of a tar archive (ustar or plain), for the `.jex` of
+ * Joplin. Written manually. A tar is 512-byte headers, each followed by its
+ * file, padded to 512, and ends with empty blocks. Only names and sizes are
+ * read. The code skips links, directories and extended headers.
  */
 export interface TarEntry {
   name: string;

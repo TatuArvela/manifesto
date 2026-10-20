@@ -3,10 +3,10 @@ import { imagesForNote, startNoteWith } from "#/state/incomingShare.ts";
 import { hasOpenLayer, isTypingTarget } from "./useShortcut.ts";
 
 /**
- * A paste on the board itself, with no note open and nothing to type in,
- * starts a new note from the clipboard: its text as the note's text, its
+ * A paste on the board itself, with no note open and nothing to type in, starts
+ * a new note from the clipboard: its text as the text of the note, and its
  * pictures attached. A paste anywhere else (a field, an open note, a dialog)
- * is left to that, by the same rule the single-key shortcuts follow.
+ * goes to that element, by the same rule that the single-key shortcuts follow.
  */
 export function useBoardPaste(): void {
   useEffect(() => {

@@ -1,9 +1,9 @@
 language js
 
 // The layer rules in biome.json match import specifiers as written, and they
-// are written for `#/` (each package's import map onto its own `src/`). A
-// `../` import would reach the same file without matching any of them, so
-// one that climbs out of its folder goes through `#/` instead.
+// are written for `#/` (the import map of each package onto its own `src/`). A
+// `../` import would reach the same file and match none of them. Thus, an
+// import that goes out of its folder goes through `#/`.
 or {
   `import $_ from $source`,
   `import $source`,

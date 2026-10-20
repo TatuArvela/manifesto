@@ -57,8 +57,8 @@ export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
     for (const row of referringStmt.all() as ReferringRow[]) {
       for (const id of referencesOf(row)) referenced.add(id);
     }
-    // A snapshot link shows the note as it was, pictures the note has since
-    // let go of included.
+    // A snapshot link shows the note as it was, also pictures that the note
+    // removed after that.
     for (const row of snapshotsStmt.all(now) as { snapshot: string }[]) {
       for (const id of snapshotReferences(row.snapshot)) referenced.add(id);
     }

@@ -6,22 +6,22 @@ export interface JobStatus {
   lastStartedAt: string | null;
   lastFinishedAt: string | null;
   lastDurationMs: number | null;
-  /** The last run's error, or null when it went through. */
+  /** The error of the last run, or null when it was successful. */
   lastError: string | null;
   running: boolean;
 }
 
 /**
- * Every job started in this process and how its last run went, for the admin
- * overview to show. In memory: it describes this process since it started,
+ * Each job started in this process, and the result of its last run, for the
+ * admin overview. It is in memory. It describes this process since its start,
  * which is what "is the cleanup running" asks.
  */
 const statuses = new Map<string, JobStatus>();
 
 /**
- * The longest delay a Node timer takes (2^31 - 1 ms, under 25 days). A longer
- * one is not refused but set to 1 ms, so a monthly job would run every
- * millisecond.
+ * The longest delay that a Node timer accepts (2^31 - 1 ms, less than 25 days).
+ * Node does not refuse a longer delay, but sets it to 1 ms. Thus, a monthly job
+ * would run each millisecond.
  */
 const MAX_TIMER_MS = 2 ** 31 - 1;
 
@@ -30,15 +30,17 @@ export function jobStatuses(): JobStatus[] {
 }
 
 /**
- * Runs `job` once now and then every `intervalMs` until the returned stop
- * function is called.
+ * Runs `job` one time now, and then each `intervalMs` until the caller calls
+ * the returned stop function.
  *
- * Every background sweep in the server wants the same three things, and each
- * is a bug if a caller forgets it: failures are caught and logged, so one bad
- * run neither kills the timer nor takes the process down with an unhandled
- * rejection; the handle is unref'd, so a sweep never holds the process open;
- * and the first run happens immediately, so a restart doesn't leave expired
- * rows sitting for an hour.
+ * Each background sweep in the server needs the same three things. If a caller
+ * forgets one, it is a bug:
+ *
+ * - Failures are caught and logged. Thus, one bad run does not stop the timer,
+ *   and does not stop the process with an unhandled rejection.
+ * - The handle is unref'd. Thus, a sweep never keeps the process open.
+ * - The first run occurs immediately. Thus, after a restart, expired rows do
+ *   not stay for an hour.
  */
 export function startPeriodicJob(
   name: string,
@@ -75,10 +77,10 @@ export function startPeriodicJob(
   }
 
   void run();
-  // An interval past the timer's limit is counted out in shorter ticks, each
-  // running the job only once it is due. Only then: a tick can land a
-  // millisecond before a wall-clock deadline, and for an ordinary interval
-  // that would skip a whole run.
+  // An interval longer than the limit of the timer is counted in shorter ticks.
+  // Each tick runs the job only when it is due, and only then. A tick can occur
+  // one millisecond before a wall-clock deadline, and for a usual interval that
+  // would skip a full run.
   const counted = intervalMs > MAX_TIMER_MS;
   let due = Date.now() + intervalMs;
   const handle = setInterval(

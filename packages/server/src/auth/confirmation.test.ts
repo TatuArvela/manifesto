@@ -18,9 +18,10 @@ import {
 const PASSWORD = "test-pass-12";
 
 /**
- * A session can be stolen, so what would let its holder keep the account or
- * its notes (an email address, a token, a webhook) asks for the password
- * again, and for an account with none, a recent sign-in.
+ * A person can steal a session. Thus, the actions that would let its holder
+ * keep the account or its notes (an email address, a token, a webhook) ask for
+ * the password again. For an account without a password, they ask for a recent
+ * sign-in.
  */
 describe("confirming an action from a session", () => {
   let rig: TestRig;
@@ -100,8 +101,8 @@ describe("confirming an action from a session", () => {
 });
 
 describe("an account without a password", () => {
-  // Signed in only through an identity provider, it has nothing to type, so a
-  // recent sign-in is the proof; the client gets one with `?reauth`.
+  // It signs in only through an identity provider, and has nothing to type.
+  // Thus, a recent sign-in is the proof. The client gets one with `?reauth`.
   const storage = {
     users: {
       findById: async () => ({ id: "u", username: "sso", passwordHash: null }),

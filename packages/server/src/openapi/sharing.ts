@@ -11,8 +11,8 @@ import {
 import { noContent, notFound, type Operation, ok } from "./operation.ts";
 
 /**
- * Sharing a note: with accounts and teams, by invitation, and through public
- * links.
+ * How to share a note: with accounts and teams, by invitation, and through
+ * public links.
  */
 export const SHARING_OPERATIONS: Operation[] = [
   {

@@ -2,9 +2,9 @@ import { useEffect } from "preact/hooks";
 import { extractUrls } from "#/utils/linkPreview.ts";
 
 /**
- * Takes what is pasted while a note is open: pictures are attached, and the
- * links in text pasted into the note's body become preview cards. Off while
- * the note is `disabled`.
+ * Takes what is pasted while a note is open. Pictures are attached, and the
+ * links in text pasted into the body of the note become preview cards. Off
+ * while the note is `disabled`.
  */
 export function useNotePaste({
   disabled,
@@ -28,9 +28,9 @@ export function useNotePaste({
         attachFiles(files);
         return;
       }
-      // Only text pasted into the note's body becomes a card. The listener is
-      // on the document, so it also hears a URL pasted into the title, the
-      // toolbar's link box or a tag field, none of which is asking for one.
+      // Only text pasted into the body of the note becomes a card. The listener
+      // is on the document. Thus, it also gets a URL pasted into the title, the
+      // link box of the toolbar or a tag field, none of which asks for a card.
       if (e.target instanceof HTMLInputElement) return;
       const text = e.clipboardData.getData("text");
       if (text) {

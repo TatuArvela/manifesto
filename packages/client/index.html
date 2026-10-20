@@ -4,71 +4,72 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' blob: data:; script-src 'self'; worker-src 'self'; connect-src 'self'; object-src 'none'; manifest-src 'self'" />
-    <!-- frame-ancestors cannot be set via meta tag (CSP3 § 5.4). Self-hosters
-         should add `Content-Security-Policy: frame-ancestors 'self'` and
-         `X-Frame-Options: SAMEORIGIN` as real HTTP response headers to block
-         clickjacking via cross-origin iframes. -->
+    <!-- frame-ancestors cannot be set through a meta tag (CSP3 § 5.4).
+         Self-hosters must add `Content-Security-Policy: frame-ancestors 'self'`
+         and `X-Frame-Options: SAMEORIGIN` as real HTTP response headers, to
+         block clickjacking through cross-origin iframes. -->
     <title>%APP_NAME%</title>
-    <!-- Rebranding a prebuilt bundle: change the name here, in <title> above,
-         and in manifest.webmanifest; swap favicon.svg / icon-1024.png /
-         logo.svg beside this file. The app reads its name from the tag below
-         at startup, so no rebuild is needed. -->
+    <!-- To rebrand a prebuilt bundle, change the name here, in <title> above,
+         and in manifest.webmanifest. Replace favicon.svg / icon-1024.png /
+         logo.svg next to this file. The app reads its name from the tag below
+         at startup. Thus, no rebuild is necessary. -->
     <meta name="application-name" content="%APP_NAME%" />
     <meta name="description" content="%APP_DESCRIPTION%" />
-    <!-- The app's mark, a file beside this one (inverted in dark mode, so a
-         dark single-colour shape works best). The rest are whose copy this
-         is, all optional: this instance's name ("Foo QA project") and logo,
-         and the organisation that owns it and its logo. Those two logos are
-         drawn as they are. Each logo may have a `-dark` variant, drawn in
-         its place in the dark theme; the app's is then not inverted. -->
+    <!-- The mark of the app, a file next to this one (inverted in dark mode, so
+         a dark shape of a single color works best). The others tell whose copy
+         this is, and all are optional: the name ("Foo QA project") and logo of
+         this instance, and the organization that owns it and its logo. Those
+         two logos are drawn as they are. Each logo can have a `-dark` variant,
+         drawn in its place in the dark theme. The logo of the app is then not
+         inverted. -->
     <meta name="app-logo" content="%APP_LOGO%" />
     <meta name="app-logo-dark" content="%APP_LOGO_DARK%" />
     <meta name="instance-name" content="%INSTANCE_NAME%" />
     <meta name="instance-logo" content="%INSTANCE_LOGO%" />
     <meta name="instance-logo-dark" content="%INSTANCE_LOGO_DARK%" />
-    <!-- "instance" puts the instance's logo and name in the top bar in place
-         of the app's, which About still shows; "app" (the default) keeps the
-         app's there. -->
+    <!-- "instance" puts the logo and name of the instance in the top bar, in
+         place of those of the app, which About still shows. "app" (the default)
+         keeps those of the app there. -->
     <meta name="header-brand" content="%HEADER_BRAND%" />
-    <!-- "off" titles the tab with the instance's name alone, rather than
-         "Foo QA project · Manifesto". Without an instance name the title is
-         the app's name either way. -->
+    <!-- "off" gives the tab only the name of the instance as its title, not
+         "Foo QA project · Manifesto". Without an instance name, the title is
+         the name of the app in both cases. -->
     <meta name="title-app-name" content="%TITLE_APP_NAME%" />
     <meta name="org-name" content="%ORG_NAME%" />
     <meta name="org-logo" content="%ORG_LOGO%" />
     <meta name="org-logo-dark" content="%ORG_LOGO_DARK%" />
-    <!-- Where this deployment's privacy notice is, linked from the sign-in
-         screen and About: an https:// address, or a path on this site.
-         Anyone running a server for other people should set it. -->
+    <!-- The location of the privacy notice of this deployment, linked from the
+         sign-in screen and About: an https:// address, or a path on this site.
+         Each person who runs a server for other people must set it. -->
     <meta name="privacy-url" content="%PRIVACY_URL%" />
-    <!-- "on" greets a first-time visitor with where their notes are saved;
-         "off" skips it. Read at startup, like application-name. -->
+    <!-- "on" shows a first-time visitor where their notes are saved. "off"
+         skips it. Read at startup, as application-name is. -->
     <meta name="welcome-dialog" content="%APP_WELCOME%" />
-    <!-- Connected mode without a rebuild: put the server's absolute URL here,
-         AND add its https:// and wss:// origins to connect-src in the CSP
-         above, or the browser blocks every request to it. The app checks the
-         two agree at startup and says which origins are missing rather than
-         letting the login screen fail in silence. Empty means open mode, with
-         notes kept in this browser, which is what the release zip ships as.
-         Building with VITE_MANIFESTO_SERVER writes the CSP for you and needs
-         no tag. -->
+    <!-- Connected mode without a rebuild: put the absolute URL of the server
+         here, AND add its https:// and wss:// origins to connect-src in the CSP
+         above. If not, the browser blocks each request to it. The app checks at
+         startup that the two agree, and tells which origins are missing. Thus,
+         the login screen does not fail silently. Empty means open mode, with
+         notes kept in this browser, which is how the release zip ships. A build
+         with VITE_MANIFESTO_SERVER writes the CSP for you, and needs no
+         tag. -->
     <meta name="manifesto-server" content="" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icon-1024.png" />
-    <!-- iOS shows an apple-touch-startup-image only for a page that says it
-         runs as an app. The images themselves are drawn from #splash below
-         by src/launchImage.ts. -->
+    <!-- iOS shows an apple-touch-startup-image only for a page that says that
+         it runs as an app. src/launchImage.ts draws the images themselves from
+         #splash below. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#2563eb" />
-    <!-- Blocking on purpose: it decides the page's theme, and anything painted
-         before it runs would be painted in the wrong one. -->
+    <!-- Blocking on purpose. It decides the theme of the page, and all content
+         painted before it runs would be painted in the wrong theme. -->
     <script src="/theme-init.js"></script>
-    <!-- The loading screen, spelled out here rather than in styles.css or a
-         component, because both arrive with the bundle and this has to be on
-         screen before the bundle is. Launched from a home screen there is no
-         browser chrome to look at while it loads, so the alternative is a
-         blank rectangle. main.tsx takes it down once the app has painted. -->
+    <!-- The loading screen, written here and not in styles.css or a component,
+         because both arrive with the bundle, and this must be on the screen
+         before the bundle is. When the app starts from a home screen, there is
+         no browser chrome to look at while it loads. Thus, the alternative is a
+         blank rectangle. main.tsx removes it after the app painted. -->
     <style>
       #splash {
         position: fixed;
@@ -88,9 +89,11 @@
         background: #171717;
         color: #fafafa;
       }
-      /* Inverted in the dark, exactly as the header does to the same file: the
-         brand mark is a solid black shape, and unchanged it would be a black
-         mark on a near-black ground. */
+      /*
+       * Inverted in the dark, exactly as the header does to the same file. The
+       * brand mark is a solid black shape. Unchanged, it would be a black mark
+       * on a background that is almost black.
+       */
       #splash img {
         width: 76px;
         height: 76px;
@@ -104,10 +107,12 @@
         font-weight: 600;
         letter-spacing: 0.01em;
       }
-      /* A segment sweeping a track rather than a spinner: it says the app is
-         coming without pretending to know how far along it is. Both tones are
-         literal rather than `currentColor` at two opacities, because opacity
-         on the track would take the segment down with it. */
+      /*
+       * A segment that moves along a track, not a spinner. It tells that the
+       * app comes, and does not pretend to know how far it is. Both tones are
+       * literal, not `currentColor` at two opacities, because an opacity on the
+       * track would also apply to the segment.
+       */
       #splash div {
         width: 112px;
         height: 3px;
@@ -138,7 +143,7 @@
           transform: translateX(280%);
         }
       }
-      /* Removed a frame later, so the fade has something to run from. */
+      /* Removed one frame later. Thus, the fade has a start state. */
       #splash[data-done="true"] {
         opacity: 0;
         pointer-events: none;

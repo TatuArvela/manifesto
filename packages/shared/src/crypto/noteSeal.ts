@@ -53,31 +53,33 @@ import {
 import { seal, sealedLength, unsealText } from "./seal.ts";
 
 /**
- * A note's words, sealed and opened
+ * The words of a note, sealed and opened
  * (`docs/specification/features/encryption.md`, "Keys").
  *
- * What everyone on a note sees (title, text, excerpt, font, link previews)
- * is under the note key (`noteKey.ts`). What is one person's own (colour,
- * tags) is under their personal key. Both sides of a readable request use
- * this: the browser always, and the server for a token that carries a key.
+ * What all persons on a note see (title, text, excerpt, font, link previews) is
+ * under the note key (`noteKey.ts`). What belongs to one person (color, tags)
+ * is under their personal key. Both sides of a readable request use this:
+ * always the browser, and the server for a token that carries a key.
  *
- * What is opened was written by some client and checked by no server, so
- * every value is checked before it is handed on (`noteChecks.ts`), and one
- * that fails is left out.
+ * A client wrote the opened data, and no server checked it. Thus, the code
+ * checks each value before it gives it on (`noteChecks.ts`), and removes a
+ * value that fails.
  */
 
-/** Colours and fonts are few, and the length of a ciphertext would name the
- * one inside, so each is padded to this many characters. */
+/**
+ * There are few colors and fonts, and the length of a ciphertext would tell the
+ * value inside. Thus, each value has padding to this number of characters.
+ */
 const PADDED_LENGTH = 24;
 
-/** The most a note's link previews may take, as JSON. */
+/** The maximum size of the link previews of a note, as JSON. */
 const MAX_LINK_PREVIEWS_BYTES = 300_000;
 
 /**
- * The longest ciphertext each sealed field may be. The server holds a field
- * to this and to the shape of a ciphertext, which is all it can check. A
- * UTF-16 unit is at most three bytes of UTF-8, and six once JSON has escaped
- * it.
+ * The maximum length of the ciphertext of each sealed field. The server checks
+ * a field against this and against the shape of a ciphertext, which is all that
+ * it can check. A UTF-16 unit is a maximum of three bytes of UTF-8, and six
+ * after JSON escapes it.
  */
 export const SEALED_FIELD_MAX = {
   title: sealedLength(MAX_NOTE_TITLE_LENGTH * 3),
@@ -92,8 +94,10 @@ export const SEALED_FIELD_MAX = {
   comment: sealedLength(MAX_COMMENT_LENGTH * 3),
 } as const;
 
-/** A value the client refuses to seal, as the server once refused to store
- * it. */
+/**
+ * A value that the client refuses to seal, as the server refused to store it
+ * before.
+ */
 export class NoteLimitError extends Error {
   constructor(public readonly field: string) {
     super(`The note's ${field} is past what a note may hold`);
@@ -101,7 +105,7 @@ export class NoteLimitError extends Error {
   }
 }
 
-/** The first characters of a note's text, whole ones. */
+/** The first characters of the text of a note, full characters only. */
 export function excerptOf(content: string): string {
   return Array.from(content.slice(0, NOTE_EXCERPT_LENGTH * 2))
     .slice(0, NOTE_EXCERPT_LENGTH)
@@ -132,10 +136,10 @@ function parsed(text: string | null): unknown {
 }
 
 /**
- * Seals the shared fields given, and the excerpt whenever the text is among
- * them. `images` holds what opens each image the fields name. Throws
- * `NoteLimitError` for a value past what a note may hold, or an image whose
- * key is not there.
+ * Seals the given shared fields, and the excerpt when the text is among them.
+ * `images` contains what opens each image that the fields name. Throws
+ * `NoteLimitError` for a value that is larger than a note can contain, or for
+ * an image whose key is not there.
  */
 export async function sealSharedFields(
   key: NoteSealKey,
@@ -163,7 +167,7 @@ export async function sealSharedFields(
     out.font = await put("font", fields.font.padEnd(PADDED_LENGTH, " "));
   }
   if (fields.images !== undefined) {
-    // References only: whatever is inline is uploaded before a note is sealed.
+    // Only references. The app uploads all inline data before it seals a note.
     if (
       fields.images.length > MAX_IMAGES_PER_NOTE ||
       !fields.images.every(isAttachmentRef)
@@ -173,7 +177,7 @@ export async function sealSharedFields(
     const list: ImageEntry[] = [];
     for (const [i, ref] of fields.images.entries()) {
       const image = images.get(ref);
-      // Without its key nobody could open it, this account included.
+      // Without its key, nobody could open it, also not this account.
       if (!image) throw new NoteLimitError("images");
       const alt = fields.imageAlts?.[i] ?? "";
       if (alt.length > MAX_IMAGE_ALT_LENGTH) throw new NoteLimitError("images");
@@ -182,16 +186,16 @@ export async function sealSharedFields(
     out.images = await put("images", JSON.stringify(list));
     out.imageRefs = [...fields.images];
   } else if (fields.imageAlts !== undefined) {
-    // The descriptions live in the image list's entries, so they are sealed
-    // only with the list: a writer that changes them sends both.
+    // The descriptions are in the entries of the image list. Thus, they are
+    // sealed only with the list. A writer that changes them sends both.
     throw new NoteLimitError("images");
   }
   if (fields.linkPreviews !== undefined) {
     if (fields.linkPreviews.length > MAX_LINK_PREVIEWS_PER_NOTE) {
       throw new NoteLimitError("linkPreviews");
     }
-    // A thumbnail whose key is not there is dropped and the card kept: it
-    // is a picture of the linked page, not something the user attached.
+    // The code removes a thumbnail whose key is not there, and keeps the card.
+    // It is a picture of the linked page, not a file that the user attached.
     const entryOf = (ref: string | undefined): ImageEntry | undefined => {
       const image = ref === undefined ? undefined : images.get(ref);
       return ref !== undefined && image
@@ -223,7 +227,7 @@ export async function sealSharedFields(
   return out;
 }
 
-/** Seals a person's own fields of a note under their personal key. */
+/** Seals the own fields of a note of a person under their personal key. */
 export async function sealPersonalFields(
   account: AccountSealKeys,
   noteId: string,
@@ -253,14 +257,19 @@ export async function sealPersonalFields(
   return out;
 }
 
-/** What `openSharedFields` hands back: the excerpt beside the rest, and
- * what opens each image the fields name. */
+/**
+ * What `openSharedFields` gives back: the excerpt with the other fields, and
+ * what opens each image that the fields name.
+ */
 export type OpenedSharedFields = SharedPlain & {
   excerpt: string;
   imageKeys: Map<string, ImageKey>;
 };
 
-/** Opens and checks a note's shared fields; one that fails is its default. */
+/**
+ * Opens and checks the shared fields of a note. A field that fails gets its
+ * default.
+ */
 export async function openSharedFields(
   key: NoteSealKey,
   noteId: string,
@@ -270,8 +279,9 @@ export async function openSharedFields(
 }
 
 /**
- * `openSharedFields` when `opensSharedFields` would say the key is the
- * note's, else null: the same answer as asking both, each field opened once.
+ * `openSharedFields` when `opensSharedFields` would say that the key belongs to
+ * the note. Otherwise null. This is the same answer as a call to both, with
+ * each field opened one time.
  */
 export async function openSharedFieldsUnder(
   key: NoteSealKey,
@@ -327,7 +337,7 @@ function checkedShared(texts: SharedTexts): OpenedSharedFields {
   };
 }
 
-/** The fields `opensSharedFields` holds a key to; see there. */
+/** The fields that `opensSharedFields` checks against a key. See there. */
 function provingFields(sealed: Partial<SharedSealed>): (keyof SharedSealed)[] {
   const words = (["title", "content", "excerpt"] as const).filter(
     (field) => sealed[field],
@@ -340,15 +350,17 @@ function provingFields(sealed: Partial<SharedSealed>): (keyof SharedSealed)[] {
 }
 
 /**
- * Whether `key` is the key the note's words are under: it opens every one of
- * its title, content and excerpt that `sealed` carries, or, where it carries
- * none of them, every field it does carry. `openSharedFields` reads a field
- * that does not open as empty, so a wrong key would show an empty note, and
- * the next edit would seal over everyone's words with it. One field opening
- * is not enough: anyone who may edit the note can write a field under a key
- * of their own making, and then offer that key. Asked of a key that came from
- * someone else before it is kept. True where `sealed` carries no field at
- * all, which leaves nothing to tell by.
+ * If `key` is the key of the words of the note: it opens each title, content
+ * and excerpt that `sealed` contains. If it contains none of them, the key must
+ * open each field that it contains.
+ *
+ * `openSharedFields` reads a field that does not open as empty. Thus, a wrong
+ * key would show an empty note, and the next edit would seal over the words of
+ * all persons with it. It is not sufficient that one field opens. Each person
+ * who can edit the note can write a field under their own key, and then offer
+ * that key. The code asks this about a key from a different person before it
+ * keeps the key. True where `sealed` contains no field, because then there is
+ * nothing to check.
  */
 export async function opensSharedFields(
   key: NoteSealKey,
@@ -366,7 +378,9 @@ export async function opensSharedFields(
   return true;
 }
 
-/** Opens and checks a person's own fields; an empty one was never set. */
+/**
+ * Opens and checks the own fields of a person. An empty field was never set.
+ */
 export async function openPersonalFields(
   account: AccountSealKeys,
   noteId: string,
@@ -446,10 +460,10 @@ export async function sealNewNote(
 }
 
 /**
- * The changes of an update, with the words among them sealed, and the format
- * they are in whenever there are any. A note stored in an older format takes
- * every word at once (`withEveryWord`): the server keeps one format for all
- * of them, and refuses a part of them in a newer one.
+ * The changes of an update, with their words sealed, and with their format when
+ * there are words. A note stored in an older format gets all words at the same
+ * time (`withEveryWord`). The server keeps one format for all of them, and
+ * refuses a part of them in a newer format.
  */
 export async function sealNoteUpdate(
   account: AccountSealKeys,
@@ -494,10 +508,11 @@ export async function sealNoteUpdate(
 }
 
 /**
- * A sealed note as its reader sees it, in the current format. `known` saves
- * unwrapping the key again when it is still the one the note is under. Null
- * when the reader's key for the note does not open, which leaves nothing of
- * it to show, and for a note in a format newer than this build reads.
+ * A sealed note as its reader sees it, in the current format. `known` prevents
+ * a second unwrap of the key when it is still the current key of the note. Null
+ * when the key of the reader for the note does not open, because then there is
+ * nothing to show. Also null for a note in a format that is newer than this
+ * build can read.
  */
 export async function openSealedNote(
   account: AccountSealKeys,
@@ -541,8 +556,10 @@ export async function openSealedNote(
   return { key, excerpt, imageKeys, note: { ...rest, ...words, ...personal } };
 }
 
-/** A version's title and text, sealed under the note key and bound to the
- * version's own id. */
+/**
+ * The title and text of a version, sealed under the note key and bound to the
+ * own id of the version.
+ */
 export async function sealVersion(
   key: NoteSealKey,
   versionId: string,
@@ -572,8 +589,10 @@ export async function sealVersion(
   };
 }
 
-/** The version in the current format. Null when it is under another key,
- * does not open, or is in a format newer than this build reads. */
+/**
+ * The version in the current format. Null when it is under a different key,
+ * does not open, or is in a format that is newer than this build can read.
+ */
 export async function openVersion(
   key: NoteSealKey,
   sealed: SealedNoteVersion,
@@ -605,9 +624,9 @@ export async function openVersion(
 }
 
 /**
- * A comment's text, sealed under the note key and bound to the comment's own
- * id. Throws `NoteLimitError` for one that is empty or too long, which the
- * server can no longer tell.
+ * The text of a comment, sealed under the note key and bound to the own id of
+ * the comment. Throws `NoteLimitError` for a comment that is empty or too long,
+ * because the server cannot check this now.
  */
 export async function sealComment(
   key: NoteSealKey,
@@ -628,7 +647,10 @@ export async function sealComment(
   };
 }
 
-/** A comment's text; null when it is under another key, or does not open. */
+/**
+ * The text of a comment. Null when it is under a different key, or does not
+ * open.
+ */
 export async function openComment(
   key: NoteSealKey,
   comment: { id: string; keyVersion: number; body: string },
@@ -642,8 +664,10 @@ export async function openComment(
   return text !== null && text.length <= MAX_COMMENT_LENGTH ? text : null;
 }
 
-/** One preference, sealed under the account's personal key and bound to its
- * name. */
+/**
+ * One preference, sealed under the personal key of the account and bound to its
+ * name.
+ */
 export function sealPref(
   account: AccountSealKeys,
   name: string,
@@ -656,7 +680,7 @@ export function sealPref(
   );
 }
 
-/** The preference's value; undefined when it does not open. */
+/** The value of the preference. Undefined when it does not open. */
 export async function openPref(
   account: AccountSealKeys,
   name: string,
@@ -677,10 +701,10 @@ export async function openPref(
 }
 
 /**
- * A note's shared fields, moved from one key to another without being read:
- * each is opened and sealed again as it is. Null when any of them does not
- * open, so that replacing a key never writes an empty note over one this
- * device could not read.
+ * The shared fields of a note, moved from one key to a different key without a
+ * read: the code opens each one, and seals it again as it is. Null when one of
+ * them does not open. Thus, a key replacement never writes an empty note over a
+ * note that this device could not read.
  */
 export async function resealSharedFields(
   from: NoteSealKey,

@@ -14,8 +14,8 @@ import {
 import { noContent, type Operation, ok } from "./operation.ts";
 
 /**
- * The signed-in account and the ways into and out of it: register, sign in,
- * passwords.
+ * The signed-in account, and the ways into and out of it: registration,
+ * sign-in, passwords.
  */
 export const AUTH_OPERATIONS: Operation[] = [
   {

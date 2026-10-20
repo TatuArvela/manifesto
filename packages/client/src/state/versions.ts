@@ -4,9 +4,9 @@ import { deleteVersions, getVersions } from "#/storage/VersionStorage.ts";
 import { notes } from "./notesStore.ts";
 
 /**
- * Keeps the text a note had before an editing session, as a version. Reports
- * nothing on failure: a version is a safety net under a save that already
- * happened, and the save has its own error. Never rejects.
+ * Keeps the text that a note had before an editing session, as a version.
+ * Reports nothing on failure. A version is a safety net under a save that
+ * already occurred, and the save has its own error. Never rejects.
  */
 export async function recordVersion(
   noteId: string,
@@ -21,19 +21,20 @@ export async function recordVersion(
 }
 
 /**
- * A note's history, newest first, or null if it could not be read.
+ * The history of a note, newest first, or null if the code could not read it.
  *
- * Connected mode's history is the server's, but a browser that kept one
- * before that has its own copy of this note's in `localStorage`. The first
- * time the note's history is opened here, that copy is sent across with its
- * own dates and then dropped, so it is neither lost nor shown twice.
+ * In connected mode, the history belongs to the server. But a browser that kept
+ * one before that has its own copy of the history of this note in
+ * `localStorage`. The first time that the history of the note opens here, that
+ * copy goes across with its own dates, and is then dropped. Thus, it is not
+ * lost, and does not show two times.
  */
 export async function loadVersions(
   noteId: string,
 ): Promise<NoteVersion[] | null> {
   try {
-    // Same test as `currentStorage`: the server holds the history exactly
-    // when the server holds the notes.
+    // The same test as `currentStorage`: the server keeps the history exactly
+    // when the server keeps the notes.
     const { serverUrl, token } = storageConnection.value;
     if (serverUrl !== null && token) await bringLocalVersionsAcross(noteId);
     return await storage.listVersions(noteId);
@@ -46,7 +47,8 @@ export async function loadVersions(
 async function bringLocalVersionsAcross(noteId: string): Promise<void> {
   const local = getVersions(noteId);
   if (local.length === 0) return;
-  // Oldest first, so the server files them in the order they happened.
+  // Oldest first. Thus, the server files them in the order in which they
+  // occurred.
   for (const version of [...local].reverse()) {
     await storage.saveVersion(noteId, {
       title: version.title,
@@ -61,14 +63,15 @@ const versionKey = (v: Pick<NoteVersion, "timestamp" | "title" | "content">) =>
   `${Date.parse(v.timestamp)}\u0000${v.title}\u0000${v.content}`;
 
 /**
- * Files an export's `versions.json` under the notes it has just imported, in
- * either mode, with the dates they were taken. Only notes this user owns get
- * one: a note whose id turned out to be someone else's shared note was not
- * imported, and must not be given a history from a file. A version the note
- * already has is skipped, so importing the same backup twice adds nothing,
- * and so is one past the age limit, which a server would otherwise file as
- * new. Reports nothing: the notes are what was imported, and a history that
- * could not be filed does not undo them. Never rejects.
+ * Files the `versions.json` of an export under the notes that it just imported,
+ * in both modes, with the dates on which they were taken. Only notes that this
+ * user owns get one. A note whose id was the id of a shared note of a different
+ * person was not imported, and must not get a history from a file. The code
+ * skips a version that the note already has. Thus, an import of the same backup
+ * two times adds nothing. It also skips a version past the age limit, which a
+ * server would otherwise file as new. Reports nothing. The notes are what was
+ * imported, and a history that could not be filed does not undo them. Never
+ * rejects.
  */
 export async function restoreVersions(versions: NoteVersion[]): Promise<void> {
   const cutoff = Date.now() - NOTE_VERSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
@@ -87,7 +90,7 @@ export async function restoreVersions(versions: NoteVersion[]): Promise<void> {
       const held = new Set(
         (await storage.listVersions(noteId)).map(versionKey),
       );
-      // Oldest first, so each is filed in the order it happened.
+      // Oldest first. Thus, each is filed in the order in which it occurred.
       list.sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
       for (const version of list) {
         if (held.has(versionKey(version))) continue;

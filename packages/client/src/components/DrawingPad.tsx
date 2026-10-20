@@ -28,34 +28,34 @@ const INKS = [
   { color: "#2563eb", name: NoteColor.Blue },
   { color: "#16a34a", name: NoteColor.Green },
 ] as const;
-/** Pen widths, in a new drawing's own pixels. */
+/** Pen widths, in the own pixels of a new drawing. */
 const WIDTHS = [4, 10, 22] as const;
-/** The eraser is paper-coloured ink, wide enough to rub with. */
+/** The eraser is ink in the color of the paper, wide enough to rub with. */
 const ERASER_SCALE = 4;
 
 const barButton =
   "p-2 rounded-lg text-neutral-100 hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer disabled:cursor-default";
 
 /**
- * The drawing pad: a sheet of paper to draw on with a finger, a pen or a
- * mouse, which becomes an image on the note like any other attachment. Asked
- * for with one of the note's images, that image is the paper, at its own
+ * The drawing pad: a sheet of paper on which you draw with a finger, a pen or a
+ * mouse. It becomes an image on the note, as all attachments do. When you open
+ * it with one of the images of the note, that image is the paper, in its own
  * shape, and the new lines go over it.
  *
- * One pointer draws at a time, the one that went down first; a second finger
- * is ignored rather than starting a line of its own, and no gesture of the
- * page (scroll, pinch, the swipe back) takes the stroke away, because the
- * canvas, and only the canvas, has `touch-action: none`. The stroke follows
- * the pointer through a capture, so it carries on past the edge of the paper
- * and ends cleanly when the system cancels the touch.
+ * One pointer draws at a time, the pointer that went down first. The pad
+ * ignores a second finger, and does not start a separate line for it. No
+ * gesture of the page (scroll, pinch, the back swipe) takes the stroke away,
+ * because only the canvas has `touch-action: none`. The stroke follows the
+ * pointer through a capture. Thus, it continues past the edge of the paper, and
+ * ends cleanly when the system cancels the touch.
  */
 export function DrawingPad() {
   const request = drawingRequest.value;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const strokesRef = useRef<Stroke[]>([]);
   const drawing = useRef<{ pointerId: number; stroke: Stroke } | null>(null);
-  // The drawing as it stood when the line in progress began, and the frame
-  // that will next put that line over it.
+  // The drawing as it was when the current line started, and the frame that
+  // will next put that line over it.
   const beneath = useRef<HTMLCanvasElement | null>(null);
   const frame = useRef(0);
   const [count, setCount] = useState(0);
@@ -67,7 +67,7 @@ export function DrawingPad() {
   const [paper, setPaper] = useState<PaperSize>(BLANK_PAPER);
   const baseSrc = request?.base;
   const base = useRef<HTMLImageElement | null>(null);
-  // Nothing is drawn until the image to draw over is there to draw on.
+  // Nothing is drawn until the image to draw over is available.
   const [ready, setReady] = useState(baseSrc === undefined);
   const dialogRef = useFocusTrap<HTMLDivElement>(true);
 
@@ -78,9 +78,9 @@ export function DrawingPad() {
     if (ctx) renderDrawing(ctx, strokesRef.current, paper, base.current);
   };
 
-  // The paper, before anything is drawn on it and before the first frame: a
-  // canvas starts transparent, which over the pad's dark ground is black, and
-  // is emptied again when the image to draw over gives it a new size.
+  // The paper, before anything is drawn on it and before the first frame. A
+  // canvas starts transparent, which looks black over the dark ground of the
+  // pad. It is emptied again when the image to draw over gives it a new size.
   // biome-ignore lint/correctness/useExhaustiveDependencies: as the canvas arrives, and as its paper changes
   useLayoutEffect(redraw, [paper, ready]);
 
@@ -127,9 +127,9 @@ export function DrawingPad() {
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
 
   /**
-   * The line in progress over the drawing beneath it, once a frame. Drawn on
-   * top of itself at every move instead, its soft edge would build up to
-   * solid, and the line would thin as it was let go.
+   * The current line over the drawing under it, one time in each frame. If the
+   * code drew it on top of itself at each move, its soft edge would become
+   * solid, and the line would become thinner at the release.
    */
   const paintActive = () => {
     frame.current = 0;
@@ -140,7 +140,7 @@ export function DrawingPad() {
     drawStroke(ctx, active.stroke);
   };
 
-  /** Makes the line in progress, if there is one, part of the drawing. */
+  /** Makes the current line, if there is one, part of the drawing. */
   const commitStroke = () => {
     const active = drawing.current;
     if (!active) return;
@@ -161,11 +161,11 @@ export function DrawingPad() {
   };
 
   /**
-   * Closes the pad, asking first when there is a drawing to lose. False when
-   * it stays open to ask, which is what keeps Back the pad's own meanwhile.
+   * Closes the pad. It asks first when there is a drawing to lose. False when
+   * it stays open to ask. That keeps Back for the pad in the meantime.
    */
   const cancel = (): boolean => {
-    // A line still being drawn is a drawing to lose too.
+    // A line that is still in progress is also a drawing to lose.
     commitStroke();
     if (strokesRef.current.length === 0) {
       closeDrawing();
@@ -183,7 +183,7 @@ export function DrawingPad() {
   const done = () => {
     const canvas = canvasRef.current;
     if (!canvas || !request || saving) return;
-    // Done pressed with the pen still down keeps the line it was drawing.
+    // Done, pushed with the pen still down, keeps the current line.
     commitStroke();
     if (strokesRef.current.length === 0) {
       closeDrawing();
@@ -193,8 +193,8 @@ export function DrawingPad() {
     setFailed(false);
     void encodeDrawing(canvas, base.current !== null).then((blob) => {
       if (!blob) {
-        // The pad stays, drawing and all, to be tried again: said here
-        // because a toast would be underneath it.
+        // The pad stays, with the drawing, for a new try. The message is here,
+        // because a toast would be under the pad.
         setSaving(false);
         setFailed(true);
         return;
@@ -213,15 +213,15 @@ export function DrawingPad() {
 
   const onPointerDown = (event: PointerEvent) => {
     const canvas = canvasRef.current;
-    // One line at a time: a second finger, or a palm, is not a second pen.
+    // One line at a time. A second finger, or a palm, is not a second pen.
     if (!canvas || !ready || drawing.current || !event.isPrimary) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     event.preventDefault();
     try {
       canvas.setPointerCapture(event.pointerId);
     } catch {
-      // A pointer the browser no longer knows: the stroke still starts, it
-      // only stops following past the paper's edge.
+      // A pointer that the browser does not know now: the stroke still starts.
+      // It only stops to follow past the edge of the paper.
     }
     const stroke: Stroke = {
       color: erasing ? PAPER : ink,
@@ -241,8 +241,8 @@ export function DrawingPad() {
     const active = drawing.current;
     if (!canvas || active?.pointerId !== event.pointerId) return;
     const shown = canvas.getBoundingClientRect();
-    // Every position the pointer passed through since the last frame, where
-    // the browser kept them: a fast hand otherwise draws corners.
+    // Each position through which the pointer went since the last frame, where
+    // the browser kept them. If not, a fast hand draws corners.
     const events = event.getCoalescedEvents?.() ?? [];
     for (const each of events.length > 0 ? events : [event]) {
       active.stroke.points.push(drawingPoint(each, shown, paper));

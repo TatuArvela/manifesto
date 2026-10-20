@@ -117,9 +117,9 @@ export function LoginScreen() {
 }
 
 /**
- * Whichever ways in the server offers. With both, single sign-on comes first,
- * and the password form follows it, or waits behind a link when the server
- * keeps local accounts only as a spare key.
+ * The ways to sign in that the server offers. With both, single sign-on comes
+ * first, and the password form follows it, or waits behind a link when the
+ * server keeps local accounts only as a spare key.
  */
 function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
   const { providers } = auth;

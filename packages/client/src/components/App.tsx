@@ -64,7 +64,7 @@ import { UnopenedNotes } from "./UnopenedNotes.tsx";
 import { UnsentNotes } from "./UnsentNotes.tsx";
 import { WelcomeDialog } from "./WelcomeDialog.tsx";
 
-// Fetched the first time they open, since most sessions never do.
+// Loaded the first time that they open, because most sessions never open them.
 const loadSettingsDialog = () =>
   import("./settings/SettingsDialog.tsx").then((m) => m.SettingsDialog);
 const loadAdminView = () =>
@@ -78,10 +78,10 @@ const loadPublicLinksDialog = () =>
 const loadDrawingPad = () =>
   import("./DrawingPad.tsx").then((m) => m.DrawingPad);
 
-// True only on the *very first render* of a page that landed with `#token=`
-// in the URL. The OIDC consumer runs once (in useEffect, after this render
-// commits). Without this gate, LoginScreen would flash on top of the
-// callback page before `consumeOidcRedirect` resolves.
+// True only on the *very first render* of a page that arrived with `#token=` in
+// the URL. The OIDC consumer runs one time (in useEffect, after this render
+// commits). Without this control, LoginScreen would show for a moment on top of
+// the callback page before `consumeOidcRedirect` resolves.
 const oidcInFlight =
   typeof window !== "undefined" &&
   isServerMode &&
@@ -90,23 +90,23 @@ const oidcInFlight =
 export function App() {
   const ready = useOidcRedirectOnce(oidcInFlight);
   const signIn = ready && isServerMode && authToken.value === null;
-  // Signed in is not unlocked: until the account's keys are on this device,
-  // the secret key (or the set-up of the keys) is all there is to show.
+  // Signed in is not unlocked. Until the keys of the account are on this
+  // device, the app can only show the secret key (or the set-up of the keys).
   const keys = keyState.value;
   const locked = ready && isServerMode && !signIn && keys !== "unlocked";
-  // While the device is only being asked what it holds, the loading screen
-  // stays rather than a card flashing past on every start.
+  // While the app only asks the device what it has, the loading screen stays.
+  // Thus, a card does not show for a moment at each start.
   const lockedScreen = locked && keys !== "checking" && keys !== "none";
   useEffect(() => {
     if (signIn || lockedScreen) revealApp();
-    // A mailed link opened where someone is signed in already has nothing to
-    // do, and `LoginScreen` is not there to take its token. Left in the
-    // address it would sign them back in the moment they signed out.
+    // A mailed link that opens where a user is already signed in has nothing to
+    // do, and `LoginScreen` is not there to take its token. If it stayed in the
+    // address, it would sign them in again immediately after a sign-out.
     if (ready && !signIn) takeSignInLinkToken();
   }, [signIn, lockedScreen, ready]);
   useEffect(() => {
-    // A secret key scanned from another device's Settings arrives in the
-    // address, whether or not anyone is signed in here yet.
+    // A secret key scanned from the Settings of a different device arrives in
+    // the address, whether a person is signed in here yet or not.
     if (isServerMode) takeSecretKeyFromAddress();
   }, []);
   if (!ready) return null;
@@ -124,8 +124,8 @@ function useOidcRedirectOnce(blockUntilDone: boolean): boolean {
   useEffect(() => {
     void consumeOidcRedirect()
       .then((signedIn) => {
-        // A sign-in started from an assistant's consent page comes back here,
-        // where the identity provider returns everyone; send it on.
+        // A sign-in started from the consent page of an assistant comes back
+        // here, where the identity provider returns all persons. Send it on.
         const consent = signedIn ? takeConsentPage() : null;
         if (consent) window.location.replace(consent);
       })
@@ -152,13 +152,14 @@ function MainApp() {
     selectMode.value,
   );
   useBoardShortcuts();
-  // The board is up without the editor; fetch it now, before a note is opened.
+  // The board shows without the editor. Get the editor now, before a note
+  // opens.
   useEffect(() => {
     void loadEditor();
   }, []);
   useAppServices();
   useNoteFromReminder();
-  // A note sent as a link travels in the fragment; it opens in a dialog.
+  // A note sent as a link is in the fragment. It opens in a dialog.
   useEffect(() => {
     const payload = decodeShareFromHash(window.location.hash);
     if (payload) setSharedNote(payload);
@@ -208,8 +209,8 @@ function MainApp() {
   const isAutoNotesView = activeView.value === "autoNotes";
   const isActive = activeView.value === "active";
   const isList = viewMode.value === "list";
-  // Where there is room for a column the tag tree is a sidebar; on a phone it
-  // is a block above the notes, inside what scrolls.
+  // Where there is space for a column, the tag tree is a sidebar. On a phone,
+  // it is a block above the notes, inside the area that scrolls.
   const wide = useMediaQuery("(min-width: 768px)");
   const tagsPane = isTagsView && wide;
   const pane = usePresence(
@@ -241,11 +242,11 @@ function MainApp() {
         <div class="flex flex-1 overflow-hidden relative z-0">
           <Sidebar />
           {pane.shown && (
-            // The tag tree as a sidebar of the Tags view: part of the shell
-            // like the rail beside it, so the board and its notes start
-            // after it and scroll without it. It opens and closes as a
-            // drawer (`usePaneSlide`), so the tree inside keeps its width and
-            // rides on the edge, and stays on screen until it has closed.
+            // The tag tree as a sidebar of the Tags view: part of the shell, as
+            // the rail next to it. Thus, the board and its notes start after
+            // it, and scroll without it. It opens and closes as a drawer
+            // (`usePaneSlide`). Thus, the tree inside keeps its width and moves
+            // with the edge, and stays on the screen until it is closed.
             <aside
               ref={paneRef}
               class="w-72 shrink-0 flex justify-end overflow-hidden z-[4]"
@@ -264,8 +265,9 @@ function MainApp() {
           <div class="board-frame flex flex-1 min-w-0">
             <main
               ref={mainRef}
-              // The phone's top bar lies over the board, so a card the
-              // keyboard reaches is scrolled clear of it (WCAG 2.4.11).
+              // The top bar of the phone is over the board. Thus, the board
+              // scrolls a card that the keyboard reaches out from under it
+              // (WCAG 2.4.11).
               style={
                 topBarHeight > 0
                   ? { scrollPaddingTop: `${topBarHeight}px` }
@@ -298,9 +300,10 @@ function MainApp() {
                 ) : isTagsView ? (
                   <>
                     {!tagsPane && (
-                      // On a phone the same tree on the same surface, as a band
-                      // across the top of what scrolls: out to the edges, so it
-                      // reads as the shell and not as a card on the board.
+                      // On a phone, the same tree on the same surface, as a
+                      // band across the top of the area that scrolls. It goes
+                      // to the edges. Thus, it looks like part of the shell,
+                      // not like a card on the board.
                       <div
                         class={`-mx-4 -mt-2 mb-4 ${tagsSurface} border-b shadow-sm`}
                       >

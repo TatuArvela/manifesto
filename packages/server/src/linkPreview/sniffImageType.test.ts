@@ -27,11 +27,11 @@ describe("sniffImageType", () => {
         bytes(0, 0, 0, 0x20, "ftypmif1", 0, 0, 0, 0, "mif1miafavif"),
       ),
     ).toBe("image/avif");
-    // A HEIC shares the container and is not AVIF.
+    // A HEIC uses the same container, and is not AVIF.
     expect(
       sniffImageType(bytes(0, 0, 0, 0x18, "ftypmif1", 0, 0, 0, 0, "heic")),
     ).toBeNull();
-    // A brand past the end of the box is not one of its brands.
+    // A brand after the end of the box is not one of its brands.
     expect(
       sniffImageType(bytes(0, 0, 0, 0x14, "ftypmif1", 0, 0, 0, 0, "mif1avif")),
     ).toBeNull();

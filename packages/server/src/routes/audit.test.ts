@@ -13,7 +13,7 @@ describe("audit log", () => {
   let admin: { token: string; userId: string };
   let bob: { token: string; userId: string };
 
-  /** Audit writes are fire-and-forget; one turn lets them land. */
+  /** Audit writes do not wait. One turn lets them complete. */
   const settle = () => new Promise((r) => setTimeout(r, 20));
 
   beforeEach(async () => {
@@ -102,7 +102,7 @@ describe("audit log", () => {
     return (await res.json()) as AuditLogResponse;
   }
 
-  /** A rig that records addresses, which the test app has no socket for. */
+  /** A rig that records addresses. The test app has no socket for them. */
   async function withAddresses() {
     await rig.close();
     rig = await bootTestAppWith({ trustProxy: true });
@@ -126,7 +126,7 @@ describe("audit log", () => {
       expect([entry.actor?.id, entry.target?.id]).toContain(bob.userId);
     }
     const failed = entries.find((e) => e.action === "auth.sign_in_failed");
-    // Nobody was signed in, so the address is the one it was tried from.
+    // Nobody was signed in. Thus, the address is the address of the attempt.
     expect(failed?.ip).toBe("198.51.100.7");
   });
 

@@ -35,20 +35,22 @@ import { toAuthUser } from "./users.ts";
 interface SharedAuthRoutesDeps {
   cfg: ServerConfig;
   storage: StorageDriver;
-  /** Tells the account's other devices when its preferences change. */
+  /** Tells the other devices of the account when its preferences change. */
   broadcaster?: Broadcaster;
   loginAttempts: LoginAttempts;
   revocations: SessionRevocations;
-  /** For starting an account again or deleting it, either of which takes
-   * its notes from everyone. */
+  /**
+   * For a new start of an account, or its deletion. Both take its notes from
+   * all persons.
+   */
   noteEvents: NoteEvents;
 }
 
 /**
- * Provider-agnostic auth endpoints. Mounted alongside the active provider's
- * router so the client can discover which login UI to render and refresh the
- * current user from a bearer token (used after an OIDC callback when the only
- * thing the client gets is a token in the URL fragment).
+ * Auth endpoints that do not depend on the provider. They mount together with
+ * the router of the active provider. Thus, the client can find which login UI
+ * to show, and get the current user again from a bearer token (after an OIDC
+ * callback, when the client only gets a token in the URL fragment).
  */
 export function createAuthSharedRoutes(
   deps: SharedAuthRoutesDeps,
@@ -66,9 +68,9 @@ export function createAuthSharedRoutes(
   });
 
   /**
-   * The signed-in user's own details; today, only the email address. An
-   * account that signs in through an identity provider takes its address from
-   * there on every sign-in, so it cannot set one here (`409`).
+   * The own details of the signed-in user. Now, only the email address. An
+   * account that signs in through an identity provider gets its address from
+   * there at each sign-in. Thus, it cannot set one here (`409`).
    */
   router.put(
     "/me",
@@ -84,14 +86,14 @@ export function createAuthSharedRoutes(
           "This account's email address comes from single sign-on",
         );
       }
-      // A reset link goes to this address, so whoever sets it can take the
-      // password next.
+      // A reset link goes to this address. Thus, the person who sets it can
+      // take the password next.
       await requireConfirmation(deps, c.get("auth"), password);
       const result = await deps.storage.users.setEmail(userId, email);
       if (result === "not-found") throw new HttpError(401, "User not found");
       if (result === "email-taken") throw emailTaken();
-      // A sign-in or reset link already sent went to the address this
-      // replaces.
+      // A sign-in or reset link that was already sent went to the address that
+      // this replaces.
       await deps.storage.signInLinks.deleteByUser(userId);
       await deps.storage.passwordResets.deleteByUser(userId);
       const body: AuthMeResponse = {
@@ -102,11 +104,11 @@ export function createAuthSharedRoutes(
   );
 
   /**
-   * Deletes the signed-in user's account, as an admin's delete does: its
-   * notes go from everyone they were shared with, and its sessions end. With
-   * the password, since a stolen session must not be able to erase the
-   * account (`requireConfirmation`), and from a session only. The last admin
-   * is refused (`409`), as everywhere else.
+   * Deletes the account of the signed-in user, as a delete by an admin does.
+   * Its notes go out of the notes of all persons who shared them, and its
+   * sessions end. It needs the password, because a stolen session must not be
+   * able to delete the account (`requireConfirmation`), and only a session can
+   * use it. The server refuses the last admin (`409`), as in all other places.
    */
   router.delete(
     "/me",
@@ -130,11 +132,11 @@ export function createAuthSharedRoutes(
   );
 
   /**
-   * The signed-in user's own lines of the audit log: their sign-ins and
-   * failed ones, changes to how the account is secured, shares, and anything
-   * an admin did to the account, downloading its notes included. What an admin
-   * can see about someone, that person can see too. A session only, like the
-   * other pages about how the account is secured.
+   * The own lines of the audit log of the signed-in user: their sign-ins and
+   * failed sign-ins, changes to the security of the account, shares, and all
+   * actions of an admin on the account, also a download of its notes. What an
+   * admin can see about a person, that person can also see. Only a session, as
+   * for the other pages about the security of the account.
    */
   router.get("/me/activity", async (c) => {
     const { userId } = c.get("auth");
@@ -147,10 +149,11 @@ export function createAuthSharedRoutes(
   });
 
   /**
-   * The account's preferences, so hidden tags and the rest follow it from
-   * device to device. The server keeps what clients send and reads none of
-   * it; each client parses what it gets back. Any credential, since a
-   * preference changes nothing about how the account is secured.
+   * The preferences of the account. Thus, hidden tags and the other preferences
+   * go with it from device to device. The server keeps what clients send, and
+   * reads none of it. Each client parses what it gets back. All credentials can
+   * use it, because a preference changes nothing about the security of the
+   * account.
    */
   router.get("/me/prefs", async (c) => {
     const { userId } = c.get("auth");
@@ -160,7 +163,7 @@ export function createAuthSharedRoutes(
     return c.json(body);
   });
 
-  /** Merges in the keys given, `null` removing one; `413` past the limit. */
+  /** Merges the given keys. `null` removes one. `413` after the limit. */
   router.patch(
     "/me/prefs",
     zValidator("json", accountPrefsUpdateSchema, validatorHook),
@@ -175,7 +178,7 @@ export function createAuthSharedRoutes(
       if (merged === "tooLarge") {
         throw new HttpError(413, "Preferences are too large");
       }
-      // Every socket of the account hears it, the sender's included; it
+      // All sockets of the account get it, also that of the sender. The sender
       // adopts what it already has, which changes nothing.
       const prefs = merged as SealedAccountPrefs;
       deps.broadcaster?.emit(userId, { type: "prefs:updated", prefs });
@@ -185,10 +188,10 @@ export function createAuthSharedRoutes(
   );
 
   /**
-   * The language the client is set to, so mail another account's action sends
-   * this one (a share invitation) is in it. The client reports it when it
-   * differs from what `/me` said, which is on its first start and after the
-   * user changes it.
+   * The language of the client. Thus, mail that the action of a different
+   * account sends to this account (a share invitation) is in it. The client
+   * reports it when it is different from what `/me` said: on its first start,
+   * and after the user changes it.
    */
   router.put(
     "/me/locale",

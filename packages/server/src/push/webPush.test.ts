@@ -59,7 +59,7 @@ function decrypt(body: Buffer, receiverPrivate: Buffer, auth: Buffer): string {
 }
 
 describe("Web Push encryption (RFC 8291)", () => {
-  // Appendix A of the RFC, every value as printed there.
+  // Appendix A of the RFC, each value as printed there.
   const example = {
     plaintext: "When I grow up, I want to be a watermelon",
     senderPrivate: "yfWPiYE-n46HLnH0KqZOF1fJJU3MYrct3AELtAQ-oRw",
@@ -95,7 +95,8 @@ describe("Web Push encryption (RFC 8291)", () => {
     const body = encryptPayload(Buffer.from(message), target);
 
     expect(decrypt(body, receiver.getPrivateKey(), auth)).toBe(message);
-    // A fresh key and salt each time: the same message never looks the same.
+    // A new key and salt each time. Thus, the same message never looks the
+    // same.
     expect(encryptPayload(Buffer.from(message), target).equals(body)).toBe(
       false,
     );

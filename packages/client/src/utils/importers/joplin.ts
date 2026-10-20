@@ -2,7 +2,7 @@ import type { Note } from "@manifesto/shared";
 import { checkImportSize, type Importer, importedNote } from "./importer.ts";
 import { readTar } from "./tar.ts";
 
-/** Joplin's item types, as `type_` numbers them. */
+/** The item types of Joplin, as `type_` numbers them. */
 const NOTE = "1";
 const TAG = "5";
 const NOTE_TAG = "6";
@@ -14,9 +14,9 @@ interface JoplinItem {
 }
 
 /**
- * One item as Joplin serializes it: its title on the first line, a blank
- * line, its body, a blank line, and then its metadata as `key: value` lines.
- * An item with no title or body (a note-to-tag link) is metadata alone.
+ * One item as Joplin serializes it: its title on the first line, a blank line,
+ * its body, a blank line, and then its metadata as `key: value` lines. An item
+ * with no title or body (a link from a note to a tag) is only metadata.
  */
 export function parseJoplinItem(text: string): JoplinItem {
   const lines = text.replace(/\r\n/g, "\n").split("\n");
@@ -37,9 +37,9 @@ export function parseJoplinItem(text: string): JoplinItem {
 }
 
 /**
- * Joplin keeps attachments as resources, linked from a note as `:/<id>`.
- * They are not in a note here, so an image link goes and any other keeps its
- * words.
+ * Joplin keeps attachments as resources, linked from a note as `:/<id>`. They
+ * are not in a note here. Thus, an image link goes, and each other link keeps
+ * its words.
  */
 function withoutResourceLinks(body: string): string {
   return body
@@ -49,18 +49,18 @@ function withoutResourceLinks(body: string): string {
 
 function joplinTime(raw: string | undefined): string | null {
   if (!raw) return null;
-  // Older exports write milliseconds, newer ISO 8601.
+  // Older exports write milliseconds, and newer exports write ISO 8601.
   if (/^\d+$/.test(raw)) return new Date(Number(raw)).toISOString();
   return Number.isNaN(Date.parse(raw)) ? null : raw;
 }
 
 /**
- * Joplin's `.jex` export: a tar of every item as Markdown with metadata
- * (see `parseJoplinItem`), notes, tags and the links between them among
- * notebooks and resources. Notes come with their tags; notebooks, which
- * notes here have none of, and attachments are left behind. An encrypted
- * item cannot be read and is skipped; an archive of nothing but those is
- * refused.
+ * The `.jex` export of Joplin: a tar of each item as Markdown with metadata
+ * (see `parseJoplinItem`). Notes, tags and the links between them are among
+ * notebooks and resources. Notes come with their tags. The code does not
+ * include notebooks, which notes here do not have, or attachments. An encrypted
+ * item cannot be read, and is skipped. The code refuses an archive that
+ * contains only those.
  */
 export const joplinImporter: Importer = {
   format: "Joplin",

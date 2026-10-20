@@ -21,31 +21,34 @@ import { recheckSockets, SOCKET_RECHECK_MS } from "./recheck.ts";
 export const SUBPROTOCOL = "manifesto-session";
 
 /**
- * The largest frame `/api/v1/ws` reads. A client only ever says which note it
- * is looking at, and `ws` otherwise assembles frames of up to 100 MiB in
- * memory before anything here sees them, for a peer that has yet to be
- * authenticated.
+ * The largest frame that `/api/v1/ws` reads. A client only tells which note it
+ * looks at. Without a limit, `ws` assembles frames of up to 100 MiB in memory
+ * before any code here sees them, for a peer that is not authenticated yet.
  */
 export const APP_SOCKET_MAX_PAYLOAD = 16 * 1024;
 
 interface Connection {
   id: string;
   userId: string;
-  /** The bearer token the socket authenticated with. */
+  /** The bearer token with which the socket authenticated. */
   token: string;
   user: PresenceUser;
   send: (data: string) => void;
   close: (code: number, reason: string) => void;
-  /** Send a protocol ping; the peer's pong sets `alive`. */
+  /** Send a protocol ping. The pong of the peer sets `alive`. */
   ping: () => void;
-  /** Drop the connection without a closing handshake, which a peer that has
-   * gone away would never answer. */
+  /**
+   * Drop the connection without a closing handshake, which a peer that went
+   * away would never answer.
+   */
   terminate: () => void;
-  /** Whether the peer has answered since the last ping. */
+  /** If the peer answered since the last ping. */
   alive: boolean;
   viewedNoteId: string | null;
-  /** Bumped by every `presence:update`, so an access check that finishes
-   * after a newer update has arrived knows to drop its answer. */
+  /**
+   * Each `presence:update` increases it. Thus, an access check that completes
+   * after a newer update arrived knows that it must drop its answer.
+   */
   presenceSeq: number;
   closed: boolean;
 }
@@ -59,22 +62,26 @@ interface AppSocketDeps {
   accessChanges: AccessChanges;
   storage: StorageDriver;
   cfg: ServerConfig;
-  /** Tests shorten this; everyone else uses {@link APP_SOCKET_HEARTBEAT_MS}. */
+  /**
+   * Tests make this shorter. All others use {@link APP_SOCKET_HEARTBEAT_MS}.
+   */
   heartbeatMs?: number | undefined;
-  /** Tests shorten this; everyone else uses {@link SOCKET_RECHECK_MS}. */
+  /** Tests make this shorter. All others use {@link SOCKET_RECHECK_MS}. */
   recheckMs?: number | undefined;
 }
 
-/** Wire `/api/v1/ws` onto the app. Returns a function that stops its timers. */
+/**
+ * Connect `/api/v1/ws` to the app. Returns a function that stops its timers.
+ */
 export function attachAppSocket(deps: AppSocketDeps): () => void {
   const { app, ws, authProvider, broadcaster, revocations, storage } = deps;
 
-  // Negotiate the subprotocol so browsers don't reject the handshake when they
-  // sent `Sec-WebSocket-Protocol: manifesto-session, <token>`.
+  // Negotiate the subprotocol. Thus, browsers do not refuse the handshake when
+  // they sent `Sec-WebSocket-Protocol: manifesto-session, <token>`.
   ws.wss.options.handleProtocols = (protocols) => {
     return protocols.has(SUBPROTOCOL) ? SUBPROTOCOL : false;
   };
-  // Read at each upgrade, so setting it here bounds every socket.
+  // Read at each upgrade. Thus, a value set here limits all sockets.
   ws.wss.options.maxPayload = APP_SOCKET_MAX_PAYLOAD;
 
   const connectionsByUser = new Map<string, Set<Connection>>();
@@ -86,13 +93,14 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
     "Accounts with at least one open /api/v1/ws socket.",
     () => connectionsByUser.size,
   );
-  // For each note, how many of each user's connections are viewing it. We
-  // send presence:join when a user's count goes 0 -> 1 and presence:leave when
-  // it goes 1 -> 0, so a user with three tabs on the same note shows up
-  // exactly once in the avatar stack.
+  // For each note, how many connections of each user look at it. We send
+  // presence:join when the count of a user goes 0 -> 1, and presence:leave when
+  // it goes 1 -> 0. Thus, a user with three tabs on the same note shows exactly
+  // one time in the avatar stack.
   const viewersByNote = new Map<string, Map<string, number>>();
-  // Who hears about presence on a note: its owner and the people it is shared
-  // with. Read when someone starts viewing it, and kept while anyone is.
+  // Who gets the presence on a note: its owner and the people with whom it is
+  // shared. Read when a person starts to look at it, and kept while any person
+  // does.
   const audienceByNote = new Map<string, Set<string>>();
   let nextId = 0;
 
@@ -138,14 +146,15 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
 
   broadcaster.subscribe((userId, event) => sendToOthers(userId, event));
 
-  // A connection that vanishes without a close (a phone changing networks, a
-  // laptop asleep, a NAT forgetting it) stays open to both ends until TCP gives
-  // up, which can take many minutes. Meanwhile its user is still shown on the
-  // note they had open, and their client believes it is hearing everything.
-  // The protocol ping finds such a peer here: a browser answers it without the
-  // page taking part, so one unanswered interval means nobody is there, and
-  // terminating it runs `onClose` like any other departure. The client cannot
-  // see protocol pings, so the `heartbeat` event is what it listens for.
+  // A connection that disappears without a close (a phone that changes
+  // networks, a laptop that sleeps, a NAT that forgets it) stays open at both
+  // ends until TCP stops, which can take many minutes. In that time, its user
+  // still shows on the note that they had open, and their client thinks that it
+  // gets all events. The protocol ping finds such a peer here. A browser
+  // answers it without the page. Thus, one interval without an answer means
+  // that nobody is there. The termination runs `onClose`, as all other
+  // departures do. The client cannot see protocol pings. Thus, it listens for
+  // the `heartbeat` event.
   const heartbeat = JSON.stringify({ type: "heartbeat" });
   const heartbeatTimer = setInterval(() => {
     for (const set of [...connectionsByUser.values()]) {
@@ -162,7 +171,7 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
   }, deps.heartbeatMs ?? APP_SOCKET_HEARTBEAT_MS);
   heartbeatTimer.unref();
 
-  // A session or token that ran out announces nothing (see `recheck.ts`).
+  // A session or token that expired announces nothing (see `recheck.ts`).
   const recheckTimer = setInterval(() => {
     const open = [...connectionsByUser.values()].flatMap((set) =>
       [...set].map((conn) => ({ token: conn.token, socket: conn })),
@@ -173,9 +182,9 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
   }, deps.recheckMs ?? SOCKET_RECHECK_MS);
   recheckTimer.unref();
 
-  // A socket is authenticated once, at the handshake, so ending a session
-  // has to reach the sockets it opened. 4401 is what the client already reads
-  // as "signed out"; `onClose` below unregisters each one.
+  // A socket authenticates one time, at the handshake. Thus, the end of a
+  // session must reach the sockets that it opened. The client already reads
+  // 4401 as "signed out". `onClose` below unregisters each one.
   revocations.subscribe(({ userId, keepToken, onlyTokenHash }) => {
     const set = connectionsByUser.get(userId);
     if (!set) return;
@@ -186,11 +195,11 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
     }
   });
 
-  // Someone who can no longer see a note stops being shown on it, and stops
-  // hearing who else is. Losing only the right to edit changes neither.
-  // Someone who has just been let in hears about it from now on, and is told
-  // at once who is already looking at it. A note nobody is looking at needs
-  // nothing: its audience is read afresh when someone opens it.
+  // A person who cannot see a note now stops to show on it, and stops to learn
+  // who else is there. The loss of only the right to edit changes neither. A
+  // person who just got access learns about it from now on, and learns
+  // immediately who already looks at it. A note at which nobody looks needs
+  // nothing. The code reads its audience again when a person opens it.
   deps.accessChanges.subscribe(({ noteId, userIds, change }) => {
     if (change === "lost-edit") return;
     if (change === "gained") {
@@ -235,9 +244,10 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
   }
 
   /**
-   * Send `conn` a join for everyone else viewing the note, if its user is
-   * among the people who may know. A connection's own user is left out: its
-   * other tabs never announced themselves to it, and still do not.
+   * Send `conn` a join for each other person who looks at the note, if its user
+   * is one of the people who can know. The own user of a connection is not
+   * included. Its other tabs never announced themselves to it, and still do
+   * not.
    */
   function tellWhoIsHere(conn: Connection, noteId: string) {
     const counts = viewersByNote.get(noteId);
@@ -268,12 +278,12 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
       { type: "presence:join", noteId, user: conn.user },
       conn,
     );
-    // Whoever else is already here, so the newcomer does not have to wait for
-    // them to leave and come back to know it.
+    // The persons who are already here. Thus, the new person does not have to
+    // wait until they leave and come back to know it.
     tellWhoIsHere(conn, noteId);
   }
 
-  /** Everyone who can see the note, if `userId` is one of them. */
+  /** All persons who can see the note, if `userId` is one of them. */
   async function audienceOf(
     noteId: string,
     userId: string,
@@ -294,8 +304,8 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
     if (conn.viewedNoteId === noteId) return;
     stopViewing(conn);
     if (noteId === null) return;
-    // A note id is not taken on trust: presence says who is looking at what,
-    // and a note shared with nobody is nobody else's business.
+    // The code does not trust a note id. Presence tells who looks at what, and
+    // a note shared with nobody concerns no other person.
     const audience = await audienceOf(noteId, conn.userId);
     if (conn.closed || seq !== conn.presenceSeq || audience === null) return;
     startViewing(conn, noteId, audience);
@@ -341,7 +351,7 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
       return {
         async onOpen(_evt, socket) {
           const identity = await authProvider.authenticate(token);
-          // An MCP token is for `/api/v1/mcp` alone, and a socket carries notes.
+          // An MCP token is only for `/api/v1/mcp`, and a socket carries notes.
           if (
             !identity ||
             identity.via === "mcp-token" ||
@@ -373,8 +383,8 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
             live.alive = true;
           });
           register(conn);
-          // A socket that opens (a new tab, a reload, a reconnect) missed
-          // every join sent before it, so it learns who is on the notes its
+          // A socket that opens (a new tab, a reload, a reconnect) missed all
+          // joins sent before it. Thus, it learns who is on the notes that its
           // user can see.
           for (const noteId of viewersByNote.keys()) {
             tellWhoIsHere(conn, noteId);
@@ -399,8 +409,8 @@ export function attachAppSocket(deps: AppSocketDeps): () => void {
               });
             });
           }
-          // `note:edit` from clients is not handled in Phase 3; REST is the
-          // authoritative write path; the server fans out updates from REST.
+          // Phase 3 does not handle `note:edit` from clients. REST is the
+          // authoritative write path, and the server sends updates from REST.
         },
 
         onClose() {

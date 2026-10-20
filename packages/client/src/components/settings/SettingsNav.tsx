@@ -49,21 +49,21 @@ export const GENERAL_TABS: SettingsTab[] = [
   "about",
 ];
 
-/** Whether the server lets an account add a second factor of either kind. */
+/** If the server lets an account add a second factor of either type. */
 export function secondFactorOffered(): boolean {
   return serverFeature("twoFactor") || serverFeature("passkeys");
 }
 
 /**
- * The account's pages this user has, in the groups the sidebar sets apart:
- * the account itself, how it is kept safe, and what reaches it from outside.
- * None in open mode or signed out, and none for a feature the server has off
- * (`serverFeature`); a group left empty is dropped. The keys and the activity
- * are every account's, however it signs in. Sign-in is for an account with a
- * password of its own: it changes the password, and holds two-factor while
- * either of its halves is on, or with both off for an account that already
- * has one, since sign-in still asks for it and this page is the only way to
- * remove it.
+ * The pages of the account that this user has, in the groups that the sidebar
+ * keeps apart: the account itself, how it is kept safe, and what reaches it
+ * from outside. None in open mode or when signed out, and none for a feature
+ * that the server has off (`serverFeature`). A group that is empty is removed.
+ * The keys and the activity are for all accounts, whatever the sign-in. Sign-in
+ * is for an account with its own password. It changes the password. It contains
+ * two-factor while either of its halves is on. With both off, it contains
+ * two-factor for an account that already has it, because the sign-in still asks
+ * for it and this page is the only way to remove it.
  */
 export function accountGroups(): SettingsTab[][] {
   if (!isServerMode || !currentUser.value) return [];
@@ -77,7 +77,7 @@ export function accountGroups(): SettingsTab[][] {
   return groups.filter((g) => g.length > 0);
 }
 
-/** Whether the Sign-in page has a two-factor section; see `accountGroups`. */
+/** If the Sign-in page has a two-factor section. See `accountGroups`. */
 export function showsTwoFactor(): boolean {
   return secondFactorOffered() || hasSecondFactor();
 }
@@ -85,14 +85,16 @@ export function showsTwoFactor(): boolean {
 const navItemClass =
   "flex items-center gap-3 shrink-0 sm:w-full px-3 py-2 rounded-lg text-sm text-left whitespace-nowrap cursor-pointer transition-colors";
 
-/** The current page looks as the app's own sidebar marks the current view. */
+/**
+ * The current page looks as the own sidebar of the app marks the current view.
+ */
 function navItemState(active: boolean) {
   return active
     ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
     : "text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60";
 }
 
-/** Pages that belong together, set apart from the next group by a gap alone. */
+/** Pages that belong together, kept apart from the next group only by a gap. */
 export function NavGroup({ children }: { children: ComponentChildren }) {
   return <div class="contents sm:block sm:space-y-0.5 sm:pb-4">{children}</div>;
 }
@@ -125,7 +127,7 @@ export function NavItem({
   );
 }
 
-/** The signed-in user as the first entry of the sidebar, like a profile card. */
+/** The signed-in user as the first entry of the sidebar, as a profile card. */
 export function AccountNavItem({
   active,
   onSelect,

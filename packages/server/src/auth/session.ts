@@ -11,30 +11,34 @@ import type { Session, StorageDriver } from "#/storage/types.ts";
 import type { SessionRevocations } from "./revocations.ts";
 import type { AuthIdentity } from "./types.ts";
 
-// Sessions are stored hashed at rest. The repo doesn't know this; it just
-// indexes whatever string we hand it. The wrapping in `auth/session.ts`
-// (and the local/oidc routers, for logout) is responsible for hashing.
+// Sessions are stored hashed at rest. The repo does not know this. It only
+// indexes the string that it gets. The wrapper in `auth/session.ts` (and the
+// local/oidc routers, for logout) does the hash.
 
 type SessionTtlConfig = Pick<
   ServerConfig,
   "sessionTtlDays" | "sessionAbsoluteTtlDays"
 >;
 
-/** What a bearer token is checked against: the session clocks, and which
- * kinds of token the server's features still accept. */
+/**
+ * What the server checks a bearer token against: the session clocks, and the
+ * token types that the features of the server still accept.
+ */
 type BearerConfig = SessionTtlConfig &
   Pick<ServerConfig, ToggleFeature | "webhooks">;
 
-/** The earlier of two ISO timestamps. Both come from `toISOString()`, whose
- * fixed-width UTC format sorts lexicographically. */
+/**
+ * The earlier of two ISO timestamps. Both come from `toISOString()`, whose
+ * fixed-width UTC format sorts lexicographically.
+ */
 function earlier(a: string, b: string): string {
   return a < b ? a : b;
 }
 
 /**
- * When a session dies no matter how much it is used, measured from when it
- * was minted. Null for a row whose `createdAt` doesn't parse: a corrupt row
- * is treated as expired rather than as immortal.
+ * When a session ends, whatever its use, from the time when it was made. Null
+ * for a row whose `createdAt` does not parse. A corrupt row counts as expired,
+ * not as permanent.
  */
 function absoluteExpiryOf(session: Session, days: number): string | null {
   const created = new Date(session.createdAt);
@@ -44,18 +48,18 @@ function absoluteExpiryOf(session: Session, days: number): string | null {
 
 /**
  * A personal API token or MCP token (`POST /api/v1/tokens`). It has no sliding
- * expiry, only the one its owner chose, and records when it was last used so
- * a forgotten one can be found and revoked. Refused while its kind's feature
- * is off (`API_TOKENS`, `MCP`), which covers both sockets too, since they
- * authenticate through here.
+ * expiry, only the expiry that its owner selected. It records its last use, so
+ * that a person can find and revoke a forgotten token. It is refused while the
+ * feature of its type is off (`API_TOKENS`, `MCP`). This also applies to both
+ * sockets, because they authenticate through here.
  */
 async function authenticateByApiToken(
   storage: StorageDriver,
   cfg: BearerConfig,
   token: string,
 ): Promise<AuthIdentity | null> {
-  // The prefix is only what the secret was minted with; the row decides. A
-  // prefix that disagrees with it is a secret nobody was given.
+  // The prefix is only the prefix with which the secret was made. The row
+  // decides. A prefix that does not agree with it is a secret that nobody got.
   const kind = token.startsWith(MCP_TOKEN_PREFIX) ? "mcp" : "api";
   if (!isFeatureOn(cfg, TOKEN_FEATURES[kind])) return null;
   const stored = await storage.apiTokens.findByHash(hashToken(token));
@@ -63,8 +67,8 @@ async function authenticateByApiToken(
   if (stored.kind !== kind) return null;
   const now = nowIso();
   if (stored.expiresAt !== null && stored.expiresAt < now) return null;
-  // An OAuth grant's access token lapses within the hour; its refresh token
-  // (`oauth/tokenEndpoint.ts`) is how the assistant gets the next one.
+  // The access token of an OAuth grant expires within one hour. The assistant
+  // gets the next one with its refresh token (`oauth/tokenEndpoint.ts`).
   if (stored.accessExpiresAt !== null && stored.accessExpiresAt < now) {
     return null;
   }
@@ -84,9 +88,9 @@ async function authenticateByApiToken(
 }
 
 /**
- * The identity behind a bearer token: a session, or, for a token with the API
- * or MCP token prefix, a personal token. Both providers authenticate through
- * this, so tokens work the same under local and single sign-on.
+ * The identity behind a bearer token: a session or, for a token with the API or
+ * MCP token prefix, a personal token. Both providers authenticate through this.
+ * Thus, tokens work the same with local sign-in and with single sign-on.
  */
 export async function authenticateBySession(
   storage: StorageDriver,
@@ -104,10 +108,10 @@ export async function authenticateBySession(
   const session = await storage.sessions.findByToken(hashed);
   if (!session) return null;
   const now = nowIso();
-  // Two clocks, either of which can end a session: the sliding expiry the
-  // last request wrote, and the absolute one fixed at mint time. Without the
-  // second, a session in daily use slides forward forever, and a token captured
-  // once is then a permanent credential.
+  // Two clocks, and either one can end a session: the sliding expiry that the
+  // last request wrote, and the absolute expiry set when it was made. Without
+  // the second, a session in daily use moves forward forever, and a token that
+  // a person captured one time becomes a permanent credential.
   const absoluteExpiry = absoluteExpiryOf(session, cfg.sessionAbsoluteTtlDays);
   if (
     session.expiresAt < now ||
@@ -119,9 +123,9 @@ export async function authenticateBySession(
   }
   const user = await storage.users.findById(session.userId);
   if (!user) return null;
-  // Slide, but never past the absolute end, which also means the periodic
-  // `deleteExpired` sweep reaps sessions that hit either limit, since both
-  // are written into the same `expires_at` column.
+  // Slide, but never past the absolute end. Thus, the periodic `deleteExpired`
+  // sweep also removes sessions that reach either limit, because both are
+  // written into the same `expires_at` column.
   await storage.sessions.touch(
     hashed,
     now,
@@ -145,9 +149,9 @@ export async function issueSession(
 ): Promise<{ token: string; expiresAt: string }> {
   const token = newSessionToken();
   const now = nowIso();
-  // An absolute lifetime shorter than the sliding one is a legal (if odd)
-  // configuration, so the first expiry is capped the same way every later
-  // one is.
+  // An absolute lifetime shorter than the sliding lifetime is a legal
+  // configuration (but strange). Thus, the first expiry has the same limit as
+  // all later expiries.
   const expiresAt = earlier(
     isoPlusDays(cfg.sessionTtlDays),
     isoPlusDays(cfg.sessionAbsoluteTtlDays),
@@ -162,7 +166,7 @@ export async function issueSession(
   return { token, expiresAt };
 }
 
-/** Revoke a session given the raw bearer token the client holds. */
+/** Revoke a session from the raw bearer token that the client has. */
 export async function revokeSession(
   storage: StorageDriver,
   token: string,
@@ -171,20 +175,20 @@ export async function revokeSession(
 }
 
 /**
- * End every session a user holds, except `keepToken`'s, and close the sockets
- * those sessions opened. Both halves, because deleting the rows alone leaves
- * an already-open socket authenticated.
+ * End all sessions of a user, except that of `keepToken`, and close the sockets
+ * of those sessions. Both parts are necessary, because when you delete only the
+ * rows, an open socket stays authenticated.
  *
- * Their API tokens end too. This runs when a password may be known to someone
- * else (a change, an admin reset), and whoever knew it could have minted a
- * token that would otherwise outlive the reset. A sign-in link still in their
- * mailbox goes for the same reason: it would be a session a moment later, and
- * so does a reset link, which would be the password.
+ * Their API tokens also end. This runs when a different person can know a
+ * password (a change, an admin reset), and that person could have made a token
+ * that would otherwise stay after the reset. A sign-in link that is still in
+ * their mailbox goes for the same reason: it would be a session a moment later.
+ * A reset link also goes, because it would be the password.
  *
- * `keepApiTokens` is for a new secret key (`auth/accountKeys.ts`), which
- * signs the account's other devices out so that they ask for it and says
- * nothing about who knows the password. The tokens' sockets are closed with
- * the rest and connect again.
+ * `keepApiTokens` is for a new secret key (`auth/accountKeys.ts`). That signs
+ * out the other devices of the account so that they ask for it, and tells
+ * nothing about who knows the password. The sockets of the tokens close with
+ * the others, and connect again.
  */
 export async function endUserSessions(
   storage: StorageDriver,
@@ -203,14 +207,14 @@ export async function endUserSessions(
   revocations.revoke({ userId, keepToken });
 }
 
-/** Revoke one API token and close what was opened with it. */
+/** Revoke one API token, and close what it opened. */
 export async function revokeApiToken(
   storage: StorageDriver,
   revocations: SessionRevocations,
   userId: string,
   tokenId: string,
 ): Promise<boolean> {
-  // The hash names the sockets: the raw token was never kept.
+  // The hash names the sockets. The server never kept the raw token.
   const tokenHash = await storage.apiTokens.delete(tokenId, userId);
   if (tokenHash === null) return false;
   revocations.revoke({ userId, onlyTokenHash: tokenHash });

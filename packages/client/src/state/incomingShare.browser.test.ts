@@ -116,8 +116,8 @@ describe("the bookmarklet", () => {
   });
 
   it("keeps an address with a percent escape in it one string", () => {
-    // A browser percent-decodes a `javascript:` URL before running it, so an
-    // escaped quote in the address must not come out as a real one.
+    // A browser percent-decodes a `javascript:` URL before it runs it. Thus, an
+    // escaped quote in the address must not become a real quote.
     const opened = vi.spyOn(window, "open").mockReturnValue(null);
     try {
       const href = bookmarkletHref("https://notes.example.com/a%22b/");

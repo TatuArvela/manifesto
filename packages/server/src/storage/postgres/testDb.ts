@@ -2,18 +2,19 @@ import { DataType, newDb } from "pg-mem";
 import type { PgPool } from "./database.ts";
 
 /**
- * An in-memory stand-in for Postgres, so the driver's tests need no server.
+ * A stand-in for Postgres in memory. Thus, the tests of the driver need no
+ * server.
  *
- * pg-mem implements a useful subset, and the gaps show up as "function does
- * not exist" rather than as wrong answers. Where a gap is a function real
- * Postgres has, it is filled in here rather than worked around in the driver:
- * the production SQL should say what it means, and the shim should be the
- * thing that is obviously test-only.
+ * pg-mem implements a useful subset. Its gaps show as "function does not
+ * exist", not as wrong answers. Where a gap is a function that real Postgres
+ * has, this file fills it, and the driver does not work around it. The
+ * production SQL must say what it means, and the shim must be clearly only for
+ * tests.
  */
 export function newTestPool(): PgPool {
   const db = newDb();
 
-  // Used by the image-count backfill. Postgres has had this since 9.3.
+  // The image-count backfill uses it. Postgres has had this since 9.3.
   db.public.registerFunction({
     name: "json_array_length",
     args: [DataType.text],
@@ -28,8 +29,8 @@ export function newTestPool(): PgPool {
     },
   });
 
-  // Taken by the migration runner. One process is the only instance there is
-  // here, so there is nobody to wait for.
+  // The migration runner takes it. Here, one process is the only instance.
+  // Thus, there is nobody to wait for.
   db.public.registerFunction({
     name: "pg_advisory_xact_lock",
     args: [DataType.integer],

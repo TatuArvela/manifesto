@@ -47,7 +47,7 @@ describe("useScrollAwayBar", () => {
     scrollTo(40);
     expect(shift()).toBe("40px");
     scrollTo(900);
-    // Its height and the room for its shadow, and no further.
+    // Its height and the space for its shadow, and no more.
     expect(shift()).toBe("108px");
     scrollTo(0);
     expect(shift()).toBe("0px");

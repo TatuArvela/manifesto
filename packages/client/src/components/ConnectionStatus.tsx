@@ -5,13 +5,13 @@ import { connectionOutage } from "#/realtime/connectionOutage.ts";
 import { isServerMode } from "#/state/account/auth.ts";
 
 /**
- * Tiny banner shown at the bottom of the viewport once the realtime
- * application socket has been away long enough to count as an outage (server
- * unreachable, browser offline, etc.). Local edits keep working; they just
- * don't propagate until the banner clears.
+ * A small banner at the bottom of the viewport. It shows after the realtime
+ * application socket was away long enough to count as an outage (the server is
+ * not available, the browser is offline, and so on). Local edits continue to
+ * work. They only do not go to other devices until the banner clears.
  *
- * It follows `connectionOutage` rather than `connectionStatus`, so a resumed
- * app reconnecting does not announce itself; see that module for why.
+ * It follows `connectionOutage`, not `connectionStatus`. Thus, a resumed app
+ * that reconnects does not announce itself. See that module for the reason.
  */
 export function ConnectionStatus() {
   if (!isServerMode) return null;

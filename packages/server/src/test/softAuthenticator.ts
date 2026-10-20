@@ -12,9 +12,9 @@ import type {
 } from "@manifesto/shared";
 
 /**
- * A passkey in software, for tests: it makes a P-256 credential and signs
- * challenges with it, producing exactly what a browser would hand the page,
- * so the server's WebAuthn checks run against real signatures.
+ * A passkey in software, for tests. It makes a P-256 credential and signs
+ * challenges with it. It makes exactly what a browser would give the page.
+ * Thus, the WebAuthn checks of the server run against real signatures.
  */
 
 type Cbor = number | Uint8Array | string | CborMap | CborRecord;
@@ -30,7 +30,7 @@ function head(major: number, length: number): number[] {
   throw new Error("too long for this encoder");
 }
 
-/** Just enough CBOR: small integers, byte and text strings, maps. */
+/** Only sufficient CBOR: small integers, byte and text strings, maps. */
 function cbor(value: Cbor): Uint8Array {
   if (typeof value === "number") {
     return Uint8Array.from(value >= 0 ? head(0, value) : head(1, -1 - value));
@@ -120,8 +120,10 @@ export function createSoftAuthenticator(origin: string) {
         clientExtensionResults: {},
       };
     },
-    /** What `navigator.credentials.get()` would answer. `verified: false`
-     * leaves out the user-verification flag, as a key without a PIN does. */
+    /**
+     * What `navigator.credentials.get()` would answer. `verified: false` does
+     * not set the user-verification flag, as a key without a PIN does.
+     */
     get(
       options: PasskeyRequestOptions,
       { verified = true }: { verified?: boolean } = {},

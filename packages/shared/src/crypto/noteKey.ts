@@ -11,52 +11,56 @@ import {
 } from "./seal.ts";
 
 /**
- * A note's keys (`docs/specification/features/encryption.md`, "Keys"): the
- * note key, stored wrapped under its holder's notes key (and under their
- * reminder key for a calendar feed), the keys it was under before, and an
- * uploaded image's key until a note names the image.
- * What is sealed under them is `noteSeal.ts`.
+ * The keys of a note (`docs/specification/features/encryption.md`, "Keys"): the
+ * note key, stored wrapped under the notes key of its holder (and under their
+ * reminder key for a calendar feed), its previous keys, and the key of an
+ * uploaded image until a note names the image. `noteSeal.ts` seals the values
+ * under them.
  */
 
-/** The keys of an account that a note is sealed and opened with. */
+/** The keys of an account with which a note is sealed and opened. */
 export interface AccountSealKeys {
   userId: string;
-  /** The version of the account key these come from. */
+  /** The version of the account key from which these come. */
   version: number;
   /** Wraps note keys. */
   notes: CryptoKey;
-  /** Seals what is one person's own. */
+  /** Seals the data of one person. */
   personal: CryptoKey;
 }
 
 /**
- * A note's key, ready to use and not readable: a key for each job, derived
- * from the note key. Edits and cursor states are many, so each has a key of
- * its own, apart from the one that seals the note's fields: random nonces are
- * safe for about 2^32 messages under one key. Those two are derived the
- * first time they are asked for: every note of a listing is opened, and only
- * the one whose editor opens needs them.
+ * The key of a note, ready for use and not readable: one key for each job,
+ * derived from the note key. There are many edits and cursor states. Thus, each
+ * has its own key, separate from the key that seals the fields of the note.
+ * Random nonces are safe for approximately 2^32 messages under one key. Those
+ * two keys are derived the first time that code asks for them. The app opens
+ * each note of a listing, and only the note whose editor opens needs them.
  */
 export interface NoteSealKey {
   version: number;
-  /** Seals the note's fields, its versions and its comments. */
+  /** Seals the fields, the versions and the comments of the note. */
   fields: CryptoKey;
   /** Seals the edits and snapshots of its shared document. */
   edits(): Promise<CryptoKey>;
-  /** Seals the cursor states of the people editing it. */
+  /** Seals the cursor states of the persons who edit it. */
   presence(): Promise<CryptoKey>;
 }
 
 const NOTE_KEY_BYTES = 32;
 
-/** What a value everyone on a note sees is bound to: the row and the field,
- * under this version of the note key. */
+/**
+ * What a value that all persons on a note see is bound to: the row and the
+ * field, under this version of the note key.
+ */
 export function sharedData(key: NoteSealKey, rowId: string, field: string) {
   return associatedData({ id: rowId, field, version: key.version });
 }
 
-/** What a value of one person's own is bound to: the row, the field and the
- * account, under this version of the account key. */
+/**
+ * What a value of one person is bound to: the row, the field and the account,
+ * under this version of the account key.
+ */
 export function personalData(
   account: AccountSealKeys,
   rowId: string,
@@ -70,12 +74,12 @@ export function personalData(
   });
 }
 
-/** 256 random bits for a new note. The caller wipes them once wrapped. */
+/** 256 random bits for a new note. The caller wipes them after the wrap. */
 export function newNoteKey(): Uint8Array<ArrayBuffer> {
   return crypto.getRandomValues(new Uint8Array(NOTE_KEY_BYTES));
 }
 
-/** The key that seals a note's fields, from the note key's bytes. */
+/** The key that seals the fields of a note, from the bytes of the note key. */
 export async function noteSealKey(
   raw: Uint8Array<ArrayBuffer>,
   version: number,
@@ -115,8 +119,10 @@ export function wrapNoteKey(
   return seal(account.notes, raw, noteKeyData(account, noteId, keyVersion));
 }
 
-/** The note key's bytes, for wrapping to someone else; null when `wrapped`
- * does not open. The caller wipes them. */
+/**
+ * The bytes of the note key, to wrap for a different person. Null when
+ * `wrapped` does not open. The caller wipes them.
+ */
 export function unwrapNoteKey(
   account: AccountSealKeys,
   noteId: string,
@@ -130,7 +136,7 @@ export function unwrapNoteKey(
   );
 }
 
-/** The key of a note as its holder uses it; null when it does not open. */
+/** The key of a note as its holder uses it. Null when it does not open. */
 export async function openNoteKey(
   account: AccountSealKeys,
   noteId: string,
@@ -146,7 +152,10 @@ export async function openNoteKey(
   }
 }
 
-/** Whose reminder key it is: the account, and its account key's version. */
+/**
+ * The owner of the reminder key: the account, and the version of its account
+ * key.
+ */
 type ReminderOwner = Pick<AccountSealKeys, "userId" | "version">;
 
 function reminderKeyData(
@@ -163,9 +172,9 @@ function reminderKeyData(
 }
 
 /**
- * A note's key wrapped under its holder's reminder key, for a note with a
- * reminder: the one copy a calendar feed can open, so a feed reaches the
- * notes that have a reminder and no others.
+ * The key of a note wrapped under the reminder key of its holder, for a note
+ * with a reminder. This is the only copy that a calendar feed can open. Thus, a
+ * feed reaches the notes that have a reminder, and no other notes.
  */
 export function wrapForReminders(
   reminders: CryptoKey,
@@ -177,8 +186,10 @@ export function wrapForReminders(
   return seal(reminders, raw, reminderKeyData(owner, noteId, keyVersion));
 }
 
-/** The note key a feed opens a note with; null when the copy does not open
- * or is for another key than the note is under. */
+/**
+ * The note key with which a feed opens a note. Null when the copy does not
+ * open, or is for a different key than the current key of the note.
+ */
 export async function openReminderKey(
   reminders: CryptoKey,
   owner: ReminderOwner,
@@ -205,23 +216,25 @@ function previousKeysData(key: NoteSealKey, noteId: string) {
 }
 
 /**
- * How many earlier keys a note carries. The list grows by one with every
- * replacement and the server holds it to a length, so past this many the
- * oldest go: what was written under them (a version, a comment from that
- * long ago) stops opening, which is the lesser loss beside a note that can
- * no longer leave a key someone removed still holds.
+ * The number of previous keys that a note keeps. The list grows by one with
+ * each replacement, and the server limits its length. Thus, after this many,
+ * the oldest keys go. What was written under them (a version, a comment from
+ * that time) stops to open. That is a smaller loss than a note that cannot
+ * leave a key that a removed person still has.
  */
 export const MAX_PREVIOUS_KEYS = 1024;
 
-/** The longest a note's sealed list of earlier keys may be: each is a
- * version and 32 bytes in base64, well under 64 bytes of JSON. */
+/**
+ * The maximum length of the sealed list of previous keys of a note. Each one is
+ * a version and 32 bytes in base64, much less than 64 bytes of JSON.
+ */
 export const MAX_PREVIOUS_KEYS_LENGTH = sealedLength(MAX_PREVIOUS_KEYS * 64);
 
 /**
- * The keys a note was under before, by version, sealed under the key it is
- * under now, so that whoever holds the note still opens what was written
- * under them. Someone removed held those keys already; they are never given
- * the new one. Only the newest `MAX_PREVIOUS_KEYS` are kept.
+ * The previous keys of a note, by version, sealed under its current key. Thus,
+ * each holder of the note can still open what was written under them. A removed
+ * person had those keys already. They never get the new key. Only the newest
+ * `MAX_PREVIOUS_KEYS` are kept.
  */
 export async function sealPreviousKeys(
   key: NoteSealKey,
@@ -242,8 +255,10 @@ export async function sealPreviousKeys(
   );
 }
 
-/** A note's earlier keys, raw, by version. Empty when there are none or
- * they do not open. The caller wipes them. */
+/**
+ * The previous keys of a note, raw, by version. Empty when there are none, or
+ * when they do not open. The caller wipes them.
+ */
 export async function openPreviousKeys(
   key: NoteSealKey,
   noteId: string,
@@ -278,10 +293,10 @@ function imageKeyData(account: AccountSealKeys, attachmentId: string) {
 }
 
 /**
- * An uploaded image's key, kept for its uploader until a note names the
- * image: wrapped under their notes key and bound to the attachment. Only a
- * token's upload needs it, since the server holds nothing between two
- * requests; the app keeps the key in memory.
+ * The key of an uploaded image, kept for its uploader until a note names the
+ * image: wrapped under their notes key, and bound to the attachment. Only the
+ * upload of a token needs it, because the server keeps nothing between two
+ * requests. The app keeps the key in memory.
  */
 export function wrapImageKey(
   account: AccountSealKeys,
@@ -295,7 +310,10 @@ export function wrapImageKey(
   );
 }
 
-/** The key `wrapImageKey` kept; null when it does not open for this account. */
+/**
+ * The key that `wrapImageKey` kept. Null when it does not open for this
+ * account.
+ */
 export async function unwrapImageKey(
   account: AccountSealKeys,
   attachmentId: string,

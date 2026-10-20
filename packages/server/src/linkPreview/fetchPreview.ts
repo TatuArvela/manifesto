@@ -8,30 +8,31 @@ import { decodeHtml, extractMetadata } from "./parseHtml.ts";
 import { type SafeFetchOptions, safeFetch } from "./safeFetch.ts";
 
 /**
- * Most bytes read of a linked page's image. The client shrinks it to a small
- * thumbnail anyway, so this only bounds the fetch; it is its own number rather
- * than the attachment limit, which is sized for photos people attach.
+ * The maximum bytes read of the image of a linked page. The client makes it a
+ * small thumbnail anyway. Thus, this only limits the fetch. It is a separate
+ * number, not the attachment limit, which has a size for photos that people
+ * attach.
  */
 const MAX_PREVIEW_IMAGE_SOURCE_BYTES = 1.5 * 1024 * 1024;
 
 export type LinkPreviewFetcher = (url: string) => Promise<LinkPreview | null>;
 
-/** Test seams passed through to every fetch this makes. */
+/** Test seams, sent to each fetch that this makes. */
 export type FetchPolicy = Pick<
   SafeFetchOptions,
   "isAllowedAddress" | "allowAnyPort" | "timeoutMs"
 >;
 
-/** A page's metadata is in its head; nothing past this is read. */
+/** The metadata of a page is in its head. The code reads nothing after this. */
 const MAX_PAGE_BYTES = 512 * 1024;
 const MAX_FAVICON_BYTES = 256 * 1024;
 
 const HTML_TYPES = /^\s{0,8}(?:text\/html|application\/xhtml\+xml)\b/i;
 
 /**
- * Builds a preview for a URL: its title and description, plus its image and
- * favicon as `data:` URLs. Resolves to null when the page itself cannot be
- * had; a missing image or favicon only leaves that field out.
+ * Builds a preview for a URL: its title and description, and its image and
+ * favicon as `data:` URLs. Resolves to null when the page itself is not
+ * available. A missing image or favicon only removes that field.
  */
 export function createLinkPreviewFetcher(
   policy: FetchPolicy = {},
@@ -103,12 +104,11 @@ async function fetchImage(
 }
 
 /**
- * The image's real type, read from its first bytes. The `Content-Type` header
- * is not trusted: favicons in particular are routinely served as
- * `application/octet-stream` or `text/plain`, and a page that points its
- * `og:image` at an HTML document should get no image rather than a `data:`
- * URL claiming to be one. SVG is not recognized on purpose; see
- * `IMAGE_DATA_URL_SUBTYPES`.
+ * The real type of the image, read from its first bytes. The code does not
+ * trust the `Content-Type` header. Favicons are frequently served as
+ * `application/octet-stream` or `text/plain`. A page that points its `og:image`
+ * to an HTML document must get no image, not a `data:` URL that says it is one.
+ * The code does not recognize SVG, on purpose. See `IMAGE_DATA_URL_SUBTYPES`.
  */
 export function sniffImageType(bytes: Buffer): string | undefined {
   const ascii = (start: number, end: number) =>
@@ -135,8 +135,8 @@ export function sniffImageType(bytes: Buffer): string | undefined {
 }
 
 function logRefusal(what: string, url: URL, err: unknown) {
-  // A page that is down, slow or private is an ordinary outcome, not a server
-  // fault, so it stays out of the error log.
+  // A page that is down, slow or private is a usual result, not a server fault.
+  // Thus, it does not go in the error log.
   logger.debug(`Link preview ${what} not fetched`, {
     host: url.host,
     reason: err instanceof Error ? err.message : String(err),

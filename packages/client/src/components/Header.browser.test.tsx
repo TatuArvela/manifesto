@@ -10,7 +10,7 @@ import "#/styles.css";
 
 let host: HTMLDivElement;
 
-/** Preact rerenders on a microtask, so read the DOM only after one. */
+/** Preact renders again on a microtask. Thus, read the DOM only after one. */
 async function settled() {
   await Promise.resolve();
   await Promise.resolve();
@@ -54,11 +54,11 @@ describe("the selection bar", () => {
     exitSelectMode();
     await settled();
 
-    // Still there, leaving, and still saying what was selected rather than
-    // the empty selection that exiting leaves behind.
+    // Still there, in its exit, and it still shows what was selected, not the
+    // empty selection that the exit leaves.
     expect(bar()?.dataset.leaving).toBe("true");
     expect(bar()?.textContent).toContain(plural("selection.count", 2));
-    // The header underneath is usable at once.
+    // The header under it is usable immediately.
     expect(mainHeader()?.inert).toBe(false);
 
     await vi.waitFor(() => expect(bar()).toBeNull());
@@ -125,7 +125,7 @@ describe("the selection bar", () => {
       const tagsOf = (id: string) => notes.value.find((n) => n.id === id)?.tags;
       expect(tagsOf(a.id)).toEqual(["one"]);
       expect(tagsOf(b.id)).toEqual(["one"]);
-      // Still selecting, with the panel open for the next tag.
+      // Still in select mode, with the panel open for the next tag.
       expect(selectMode.value).toBe(true);
       expect(row("other")).toBeDefined();
     });

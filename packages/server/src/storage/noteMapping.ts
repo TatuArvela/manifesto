@@ -8,19 +8,19 @@ import { CIPHERTEXT_PREFIX, NoteColor, NoteFont } from "@manifesto/shared";
 import { AT_REST, atRest } from "./atRest.ts";
 
 /**
- * The `notes` row as either driver returns it, and the mapping between it and
- * the `SealedNote` the rest of the server deals in. A note's words are
- * ciphertext in their columns: nothing here opens one.
+ * The `notes` row as both drivers return it, and the mapping between it and the
+ * `SealedNote` that the other parts of the server use. The words of a note are
+ * ciphertext in their columns. Nothing here opens one.
  *
- * Both drivers store the same shape; the only real difference is that SQLite
- * has no boolean type, so its flags come back as 0/1 where Postgres returns
- * `true`/`false`. Everything else about a row (which columns exist, what JSON
- * lives in them, which fields an update may touch) was written out twice, and
- * a change to the note schema had to be made in both places or the drivers
- * would quietly disagree about what a note is.
+ * Both drivers store the same shape. The only real difference is that SQLite
+ * has no boolean type. Thus, its flags come back as 0/1, where Postgres returns
+ * `true`/`false`. All other parts of a row (which columns exist, what JSON they
+ * contain, which fields an update can change) were written two times. A change
+ * to the note schema had to occur in both places. If not, the drivers would
+ * silently disagree about what a note is.
  */
 
-/** A flag column, as one driver or the other returns it. */
+/** A flag column, as either driver returns it. */
 export type RowBoolean = boolean | number;
 
 export interface NoteRow {
@@ -43,9 +43,9 @@ export interface NoteRow {
   trashed_at: string | null;
   position: number | string;
   tags: string;
-  /** The attachment references `image_list` names, readable. */
+  /** The attachment references that `image_list` names, readable. */
   images?: string;
-  /** The note's images, sealed. */
+  /** The images of the note, sealed. */
   image_list?: string;
   link_previews: string;
   reminder: string | null;
@@ -75,8 +75,10 @@ export function parseJson<T>(raw: string | null, fallback: T): T {
   }
 }
 
-/** A reminder as its column holds it, under the server key. One that does
- * not open (the key it was under is gone) is no reminder. */
+/**
+ * A reminder as its column contains it, under the server key. A reminder that
+ * does not open (its key is gone) is no reminder.
+ */
 export function storedReminder(
   raw: string | null | undefined,
 ): NoteReminder | null {
@@ -87,21 +89,24 @@ export function storedReminder(
   );
 }
 
-/** `false !== 0` is true, so a driver's own flags cannot be read as numbers. */
+/**
+ * `false !== 0` is true. Thus, the code cannot read the flags of a driver as
+ * numbers.
+ */
 export function asBoolean(raw: RowBoolean): boolean {
   return raw === true || raw === 1;
 }
 
 /**
- * A sealed column as it goes out: a ciphertext, or empty. A share's own
- * colour and tags start as the column defaults, which are not ciphertext and
- * mean "never set"; nothing readable is ever sent where a ciphertext belongs.
+ * A sealed column as it goes out: a ciphertext, or empty. The own color and
+ * tags of a share start as the column defaults. These are not ciphertext, and
+ * mean "never set". Nothing readable ever goes where a ciphertext belongs.
  */
 export function sealedColumn(raw: string | null | undefined): string {
   return raw?.startsWith(CIPHERTEXT_PREFIX) ? raw : "";
 }
 
-/** The feed's copy of the note key, which is there only with a reminder. */
+/** The copy of the note key for the feed, which exists only with a reminder. */
 export function setReminderKey(
   note: SealedNote,
   raw: string | null | undefined,
@@ -129,7 +134,7 @@ export function rowToNote(row: NoteRow): SealedNote {
     archived: asBoolean(row.archived),
     trashed: asBoolean(row.trashed),
     trashedAt: row.trashed_at,
-    // Postgres hands back wide integer types as strings.
+    // Postgres gives back wide integer types as strings.
     position: Number(row.position),
     reminder: storedReminder(row.reminder),
     createdAt: row.created_at,
@@ -145,7 +150,7 @@ export function rowToNote(row: NoteRow): SealedNote {
   return note;
 }
 
-/** Every field of a note an update may touch, and its column. */
+/** Each field of a note that an update can change, and its column. */
 const FIELD_TO_COLUMN = {
   key: "wrapped_key",
   keyVersion: "key_version",
@@ -177,8 +182,8 @@ type UpdatableField = keyof typeof FIELD_TO_COLUMN;
 const NOTE_FIELDS = Object.keys(FIELD_TO_COLUMN) as UpdatableField[];
 
 /**
- * The columns an insert writes, in order. `noteInsertValues` returns its
- * values in the same order, so the two cannot drift apart.
+ * The columns that an insert writes, in order. `noteInsertValues` returns its
+ * values in the same order. Thus, the two always agree.
  */
 export const INSERT_COLUMNS = [
   "id",
@@ -189,16 +194,16 @@ export const INSERT_COLUMNS = [
   "updated_at",
 ] as const;
 
-/** How a driver spells a boolean: SQLite has no type for one. */
+/** How a driver writes a boolean. SQLite has no type for one. */
 export type BooleanStyle = "integer" | "native";
 
 export type ColumnValue = string | number | boolean | null;
 
 /**
- * One field's value for its column. An absent field takes the column's
- * default, which is what makes this usable for an insert as well as an
- * update, and is why `position` no longer becomes `NaN` when an update
- * carries the key with nothing in it.
+ * The value of one field for its column. An absent field gets the default of
+ * the column. Thus, this works for an insert and for an update. For this
+ * reason, `position` does not become `NaN` now when an update contains the key
+ * with nothing in it.
  */
 function toColumnValue(
   field: UpdatableField,
@@ -214,8 +219,8 @@ function toColumnValue(
     case "trashedAt":
       return (value as string | null | undefined) ?? null;
     case "reminder":
-      // When, and how it repeats: the server reads these to fire it, so
-      // they are under its own key and not the account's.
+      // When, and how it repeats. The server reads these to fire it. Thus, they
+      // are under its own key, not under the key of the account.
       return value === null || value === undefined
         ? null
         : atRest.seal(JSON.stringify(value), AT_REST.reminder);
@@ -236,7 +241,9 @@ function toColumnValue(
   }
 }
 
-/** The words of a note one format covers; `excerpt` comes with `content`. */
+/**
+ * The words of a note that one format covers. `excerpt` comes with `content`.
+ */
 const WORD_FIELDS = [
   "title",
   "content",
@@ -245,20 +252,22 @@ const WORD_FIELDS = [
   "linkPreviews",
 ] as const satisfies readonly UpdatableField[];
 
-/** Whether a change carries every word of a note, as a move to a newer
- * format has to. */
+/**
+ * If a change contains all words of a note, as a move to a newer format must.
+ */
 export function carriesEveryWord(changes: SealedNoteUpdate): boolean {
   return WORD_FIELDS.every((field) => changes[field] !== undefined);
 }
 
 /**
- * What a write's `format` holds it to, for the driver to add to its `WHERE`
- * with its own placeholder: the note's own format, or, for a write that
- * carries every word, that one or an older one, which the write moves up.
- * A write in an older format than the note's is refused, so an outdated app
- * never writes over words it would misread; so is one that moves part of
- * a note to a newer format and leaves the rest behind. Null for a write
- * that carries no words, which no format concerns.
+ * What the `format` of a write checks it against, for the driver to add to its
+ * `WHERE` with its own placeholder: the own format of the note or, for a write
+ * that contains all words, that format or an older one, which the write makes
+ * newer. The server refuses a write in an older format than that of the note.
+ * Thus, an outdated app never writes over words that it would read incorrectly.
+ * It also refuses a write that moves a part of a note to a newer format, and
+ * leaves the other parts behind. Null for a write that contains no words, which
+ * no format concerns.
  */
 export function formatCondition(
   changes: SealedNoteUpdate,
@@ -271,11 +280,11 @@ export function formatCondition(
 }
 
 /**
- * The columns an update should set and the values to set them to, in matching
- * order. The driver adds its own placeholder syntax and its own `WHERE`.
+ * The columns that an update must set, and their values, in the same order. The
+ * driver adds its own placeholder syntax and its own `WHERE`.
  *
- * `image_count` is derived here rather than accepted from a caller, so it
- * cannot disagree with the column it counts.
+ * The code calculates `image_count` here, and does not accept it from a caller.
+ * Thus, it always agrees with the column that it counts.
  */
 export function noteUpdateColumns(
   changes: SealedNoteUpdate & { previousKeys?: string },
@@ -324,10 +333,10 @@ export function noteInsertValues(
 }
 
 /**
- * The `LIKE` pattern for a search, or null when there is nothing left to
- * search for. Wildcards are stripped rather than escaped: a bare `%` would
- * otherwise match every row, and SQL `ESCAPE` is not available to us because
- * pg-mem (which the Postgres driver's tests run against) does not parse it.
+ * The `LIKE` pattern for a search, or null when there is nothing left to search
+ * for. The code removes wildcards, and does not escape them. A bare `%` would
+ * otherwise match all rows. We cannot use SQL `ESCAPE`, because pg-mem (against
+ * which the tests of the Postgres driver run) does not parse it.
  */
 export function searchPattern(query: string): string | null {
   const sanitized = query.replace(/[%_]/g, "");
@@ -335,13 +344,14 @@ export function searchPattern(query: string): string | null {
 }
 
 /**
- * A listing's place in the ordering, as an opaque string.
+ * The position of a listing in the order, as an opaque string.
  *
- * Notes are ordered by `updated_at DESC, id DESC`, because the timestamp alone is not
- * a key, since two notes saved in the same millisecond would make a page
- * boundary ambiguous and could drop or repeat one. The cursor carries both, so
- * the next page starts exactly after the last row of this one, and a note
- * edited mid-listing moves to the front rather than appearing twice.
+ * Notes are in the order `updated_at DESC, id DESC`, because the timestamp
+ * alone is not a key. Two notes saved in the same millisecond would make a page
+ * boundary ambiguous, and could lose or repeat one. The cursor contains both.
+ * Thus, the next page starts exactly after the last row of this page, and a
+ * note edited during the listing moves to the front, and does not show two
+ * times.
  */
 export interface NoteCursor {
   updatedAt: string;
@@ -354,7 +364,7 @@ export function encodeCursor(cursor: NoteCursor): string {
   );
 }
 
-/** Null for anything that is not a cursor this server wrote. */
+/** Null for all values that are not a cursor that this server wrote. */
 export function decodeCursor(raw: string): NoteCursor | null {
   try {
     const [updatedAt, id, ...rest] = Buffer.from(raw, "base64url")
@@ -368,9 +378,9 @@ export function decodeCursor(raw: string): NoteCursor | null {
 }
 
 /**
- * Turns one over-fetched row into `nextCursor`. A driver asks for `limit + 1`
- * rows: if the extra one came back there is another page, and the cursor is
- * the last row the caller actually gets.
+ * Changes the one extra row into `nextCursor`. A driver asks for `limit + 1`
+ * rows. If the extra row came back, there is another page, and the cursor is
+ * the last row that the caller really gets.
  */
 export function splitPage<R extends Pick<NoteRow, "id" | "updated_at">>(
   rows: R[],

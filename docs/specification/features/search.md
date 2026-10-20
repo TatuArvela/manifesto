@@ -1,25 +1,28 @@
 # Search
 
-A search bar in the header allows full-text search across all notes.
+The header has a search bar. Use it to search the full text of all notes.
 
 ## Behavior
 
-- Input is debounced: the field follows every keystroke and the results follow once typing pauses for 200ms. Emptying the field clears the results at once.
-- A note matches when its `title` or `content` holds every word of the query, in any order. A word
-  may be part of a longer one ("grocer" finds "groceries") and may sit inside markdown ("milk" finds
-  `**milk**`).
-- Case and accents are ignored on both sides: "cafe" finds "Café", and "sää" finds "saa".
-- Notes whose title holds a word of the query come first. Within that group and the rest, the
-  view's sort order applies as usual.
-- Search applies to the current view (active notes, archive, or trash)
-- Searches are not saved; a tag is the named group of notes (see [Non-goals](../non-goals.md))
+- The input is debounced. The field shows each keystroke immediately. The results change when you
+  stop typing for 200ms. When you empty the field, the results clear immediately.
+- A note matches when its `title` or `content` contains all of the words of the query, in any
+  order. A word can be part of a longer word ("grocer" finds "groceries"). A word can also be inside
+  markdown ("milk" finds `**milk**`).
+- The search ignores case and accents on both sides: "cafe" finds "Café", and "sää" finds "saa".
+- Notes with a query word in the title show first. In that group, and in the other notes, the
+  usual sort order of the view applies.
+- The search applies to the current view (active notes, archive, or trash).
+- The app does not save searches. A tag is the named group of notes (see
+  [Non-goals](../non-goals.md)).
 
 ## Implementation
 
-The client searches the notes it holds in memory, in both modes: a connected client already keeps
-every note it can read (see [API](../api.md#paging-the-list-endpoints)), and in connected mode it
-is the only place they can be searched, since the server stores them
-[sealed](encryption.md). Each note's text is folded once and kept until the note changes.
+In both modes, the client searches the notes that it keeps in memory. A connected client already
+keeps all of the notes that it can read (see [API](../api.md#paging-the-list-endpoints)). In
+connected mode, the client is the only place that can search the notes, because the server keeps
+them [sealed](encryption.md). The client folds the text of each note one time, and keeps the result
+until the note changes.
 
-`GET /api/v1/search?q=` (see [API](../api.md#search)) answers the app's own session `403`. It is for
-API clients and the MCP `search_notes` tool, whose tokens carry a key.
+`GET /api/v1/search?q=` (see [API](../api.md#search)) sends `403` to the session of the app. It is
+for API clients and for the MCP `search_notes` tool. The tokens of those clients contain a key.

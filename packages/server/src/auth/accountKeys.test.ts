@@ -17,9 +17,11 @@ import { MAX_LOGIN_FAILURES } from "./local/loginAttempts.ts";
 
 const PASSWORD = "test-pass-12";
 
-/** Something shaped as a ciphertext, which is all the server asks. */
+/**
+ * A value with the shape of a ciphertext, which is all that the server asks.
+ */
 const sealed = (label: string) => `e1.${label.padEnd(40, "A")}`;
-/** A P-256 point by its shape: 87 base64url characters, the first `B`. */
+/** A P-256 point by its shape: 87 base64url characters, the first one `B`. */
 const point = (label: string) => `B${label.padEnd(86, "A")}`;
 /** A recovery verifier by its shape: 43 base64url characters. */
 const verifier = (label: string) => label.padEnd(43, "A");
@@ -101,7 +103,8 @@ describe("account keys", () => {
       },
     });
     expect(JSON.stringify(body)).not.toContain("recovery");
-    // Only the hash of what the recovery key proves itself with is kept.
+    // The server keeps only the hash of the value with which the recovery key
+    // proves itself.
     const stored = await rig.storage.accountKeys.get(userId);
     expect(stored?.recoveryVerifierHash).toMatch(/^[0-9a-f]{64}$/);
     expect(await actions()).toContain("keys.created");
@@ -294,7 +297,7 @@ describe("account keys", () => {
       expect(
         (await call("GET", "/api/v1/notes", undefined, secret)).status,
       ).toBe(401);
-      // The key that was used is not the account's any more.
+      // The used key does not belong to the account now.
       const again = await call("POST", "/api/v1/auth/keys/recover/complete", {
         verifier: verifier("first"),
         ...next,
@@ -351,14 +354,14 @@ describe("account keys", () => {
       expect(res.status).toBe(200);
       const body = (await res.json()) as AuthSuccessResponse;
       expect(body.user.id).toBe(userId);
-      // The session from before the recovery is over; the new one works.
+      // The session from before the recovery ended. The new one works.
       expect((await call("GET", "/api/v1/auth/me")).status).toBe(401);
       expect((await keys(body.token)).keys?.wrappedBySecret).toBe(
         sealed("next-secret"),
       );
       expect((await login()).status).toBe(401);
       expect((await login("a-new-pass-34")).status).toBe(200);
-      // Spent: the key on the old sheet opens nothing now.
+      // Used: the key on the old sheet opens nothing now.
       expect((await complete("first")).status).toBe(401);
     });
 
@@ -370,8 +373,8 @@ describe("account keys", () => {
     });
 
     it("counts wrong keys against the name, like wrong passwords", async () => {
-      // Behind a proxy, so each try can come from an address of its own and
-      // only the per-name count is left.
+      // Behind a proxy. Thus, each try can come from its own address, and only
+      // the count for each name stays.
       await rig.close();
       rig = await bootTestAppWith({ trustProxy: true });
       ({ token, userId } = await registerTestUser(rig, "alice", PASSWORD));

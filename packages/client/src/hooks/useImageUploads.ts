@@ -13,17 +13,18 @@ export interface PendingUpload {
   progress: number;
   failed: boolean;
   controller: AbortController;
-  /** The image of the note's this one takes the place of, once stored. */
+  /** The image of the note that this one replaces, after it is stored. */
   replaces?: string | undefined;
 }
 
 /**
- * Attached files become pending uploads: drawn at once from the local file,
- * stored (uploaded, in connected mode, with progress), and handed to
- * `onAddImages` as the reference once stored, with the image it replaces if
- * it was drawn over one. A failed one stays, marked,
- * with a retry, rather than a note that points at nothing. Unmounting (closing
- * the editor) cancels whatever is still uploading.
+ * Attached files become pending uploads. The code draws them immediately from
+ * the local file, stores them (uploads them, in connected mode, with progress),
+ * and gives them to `onAddImages` as the reference after they are stored, with
+ * the image that it replaces if it was drawn over one. A failed upload stays,
+ * with a mark and a retry. The code does not make a note that points to
+ * nothing. An unmount (a close of the editor) cancels the uploads that are not
+ * complete.
  */
 export function useImageUploads(
   onAddImages: (references: string[], replaces?: string) => void,
@@ -34,9 +35,9 @@ export function useImageUploads(
   const onAddImagesRef = useRef(onAddImages);
   onAddImagesRef.current = onAddImages;
 
-  // A layout effect: its cleanup runs as the editor unmounts. An effect's is
-  // put off until after the paint, and an upload that finished in between
-  // would land in the next draft.
+  // A layout effect. Its cleanup runs when the editor unmounts. The cleanup of
+  // an effect waits until after the paint, and an upload that completed between
+  // them would go into the next draft.
   useLayoutEffect(
     () => () => {
       for (const upload of uploadsRef.current) {
@@ -47,7 +48,8 @@ export function useImageUploads(
     [],
   );
 
-  // Stable, so an effect that attaches files (a paste listener) can name them.
+  // Stable. Thus, an effect that attaches files (a paste listener) can name
+  // them.
   const patchUpload = useCallback(
     (key: string, patch: Partial<PendingUpload>) =>
       setUploads((list) =>
@@ -76,7 +78,7 @@ export function useImageUploads(
         onProgress: (progress) => patchUpload(upload.key, { progress }),
       })
         .then((stored) => {
-          // Closed or removed while it finished: the image belongs to nothing.
+          // Closed or removed while it completed: the image belongs to nothing.
           if (upload.controller.signal.aborted) return;
           dropUpload(upload.key);
           onAddImagesRef.current([stored], upload.replaces);

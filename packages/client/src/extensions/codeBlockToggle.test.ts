@@ -19,7 +19,7 @@ const code = (text: string) =>
   schema.node("code_block", null, schema.text(text));
 const doc = (...content: ProseNode[]) => schema.node("doc", null, content);
 
-/** Each top-level block as `type: text`, code lines joined by `|`. */
+/** Each top-level block as `type: text`, with code lines joined by `|`. */
 function shape(node: ProseNode): string[] {
   const out: string[] = [];
   node.forEach((child) => {

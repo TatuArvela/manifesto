@@ -35,10 +35,10 @@ import {
 } from "./ui.ts";
 
 /**
- * Whether the current view has room for a note where it lives: active,
- * archived or trashed, and for the reminders and auto-notes views what kind of
- * note it is. The part of a view's filter that archiving, trashing and
- * restoring change, so they can tell whether the card is about to leave.
+ * If the current view has a place for a note where it is: active, archived or
+ * trashed, and for the reminders and auto-notes views the kind of note. This is
+ * the part of the filter of a view that an archive, a trash or a restore
+ * changes. Thus, they can tell if the card is about to go.
  */
 export function inViewLocation(
   n: Pick<Note, "archived" | "trashed" | "readonly" | "reminder">,
@@ -71,8 +71,10 @@ export function inViewLocation(
 
 const hiddenTagSet = computed(() => new Set(hiddenTags.value));
 
-/** Whether `tag` or a tag above it is in `set`: what a parent has, its
- * subtags have too. */
+/**
+ * If `tag` or a tag above it is in `set`. What a parent has, its subtags also
+ * have.
+ */
 function withinAny(tag: string, set: Set<string>): boolean {
   return tagLineage(tag).some((at) => set.has(at));
 }
@@ -82,8 +84,8 @@ function hasHiddenTag(note: Note, hidden: Set<string>): boolean {
 }
 
 /**
- * The hidden tag that keeps `tag` out of the Notes view: itself, or the
- * nearest tag above it that is hidden. Null when it is shown.
+ * The hidden tag that keeps `tag` out of the Notes view: the tag itself, or the
+ * nearest hidden tag above it. Null when it shows.
  */
 export function hiddenThrough(tag: string): string | null {
   const hidden = hiddenTagSet.value;
@@ -94,7 +96,10 @@ export function hiddenThrough(tag: string): string | null {
   );
 }
 
-/** A tag's colour: its own, or that of the nearest tag above it with one. */
+/**
+ * The color of a tag: its own, or that of the nearest tag above it that has
+ * one.
+ */
 export function tagColorOf(tag: string): TagColor | undefined {
   const colors = tagColors.value;
   for (const at of tagLineage(tag).reverse()) {
@@ -105,8 +110,9 @@ export function tagColorOf(tag: string): TagColor | undefined {
 }
 
 /**
- * How many notes the Notes view leaves out because of a hidden tag, so an
- * empty board can say why it is empty rather than claim there are no notes.
+ * How many notes the Notes view does not show because of a hidden tag. Thus, an
+ * empty board can tell why it is empty, and does not say that there are no
+ * notes.
  */
 export const notesHiddenByTag = computed(() => {
   const hidden = hiddenTagSet.value;
@@ -116,15 +122,15 @@ export const notesHiddenByTag = computed(() => {
   ).length;
 });
 
-/** Keeps a tag's notes out of the Notes view, or lets them back in. */
+/** Keeps the notes of a tag out of the Notes view, or lets them back in. */
 export function setTagHidden(tag: string, hide: boolean) {
   const rest = hiddenTags.value.filter((t) => t !== tag);
   hiddenTags.value = hide ? [...rest, tag] : rest;
 }
 
 /**
- * Gives a tag its colour, or with `null` takes it away. False when the tag
- * would be one coloured tag too many, see `MAX_TAG_COLORS`.
+ * Gives a tag its color, or removes it with `null`. False when the tag would be
+ * one colored tag too many. See `MAX_TAG_COLORS`.
  */
 export function setTagColor(tag: string, color: TagColor | null): boolean {
   const { [tag]: _old, ...rest } = tagColors.value;
@@ -146,8 +152,8 @@ interface FoldedNote {
 }
 
 /**
- * Each note's text folded once rather than on every keystroke. The source
- * strings are kept beside it, so a note changed in place is folded again.
+ * The text of each note folded one time, not on each keystroke. The source
+ * strings are kept next to it. Thus, a note changed in place is folded again.
  */
 const foldedCache = new WeakMap<Note, FoldedNote>();
 
@@ -163,9 +169,9 @@ function foldedText(note: Note): { title: string; all: string } {
 }
 
 /**
- * A search's notes with those whose title holds one of its words first. The
- * sort keeps its order within each group, so the view's sort mode still
- * decides everything else.
+ * The notes of a search, with first the notes whose title contains one of its
+ * words. The sort keeps its order within each group. Thus, the sort mode of the
+ * view still decides all other things.
  */
 function titleMatchesFirst(list: Note[]): Note[] {
   const terms = queryTerms.value;
@@ -194,7 +200,7 @@ export const filteredNotes = computed(() => {
       result = result.filter(inViewLocation);
       if (activeTag.value) {
         const tag = activeTag.value;
-        // A tag's notes are its own and those of every tag under it.
+        // The notes of a tag are its own notes and those of each tag under it.
         result = result.filter((n) => n.tags.some((t) => isTagWithin(t, tag)));
       }
       break;
@@ -231,9 +237,9 @@ export const filteredNotes = computed(() => {
 });
 
 /**
- * Newest first by a timestamp, parsing each one once. Not compared as
- * strings: they are ISO, but not all written with milliseconds, and those do
- * not sort as text. A missing or unreadable one counts as the epoch.
+ * Newest first by a timestamp, with each one parsed one time. Not compared as
+ * strings. They are ISO, but not all are written with milliseconds, and those
+ * do not sort as text. A missing or unreadable timestamp counts as the epoch.
  */
 function newestFirst(
   list: Note[],
@@ -275,10 +281,11 @@ export const unpinnedNotes = computed(() =>
 );
 
 /**
- * How many notes, neither archived nor trashed, sit under each tag: those
- * carrying it and those carrying a tag below it, each note once. So a tag
- * that exists only as the start of another (`work` in `work/clients`) is
- * here too, which is what makes it a tag the user can open, hide or add.
+ * How many notes, neither archived nor trashed, are under each tag: the notes
+ * that have it and the notes that have a tag below it, each note one time.
+ * Thus, a tag that exists only as the start of a different tag (`work` in
+ * `work/clients`) is also here. That makes it a tag that the user can open,
+ * hide or add.
  */
 export const tagCounts = computed(() => {
   const counts = new Map<string, number>();
@@ -295,7 +302,7 @@ export const tagCounts = computed(() => {
 
 export const allTags = computed(() => [...tagCounts.value.keys()].sort());
 
-/** The tags directly under `parent`, or the top-level ones for null. */
+/** The tags directly under `parent`, or the top-level tags for null. */
 export function childTags(parent: string | null): string[] {
   return allTags.value.filter((tag) => tagParent(tag) === parent);
 }
@@ -306,8 +313,10 @@ export const editingNote = computed(() =>
     : null,
 );
 
-/** Drag-and-drop reorder: Notes or Auto-notes view, manual order, no search,
- * no modal open. */
+/**
+ * Reorder with drag and drop: Notes or Auto-notes view, manual order, no
+ * search, no modal open.
+ */
 export const canReorder = computed(
   () =>
     (activeView.value === "active" || activeView.value === "autoNotes") &&

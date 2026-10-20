@@ -2,13 +2,16 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
 import type { AutoNoteResult } from "./types.ts";
 
 /**
- * How many notes one plugin invocation may produce. A loop that appends a
- * note per iteration is a plausible mistake, and the grid renders every one
- * of them.
+ * The maximum number of notes that one plugin call can make. A loop that
+ * appends a note on each iteration is a likely mistake, and the grid renders
+ * each one.
  */
 export const MAX_NOTES_PER_RUN = 100;
 
-/** Matches the server's cap on `tags`, so a generated note can be saved. */
+/**
+ * The same as the limit of the server on `tags`. Thus, a generated note can be
+ * saved.
+ */
 const MAX_TAGS = 50;
 
 const NOTE_COLORS = new Set<string>(Object.values(NoteColor));
@@ -19,10 +22,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * One plugin function may return a note or an array of them, and a plugin may
- * export several functions, so the sandbox hands back an array of arrays-or-
- * notes. Flattened one level deeper than that on purpose: nesting is a
- * plugin's mistake to make, and unwrapping it is friendlier than refusing it.
+ * One plugin function can return a note or an array of notes, and a plugin can
+ * export many functions. Thus, the sandbox gives back an array of arrays or
+ * notes. The code flattens one more level than that, on purpose. Nesting is a
+ * mistake that a plugin can make, and an unwrap is friendlier than a refusal.
  */
 function flatten(value: unknown, depth: number): unknown[] {
   if (!Array.isArray(value)) return [value];
@@ -38,12 +41,12 @@ function toResult(raw: unknown): AutoNoteResult {
     throw new Error("note must have string title and content");
   }
   const out: AutoNoteResult = { title: raw.title, content: raw.content };
-  // Everything past title and content is optional, and a bad value is
-  // dropped rather than thrown: `toNote` has a default for each, and one
-  // misspelled colour shouldn't cost the plugin its whole run. Colour and
-  // font are checked against the enums because they index `noteColorMap` /
-  // `noteFontFamilies`, and an unrecognized string reaches `undefined` there
-  // and throws while a card renders.
+  // All fields after the title and the content are optional. The code removes a
+  // bad value, and does not throw. `toNote` has a default for each, and one
+  // incorrectly spelled color must not remove the full run of the plugin. The
+  // code checks the color and the font against the enums, because they are keys
+  // of `noteColorMap` / `noteFontFamilies`. An unknown string gives `undefined`
+  // there, and throws while a card renders.
   if (typeof raw.color === "string" && NOTE_COLORS.has(raw.color)) {
     out.color = raw.color as NoteColor;
   }
@@ -56,8 +59,8 @@ function toResult(raw: unknown): AutoNoteResult {
       .filter((tag): tag is string => typeof tag === "string")
       .slice(0, MAX_TAGS);
   }
-  // Finite only: `position` is sorted on, and a NaN comparison silently
-  // scrambles the order of every note around it.
+  // Only finite values. The sort uses `position`, and a NaN comparison silently
+  // puts all notes around it in a random order.
   if (typeof raw.position === "number" && Number.isFinite(raw.position)) {
     out.position = raw.position;
   }
@@ -66,12 +69,12 @@ function toResult(raw: unknown): AutoNoteResult {
 }
 
 /**
- * Turns whatever the sandbox sent into notes, or throws.
+ * Changes the data from the sandbox into notes, or throws.
  *
- * This is the trust boundary. The sandbox evaluates code the user pasted in,
- * so nothing it says about its own output can be taken at face value. The
- * check lives here, on the app's side: a plugin that subverted its frame
- * would pass the frame's own checks.
+ * This is the trust boundary. The sandbox evaluates code that the user pasted.
+ * Thus, nothing that it says about its own output can be trusted. The check is
+ * here, on the side of the app. A plugin that took control of its frame would
+ * pass the own checks of the frame.
  */
 export function toAutoNoteResults(value: unknown): AutoNoteResult[] {
   const raw = flatten(value, 2);

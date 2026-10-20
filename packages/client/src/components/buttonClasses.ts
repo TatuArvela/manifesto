@@ -1,6 +1,6 @@
-// The app's text buttons: one shape, a tone for what the button does and a
-// size for where it sits. Every text button takes its classes from here, so a
-// change to how buttons look is a change to this file.
+// The text buttons of the app: one shape, a tone for what the button does, and
+// a size for its location. Each text button gets its classes from here. Thus,
+// to change how buttons look, change this file.
 
 export type ButtonTone = "primary" | "secondary" | "danger" | "quiet";
 export type ButtonSize = "md" | "sm" | "xs";

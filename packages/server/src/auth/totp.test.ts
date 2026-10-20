@@ -55,8 +55,8 @@ describe("verifyTotp", () => {
   });
 
   it("matches no code for a secret that is not there", () => {
-    // What a secret reads as once the server key that sealed it is gone.
-    // The code for an empty key is anyone's to compute.
+    // What a secret reads as after the server key that sealed it is gone. All
+    // persons can calculate the code for an empty key.
     const step = Math.floor(1111111109 / 30);
     const guessable = hotp(Buffer.alloc(0), step);
     expect(verifyTotp("", guessable, at)).toBeNull();

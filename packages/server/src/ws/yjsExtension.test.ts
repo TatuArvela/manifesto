@@ -7,7 +7,7 @@ import {
   YjsPersistenceExtension,
 } from "./yjsExtension.ts";
 
-/** A store payload for a document holding `text`, with one connection. */
+/** A store payload for a document that contains `text`, with one connection. */
 function payloadOf(text: string) {
   const document = new Y.Doc();
   document.getText("body").insert(0, text);
@@ -40,7 +40,7 @@ describe("YjsPersistenceExtension", () => {
     const { payload, close } = payloadOf("x".repeat(MAX_YJS_BYTES + 1));
     await new YjsPersistenceExtension(store).onStoreDocument(payload);
     expect(store.store).not.toHaveBeenCalled();
-    // 1009: message too big.
+    // 1009: the message is too big.
     expect(close).toHaveBeenCalledWith(1009, "Document too large");
   });
 });

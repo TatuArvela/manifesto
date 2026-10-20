@@ -190,8 +190,8 @@ describe("admin actions", () => {
 
 describe("setup checks", () => {
   it("sends the proxy probe, which the browser lets a page set", async () => {
-    // A header the browser forbids is dropped from a request without a word,
-    // and the check would then read every proxy as one that removes it.
+    // The browser silently drops a forbidden header from a request. Then the
+    // check would read each proxy as one that removes it.
     const probe = new Request(SERVER, {
       headers: { "X-Forwarded-For": PROXY_PROBE_ADDRESS },
     });

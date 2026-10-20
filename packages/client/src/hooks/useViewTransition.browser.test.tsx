@@ -9,8 +9,8 @@ import { usePaneSlide, useViewTransition } from "./useViewTransition.ts";
 
 let host: HTMLDivElement;
 
-// Each view's notes, in order: `b` is on both boards, a place further up on
-// the second, `a` only on the first and `c` only on the second.
+// The notes of each view, in order: `b` is on both boards, one position higher
+// on the second, `a` only on the first and `c` only on the second.
 const BOARDS: Record<string, string[]> = {
   active: ["a", "b"],
   search: ["b", "c"],
@@ -77,11 +77,11 @@ describe("useViewTransition", () => {
       activeView.value = "search";
     });
     expect(label().textContent).toBe("search:");
-    // On both: it travels, at full strength, and its copy is hidden.
+    // On both: it moves, at full strength, and its copy is hidden.
     const [move, ...more] = card("b").getAnimations();
     expect(more).toHaveLength(0);
     expect((move as Animation).id).toBe("view-move");
-    // New to the board, and what is not a note: they fade in.
+    // New on the board, and what is not a note: they fade in.
     expect(card("c").getAnimations()).toHaveLength(1);
     expect(label().getAnimations()).toHaveLength(1);
     const [ghost, ...rest] = ghosts();

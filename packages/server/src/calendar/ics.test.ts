@@ -131,8 +131,8 @@ describe("rruleOf", () => {
     );
   });
 
-  // FREQ=MONTHLY alone would skip every month without a 31st, where the app
-  // fires on the month's last day.
+  // FREQ=MONTHLY alone would skip each month without a 31st, where the app
+  // fires on the last day of the month.
   it("takes a short month's last day for a day past the 28th, as the app does", () => {
     expect(
       rruleOf({ time: "2026-01-31T09:00:00", recurrence: "monthly" }),

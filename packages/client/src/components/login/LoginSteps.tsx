@@ -3,17 +3,19 @@ import { t } from "#/i18n/index.ts";
 import { passkeysSupported } from "#/utils/webauthn.ts";
 import { inputClass, quietClass, submitClass } from "./loginFormClasses.ts";
 
-// The steps a password sign-in can pass through after the password itself.
-// Presentational: `LocalLoginForm` holds the fields and does the signing in.
+// The steps through which a password sign-in can go after the password itself.
+// Presentational: `LocalLoginForm` keeps the fields and does the sign-in.
 
-/** What the two-factor step can take: the app's codes, and a challenge for
- * the account's passkeys here. */
+/**
+ * What the two-factor step can accept: the codes of the app, and a challenge
+ * for the passkeys of the account here.
+ */
 export interface SecondFactor {
   authenticator: boolean;
   passkey: PasskeyRequestOptions | null;
 }
 
-/** Asks for the second factor: a code, or the account's passkey. */
+/** Asks for the second factor: a code, or the passkey of the account. */
 export function TwoFactorStep({
   secondFactor,
   otp,
@@ -32,7 +34,7 @@ export function TwoFactorStep({
   submitting: boolean;
   onSubmit: (event: Event) => void;
   onPasskey: () => void;
-  /** Opens signing in with the recovery key, for a factor that was lost. */
+  /** Opens the sign-in with the recovery key, for a lost factor. */
   onRecover?: (() => void) | undefined;
   onBack: () => void;
 }) {
@@ -111,8 +113,8 @@ export function TwoFactorStep({
 }
 
 /**
- * The step after signing in with a temporary password an admin issued: the
- * server answers with no session until a new one is chosen.
+ * The step after a sign-in with a temporary password from an admin. The server
+ * answers with no session until the user selects a new password.
  */
 export function ChangePasswordStep({
   username,

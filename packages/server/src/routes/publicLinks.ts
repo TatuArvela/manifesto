@@ -35,16 +35,19 @@ interface PublicLinkDeps {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * How long after a link's last view its pictures still load. A link limited
- * to one view is used up by the request that shows the note, and the images
- * that note names are fetched a moment later.
+ * How long after the last view of a link its pictures still load. The request
+ * that shows the note uses up a link with a limit of one view, and the browser
+ * gets the images of that note a moment later.
  */
 const USED_UP_IMAGE_GRACE_MS = 10 * 60 * 1000;
 
-/** Wrong passwords one link takes in an hour, from anywhere. */
+/**
+ * The number of wrong passwords that one link accepts in one hour, from all
+ * places.
+ */
 const UNLOCK_FAILURES_PER_LINK = 20;
 
-/** The owner's view of a link: everything but the hash and the copy. */
+/** The view of a link for the owner: all but the hash and the copy. */
 export function toPublicLink(link: StoredPublicLink): PublicLink {
   return {
     token: link.token,
@@ -61,10 +64,10 @@ export function toPublicLink(link: StoredPublicLink): PublicLink {
 }
 
 /**
- * What a public link hands over of a note; see `PublicNote`. A live link
- * gives the note's own sealed fields, which the page opens with the note key
- * the link carries; a snapshot gives the copy its owner sealed for it. None
- * of it opens without the link key, which is in the address and never here.
+ * What a public link gives of a note. See `PublicNote`. A live link gives the
+ * own sealed fields of the note, which the page opens with the note key in the
+ * link. A snapshot gives the copy that its owner sealed for it. None of it
+ * opens without the link key, which is in the address and never here.
  */
 function publicNoteOf(link: StoredPublicLink, live: SealedNote): PublicNote {
   const from = link.snapshot ?? live;
@@ -82,9 +85,9 @@ function publicNoteOf(link: StoredPublicLink, live: SealedNote): PublicNote {
 }
 
 /**
- * What proves a password was given, for the attachment requests that follow:
- * derived from the token and the password's hash, so it cannot be made
- * without the database, and stops working if the link goes.
+ * What proves that a password was given, for the attachment requests that
+ * follow. It is derived from the token and the hash of the password. Thus,
+ * nobody can make it without the database, and it stops if the link goes.
  */
 function accessKey(link: StoredPublicLink): string | null {
   if (!link.passwordHash) return null;
@@ -101,8 +104,8 @@ function sameKey(given: string | undefined, expected: string): boolean {
 }
 
 /**
- * `/api/v1/notes/:id/links`: a note's public links, managed by its owner.
- * Registered on the notes router, behind its authentication.
+ * `/api/v1/notes/:id/links`: the public links of a note, which its owner
+ * manages. Registered on the notes router, behind its authentication.
  */
 export function registerPublicLinkRoutes(
   notes: AuthedApp,
@@ -137,15 +140,16 @@ export function registerPublicLinkRoutes(
       if (note.trashed) {
         throw new HttpError(409, "A note in the trash cannot be published");
       }
-      // A plugin rewrites an automatic note in its owner's browser; the
-      // server's copy is not what the owner sees.
+      // A plugin writes an automatic note again in the browser of its owner.
+      // The copy of the server is not what the owner sees.
       if (note.readonly) {
         throw new HttpError(422, "Automatic notes cannot be published");
       }
       const body = c.req.valid("json");
       const now = nowIso();
-      // A snapshot serves only pictures the note itself names: the copy is
-      // sealed, so what it shows is the owner's word, held to that here.
+      // A snapshot serves only pictures that the note itself names. The copy is
+      // sealed. Thus, what it shows is what the owner says, and the server
+      // checks that here.
       if (body.snapshot) {
         const named = new Set(await storage.notes.attachmentIds(note.id));
         if (
@@ -208,14 +212,14 @@ export function registerPublicLinkRoutes(
 }
 
 /**
- * `/api/v1/public/:token`: a note as a public link shows it, to anyone holding
- * the token, with no account.
+ * `/api/v1/public/:token`: a note as a public link shows it, to all persons
+ * with the token, with no account.
  *
- * Every way a link can fail (never made, revoked, expired, used up, its note
- * in the trash or gone) answers the same 404, so a caller learns nothing
- * about which. With `PUBLIC_LINKS=off` the protection answers first, with the
- * 404 of a route that does not exist. Nothing here is cached: a view is
- * counted when the note is handed out, and a revoked link must stop at once.
+ * All failures of a link (never made, revoked, expired, at its view limit, its
+ * note in the trash or gone) answer the same 404. Thus, a caller learns nothing
+ * about which. With `PUBLIC_LINKS=off`, the protection answers first, with the
+ * 404 of a route that does not exist. Nothing here is cached. A view counts
+ * when the server gives out the note, and a revoked link must stop immediately.
  */
 export function createPublicRoutes({
   storage,
@@ -235,14 +239,14 @@ export function createPublicRoutes({
 
   const notFound = () => new HttpError(404, "Link not found");
 
-  /** Per link, the tail of the unlocks under way. */
+  /** For each link, the end of the unlocks in progress. */
   const unlocking = new Map<string, Promise<void>>();
 
   /**
-   * Runs one link's unlocks one after another. The failure count is read,
-   * the password verified and the failure counted, and a verify takes long
-   * enough that requests arriving together would otherwise all read the
-   * count before any of them had added to it.
+   * Runs the unlocks of one link one after the other. The code reads the
+   * failure count, verifies the password and counts the failure. A verification
+   * takes a long time. Thus, if requests arrive together, they would otherwise
+   * all read the count before any of them added to it.
    */
   function inTurn<T>(token: string, work: () => Promise<T>): Promise<T> {
     const run = (unlocking.get(token) ?? Promise.resolve()).then(work);
@@ -257,7 +261,7 @@ export function createPublicRoutes({
     return run;
   }
 
-  /** The link and what it shows, if it shows anything at all at `now`. */
+  /** The link and what it shows, if it shows anything at `now`. */
   async function open(
     token: string,
     now: string,
@@ -265,8 +269,8 @@ export function createPublicRoutes({
     const link = await storage.publicLinks.get(token);
     if (!link) throw notFound();
     if (link.expiresAt !== null && link.expiresAt <= now) throw notFound();
-    // The trash takes a note's links offline, snapshots included; restoring
-    // it brings them back.
+    // The trash takes the links of a note offline, also snapshots. A restore
+    // brings them back.
     const live = await storage.notes.getById(link.noteId, link.ownerId);
     if (!live || live.trashed) throw notFound();
     return { link, note: publicNoteOf(link, live) };
@@ -337,16 +341,16 @@ export function createPublicRoutes({
     if (key !== null && !sameKey(c.req.header("X-Link-Access"), key)) {
       throw notFound();
     }
-    // Only a picture the note shows: the token is not a key to the owner's
-    // other attachments.
+    // Only a picture that the note shows. The token is not a key to the other
+    // attachments of the owner.
     const shown = link.snapshot
       ? link.snapshot.refs.map(attachmentIdOf)
       : await storage.notes.attachmentIds(link.noteId);
     if (!shown.includes(id)) throw notFound();
     const attachment = await storage.attachments.get(id);
     if (!attachment) throw notFound();
-    // Sealed, like every image: the page opens it with the key the note
-    // holds for it.
+    // Sealed, as all images. The page opens it with the key that the note has
+    // for it.
     return c.body(new Uint8Array(attachment.data), 200, {
       "Content-Type": "application/octet-stream",
       "Content-Length": String(attachment.size),

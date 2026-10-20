@@ -29,9 +29,9 @@ describe("values under the server key", () => {
     expect(stored).toMatch(/^s1\.[0-9a-f]{8}\./);
     expect(stored).not.toContain("JBSWY3DP");
     expect(key.open(stored, AT_REST.totpSecret)).toBe("JBSWY3DPEHPK3PXP");
-    // The same value twice is two ciphertexts.
+    // The same value two times gives two ciphertexts.
     expect(key.seal("JBSWY3DPEHPK3PXP", AT_REST.totpSecret)).not.toBe(stored);
-    // Moved to another column, or tampered with, it opens as nothing.
+    // Moved to a different column, or changed, it opens as nothing.
     expect(key.open(stored, AT_REST.webhookSecret)).toBeNull();
     expect(key.open(`${stored.slice(0, -2)}AA`, AT_REST.totpSecret)).toBeNull();
     expect(
@@ -113,7 +113,7 @@ describe("finding the server key", () => {
     );
     expect(keys.current.equals(A)).toBe(true);
     expect(keys.previous?.equals(B)).toBe(true);
-    // Supplied, so nothing is written anywhere.
+    // Given. Thus, nothing is written anywhere.
     expect(held.size).toBe(0);
     expect(() =>
       loadServerKeys({ ...cfg, dataEncryptionKey: "hunter2" }, files),
@@ -125,7 +125,7 @@ describe("finding the server key", () => {
     const first = loadServerKeys(cfg, files);
     expect([...held.keys()]).toEqual(["/srv/manifesto/server.key"]);
     expect(loadServerKeys(cfg, files).current.equals(first.current)).toBe(true);
-    // Kept where it was told to, when it was told.
+    // Kept where the configuration said, when it said.
     const elsewhere = loadServerKeys(
       { ...cfg, dataKeyFile: "/etc/manifesto/key" },
       files,
@@ -146,7 +146,7 @@ describe("moving stored values to the current key", () => {
     useAtRest(null);
   });
 
-  /** Every value under the server key, as its column holds it. */
+  /** Each value under the server key, as its column contains it. */
   async function raw(): Promise<string[]> {
     const seen: string[] = [];
     for (const { table, keys, column } of AT_REST_COLUMNS) {
@@ -257,7 +257,7 @@ describe("moving stored values to the current key", () => {
       expect(all).not.toContain(plain);
     }
     await readable();
-    // Under the current key already: a start-up has nothing to move.
+    // Already under the current key: a start-up has nothing to move.
     expect(await moveToCurrentKey(storage, false)).toBe(0);
   });
 
@@ -275,7 +275,8 @@ describe("moving stored values to the current key", () => {
     expect((await raw()).every((value) => value.startsWith("s1."))).toBe(true);
     await readable();
 
-    // The key is replaced: the one before stays readable, and is moved off.
+    // The key is replaced. The previous key stays readable, and the values move
+    // off it.
     const both = createAtRest({ current: B, previous: A });
     useAtRest(both);
     await readable();
@@ -295,15 +296,15 @@ describe("moving stored values to the current key", () => {
     storage = await createStorage(TEST_CONFIG);
     useAtRest(createAtRest({ current: A, previous: null }));
     await fill();
-    // Started with another key, and the old one not supplied.
+    // Started with a different key, and the old key was not given.
     useAtRest(createAtRest({ current: B, previous: null }));
     expect(await moveToCurrentKey(storage, false)).toBe(0);
     const note = await storage.notes.getById("n1", "u1");
     expect(note?.reminder).toBeNull();
-    // The note itself is untouched.
+    // The note itself does not change.
     expect(note?.id).toBe("n1");
     expect(await storage.serverSecrets.get("vapid")).toBeNull();
-    // Given the key back, everything is there again.
+    // With the key back, all values are there again.
     useAtRest(createAtRest({ current: B, previous: A }));
     await readable();
   });
@@ -312,12 +313,12 @@ describe("moving stored values to the current key", () => {
     storage = await createStorage(TEST_CONFIG);
     useAtRest(createAtRest({ current: A, previous: null }));
     await storage.serverSecrets.setIfAbsent("vapid", "first", T0);
-    // The key is gone for good: what was stored reads as none.
+    // The key is gone permanently. The stored data reads as none.
     useAtRest(createAtRest({ current: B, previous: null }));
     expect(await storage.serverSecrets.setIfAbsent("vapid", "second", T0)).toBe(
       "second",
     );
-    // Stored, so the next start and the next process hold the same one.
+    // Stored. Thus, the next start and the next process have the same key.
     expect(await storage.serverSecrets.get("vapid")).toBe("second");
     expect(await storage.serverSecrets.setIfAbsent("vapid", "third", T0)).toBe(
       "second",

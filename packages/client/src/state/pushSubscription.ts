@@ -3,30 +3,30 @@ import { apiFetch, apiJson } from "#/storage/apiRequest.ts";
 import { serverFeature } from "./serverFeatures.ts";
 
 /**
- * This browser's push subscription for the signed-in account, in connected
- * mode: what lets the server send a reminder while the app is closed (spec:
+ * The push subscription of this browser for the signed-in account, in connected
+ * mode. It lets the server send a reminder while the app is closed (spec:
  * `docs/specification/features/reminders.md`, "Push from the server").
  *
- * Nothing here asks for permission. A browser may subscribe only once
- * notifications are allowed, which the reminder picker asks for when the
- * first reminder is saved; this runs after that, and at each start for a
- * browser that already allowed them. Neither function rejects.
+ * Nothing here asks for permission. A browser can subscribe only after
+ * notifications are permitted, which the reminder picker asks for when the
+ * first reminder is saved. This runs after that, and at each start for a
+ * browser that already permitted them. Neither function rejects.
  */
 
 interface PushRegistration {
   pushManager?: PushManager;
 }
 
-/** How long to wait for the service worker at start before giving up. */
+/** How long to wait for the service worker at start before the code stops. */
 const WORKER_WAIT_MS = 10_000;
 
 /**
- * The push manager of this app's service worker, or null where there is
- * none. `wait` is for the start of the app, when the worker may still be
- * installing; without it the answer is what is registered right now, which
- * is what signing out needs: `serviceWorker.ready` never settles in a
- * browser where no worker was ever registered, and sign-out would wait on it
- * for good.
+ * The push manager of the service worker of this app, or null where there is
+ * none. `wait` is for the start of the app, when the worker can still be in its
+ * installation. Without it, the answer is what is registered at this moment,
+ * which a sign-out needs. `serviceWorker.ready` never settles in a browser
+ * where no worker was ever registered, and the sign-out would wait for it
+ * forever.
  */
 async function pushManager(wait: boolean): Promise<PushManager | null> {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
@@ -44,7 +44,7 @@ async function pushManager(wait: boolean): Promise<PushManager | null> {
   return registration?.pushManager ?? null;
 }
 
-/** The server's key as `subscribe` takes it. */
+/** The key of the server as `subscribe` takes it. */
 function keyBytes(base64url: string): Uint8Array<ArrayBuffer> {
   const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
   const binary = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "="));
@@ -62,16 +62,16 @@ function sameKey(held: ArrayBuffer | null, wanted: Uint8Array): boolean {
 }
 
 /**
- * Subscribes this browser to the account's reminders and tells the server,
+ * Subscribes this browser to the reminders of the account and tells the server,
  * where that is possible: the server has push on, the browser has a push
- * manager, and notifications are allowed. Run again, it sends the same
- * subscription, which is how a new sign-in in the same browser takes it over.
- * Says whether the server holds a subscription for this browser afterwards.
+ * manager, and notifications are permitted. When it runs again, it sends the
+ * same subscription. Thus, a new sign-in in the same browser takes it over.
+ * Tells if the server has a subscription for this browser after that.
  */
 export async function ensurePushSubscription(): Promise<boolean> {
   try {
     if (!serverFeature("pushReminders")) return false;
-    // Before the worker is waited for: most browsers never allowed them.
+    // Before the wait for the worker. Most browsers never permitted them.
     if (typeof Notification === "undefined") return false;
     if (Notification.permission !== "granted") return false;
     const manager = await pushManager(true);
@@ -83,8 +83,8 @@ export async function ensurePushSubscription(): Promise<boolean> {
     const key = keyBytes(publicKey);
 
     let subscription = await manager.getSubscription();
-    // Made for another server, or for this one before its key changed: the
-    // push service would refuse this server's messages for it.
+    // Made for a different server, or for this server before its key changed.
+    // The push service would refuse the messages of this server for it.
     if (
       subscription &&
       !sameKey(subscription.options.applicationServerKey, key)
@@ -105,20 +105,21 @@ export async function ensurePushSubscription(): Promise<boolean> {
     });
     return true;
   } catch (err) {
-    // Reminders still fire while the app is open; this only adds to that.
+    // Reminders still fire while the app is open. This only adds to that.
     console.warn("Push subscription failed:", err);
     return false;
   }
 }
 
 /**
- * Takes this browser's subscription away from the account, before signing
- * out: the server forgets it, and the browser gives it up, so the next
- * account to sign in here starts with its own.
+ * Removes the subscription of this browser from the account, before the
+ * sign-out. The server forgets it, and the browser releases it. Thus, the next
+ * account that signs in here starts with its own.
  */
 /**
- * Unsubscribe this browser without telling the server, for when the account
- * it was subscribed for is gone and took the server's row with it.
+ * Unsubscribe this browser without a message to the server, for when the
+ * account for which it was subscribed is gone, and took the row of the server
+ * with it.
  */
 export async function dropBrowserPushSubscription(): Promise<void> {
   try {

@@ -2,9 +2,9 @@ import type { Node as ProseNode } from "@milkdown/kit/prose/model";
 import type { EditorState, Transaction } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
 
-// How lists and checklist items sit in a ProseMirror document: what is a task
-// item, how deep it is, and what removing one takes with it. Shared by the
-// checklist node view, its drag, and the editor's "delete checked items".
+// How lists and checklist items are in a ProseMirror document: what is a task
+// item, its depth, and what its removal takes with it. The checklist node view,
+// its drag, and "delete checked items" of the editor share it.
 
 export function isTaskItem(node: ProseNode): boolean {
   return node.type.name === "list_item" && node.attrs.checked != null;
@@ -52,7 +52,10 @@ export function getOuterListPos(doc: ProseNode, pos: number): number {
   return -1;
 }
 
-/** Where the outermost list around `pos` ends inside, or -1 outside a list. */
+/**
+ * Where the inside of the outermost list around `pos` ends, or -1 outside a
+ * list.
+ */
 export function endOfOuterList(doc: ProseNode, pos: number): number {
   const $pos = doc.resolve(pos);
   let outerListDepth = -1;
@@ -67,8 +70,8 @@ export function endOfOuterList(doc: ProseNode, pos: number): number {
 
 /**
  * What to delete to remove the item at `pos`: the item, or the list around it
- * (and around that) when it is that list's only item, so no empty list is
- * left behind.
+ * (and around that) when it is the only item of that list. Thus, no empty list
+ * stays.
  */
 export function getDeletionRange(
   doc: ProseNode,
@@ -92,7 +95,7 @@ export function getDeletionRange(
   return { from, to };
 }
 
-/** `node` with the items of every list in it in the order of `keyOf`. */
+/** `node`, with the items of each list in it in the order of `keyOf`. */
 function withSortedLists(
   node: ProseNode,
   keyOf: (item: ProseNode) => string,
@@ -105,18 +108,18 @@ function withSortedLists(
   if (isListNode(node)) {
     const keys = new Map(children.map((child) => [child, keyOf(child)]));
     const key = (child: ProseNode) => keys.get(child) ?? "";
-    // Stable, so items sharing a key keep the order they were in.
+    // Stable. Thus, items with the same key keep their order.
     children.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
   }
   return node.type.create(node.attrs, children, node.marks);
 }
 
 /**
- * Puts the items of every list in `tr`'s document in the order of `keyOf`,
+ * Puts the items of each list in the document of `tr` in the order of `keyOf`,
  * smallest first, each among its siblings, as `sortChecklist` does for
- * Markdown. Only the lists whose order changes are replaced, so in a shared
- * document the rest is not rewritten under someone else's caret. Whether
- * anything moved.
+ * Markdown. The code replaces only the lists whose order changes. Thus, in a
+ * shared document, the other lists are not written again under the caret of a
+ * different person. Returns if anything moved.
  */
 export function sortListItems(
   tr: Transaction,
@@ -130,22 +133,22 @@ export function sortListItems(
     // Nested lists were sorted with this one.
     return false;
   });
-  // Last first: a sorted list is the size it was, but this way no position
-  // has to be mapped at all.
+  // Last first. A sorted list has its previous size, but in this order no
+  // position must be mapped.
   for (const { pos, from, to } of changed.reverse()) {
     tr.replaceWith(pos, pos + from.nodeSize, to);
   }
   return changed.length > 0;
 }
 
-/** The order "checked items last" keeps: ticked items after the rest. */
+/** The order that "checked items last" keeps: ticked items after the others. */
 export const checkedLastKey = (item: ProseNode): string =>
   isTaskItem(item) && item.attrs.checked === true ? "1" : "0";
 
 /**
- * Ticks or unticks the task item at `pos` and every task item inside it.
- * With `checkedLast`, ticked items then move below the ones still to do, in
- * the same step, so one undo puts both back.
+ * Ticks or unticks the task item at `pos`, and each task item inside it. With
+ * `checkedLast`, ticked items then move below the items that are not done, in
+ * the same step. Thus, one undo restores both.
  */
 export function toggleSubtreeChecked(
   view: EditorView,
@@ -172,7 +175,7 @@ export function toggleSubtreeChecked(
   view.dispatch(tr);
 }
 
-/** Unticks every checklist item in the editor's document. */
+/** Unticks each checklist item in the document of the editor. */
 export function uncheckAllIn(view: EditorView): void {
   const { tr } = view.state;
   tr.doc.descendants((node, pos) => {
@@ -184,7 +187,7 @@ export function uncheckAllIn(view: EditorView): void {
   if (tr.docChanged) view.dispatch(tr);
 }
 
-/** Whether the document holds a ticked checklist item. */
+/** If the document contains a ticked checklist item. */
 export function docHasCheckedItems(doc: ProseNode): boolean {
   let found = false;
   doc.descendants((node) => {
@@ -198,11 +201,11 @@ export function docHasCheckedItems(doc: ProseNode): boolean {
   return found;
 }
 
-/** Removes every ticked checklist item from the editor's document. */
+/** Removes each ticked checklist item from the document of the editor. */
 export function deleteCheckedItemsIn(view: EditorView): void {
-  // Delete one checked item at a time so getDeletionRange re-evaluates
-  // ancestor lists after each removal (emptied single-child lists get
-  // pruned on the next pass).
+  // Delete one checked item at a time. Thus, getDeletionRange evaluates the
+  // ancestor lists again after each removal (single-child lists that became
+  // empty are pruned on the next pass).
   while (true) {
     const { doc } = view.state;
     let targetPos = -1;

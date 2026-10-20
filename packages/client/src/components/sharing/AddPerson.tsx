@@ -11,12 +11,12 @@ import { RoleSelect } from "./ShareMembers.tsx";
 const inputClass =
   "w-full min-w-0 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 px-3 py-1.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500";
 
-/** How long the owner has to pause typing before a search goes out. */
+/** How long the owner must stop typing before a search goes out. */
 const SEARCH_DELAY_MS = 250;
 
 /**
- * Find someone and invite them. Where the server searches its accounts the
- * matches come as the owner types; where it only takes a whole username or
+ * Find a person and invite them. Where the server searches its accounts, the
+ * matches come while the owner types. Where it accepts only a full username or
  * address, they come when the owner asks.
  */
 export function AddPerson({
@@ -29,8 +29,8 @@ export function AddPerson({
   const mode = userLookupMode.value;
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<ShareRole>("edit");
-  // Null until something has been looked up, so "nobody matched" is never
-  // said about a query nobody has sent.
+  // Null until something was looked up. Thus, the app never says "nobody
+  // matched" about a query that nobody sent.
   const [results, setResults] = useState<DirectoryUser[] | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -82,8 +82,9 @@ export function AddPerson({
       <div class="flex flex-wrap items-center gap-2">
         <input
           id="share-dialog-query"
-          // Spread, not `type={a ? b : c}`: the input types are a union keyed
-          // on `type`, and a union of two of them matches no single member.
+          // Spread, not `type={a ? b : c}`. The input types are a union with
+          // `type` as the key, and a union of two of them matches no single
+          // member.
           {...(mode === "search"
             ? ({ type: "search" } as const)
             : ({ type: "text" } as const))}

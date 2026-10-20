@@ -5,43 +5,45 @@ import {
 } from "@manifesto/shared";
 import type { ServerConfig } from "./config.ts";
 
-/** The features switched by a plain on/off variable; `WEBHOOKS` has modes. */
+/** The features that a plain on/off variable switches. `WEBHOOKS` has modes. */
 export type ToggleFeature = Exclude<ServerFeature, "webhooks">;
 
-/** Where each on/off feature is held in `ServerConfig`, under its own name. */
+/** Where `ServerConfig` keeps each on/off feature, under its own name. */
 export type FeatureToggles = Record<ToggleFeature, boolean>;
 
 export interface FeatureSpec {
   /** The environment variable that switches it. */
   env: string;
-  /** Its value when the variable is unset, as a host would write it. */
+  /** Its value when the variable is not set, as a host would write it. */
   default: "on" | "off" | "public";
-  /** What it is, and what turning it off takes away. */
+  /** What it is, and what goes away when it is off. */
   description: string;
   /**
-   * The features it cannot work without. With one of them off it is off too:
-   * implied when its own variable is unset, refused at boot when it says `on`.
+   * The features without which it cannot work. If one of them is off, it is
+   * also off. That is implied when its own variable is not set. The server
+   * refuses it at start when its variable says `on`.
    */
   requires?: readonly ServerFeature[];
 }
 
 /**
- * The server's features a host can turn off, each from one environment
- * variable, and the one place to add another. What enforces a feature is:
+ * The features of the server that a host can turn off, each from one
+ * environment variable. This is the only place to add a new one. These enforce
+ * a feature:
  *
- * - its operations in `OPERATIONS` (`openapi.ts`) name it as `feature`, and
- *   `createProtection` answers those with the same 404 as a route that does
- *   not exist, before authentication, so an off feature cannot be told from
- *   an absent one;
- * - what no route decides (a credential, a socket, a background job) asks
- *   `isFeatureOn` itself;
- * - `GET /api/v1/capabilities` reports every one, and the client hides what is
- *   off.
+ * - Its operations in `OPERATIONS` (`openapi.ts`) name it as `feature`.
+ *   `createProtection` answers those with the same 404 as a route that does not
+ *   exist, before authentication. Thus, nobody can tell a feature that is off
+ *   from an absent feature.
+ * - Code that no route controls (a credential, a socket, a background job) asks
+ *   `isFeatureOn` itself.
+ * - `GET /api/v1/capabilities` reports each one, and the client hides the
+ *   features that are off.
  *
- * Turning a feature off never takes away the way out of it: removing a share,
- * leaving a note, removing a passkey or turning two-factor off stay open, so
- * nobody is left holding something they can no longer undo, and an account
- * that already has a second factor is still asked for it.
+ * When a feature is off, the way out of it always stays. A person can still
+ * remove a share, leave a note, remove a passkey, or turn off two-factor. Thus,
+ * nobody keeps something that they cannot undo. An account that already has a
+ * second factor must still give it.
  */
 export const FEATURES: Record<ServerFeature, FeatureSpec> = {
   sharing: {
@@ -120,8 +122,8 @@ export const FEATURES: Record<ServerFeature, FeatureSpec> = {
 };
 
 /**
- * The feature each kind of token belongs to. One is minted only while its
- * feature is on, and presented while it is off, it is refused.
+ * The feature of each type of token. The server makes one only while its
+ * feature is on. It refuses one that comes while its feature is off.
  */
 export const TOKEN_FEATURES: Record<ApiTokenKind, ServerFeature> = {
   api: "apiTokens",
@@ -129,7 +131,7 @@ export const TOKEN_FEATURES: Record<ApiTokenKind, ServerFeature> = {
   calendar: "calendar",
 };
 
-/** Whether the feature's own switch is on, whatever it depends on. */
+/** If the own switch of the feature is on, whatever its requirements. */
 function switchedOn(
   cfg: Pick<ServerConfig, ToggleFeature | "webhooks">,
   feature: ServerFeature,
@@ -138,9 +140,9 @@ function switchedOn(
 }
 
 /**
- * Whether a feature is on: its switch, and every feature it requires. Asked
- * of the configuration as it stands, so a test that sets `teams` on with
- * `sharing` off gets what a booted server would.
+ * If a feature is on: its switch, and each feature that it requires. The code
+ * asks the current configuration. Thus, a test that sets `teams` on with
+ * `sharing` off gets the same result as a started server.
  */
 export function isFeatureOn(
   cfg: Pick<ServerConfig, ToggleFeature | "webhooks">,
@@ -152,7 +154,7 @@ export function isFeatureOn(
   );
 }
 
-/** Every feature and whether it is on, as `GET /api/v1/capabilities` says. */
+/** Each feature, and if it is on, as `GET /api/v1/capabilities` says. */
 export function featureStates(
   cfg: Pick<ServerConfig, ToggleFeature | "webhooks">,
 ): Record<ServerFeature, boolean> {
@@ -162,10 +164,10 @@ export function featureStates(
 }
 
 /**
- * The on/off features from the environment. A feature whose requirement is
- * off is off too; when its own variable asks for it anyway, that is a
- * contradiction in the host's settings and the server refuses to start rather
- * than guess which one they meant.
+ * The on/off features from the environment. A feature whose requirement is off
+ * is also off. When its own variable asks for it anyway, the settings of the
+ * host contradict each other. The server then does not start. It does not guess
+ * which value they meant.
  */
 export function loadFeatureToggles(
   env: NodeJS.ProcessEnv,
@@ -180,8 +182,8 @@ export function loadFeatureToggles(
   ) as FeatureToggles;
   const on = (feature: ServerFeature) =>
     feature === "webhooks" ? webhooksOn : toggles[feature];
-  // Until nothing changes, so a chain of requirements settles whatever order
-  // the registry lists it in.
+  // Until nothing changes. Thus, a chain of requirements settles, whatever the
+  // order in the registry.
   let changed = true;
   while (changed) {
     changed = false;

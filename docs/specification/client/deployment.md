@@ -1,6 +1,7 @@
 # Client Deployment
 
-The client builds to a static site that can be served by anything. The operating mode is baked in at build time; see [Operating Modes](../operating-modes.md) for the conceptual overview.
+The client builds to a static site that any server can serve. The build sets the operating mode. See
+[Operating Modes](../operating-modes.md) for the concepts.
 
 ## Build
 
@@ -14,25 +15,32 @@ pnpm --filter @manifesto/client build
 
 - Any static file server (nginx, Apache, Caddy)
 - GitHub Pages, Netlify, Vercel, Cloudflare Pages
-- Docker (serving static files only)
-- Opening `index.html` directly in a browser (open mode)
+- Docker (only to serve static files)
+- Open `index.html` directly in a browser (open mode)
 
 ## Configuration
 
-Everything the client needs is baked in at build time. `VITE_MANIFESTO_SERVER` is the one that selects the operating mode:
+The build sets all of the values that the client needs. `VITE_MANIFESTO_SERVER` selects the
+operating mode:
 
 | Variable                  | Default | Description                                                                                  |
 |---------------------------|---------|----------------------------------------------------------------------------------------------|
-| `VITE_MANIFESTO_SERVER`   | unset   | Absolute URL of the Manifesto server. Unset → open mode. Set → connected mode. A built bundle can be repointed without a rebuild through the `manifesto-server` meta tag; see [Pointing a release bundle at a server](#pointing-a-release-bundle-at-a-server). |
-| `VITE_APP_NAME`           | `Manifesto` | Branding: the app's name, logo, description and icons, and optionally the instance and organisation running it. See [Rebranding](#rebranding). |
-| `VITE_APP_WELCOME`        | on      | The first-visit welcome dialog. See [Welcome dialog](#welcome-dialog).                       |
-| `MANIFESTO_BASE_URL`      | `/`     | The path the site is served from. Set it to `/notes/` to host under a subpath. Not a `VITE_` variable: Vite reads `base` before it loads that set. |
+| `VITE_MANIFESTO_SERVER`   | unset   | The absolute URL of the Manifesto server. Not set → open mode. Set → connected mode. You can point a built bundle to a different server without a new build, through the `manifesto-server` meta tag. See [Pointing a release bundle at a server](#pointing-a-release-bundle-at-a-server). |
+| `VITE_APP_NAME`           | `Manifesto` | Branding: the name, logo, description and icons of the app, and optionally the instance and the organization that operates it. See [Rebranding](#rebranding). |
+| `VITE_APP_WELCOME`        | on      | The welcome dialog on the first visit. See [Welcome dialog](#welcome-dialog).                |
+| `MANIFESTO_BASE_URL`      | `/`     | The path of the site. Set it to `/notes/` to host under a subpath. It is not a `VITE_` variable, because Vite reads `base` before it loads those variables. |
 
-The Vite config also reads `VITE_MANIFESTO_SERVER` to extend the `index.html` Content Security Policy: when set, the URL's HTTP and `ws(s)://` origins are added to `connect-src`. When unset, the CSP stays at `connect-src 'self'` and the build cannot reach any external server, a useful defence-in-depth check that an open-mode build is genuinely local. The note fonts are bundled for the same reason, so `font-src` and `style-src` name no third party either.
+The Vite config also reads `VITE_MANIFESTO_SERVER` to extend the Content Security Policy of
+`index.html`. When it is set, the build adds the HTTP and `ws(s)://` origins of the URL to
+`connect-src`. When it is not set, the CSP stays at `connect-src 'self'`, and the build cannot
+connect to an external server. This is a good defence-in-depth check that an open-mode build is
+really local. For the same reason, the note fonts are in the bundle. Thus, `font-src` and `style-src`
+also name no third party.
 
 ### Open mode
 
-Build with `VITE_MANIFESTO_SERVER` unset. The client uses `LocalStorageAdapter`, never renders `LoginScreen`, and works without network access after first paint.
+Build without `VITE_MANIFESTO_SERVER`. The client uses `LocalStorageAdapter`, never shows
+`LoginScreen`, and works without network access after the first paint.
 
 ```bash
 pnpm --filter @manifesto/client build
@@ -40,29 +48,37 @@ pnpm --filter @manifesto/client build
 
 ### Connected mode
 
-Build with `VITE_MANIFESTO_SERVER=<absolute-url>`. The client gates the UI behind `LoginScreen` until a session token is acquired (either from a local-auth login form or by consuming the OIDC `#token=...` fragment), then talks to the server via REST + WebSocket.
+Build with `VITE_MANIFESTO_SERVER=<absolute-url>`. The client shows only `LoginScreen` until it gets
+a session token (from a local-auth login form, or from the OIDC `#token=...` fragment). Then it
+connects to the server through REST and WebSocket.
 
 ```bash
 VITE_MANIFESTO_SERVER=https://server.example.com \
   pnpm --filter @manifesto/client build
 ```
 
-The server's `CORS_ORIGINS` must include the client's deployed origin, or the browser will block requests. It does not come into it when both are served from [one origin behind one proxy](../server/deployment.md#single-origin-behind-one-reverse-proxy).
+The `CORS_ORIGINS` of the server must include the deployed origin of the client. If not, the browser
+blocks the requests. This does not apply when both come from
+[one origin behind one proxy](../server/deployment.md#single-origin-behind-one-reverse-proxy).
 
-A build is not the only way in: the same value can be set in a prebuilt bundle's `index.html`, which is what lets the published zip become a connected client. See [Pointing a release bundle at a server](#pointing-a-release-bundle-at-a-server).
+A build is not the only method. You can set the same value in the `index.html` of a prebuilt bundle.
+Thus, the published zip can become a connected client. See
+[Pointing a release bundle at a server](#pointing-a-release-bundle-at-a-server).
 
 ## Welcome dialog
 
-A browser's first visit opens a short welcome that says what the app is and,
-above all, where notes are saved: in this browser in open mode, with what that
-means for syncing and clearing site data, or on the named server under the
-signed-in account in connected mode. It is shown once per browser and can be
-reopened from **About** at the foot of Settings. An open-mode browser that already holds notes is
-treated as having seen it, so upgrading an existing instance does not greet
-its users as new.
+On the first visit of a browser, a short welcome opens. It tells what the app is and, most
+important, where the notes are saved:
 
-It is on by default. To leave it out, build with `VITE_APP_WELCOME=off`, or in
-a release bundle set the meta tag in `index.html` (and `404.html`):
+- In open mode: in this browser. It tells what that means for sync and for a clear of the site data.
+- In connected mode: on the named server, under the signed-in account.
+
+It shows one time for each browser. You can open it again from **About** at the bottom of Settings.
+If an open-mode browser already has notes, the app thinks that it saw the dialog. Thus, when you
+upgrade an existing instance, the app does not welcome its users as new.
+
+It is on by default. To remove it, build with `VITE_APP_WELCOME=off`. In a release bundle, set the
+meta tag in `index.html` (and `404.html`):
 
 ```html
 <meta name="welcome-dialog" content="off" />
@@ -70,36 +86,36 @@ a release bundle set the meta tag in `index.html` (and `404.html`):
 
 ## Privacy notice
 
-A deployment that serves other people links its privacy notice from the sign-in screen, where an
-account is made, and from About in Settings. Build with `VITE_PRIVACY_URL`, or in a release bundle set
-the meta tag in `index.html` (and `404.html`):
+A deployment for other people puts a link to its privacy notice on the sign-in screen, where accounts
+are made, and in About in Settings. Build with `VITE_PRIVACY_URL`. In a release bundle, set the meta
+tag in `index.html` (and `404.html`):
 
 ```html
 <meta name="privacy-url" content="https://example.com/privacy" />
 ```
 
-It takes an `https://` (or `http://`) address, or a path on the same site such as `/privacy.html`;
-anything else shows no link. Unset, there is none.
-[Privacy](../features/privacy.md#the-operators-privacy-notice) is a starting point for what it says.
+It accepts an `https://` (or `http://`) address, or a path on the same site, for example
+`/privacy.html`. For all other values, no link shows. If it is not set, there is no link.
+[Privacy](../features/privacy.md#the-operators-privacy-notice) is a start for its text.
 
 ## Rebranding
 
-For a complete branded deployment end to end, see
-[Custom Instances](../custom-instances.md). This section is the reference for
-the build-time knobs themselves.
+For a full branded deployment from start to end, see [Custom Instances](../custom-instances.md).
+This section is the reference for the build-time settings.
 
-Nothing user-facing spells out "Manifesto". The name flows from one value into
-the window title, the PWA manifest, the header, the login screen, export and
-crash-backup filenames, and every translated string, since translations carry an
-`{appName}` placeholder rather than the name itself. The description and the
-brand marks are parameters too.
+No text in the UI contains "Manifesto" as a literal. One value gives the name to the window title,
+the PWA manifest, the header, the login screen, the names of export and crash-backup files, and each
+translated string. The translations contain an `{appName}` placeholder, not the name. The description
+and the brand marks are also parameters.
 
-Branding comes in two parts. The **app** is the product: its name and mark,
-Manifesto's unless replaced. The **instance** and **organisation** are who runs
-this particular copy, all optional and shown alongside the app rather than in
-place of it: "Manifesto · Foo QA project", owned by Acme Inc. The organisation
-is shown by its name alone, with no "provided by": owning an instance is not
-the same as providing a service.
+Branding has two parts:
+
+- The **app** is the product: its name and mark. They are those of Manifesto, unless you replace
+  them.
+- The **instance** and the **organization** tell who operates this copy. All are optional. They show
+  together with the app, not in place of it: "Manifesto · Foo QA project", owned by Acme Inc. The app
+  shows the organization only by its name, with no "provided by", because to own an instance is not
+  the same as to provide a service.
 
 | What | Variable | Meta tag | Default |
 |---|---|---|---|
@@ -108,57 +124,58 @@ the same as providing a service.
 | Instance name | `VITE_INSTANCE_NAME` | `instance-name` | none |
 | Instance logo | `VITE_INSTANCE_LOGO` | `instance-logo` | none |
 | Top bar brand: `app` or `instance` | `VITE_HEADER_BRAND` | `header-brand` | `app` |
-| App name in the window title after the instance's: `on` or `off` | `VITE_TITLE_APP_NAME` | `title-app-name` | `on` |
-| Dark-theme variant of any of the three logos | `VITE_APP_LOGO_DARK`, `VITE_INSTANCE_LOGO_DARK`, `VITE_ORG_LOGO_DARK` | `app-logo-dark`, `instance-logo-dark`, `org-logo-dark` | none |
-| Organisation name | `VITE_ORG_NAME` | `org-name` | none |
-| Organisation logo | `VITE_ORG_LOGO` | `org-logo` | none |
-| Privacy notice address | `VITE_PRIVACY_URL` | `privacy-url` | none |
+| App name in the window title after the name of the instance: `on` or `off` | `VITE_TITLE_APP_NAME` | `title-app-name` | `on` |
+| Dark-theme variant of the three logos | `VITE_APP_LOGO_DARK`, `VITE_INSTANCE_LOGO_DARK`, `VITE_ORG_LOGO_DARK` | `app-logo-dark`, `instance-logo-dark`, `org-logo-dark` | none |
+| Organization name | `VITE_ORG_NAME` | `org-name` | none |
+| Organization logo | `VITE_ORG_LOGO` | `org-logo` | none |
+| Address of the privacy notice | `VITE_PRIVACY_URL` | `privacy-url` | none |
 | One-line description (PWA manifest + HTML `<meta name="description">`) | `VITE_APP_DESCRIPTION` | `description` | `Sticky-note style note-taking app.` |
-| Favicon, PWA icon, and the stock logo file | `VITE_APP_ICONS_DIR` | | the stock `public/` icons |
+| Favicon, PWA icon, and the usual logo file | `VITE_APP_ICONS_DIR` | | the usual `public/` icons |
 
-Where each one shows up:
+Where each one shows:
 
-| Surface | App name | App logo | Instance | Organisation |
+| Surface | App name | App logo | Instance | Organization |
 |---|---|---|---|---|
 | Window title | yes, unless `VITE_TITLE_APP_NAME=off` and there is an instance | | first, as "Foo QA project · Manifesto" | |
-| Header (Notes view), `app` brand | yes | yes | beside the name, muted; first to give way on a phone | |
-| Header (Notes view), `instance` brand | | | its logo and name, in place of the app's | |
+| Header (Notes view), `app` brand | yes | yes | adjacent to the name, muted. On a phone, it is the first item to go | |
+| Header (Notes view), `instance` brand | | | its logo and name, in place of those of the app | |
 | Browser tab icon, `instance` brand | | | its logo, if it has one, in place of `favicon.svg` | |
-| Sign-in screen | heading | yes | under the heading | logo and name at the foot |
+| Sign-in screen | heading | yes | under the heading | logo and name at the bottom |
 | Settings → About | yes | yes, with the version | logo and name, under the app | logo and name |
 | Authenticator app entry (two-factor) | yes | | as "Manifesto (Foo QA project)" | |
 | Welcome dialog, messages, filenames | yes | yes (dialog) | | |
 
-`VITE_HEADER_BRAND=instance` gives the top bar to the instance: its logo, if it
-has one, and its name, where the app's mark and name were. It needs an instance
-name, and falls back to the app without one. The instance's logo then becomes
-the browser tab's icon too; the installed app's icon (`icon-1024.png`) stays. The app is still named, with its
-mark and version, in Settings → About.
+`VITE_HEADER_BRAND=instance` gives the top bar to the instance: its logo, if it has one, and its
+name, in place of the mark and name of the app. It needs an instance name. Without one, the app
+shows. The logo of the instance then also becomes the icon of the browser tab. The icon of the
+installed app (`icon-1024.png`) does not change. Settings → About still names the app, with its mark
+and version.
 
-The logo variables take an image file. The build publishes it beside
-`index.html` as `app-logo.<ext>`, `instance-logo.<ext>` or `org-logo.<ext>` and
-writes that name into the meta tag; a path that is not a file is left out with a
-warning. The instance's and the organisation's logos may be wider than tall.
+The logo variables take an image file. The build publishes it adjacent to `index.html` as
+`app-logo.<ext>`, `instance-logo.<ext>` or `org-logo.<ext>`, and writes that name into the meta tag.
+If a path is not a file, the build ignores it and shows a warning. The logos of the instance and of
+the organization can be wider than they are tall.
 
-Each logo can have a dark variant, drawn in its place while the app's theme is
-dark (the theme setting, whether chosen or following the system), and published
-as `<name>-dark.<ext>`. Without one, the app logo is inverted in the dark theme,
-like the stock one, so a dark single-colour shape works best there; the
-instance's and the organisation's are drawn as they are. A variant needs its
-light logo: on its own it has nothing to stand in for and is ignored. The tab
-icon takes the instance logo's dark variant from the browser's own colour
-scheme instead, since the tab belongs to the browser, not the page. A meta tag holds a file name
-beside `index.html`, an absolute path, or a `data:` URL. Not a remote URL: the
-page's `img-src 'self'` refuses it.
+Each logo can have a dark variant. The app draws the variant in place of the logo while the theme of
+the app is dark (the theme setting, selected or from the system). The build publishes it as
+`<name>-dark.<ext>`.
 
-Not parametrised: the theme colour (`#2563eb`, in `index.html` and
-`manifest.webmanifest`) and the repository link in Settings → About.
+- Without a dark variant, the app inverts the app logo in the dark theme, as the usual logo. Thus, a
+  dark shape with one color is best there. The app draws the logos of the instance and of the
+  organization as they are.
+- A variant needs its light logo. Alone, it replaces nothing, and the app ignores it.
+- The tab icon gets the dark variant of the instance logo from the color scheme of the browser, not
+  from the page, because the tab belongs to the browser.
+- A meta tag contains a file name adjacent to `index.html`, an absolute path, or a `data:` URL. It
+  cannot contain a remote URL, because the `img-src 'self'` of the page refuses it.
+
+Not parametrised: the theme color (`#2563eb`, in `index.html` and `manifest.webmanifest`) and the
+repository link in Settings → About.
 
 ### Building from source
 
-Set the variables at build time. They are resolved once in `vite.config.ts` and
-reach the bundle, `index.html`, and `manifest.webmanifest` together, so those
-cannot drift apart.
+Set the variables at build time. `vite.config.ts` resolves them one time. They go to the bundle,
+`index.html` and `manifest.webmanifest` together. Thus, those files always agree.
 
 ```bash
 VITE_APP_NAME="Corporate Notes" \
@@ -174,53 +191,49 @@ VITE_APP_ICONS_DIR=../acme-brand \
   pnpm --filter @manifesto/client build
 ```
 
-`VITE_APP_ICONS_DIR` is a folder of replacement images overlaid onto the build
-output. It is read per-file, so it only needs to hold what you actually want to
-change:
+`VITE_APP_ICONS_DIR` is a folder of replacement images. The build puts them over the build output.
+It reads each file separately. Thus, the folder must contain only the files that you want to change:
 
-| File | Where it shows up |
+| File | Where it shows |
 |---|---|
-| `logo.svg` | the mark beside the title in the header |
+| `logo.svg` | the mark adjacent to the title in the header |
 | `favicon.svg` | the browser tab |
 | `icon-1024.png` | the installed PWA and the iOS home screen |
 
-Keeping the folder outside the repository is the point: editing the checked-in
-`public/` files works, but then every `git pull` from upstream is a conflict.
+Keep the folder outside the repository. You can edit the `public/` files in the repository, but then
+each `git pull` from upstream gives a conflict.
 
 ### Rebranding a release bundle
 
-`manifesto-client-vX.Y.Z.zip` is built with the stock branding, but you do not
-need a toolchain to change it: the app reads its name from the HTML at startup,
-and the icons are plain files at fixed paths. Unzip and edit in place.
+`manifesto-client-vX.Y.Z.zip` has the usual branding. But you do not need a toolchain to change it:
+the app reads its name from the HTML when it starts, and the icons are plain files at fixed paths.
+Unzip the bundle and edit it in place.
 
-The release bundle ships in open mode, and can be pointed at a server by
-editing the same file. See
-[Pointing a release bundle at a server](#pointing-a-release-bundle-at-a-server)
-below, which is two edits rather than one.
+The release bundle is in open mode. You can point it to a server with edits to the same file. See
+[Pointing a release bundle at a server](#pointing-a-release-bundle-at-a-server) below. That needs two
+edits, not one.
 
 | File | What to change |
 |---|---|
-| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">`, the `app-logo`, `instance-name`, `instance-logo`, `header-brand`, `title-app-name`, `org-name` and `org-logo` meta tags (and each logo's `-dark` tag), `<meta name="welcome-dialog">` to switch the welcome off, and `<meta name="privacy-url">` for the privacy notice |
-| `404.html` | the same tags (it is a copy of `index.html` for SPA fallback) |
+| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">`, the `app-logo`, `instance-name`, `instance-logo`, `header-brand`, `title-app-name`, `org-name` and `org-logo` meta tags (and the `-dark` tag of each logo), `<meta name="welcome-dialog">` to switch off the welcome, and `<meta name="privacy-url">` for the privacy notice |
+| `404.html` | the same tags (it is a copy of `index.html` for the SPA fallback) |
 | `manifest.webmanifest` | `name`, `short_name`, `description` |
-| `logo.svg`, `favicon.svg`, `icon-1024.png` | overwrite with your own |
-| the instance's or organisation's logo | copy it beside `index.html` and put its file name in `instance-logo` or `org-logo` |
+| `logo.svg`, `favicon.svg`, `icon-1024.png` | replace them with your own files |
+| the logo of the instance or of the organization | copy it adjacent to `index.html`, and put its file name in `instance-logo` or `org-logo` |
 
 ```bash
 sed -i '' 's/Manifesto/Corporate Notes/g' index.html 404.html manifest.webmanifest
 cp ~/acme-brand/*.svg ~/acme-brand/icon-1024.png .
 ```
 
-The `application-name` meta tag wins over whatever the bundle was built with, so
-this works on any build. Leave the JS bundle alone: it is minified, and the
-`manifesto:` prefixes inside it are `localStorage` keys, and rewriting those would
-orphan every note already saved in a browser.
+The `application-name` meta tag wins over the value of the build. Thus, this works on all builds. Do
+not change the JS bundle. It is minified. The `manifesto:` prefixes inside it are `localStorage`
+keys. If you change them, the app loses all notes that are already saved in a browser.
 
 ## Pointing a release bundle at a server
 
-`manifesto-client-vX.Y.Z.zip` is built in open mode, and needs no toolchain to
-become a connected client either. It is **two** edits in `index.html`, not one,
-and the second is the one people forget:
+`manifesto-client-vX.Y.Z.zip` is built in open mode. It also needs no toolchain to become a connected
+client. You must do **two** edits in `index.html`, not one. People frequently forget the second edit:
 
 ```html
 <!-- 1. the server -->
@@ -230,116 +243,133 @@ and the second is the one people forget:
 <meta http-equiv="Content-Security-Policy" content="... connect-src 'self' https://notes.example.com wss://notes.example.com ..." />
 ```
 
-Both origins are needed. The `https://` one carries REST, and the `wss://` one
-carries `/api/v1/ws` and `/api/v1/yjs`; adding only the first gives you a client that
-signs in and then never syncs, which says very little about itself. Make the
-same edits in `404.html`, the SPA fallback copy.
+Both origins are necessary. The `https://` origin carries REST. The `wss://` origin carries
+`/api/v1/ws` and `/api/v1/yjs`. If you add only the first, the client signs in but never syncs, and
+it tells you very little about the cause. Do the same edits in `404.html`, the copy for the SPA
+fallback.
 
-If the app is doing this at all, it says so: at startup it compares the tag
-against the policy in the same document and, when they disagree, shows which
-origins are missing instead of a login screen whose requests die in silence. It
-does the same when the address is not a full URL.
+The app tells you if the two do not agree. When it starts, it compares the tag with the policy in the
+same document. When they do not agree, it shows which origins are missing. It does not show a login
+screen whose requests fail silently. It does the same when the address is not a full URL.
 
-Two cases need no CSP edit at all.
+In two cases, you do not have to edit the CSP.
 
-A **single-origin deployment**, where one proxy serves the bundle and `/api/v1/*`
-from the same host, is already covered by the stock `connect-src 'self'`: CSP3
-extends `'self'` to the `wss://` form of the page's own host, so the sockets
-are permitted too. Leave the policy alone and set only the tag:
+A **single-origin deployment**, where one proxy serves the bundle and `/api/v1/*` from the same host,
+already works with the usual `connect-src 'self'`. CSP3 extends `'self'` to the `wss://` form of the
+host of the page. Thus, the sockets are also permitted. Do not change the policy. Set only the tag:
 
 ```html
 <meta name="manifesto-server" content="/" />
 ```
 
-`/` means "wherever this page came from", so the client needs no hostname of
-its own and there is nothing to update if the domain ever changes. The site's
-own absolute URL works too. That shape is what
-[server/deployment.md recommends](../server/deployment.md#single-origin-behind-one-reverse-proxy)
-for one box, and it makes a connected instance a one-line edit.
+`/` means "the origin of this page". Thus, the client needs no hostname of its own, and if the domain
+changes, you do not have to update anything. The absolute URL of the site also works.
+[server/deployment.md recommends](../server/deployment.md#single-origin-behind-one-reverse-proxy) this
+shape for one machine. With it, a connected instance needs only a one-line edit.
 
-A **build from source** with `VITE_MANIFESTO_SERVER` set needs no tag either:
-`vite.config.ts` derives the CSP from the same value, so the address and the
-policy cannot drift apart. The tag wins over the build-time value when both are
-set, which is what lets a bundle be repointed without a rebuild.
+A **build from source** with `VITE_MANIFESTO_SERVER` set also needs no tag. `vite.config.ts` makes
+the CSP from the same value. Thus, the address and the policy always agree. When both are set, the
+tag wins over the build-time value. Thus, you can point a bundle to a different server without a new
+build.
 
-The service worker, the router and everything else follow from this one value,
-so nothing else in the bundle needs touching. As with rebranding, leave the
-minified JS alone.
+The service worker, the router and all other parts follow from this one value. Thus, you do not have
+to change other parts of the bundle. As for rebranding, do not change the minified JS.
 
 ## Security headers
 
-`index.html` carries a Content Security Policy in a meta tag, and it covers most
-of what the app needs. Two things it cannot do: `frame-ancestors` is not allowed
-in a meta tag at all (CSP3 § 5.4), and a meta tag arrives too late to protect
-anything but the document. Add these as real HTTP response headers on whatever
-serves the files.
+`index.html` has a Content Security Policy in a meta tag. It covers most of what the app needs. It
+cannot do two things. A meta tag cannot contain `frame-ancestors` (CSP3 § 5.4). Also, a meta tag
+arrives too late to protect anything other than the document. Add these as real HTTP response
+headers on the server that serves the files.
 
 | Header | Value | What it stops |
 |---|---|---|
-| `Content-Security-Policy` | `frame-ancestors 'self'` | Clickjacking: another site framing the app and stealing clicks through it. The meta-tag CSP cannot express this one. |
-| `X-Frame-Options` | `SAMEORIGIN` | The same thing, for anything that predates `frame-ancestors`. |
-| `X-Content-Type-Options` | `nosniff` | A browser guessing a served file is a type it was not sent as. |
-| `Referrer-Policy` | `no-referrer` (or `strict-origin-when-cross-origin`) | Note titles and tags leaking through `Referer` on outbound links. |
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | A downgrade to plain HTTP on a later visit. Add `preload` only deliberately: it is a one-way door that needs its own submission and is slow to undo. |
+| `Content-Security-Policy` | `frame-ancestors 'self'` | Clickjacking: a different site puts the app in a frame and steals clicks through it. The meta-tag CSP cannot express this one. |
+| `X-Frame-Options` | `SAMEORIGIN` | The same problem, for browsers that are older than `frame-ancestors`. |
+| `X-Content-Type-Options` | `nosniff` | A browser that guesses that a served file is a different type than the type it got. |
+| `Referrer-Policy` | `no-referrer` (or `strict-origin-when-cross-origin`) | Note titles and tags that go out through `Referer` on outbound links. |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | A downgrade to plain HTTP on a later visit. Add `preload` only after careful thought. It is a one-way change that needs its own submission, and it is slow to undo. |
 
-A site-wide `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN` do **not**
-break `/autonotes-sandbox.html`, despite appearances. That frame is loaded with
-`sandbox="allow-scripts"` and no `allow-same-origin`, so its document ends up at
-an opaque origin, which looks like it should match neither policy. Both are
-checked against the origin of the framed **URL**, which is the site's own, so
-the frame renders and auto-notes keep running. It needs no exemption, and
-carving one out is the wrong lesson to draw from a failure that does not happen.
+A site-wide `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN` do **not** break
+`/autonotes-sandbox.html`, although they seem to. That frame loads with `sandbox="allow-scripts"` and
+no `allow-same-origin`. Thus, its document has an opaque origin, which seems to match neither policy.
+But the browser checks both against the origin of the framed **URL**, which is the origin of the site.
+Thus, the frame renders, and auto-notes continue to run. It needs no exemption. Do not add one,
+because the failure does not occur.
 
-A full worked example, with these headers and the caching split the PWA needs,
-is in [Server Deployment](../server/deployment.md#single-origin-behind-one-reverse-proxy).
+[Server Deployment](../server/deployment.md#single-origin-behind-one-reverse-proxy) has a full
+example, with these headers and the cache split that the PWA needs.
 
 ## Routing for static hosts
 
-Manifesto uses real URL paths (not hash fragments) for navigation, so deep links like `/archived` or `/tags/work` need to fall back to `index.html`. The Vite plugin `githubPagesSpaFallback` copies `dist/index.html` to `dist/404.html` after each build, which handles GitHub Pages out of the box. For other hosts:
+Manifesto uses real URL paths (not hash fragments) for navigation. Thus, deep links such as
+`/archived` or `/tags/work` must go to `index.html`. The Vite plugin `githubPagesSpaFallback` copies
+`dist/index.html` to `dist/404.html` after each build. This works on GitHub Pages without more work.
+For other hosts:
 
-- **nginx / Caddy / Apache**: configure a fallback rewrite to `index.html` for any non-asset request.
-- **Netlify**: drop a `_redirects` file with `/* /index.html 200`.
-- **Cloudflare Pages / Vercel**: SPA fallback is enabled by default.
+- **nginx / Caddy / Apache**: configure a fallback rewrite to `index.html` for all requests that are
+  not assets.
+- **Netlify**: add a `_redirects` file with `/* /index.html 200`.
+- **Cloudflare Pages / Vercel**: the SPA fallback is on by default.
 
-If hosting under a subpath, build with `MANIFESTO_BASE_URL` set to match (e.g. `MANIFESTO_BASE_URL=/manifesto/` for `https://user.github.io/manifesto/`); the router, the asset URLs, `theme-init.js`, the icons and the `manifest.webmanifest` rewrite plugin all honour it. It defaults to `/`, so a build for a domain root needs nothing.
+To host under a subpath, build with the correct `MANIFESTO_BASE_URL` (for example
+`MANIFESTO_BASE_URL=/manifesto/` for `https://user.github.io/manifesto/`). The router, the asset URLs,
+`theme-init.js`, the icons and the `manifest.webmanifest` rewrite plugin all use it. The default is
+`/`. Thus, a build for the root of a domain needs nothing.
 
 ## PWA
 
 Manifesto is a Progressive Web App:
 
-- `manifest.webmanifest` provides app metadata (name, icons, theme color).
-- A service worker generated by `vite-plugin-pwa` precaches the app shell and runtime-caches API responses.
-  The precache includes the Latin subset of each note font; other subsets load on demand. `logo.svg` and
-  `favicon.svg` are cached stale-while-revalidate rather than precached, so a mark swapped into a release
-  bundle reaches returning users on their next online visit. `icon-1024.png` is left to the browser, since
-  the page never displays it.
-- Installable on mobile and desktop via the browser's "Add to Home Screen" / install prompt.
-- Launches onto its loading screen on iOS too. iOS shows nothing a page can draw while a home-screen app
-  starts, only an `apple-touch-startup-image` it took at install, so in Safari the page draws the loading
-  screen onto a canvas at the device's exact size, once per orientation and system scheme, and links the
-  four PNGs (`launchImage.ts`). Drawn from the served page, they follow a rebranded bundle with no build
-  step. iOS takes them when the app is added, so an install made earlier keeps its blank launch until it
-  is added again.
-- Updates itself. A new worker takes over as soon as it installs, and the page checks for one whenever it
-  returns to the foreground and hourly while it stays there, since an installed app resumed from the
-  background never navigates and the browser would otherwise never look. Once a new version has taken
-  over, the page reloads onto it the next time it is hidden or shown with no dialog open and nothing being
-  typed (`utils/updateReload.ts`), so an open editor is never reloaded out from under its debounced save.
-  Settings > About has a "Force update app" button for when that is not enough: it unregisters the worker,
-  empties every cache but `share-target` and reloads from the network (`forceUpdateApp` in
-  `serviceWorker.ts`). It refuses while offline, since the reload would have nothing to load.
-- Receives shares. The manifest registers a `share_target`, so on a device where the app is installed,
-  "Share to..." from another app lists it, and the shared title, text, link and images open in the
-  new-note editor. A share is a `POST` to `share-target` under the base URL, which a static host cannot
-  answer, so the service worker takes it: it parks the text and images in a `share-target` cache and
-  redirects to `?share-target`, where the page picks them up, deletes the cache and opens the editor
-  (`shareTarget.ts`, `state/incomingShare.ts`). The link gets a link preview as a pasted one does; images
-  over the attachment limit are dropped with the usual message. The worker is in control of every
-  installed app, so the static host never sees that request.
-- Takes pages from a bookmarklet, for browsers the share sheet does not reach. Settings → Features offers a
-  link to drag to the bookmarks bar; clicked on a page, it opens the app in a new tab at
-  `?share-target&title=&url=&text=` with the page's title, address and selected text (at most 4,000
-  characters of it), and the page opens those in the new-note editor as it does a share, removing them
-  from the address first. Nothing is saved until the note is, and the bookmarklet sends nothing
-  anywhere but the app's own address (`bookmarkletHref` in `shareTarget.ts`).
-- Open-mode builds work fully offline. Connected-mode builds load from cache when offline but cannot read or write notes until the network returns.
+- `manifest.webmanifest` gives the app metadata (name, icons, theme color).
+- A service worker from `vite-plugin-pwa` precaches the app shell, and caches API responses at
+  runtime.
+  - The precache includes the Latin subset of each note font. Other subsets load on demand.
+  - `logo.svg` and `favicon.svg` are cached stale-while-revalidate, not precached. Thus, a mark that
+    you replace in a release bundle reaches returning users on their next online visit.
+  - The browser controls `icon-1024.png`, because the page never shows it.
+- You can install it on mobile and desktop, through "Add to Home Screen" or the install prompt of the
+  browser.
+- It starts with its loading screen on iOS too.
+  - While a home-screen app starts, iOS shows nothing that a page can draw. It shows only an
+    `apple-touch-startup-image` that it took at installation.
+  - Thus, in Safari the page draws the loading screen onto a canvas at the exact size of the device,
+    one time for each orientation and system scheme, and links the four PNGs (`launchImage.ts`).
+  - The page draws them from the served page. Thus, they follow a rebranded bundle without a build
+    step.
+  - iOS takes them when you add the app. An earlier installation keeps its blank launch screen until
+    you add the app again.
+- It updates itself.
+  - A new worker takes control immediately after it installs.
+  - The page checks for a new worker each time it comes to the foreground, and each hour while it
+    stays there. An installed app that resumes from the background never navigates. Without these
+    checks, the browser never looks.
+  - After a new version takes control, the page reloads onto it the next time it is hidden or shown
+    with no dialog open and no typing (`utils/updateReload.ts`). Thus, a reload never occurs under an
+    open editor before its debounced save.
+  - Settings > About has a "Force update app" button for when that is not sufficient. It unregisters
+    the worker, empties all caches other than `share-target`, and reloads from the network
+    (`forceUpdateApp` in `serviceWorker.ts`). It does not operate while offline, because the reload
+    has nothing to load.
+- It receives shares.
+  - The manifest registers a `share_target`. Thus, on a device where the app is installed, "Share
+    to..." in a different app lists it. The shared title, text, link and images open in the new-note
+    editor.
+  - A share is a `POST` to `share-target` under the base URL. A static host cannot answer it. Thus,
+    the service worker takes it. It keeps the text and images in a `share-target` cache, and
+    redirects to `?share-target`. There, the page gets them, deletes the cache and opens the editor
+    (`shareTarget.ts`, `state/incomingShare.ts`).
+  - The link gets a link preview, as a pasted link does. The app removes images that are larger than
+    the attachment limit, with the usual message.
+  - The worker controls each installed app. Thus, the static host never sees that request.
+- It takes pages from a bookmarklet, for browsers that the share sheet does not reach.
+  - Settings → Features has a link to drag to the bookmarks bar.
+  - When you click it on a page, it opens the app in a new tab at `?share-target&title=&url=&text=`,
+    with the title, the address and the selected text of the page (a maximum of 4,000 characters of
+    text).
+  - The page opens those in the new-note editor, as for a share, and removes them from the address
+    first.
+  - Nothing is saved until you save the note. The bookmarklet sends data only to the address of the
+    app (`bookmarkletHref` in `shareTarget.ts`).
+- Open-mode builds work fully offline. Connected-mode builds load from the cache when offline, but
+  cannot read or write notes until the network comes back.

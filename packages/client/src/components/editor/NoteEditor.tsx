@@ -43,53 +43,61 @@ interface NoteEditorProps {
   font: NoteFont;
   onFontChange: (font: NoteFont) => void;
   images: string[];
-  /** What each image shows, in words, in step with `images`. */
+  /** What each image shows, in words, aligned with `images`. */
   imageAlts?: string[] | undefined;
-  /** With `replaces`, in place of that image rather than after the rest. */
+  /** With `replaces`, in place of that image, not after the others. */
   onAddImages: (dataUrls: string[], replaces?: string) => void;
-  /** Pictures to attach as the editor opens, picked or drawn on the card. */
+  /**
+   * Pictures to attach when the editor opens, selected or drawn on the card.
+   */
   initialFiles?: File[] | undefined;
   onRemoveImage: (index: number) => void;
-  /** Left out where the images cannot be described. */
+  /** Not given where the images cannot get descriptions. */
   onDescribeImage?: ((image: string, alt: string) => void) | undefined;
   linkPreviews: LinkPreview[];
-  /** Every URL from one paste, together, so they land in a single write. */
+  /** All URLs from one paste, together. Thus, they go in one write. */
   onAddLinkPreviews: (urls: string[]) => void;
   onRemoveLinkPreview: (index: number) => void;
   pinned: boolean;
   onPinToggle: () => void;
   tags: string[];
-  /** Called with a normalized tag the note does not have yet. */
+  /** Called with a normalized tag that the note does not have yet. */
   onAddTag: (tag: string) => void;
   onRemoveTag: (tag: string) => void;
   reminder?: NoteReminder | null;
   onReminderChange?: (reminder: NoteReminder | null) => void;
   onDone: () => void;
-  /** The phone's back arrow. Defaults to `onDone`. */
+  /** The back arrow of the phone. The default is `onDone`. */
   onBack?: () => void;
   disabled?: boolean;
   contentLocked?: boolean;
-  /** A line about the note's state, shown between the title and the text. */
+  /**
+   * A line about the state of the note, shown between the title and the text.
+   */
   notice?: ComponentChildren;
   metadata?: ComponentChildren;
   /**
-   * The rows of the kebab menu. Taken as a builder rather than a list because
-   * two of them belong to the document rather than to the note: whether there
-   * are checked items to delete or dated ones to sort, and how to do either,
-   * are only knowable here, since in collab mode the shared document is the
-   * only copy that counts.
+   * The rows of the kebab menu. It is a builder, not a list, because two rows
+   * belong to the document, not to the note. Only this component can know if
+   * there are checked items to delete or items with dates to sort, and how to
+   * do either, because in collab mode the shared document is the only copy that
+   * counts.
    */
   menuItems?: (editorActions: {
     checkedItems: { present: boolean; remove: () => void; uncheck: () => void };
     datedItems: { present: boolean; sort: () => void };
   }) => NoteMenuItem[];
-  /** Discards an unsaved draft. Shown as a toolbar button, not a menu row. */
+  /**
+   * Discards an unsaved draft. Shown as a toolbar button, not as a menu row.
+   */
   onDelete?: () => void;
   deleteLabel?: string;
-  /** Puts the caret in the text once the editor is built. On by default. */
+  /** Puts the caret in the text after the editor is built. On by default. */
   autoFocus?: boolean;
-  /** The editor instance, each time one is built (it is rebuilt when
-   * collaboration arrives). */
+  /**
+   * The editor instance, each time one is built (it is built again when
+   * collaboration arrives).
+   */
   onEditorReady?: (editor: Editor) => void;
   collab?:
     | {
@@ -138,29 +146,30 @@ export function NoteEditor({
   onEditorReady,
   collab,
 }: NoteEditorProps) {
-  // Read once, when the editor opens: changing the default mid-edit should
-  // not flip a note that is already open.
+  // Read one time, when the editor opens. A change of the default during an
+  // edit must not change a note that is already open.
   const [rawMode, setRawMode] = useState(
     () => defaultEditMode.peek() === "raw",
   );
   const [editor, setEditor] = useState<Editor | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const rawTextareaRef = useRef<HTMLTextAreaElement>(null);
-  // The textarea is always mounted, only hidden, so this is the one switch for
-  // everything that edits "the note's text": in raw mode that is the textarea,
-  // and the rich editor behind it is rebuilt from it on the way back.
+  // The textarea is always mounted, only hidden. Thus, this is the one switch
+  // for all parts that edit "the text of the note". In raw mode, that is the
+  // textarea, and the rich editor behind it is built again from it on the way
+  // back.
   const rawTextarea = rawMode ? rawTextareaRef.current : null;
 
   const { uploads, attachFiles, retryUpload, dropUpload } =
     useImageUploads(onAddImages);
 
-  // A pad opened from this editor goes with it: its drawing would be handed
-  // to uploads that are no longer there. A layout effect, as the uploads'
-  // own cleanup is: an effect's is put off until after the paint.
+  // A pad opened from this editor goes with it. If not, it would give its
+  // drawing to uploads that are gone. A layout effect, as the own cleanup of
+  // the uploads is. The cleanup of an effect waits until after the paint.
   useLayoutEffect(() => closeDrawing, []);
 
-  // Pictures picked or drawn on the card that opened this editor, attached
-  // once as it opens.
+  // Pictures selected or drawn on the card that opened this editor, attached
+  // one time when it opens.
   const initialFilesRef = useRef(initialFiles);
   useEffect(() => {
     const files = initialFilesRef.current;
@@ -175,15 +184,15 @@ export function NoteEditor({
   };
 
   useNotePaste({ disabled, attachFiles, onAddLinkPreviews });
-  // Drives the undo buttons and the toolbar's active formats.
+  // Controls the undo buttons and the active formats of the toolbar.
   const tick = useEditorTicks(editor, rawMode, rawTextareaRef);
   const actions = textActions(editor, rawMode, rawTextarea);
 
   const colors = noteColorMap[color];
 
-  // On a phone the tools go in the top bar, which stays on screen, rather
-  // than under the note, where the keyboard covers them; see
-  // `NoteEditorToolbar`. Mounted in one place or the other, not both.
+  // On a phone, the tools go in the top bar, which stays on the screen, not
+  // under the note, where the keyboard covers them. See `NoteEditorToolbar`.
+  // Mounted in one place or the other, not both.
   const phone = useMediaQuery(PHONE_QUERY);
   const toolbar = (
     <NoteEditorToolbar
@@ -312,10 +321,10 @@ export function NoteEditor({
           }}
         >
           <MilkdownEditor
-            // useMilkdownEditor builds once on mount, reading `collab` as it
-            // stands then. The provider always resolves later than the first
-            // render, so without remounting here the collab plugin is never
-            // installed and the editor silently stays solo.
+            // useMilkdownEditor builds one time on mount, and reads `collab` as
+            // it is then. The provider always resolves after the first render.
+            // Thus, without a remount here, the collab plugin is never
+            // installed, and the editor silently stays solo.
             key={collab ? "collab" : "solo"}
             content={content}
             onChange={onContentChange}
@@ -359,9 +368,9 @@ export function NoteEditor({
 }
 
 /**
- * Back (on a phone only) and the pin. On a wide screen the pin floats at the
- * top right; on a phone this is a row above the title, with undo and redo
- * beside the pin and the note's toolbar under it (`children`).
+ * Back (only on a phone) and the pin. On a wide screen, the pin floats at the
+ * top right. On a phone, this is a row above the title, with undo and redo next
+ * to the pin, and the toolbar of the note under it (`children`).
  */
 function EditorTopBar({
   pinned,
@@ -416,7 +425,7 @@ function EditorTopBar({
   );
 }
 
-/** The note's tags, each with its remove button, and its reminder. */
+/** The tags of the note, each with its remove button, and its reminder. */
 function EditorChips({
   tags,
   onRemoveTag,

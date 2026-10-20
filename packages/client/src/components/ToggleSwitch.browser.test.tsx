@@ -22,7 +22,10 @@ afterEach(() => {
   container.remove();
 });
 
-/** The name an `aria-labelledby` list resolves to, as a screen reader reads it. */
+/**
+ * The name to which an `aria-labelledby` list resolves, as a screen reader
+ * reads it.
+ */
 function labelledName(el: Element): string {
   return (el.getAttribute("aria-labelledby") ?? "")
     .split(" ")

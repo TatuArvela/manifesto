@@ -1,139 +1,169 @@
 # Collaborative Editing
 
-In connected mode, several people can edit the same note simultaneously, with changes appearing in real time: the owner's own devices and tabs, and everyone the note is [shared with](sharing-with-people.md) to edit. Collaboration runs over Yjs via the [Hocuspocus](https://tiptap.dev/hocuspocus) protocol; persistence lives in whichever storage driver the server is configured with.
+In connected mode, many people can edit the same note at the same time, and the changes show in real
+time. This applies to the devices and tabs of the owner, and to all persons who have the note
+[shared with](sharing-with-people.md) them to edit. Collaboration runs over Yjs, through the
+[Hocuspocus](https://tiptap.dev/hocuspocus) protocol. The storage driver of the server keeps the
+data.
 
 ## Behavior
 
-- When a user opens a note that another user is also editing, both see each other's changes live.
-- Text edits, checkbox toggles, list reordering, and other in-document changes propagate over the Yjs WebSocket (`/api/v1/yjs`, see [API](../api.md)). The note id is the Hocuspocus document name.
-- Conflicting edits are resolved by the Yjs CRDT: concurrent insertions and deletions converge without data loss.
-- REST writes (`PUT /api/v1/notes/<id>`) remain the authoritative path for note metadata (color, tags, archived/trashed). Optimistic concurrency on REST is enforced via `If-Match: <updatedAt>` and a 412 + 3-way merge on the client.
+- When a user opens a note that a different user also edits, both see the changes of the other
+  immediately.
+- Text edits, checkbox toggles, list reorders and other changes in the document go over the Yjs
+  WebSocket (`/api/v1/yjs`, see [API](../api.md)). The note id is the Hocuspocus document name.
+- The Yjs CRDT resolves conflicting edits. Insertions and deletions at the same time converge
+  without data loss.
+- REST writes (`PUT /api/v1/notes/<id>`) stay the authoritative path for note metadata (color, tags,
+  archived/trashed). `If-Match: <updatedAt>` gives optimistic concurrency on REST. On a 412, the
+  client does a 3-way merge.
 
 ## Sealed
 
-The server relays and stores the shared document without being able to read it
+The server relays and stores the shared document, but it cannot read it
 ([Encryption](encryption.md#collaboration)). There are two documents:
 
-- **The readable one** is the note as the editor binds to it. It lives in the browser and nowhere
-  else.
-- **The one on the wire** is what the server syncs, merges and stores, and what `y-indexeddb` keeps
-  for offline editing. It holds a list of entries, each an edit to the readable document or a
-  snapshot of all of it, sealed with AES-256-GCM under a key derived from the note key for edits
-  alone, and bound to the note and the key's version.
+- **The readable document** is the note, as the editor binds to it. It is in the browser only.
+- **The document on the wire** is what the server syncs, merges and stores. `y-indexeddb` keeps it
+  for offline editing. It contains a list of entries. Each entry is an edit to the readable document,
+  or a snapshot of all of it. Each entry is sealed with AES-256-GCM, with a key made from the note key
+  only for edits. Each entry is bound to the note and to the version of the key.
 
-An edit made in the editor is sealed and appended; an entry that arrives is opened and applied.
-Clients do the merging, which Yjs does the same way wherever it runs, and the server merges only
-the list of opaque entries. An entry that does not open (another key, or damage) is passed over, and
-the editor says that some changes are not shown. An edit still being sealed when the note is closed is
-written before the document is.
+The editor seals each edit that it makes, and appends it. The editor opens each entry that arrives,
+and applies it. The clients do the merge. Yjs merges in the same way in all places. The server only
+merges the list of opaque entries. If an entry does not open (a different key, or damage), the client
+skips it, and the editor tells that some changes do not show. If an edit is still in the seal step
+when the note closes, the client writes it before the document.
 
-- **Compaction is the clients'.** When a note has gathered 200 edits, a client appends a snapshot
-  of the whole document. The edits a snapshot covers are kept until the snapshot after it has
-  arrived, and the last three snapshots are kept, so a faulty one can be passed over without losing
-  the edits it claimed to hold.
-- **Opening a note cold** reads whatever snapshots and edits are there; their order does not
-  matter to Yjs.
-- **`synced`** is reported once every entry that has arrived is in the readable document, since
-  that is the promise the editor relies on.
+- **The clients do the compaction.** When a note has 200 edits, a client appends a snapshot of the
+  full document. The client keeps the edits of a snapshot until the next snapshot arrives. It keeps
+  the last three snapshots. Thus, it can skip a faulty snapshot, and not lose the edits that the
+  snapshot was to contain.
+- **When a note opens cold**, the client reads all of the snapshots and edits that are there. Their
+  order is not important to Yjs.
+- **`synced`** is reported when all entries that arrived are in the readable document. The editor
+  relies on that promise.
 
 ## Why Metadata Stays Out of the Document
 
-Only the text is shared through Yjs. Everything else about a note (title, colour, font, pin, archive,
-trash, position, tags, reminder, images, link previews) is a row written over REST, and conflicts
-there are settled by `If-Match` and the client's 3-way merge (`mergeNote.ts`). That is two conflict
-models where one would do: AFFiNE keeps everything, metadata included, in Yjs documents, and has one
-sync path. The split is deliberate, for these reasons:
+Yjs shares only the text. All other data of a note (title, color, font, pin, archive, trash,
+position, tags, reminder, images, link previews) is a row that the client writes over REST.
+`If-Match` and the 3-way merge of the client (`mergeNote.ts`) settle the conflicts there. That is two
+conflict models where one is possible: AFFiNE keeps all data, also metadata, in Yjs documents, and has
+one sync path. The split is on purpose, for these reasons:
 
-- **Open mode never syncs.** It is the default build and keeps no Yjs at all (about 130 KB kept out of
-  what every such user downloads). Metadata in a Y.Doc would put the stack back into that build, or
-  leave open mode on a second model anyway.
-- **Some fields are personal.** A shared note's colour, pin, archive, trash, position, tags and
-  reminder are each recipient's own ([Sharing with people](sharing-with-people.md)). A Y.Doc is one
-  state that every participant converges on, so these could never live in the note's document.
-- **The server queries the rows.** Listing order, search, the change feed, trash expiry, statistics,
-  export, webhooks and the MCP tools all read columns. Kept in Yjs, each would need the document
-  decoded, or a copy of it kept in columns, which is two copies to keep in step again.
-- **Most metadata changes happen without an editor.** Pinning, recolouring or tagging from the board
-  is one request. Through Yjs it would be a socket joined, a document loaded and synced, and a
-  change sent, for every card touched.
+- **Open mode never syncs.** It is the default build, and it has no Yjs (approximately 130 KB that
+  each such user does not download). Metadata in a Y.Doc puts the stack back into that build, or open
+  mode keeps a second model.
+- **Some fields are personal.** The color, pin, archive, trash, position, tags and reminder of a
+  shared note belong to each recipient ([Sharing with people](sharing-with-people.md)). A Y.Doc is
+  one state on which all participants converge. Thus, these fields can never be in the document of
+  the note.
+- **The server queries the rows.** The listing order, search, the change feed, the trash expiry,
+  statistics, export, webhooks and the MCP tools all read columns. In Yjs, each of these needs the
+  decoded document, or a copy of it in columns. That gives two copies to keep the same again.
+- **Most metadata changes occur without an editor.** To pin, recolor or tag from the board is one
+  request. Through Yjs, each touched card needs a joined socket, a loaded and synced document, and a
+  sent change.
 
-The cost is carried in two places. The text exists as both the row's `content` and the document (see
-below), and every array field added to a note needs `mergeNoteUpdate` taught how to merge it, since
-its default, the client's copy winning, drops another writer's additions.
+The cost is in two places. The text exists in the `content` of the row and in the document (see
+below). Each array field that you add to a note needs a case in `mergeNoteUpdate`. Its default, where
+the copy of the client wins, deletes the additions of a different writer.
 
-Worth revisiting if a client appears that edits metadata offline for long stretches (a native app),
-where per-field CRDT merging would beat a 3-way merge on reconnect. Personal fields would still stay
-out.
+Examine this again if a client comes that edits metadata offline for long periods (a native app).
+There, a CRDT merge for each field is better than a 3-way merge on reconnect. Personal fields still
+stay out.
 
 ## Content Written Outside the Document
 
-The note row's `content` and the shared document are two copies of the text. The editor keeps the row
-up to date by saving what the document holds, and once a note has a document the editor shows the
-document, not the row. Some writes reach only the row: an assistant's `update_note`
-([MCP](mcp.md)), a script on the [REST API](../api.md), a restored [version](version-history.md). An
-editor that showed the document then would show the text from before, and its next save would write
-that back over the change.
+The `content` of the note row and the shared document are two copies of the text. The editor keeps
+the row up to date, because it saves the contents of the document. When a note has a document, the
+editor shows the document, not the row. Some writes go only to the row: the `update_note` of an
+assistant ([MCP](mcp.md)), a script on the [REST API](../api.md), a restored
+[version](version-history.md). An editor that shows the document then shows the old text. Its next
+save writes that old text over the change.
 
-So the document records which texts came from it: before an editor sends the text, a hash of it
-(the newest 50), and the row's `updatedAt` once a save has landed (`savedAt`). A row counts as written
-outside when it is newer than `savedAt`, holds a text the document never sent, and differs from what
-the document now says. Anything else is a row that is behind the document (another tab's save still
-arriving, or offline typing whose saves failed), and the document still wins.
+Thus, the document records which texts came from it:
 
-- An outside row is written into the document when an editor opens the note, and while one is open.
-  A change that arrives while it is open waits a second first, since another tab's save and its record
-  arrive over two sockets in no fixed order.
-- Only one client writes it in: of those with the document open, the one with the lowest Yjs client
-  id. Two writing it in would put the text in twice.
-- If the document also held text that was never saved, that text is kept as a version first.
-- It is not saved back to the row, which already holds it; the document records it as its own.
-- A document from before these records never judges a row outside, and starts keeping them the first
-  time an editor finds row and document agreeing.
-- An editor with no shared document (open mode, a viewer) keeps the same records in memory, so a
+- Before an editor sends the text, it records a hash of the text (the newest 50).
+- When a save arrives, it records the `updatedAt` of the row (`savedAt`).
+
+A row is written outside when all of these are true: it is newer than `savedAt`, it contains a text
+that the document never sent, and it is different from the current document. All other rows are
+behind the document (the save of a different tab that did not arrive yet, or offline typing whose
+saves failed). Then the document still wins.
+
+- The client writes an outside row into the document when an editor opens the note, and while an
+  editor is open. A change that arrives while the editor is open waits one second first. The save of
+  a different tab and its record arrive over two sockets, in no fixed order.
+- Only one client writes it in: the client with the lowest Yjs client id, of the clients that have
+  the document open. If two clients write it in, the text is there two times.
+- If the document also contained text that was never saved, the client keeps that text as a version
+  first.
+- The client does not save it back to the row, because the row already contains it. The document
+  records it as its own.
+- A document from before these records never decides that a row is outside. It starts to keep them
+  the first time that an editor finds that the row and the document agree.
+- An editor with no shared document (open mode, a viewer) keeps the same records in memory. Thus, a
   version restored while it is open still shows.
 
 ## Presence
 
-- Clients see who else is currently viewing or editing a note: the owner and everyone who has accepted it, whatever their role. A presence report for a note the reporting user cannot see is ignored.
-- Presence appears as avatar stacks on the note card and inline cursors in the editor.
-- The name and colour at a remote cursor are the account's. The server replaces the `user` field of
-  every awareness state a connection publishes with the authenticated user's id, display name and
-  avatar colour, and drops any state for a client id that another connection already publishes, so
-  one participant cannot label a cursor as someone else or move another person's cursor.
-- Presence updates flow through the application WebSocket (`/api/v1/ws`) using `presence:join`, `presence:leave`, and `presence:update` events.
+- Clients see who else looks at or edits a note now: the owner and all persons who accepted it,
+  whatever their role. The server ignores a presence report for a note that the reporting user
+  cannot see.
+- Presence shows as avatar stacks on the note card, and as inline cursors in the editor.
+- The name and color at a remote cursor come from the account. The server replaces the `user` field
+  of each awareness state that a connection publishes with the id, display name and avatar color of
+  the authenticated user. It drops each state for a client id that a different connection already
+  publishes. Thus, a participant cannot give a cursor the name of a different person, or move the
+  cursor of a different person.
+- Presence updates go through the application WebSocket (`/api/v1/ws`), with the events
+  `presence:join`, `presence:leave` and `presence:update`.
 
-Cursors are sealed too, under a key of their own. What a client sends is its cursor as ciphertext;
-the server stamps each state with the account it authenticated and refuses one for a client id
-another connection holds, neither of which needs it to read anything. A client shows the stamped
-name and colour and ignores whatever name was inside.
+Cursors are also sealed, with their own key. A client sends its cursor as ciphertext. The server
+adds the authenticated account to each state, and refuses a state for a client id that a different
+connection has. For neither of these does it have to read anything. A client shows the name and color
+that the server added, and ignores the name inside.
 
 ## Offline Support
 
-- Each note's Y.Doc is mirrored to IndexedDB on the client, so edits keep working when the connection is lost.
-- Queued changes sync when the connection is restored, using the Yjs sync protocol, with no manual reconciliation.
-- The UI surfaces a connection-status indicator when the application socket is disconnected.
+- The client mirrors the Y.Doc of each note to IndexedDB. Thus, edits continue to work when the
+  connection is lost.
+- When the connection comes back, the waiting changes sync with the Yjs sync protocol. No manual
+  reconciliation is necessary.
+- When the application socket is disconnected, the UI shows a connection-status indicator.
 
 ## Editor Versions
 
-An editor meeting a node or mark it has no schema for drops it, and the Yjs binding then writes the
-loss back into every participant's copy. So one shared document is only ever edited by editors of
-the same shape or newer:
+When an editor finds a node or mark for which it has no schema, it removes it. The Yjs binding then
+writes the loss back into the copy of each participant. Thus, only editors of the same shape, or
+newer, can edit one shared document:
 
-- `EDITOR_SCHEMA_VERSION` (`@manifesto/shared`) numbers the document shape the editor writes. It is
-  raised whenever a node or mark is added, removed or changes its attributes.
+- `EDITOR_SCHEMA_VERSION` (`@manifesto/shared`) is the number of the document shape that the editor
+  writes. We make it higher each time a node or mark is added or removed, or changes its attributes.
 - The client sends it as the `editor` query parameter of the `/api/v1/yjs` URL. The server refuses a
-  version lower than its own, and one it cannot read, with the refusal reason `editor-outdated`,
-  before it checks the session. A client that sends none counts as version 1, the shape from before
-  the check.
-- A client refused that way locks the note's text, since saving it over REST instead would write
-  its own reading of the note over content it did not understand. The editor says that a newer
-  version is in use and offers a reload, which clears the installed copy first. The title, colour,
-  tags and the rest stay editable.
-- A client newer than the server is admitted: the server stores updates without reading them.
+  version lower than its own, and a version that it cannot read, with the reason `editor-outdated`.
+  It does this before it checks the session. A client that sends no version counts as version 1, the
+  shape from before the check.
+- A client that is refused in that way locks the text of the note. If it saved the text over REST, it
+  writes its own reading of the note over content that it did not understand. The editor tells that a
+  newer version is in use, and offers a reload. The reload clears the installed copy first. The
+  title, color, tags and the other fields stay editable.
+- The server admits a client that is newer than the server. The server stores updates without a read.
 
 ## Authorization
 
-- Both WebSocket endpoints authenticate via the configured `AuthProvider`. The application socket passes the bearer token in `Sec-WebSocket-Protocol`; the Yjs channel passes it in the Hocuspocus `Auth` message.
-- The Yjs channel additionally verifies that the authenticated user may edit the note being joined: its owner, or someone it is shared with who accepted and can edit. Someone who can only view it is refused, and reads it through `note:updated` events instead. The check is against the document name in the protocol rather than the connection URL, and rejection happens at the `Auth` message, before the document is created or joined.
-- Losing that right (removed from the note, made a viewer, or the owner trashing it) closes the person's whole collaboration socket, as ending a session does. The provider reconnects and is refused the note.
-- The document's persisted state belongs to the note, stored under its owner whichever participant's edit is being saved.
+- Both WebSocket endpoints authenticate through the configured `AuthProvider`. The application socket
+  sends the bearer token in `Sec-WebSocket-Protocol`. The Yjs channel sends it in the Hocuspocus
+  `Auth` message.
+- The Yjs channel also makes sure that the authenticated user can edit the joined note: its owner, or
+  a person who has the note shared with them, accepted it, and can edit it. The channel refuses a
+  person who can only view it. That person reads it through `note:updated` events. The check uses the
+  document name in the protocol, not the URL of the connection. The refusal occurs at the `Auth`
+  message, before the server creates or joins the document.
+- When a person loses that right (removed from the note, changed to a viewer, or the owner puts it in
+  the trash), the server closes the full collaboration socket of that person, as for the end of a
+  session. The provider reconnects, and the server refuses the note.
+- The persisted state of the document belongs to the note. The server stores it under the owner,
+  whatever the participant whose edit it saves.

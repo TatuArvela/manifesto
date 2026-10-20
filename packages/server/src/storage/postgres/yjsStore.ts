@@ -22,9 +22,9 @@ export function createPostgresYjsStore(pool: PgPool): YjsStore {
       state: Buffer,
       stateVector: Buffer,
     ): Promise<void> {
-      // Intentionally does NOT touch `updated_at`: REST optimistic
-      // concurrency tracks that field and Yjs writes shouldn't invalidate
-      // concurrent `If-Match` tokens held by REST clients.
+      // Does NOT change `updated_at`, on purpose. REST optimistic concurrency
+      // tracks that field, and Yjs writes must not make the `If-Match` tokens
+      // of REST clients invalid.
       await pool.query(
         `UPDATE notes
            SET yjs_state = $1, yjs_state_vector = $2

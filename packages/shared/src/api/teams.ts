@@ -1,9 +1,9 @@
 import type { ShareRole, ShareUser } from "#/note.ts";
 
 /**
- * Where a team's members come from: `local` teams are made and filled by an
- * admin; `oidc` teams mirror a group at the identity provider, and their
- * members change only when someone signs in.
+ * The source of the members of a team. An admin makes and fills `local` teams.
+ * `oidc` teams mirror a group at the identity provider, and their members
+ * change only when a person signs in.
  */
 export const TEAM_SOURCES = ["local", "oidc"] as const;
 export type TeamSource = (typeof TEAM_SOURCES)[number];
@@ -16,7 +16,7 @@ export interface Team {
   memberCount: number;
 }
 
-/** A team as the admin view shows it, members and all. */
+/** A team as the admin view shows it, with its members. */
 export interface AdminTeam extends Team {
   members: ShareUser[];
   createdAt: string;
@@ -39,7 +39,9 @@ export interface AdminTeamCreateRequest {
   memberIds?: string[];
 }
 
-/** Members only for a `local` team; an `oidc` team's are the provider's. */
+/**
+ * Members only for a `local` team. The provider owns those of an `oidc` team.
+ */
 export interface AdminTeamUpdateRequest {
   name?: string;
   memberIds?: string[];

@@ -36,7 +36,10 @@ import {
 } from "./settingsIndex.ts";
 import { WebhooksSettings } from "./WebhooksSettings.tsx";
 
-/** How long the modal's exit runs; matches the `duration-150` classes below. */
+/**
+ * The duration of the exit of the modal. It agrees with the `duration-150`
+ * classes below.
+ */
 const CLOSE_MS = 150;
 
 export function SettingsDialog() {
@@ -48,8 +51,8 @@ export function SettingsDialog() {
   };
 
   const [query, setQuery] = useState("");
-  // The setting a search result was chosen for, found on its page once that
-  // page has rendered.
+  // The setting for which a search result was selected, found on its page after
+  // that page rendered.
   const [jump, setJump] = useState<string | null>(null);
   const paneRef = useRef<HTMLDivElement>(null);
 
@@ -65,7 +68,8 @@ export function SettingsDialog() {
     if (!row) return;
     row.scrollIntoView({ block: "center" });
     row.classList.remove("settings-found");
-    // Read between the two so the class coming back restarts the animation.
+    // Read between the two. Thus, the class that comes back starts the
+    // animation again.
     void row.offsetWidth;
     row.classList.add("settings-found");
     row.addEventListener(
@@ -78,13 +82,13 @@ export function SettingsDialog() {
       ?.focus({ preventScroll: true });
   }, [jump]);
 
-  // A select menu inside the modal registers after it and closes alone.
+  // A select menu inside the modal registers after it, and closes alone.
   useEscapeStack(isOpen, handleClose);
   const dialogRef = useFocusTrap<HTMLDivElement>(isOpen);
 
-  // With both halves of two-factor off on the server, its section of Sign-in
-  // is only for an account that already has one, and only the server knows
-  // whether it does.
+  // With both halves of two-factor off on the server, its section of Sign-in is
+  // only for an account that already has it, and only the server knows if it
+  // does.
   const askForSecondFactor =
     isOpen &&
     isServerMode &&
@@ -100,8 +104,8 @@ export function SettingsDialog() {
   const user = currentUser.value;
   const groups = accountGroups();
   const account = groups.flat();
-  // A page that went away (signed out, webhooks turned off) falls back to the
-  // first general one rather than showing nothing.
+  // A page that went away (signed out, webhooks turned off) goes back to the
+  // first general page, and does not show nothing.
   const tab = [...account, ...GENERAL_TABS].includes(settingsTab.value)
     ? settingsTab.value
     : "appearance";

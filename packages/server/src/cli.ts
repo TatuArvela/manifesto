@@ -15,15 +15,16 @@ import { VERSION } from "./version.ts";
 
 /**
  * Lockout recovery from a shell on the server, for when no admin can sign in:
- * the last one forgot their password, lost their authenticator and their
- * recovery codes, or the identity provider no longer knows them. Run inside
- * the container, against the same database and environment as the server:
+ * the last admin forgot their password, lost their authenticator and their
+ * recovery codes, or the identity provider does not know them now. Run it
+ * inside the container, against the same database and environment as the
+ * server:
  *
  *     docker exec manifesto-server node dist/cli.js reset-password admin
  *
- * It works on the database directly, so it needs nothing from the running
- * server. Sessions it ends are refused at the next request; a socket the
- * server already holds stays until it reconnects.
+ * It works directly on the database. Thus, it needs nothing from the running
+ * server. The server refuses the sessions that it ends at the next request. A
+ * socket that the server already has stays until it reconnects.
  */
 
 export const USAGE = `Usage: node dist/cli.js <command> [username]
@@ -49,7 +50,7 @@ export interface CliContext {
   out: (line: string) => void;
 }
 
-/** Runs one command; resolves with the exit code. */
+/** Runs one command. Resolves with the exit code. */
 export async function runCli(
   args: string[],
   { storage, cfg, out }: CliContext,
@@ -165,14 +166,17 @@ export async function runCli(
   }
 }
 
-/** The OpenAPI document as text, the same one `/api/v1/openapi.json` serves. */
+/**
+ * The OpenAPI document as text, the same document that `/api/v1/openapi.json`
+ * serves.
+ */
 export function openApiText(): string {
   return JSON.stringify(buildOpenApiDocument(VERSION), null, 2);
 }
 
 async function main(): Promise<void> {
-  // Before the configuration is read: the document is the same whatever the
-  // deployment, and a build machine generating a client has no database.
+  // Before the code reads the configuration. The document is the same for all
+  // deployments, and a build machine that generates a client has no database.
   if (process.argv[2] === "openapi") {
     console.log(openApiText());
     return;
@@ -185,7 +189,7 @@ async function main(): Promise<void> {
       cfg,
       out: (line) => console.log(line),
     });
-    // Audit writes are fire-and-forget; give them a moment before closing.
+    // Audit writes do not wait. Give them a short time before the close.
     await new Promise((r) => setTimeout(r, 50));
   } finally {
     await storage.close();

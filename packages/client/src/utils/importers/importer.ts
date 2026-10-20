@@ -2,12 +2,14 @@ import { type Note, NoteColor, NoteFont } from "@manifesto/shared";
 import { ulid } from "ulid";
 
 /**
- * The most any one import reads. A multi-gigabyte drop would otherwise lock
- * the tab inside the browser's own parser before any code here runs.
+ * The maximum that one import reads. A drop of many gigabytes would otherwise
+ * lock the tab inside the own parser of the browser before any code here runs.
  */
 export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
 
-/** Refuses a file over the import limit before a byte of it is read. */
+/**
+ * Refuses a file over the import limit before the code reads one byte of it.
+ */
 export function checkImportSize(file: File): void {
   if (file.size > MAX_IMPORT_BYTES) {
     throw new Error(`File exceeds ${MAX_IMPORT_BYTES} bytes`);
@@ -15,28 +17,31 @@ export function checkImportSize(file: File): void {
 }
 
 /**
- * One way in from another notes app. Each format is recognised by its
- * contents, not only its name, so a renamed file still imports and a file
- * that only looks like one is left to the next importer.
+ * One way in from a different notes app. The code identifies each format by its
+ * contents, not only by its name. Thus, a renamed file still imports, and a
+ * file that only looks like one goes to the next importer.
  *
- * - `fromFile` takes a whole file of the format (`.enex`, `.jex`, `.html`).
- * - `fromJson` takes a JSON document already parsed, wherever it was found:
- *   picked on its own, or inside an archive (Simplenote's export is a zip
- *   with its JSON in `source/`).
+ * - `fromFile` takes a full file of the format (`.enex`, `.jex`, `.html`).
+ * - `fromJson` takes a JSON document that is already parsed, wherever the code
+ *   found it: selected alone, or inside an archive (the export of Simplenote is
+ *   a zip with its JSON in `source/`).
  *
- * Either resolves the notes, or null when the input is not this format.
- * An importer throws only for a file that is its format and cannot be read
- * (an encrypted backup), which the caller counts as one failed file.
+ * Each resolves the notes, or null when the input is not this format. An
+ * importer throws only for a file that is its format and cannot be read (an
+ * encrypted backup), which the caller counts as one failed file.
  */
 export interface Importer {
   format: string;
-  /** File extensions `fromFile` is offered, lower case with the dot. */
+  /** The file extensions that `fromFile` gets, in lower case with the dot. */
   extensions: readonly string[];
   fromFile?(file: File): Promise<Note[] | null>;
   fromJson?(data: unknown): Promise<Note[] | null> | Note[] | null;
 }
 
-/** The fields an importer knows; everything else takes a new note's value. */
+/**
+ * The fields that an importer knows. All other fields take the value of a new
+ * note.
+ */
 export interface ImportedFields {
   title?: string;
   content?: string;
@@ -49,7 +54,7 @@ export interface ImportedFields {
   updatedAt?: string | null;
 }
 
-/** A whole note from what an importer read, dated as the source dated it. */
+/** A full note from what an importer read, with the dates of the source. */
 export function importedNote(
   fields: ImportedFields,
   now: string = new Date().toISOString(),
@@ -68,7 +73,7 @@ export function importedNote(
     pinned: fields.pinned === true,
     archived: fields.archived === true,
     trashed,
-    // No source records when a note was trashed; the 30 days start now.
+    // No source records when a note was trashed. The 30 days start now.
     trashedAt: trashed ? now : null,
     // Newest first in the manual order, as notes made here are.
     position: -(Date.parse(createdAt) || Date.now()),
@@ -85,7 +90,7 @@ export function importedNote(
   };
 }
 
-/** A note with no title of its own takes its first line as one. */
+/** A note with no title of its own takes its first line as the title. */
 export function splitTitle(text: string): { title: string; content: string } {
   const trimmed = text.replace(/^﻿/, "").replace(/^\s*\n/, "");
   const end = trimmed.indexOf("\n");

@@ -1,92 +1,99 @@
 # API
 
-The API is the contract between the Manifesto client and server. Any server implementing this contract is compatible with the Manifesto client.
+The API is the contract between the Manifesto client and the server. All servers that implement this
+contract are compatible with the Manifesto client.
 
 The server describes itself as an OpenAPI 3.1 document at `GET /api/v1/openapi.json` (public), for
-third-party clients and code generators. Request bodies in it are the zod schemas the routes validate
-with, converted (`src/openapi.ts`), and `openapi.test.ts` holds its list of operations to the routes the
-app registers, so it cannot fall behind. This page stays the prose account of the contract.
+third-party clients and code generators. Its request bodies are the zod schemas with which the routes
+validate, converted (`src/openapi.ts`). `openapi.test.ts` compares its list of operations with the
+routes that the app registers. Thus, it always agrees with them. This page stays the prose
+description of the contract.
 
 ## Compatibility
 
-Scripts with API tokens, AI assistants, webhook receivers and calendar apps are built against this API
-by people other than whoever runs the server, and they cannot all move when it does. So from 1.0.0 on,
-part of it is promised to keep working across releases, as below.
+People other than the operator of the server build scripts with API tokens, AI assistants, webhook
+receivers and calendar apps against this API. They cannot all change when the API changes. Thus, from
+1.0.0, part of the API will continue to work across releases, as below.
 
-**Before 1.0.0, none of it is promised.** Any release may change or remove anything, the public surface
-included, and says so in its release notes. Marking what goes as deprecated first is still the habit
-where it costs little, but it is a courtesy, not a guarantee.
+**Before 1.0.0, there is no promise.** Each release can change or remove anything, also the public
+surface, and tells this in its release notes. Where it costs little, we still mark items as deprecated
+before we remove them. But this is a courtesy, not a guarantee.
 
 ### The path
 
-Every route is under `/api/v1/`, the two sockets included; only the `/.well-known/` documents
-stay where their RFCs put them. The `v1` is the version of the contract, not of the app: a release
-that keeps to the policy below stays on it. A change the policy allows only after a deprecation may
-instead come as `/api/v2/`, served beside `/api/v1/` while the deprecation runs.
+All routes are under `/api/v1/`, also the two sockets. Only the `/.well-known/` documents stay where
+their RFCs put them. The `v1` is the version of the contract, not of the app. A release that obeys the
+policy below stays on it. A change that the policy permits only after a deprecation can come as
+`/api/v2/`, served together with `/api/v1/` while the deprecation runs.
 
-Two addresses from before the path was versioned are kept outside the server, by calendar apps and
-by assistants, so they are sent on with `308`, which keeps the method and the body: a calendar
-feed (`/api/calendar/<token>.ics`) and the MCP endpoint (`/api/mcp`). An assistant's refresh that
-still names `/api/mcp` as its resource is taken as naming `/api/v1/mcp`. Nothing else under the
-old `/api/` answers.
+Calendar apps and assistants keep two addresses from before the path had a version. Thus, the server
+redirects them with `308`, which keeps the method and the body: a calendar feed
+(`/api/calendar/<token>.ics`) and the MCP endpoint (`/api/mcp`). If the refresh of an assistant still
+names `/api/mcp` as its resource, the server reads it as `/api/v1/mcp`. Nothing else under the old
+`/api/` answers.
 
 ### What is covered
 
 The **public surface**:
 
-- every operation a personal API token or an MCP token can call (those with an `x-token-scope`), with
-  its path, parameters, request and response bodies, status codes and error `code`s;
-- the operations programs call with no credential: `/api/v1/health`, `/api/v1/capabilities`, `/api/v1/openapi.json`, the calendar
-  feed (`/api/v1/calendar/<token>.ics`), public links (`/api/v1/public/*`), and OAuth for assistants
-  (`/api/v1/oauth/register`, `/api/v1/oauth/token` and the `/.well-known/` documents);
-- `/api/v1/ws` as a token sees it: the handshake, the events and their shapes;
-- the MCP tools: their names, inputs and outputs;
-- webhooks: the events, the `WebhookPayload`, the headers and the signature scheme;
-- the token prefixes (`mfp_`, `mfm_`, `mfr_`, `mfc_`) and the scope names.
+- Each operation that a personal API token or an MCP token can call (those with an
+  `x-token-scope`), with its path, parameters, request and response bodies, status codes and error
+  `code`s.
+- The operations that programs call without a credential: `/api/v1/health`, `/api/v1/capabilities`,
+  `/api/v1/openapi.json`, the calendar feed (`/api/v1/calendar/<token>.ics`), public links
+  (`/api/v1/public/*`), and OAuth for assistants (`/api/v1/oauth/register`, `/api/v1/oauth/token` and
+  the `/.well-known/` documents).
+- `/api/v1/ws` as a token sees it: the handshake, the events and their shapes.
+- The MCP tools: their names, inputs and outputs.
+- Webhooks: the events, the `WebhookPayload`, the headers and the signature scheme.
+- The token prefixes (`mfp_`, `mfm_`, `mfr_`, `mfc_`) and the scope names.
 
-The OpenAPI document marks each operation `x-stability: public` or `client`. The **client surface** is
-everything else: what only a session may call (sign-in, the account's security, tokens, webhooks'
-management, `/api/v1/admin/*`) and `/api/v1/yjs`. It exists for this server's own web client, which is
-released with it, and may change in any release, with a note in the release notes. `/api/v1/yjs` has a
-gate of its own for that: an editor older than the server's schema is refused and asked to reload.
+The OpenAPI document marks each operation `x-stability: public` or `client`. The **client surface**
+is all other parts: the operations that only a session can call (sign-in, the security of the
+account, tokens, the management of webhooks, `/api/v1/admin/*`) and `/api/v1/yjs`. It exists for the
+web client of this server, which is released with it. It can change in each release, with a note in
+the release notes. `/api/v1/yjs` has its own control for that. The server refuses an editor that is
+older than its schema, and asks it to reload.
 
 ### What a release may do
 
-From 1.0.0, always, within the public surface:
+From 1.0.0, a release can always do these things in the public surface:
 
-- add operations, MCP tools, webhook events, scopes and token kinds;
-- add optional request fields and parameters, and fields to responses and payloads;
-- add values to a set a response or payload draws from (an audit action, an event, a note colour);
-- make a limit more generous, or accept what it refused before.
+- Add operations, MCP tools, webhook events, scopes and token kinds.
+- Add optional request fields and parameters, and fields to responses and payloads.
+- Add values to a set from which a response or payload takes values (an audit action, an event, a
+  note color).
+- Make a limit more generous, or accept what it refused before.
 
-So a program written against it should ignore fields it does not know, and treat a value it does not
-know as it would one it has no use for.
+Thus, a program written against it must ignore fields that it does not know. It must use an unknown
+value as a value that it has no use for.
 
-Only after a deprecation:
+A release can do these things only after a deprecation:
 
-- remove or rename an operation, a field, an MCP tool, an event, a scope or a header;
-- change what a field means, or its type;
-- make an optional field required, or accept less than before;
-- change a status code or an error `code` a caller acts on;
-- require a scope an operation did not require before.
+- Remove or rename an operation, a field, an MCP tool, an event, a scope or a header.
+- Change the meaning or the type of a field.
+- Make an optional field required, or accept less than before.
+- Change a status code or an error `code` on which a caller acts.
+- Require a scope that an operation did not require before.
 
 ### Deprecating
 
-What is to go is marked deprecated in the OpenAPI document (`deprecated: true`, with
-`x-deprecated-since` and, when there is one, `x-use-instead`), on this page, and in the release notes
-of the release that deprecates it. It keeps working for at least **two minor releases** after that one,
-and the release that removes it says so in its notes.
+An item that will go has the mark deprecated in the OpenAPI document (`deprecated: true`, with
+`x-deprecated-since` and, if there is one, `x-use-instead`), on this page, and in the release notes of
+the release that deprecates it. It continues to work for a minimum of **two minor releases** after
+that release. The release that removes it tells this in its notes.
 
-Two things do not wait. A security fix may close what it has to at once. Rate limits and size limits
-may tighten to protect a server; both are per deployment anyway, and a caller already has to handle
-`429` and `413`.
+Two things do not wait. A security fix can close what it must immediately. Rate limits and size limits
+can become stricter to protect a server. Both are different for each deployment, and a caller must
+already handle `429` and `413`.
 
 ### Between the client and the server
 
-The web client is released with the server, but a tab left open, an installed app or a client built
-for another deployment can meet a server of another version. The client reads every field a newer
-server added as optional (the pattern in `api.ts` is "absent from servers from before it"), and turns a
-feature off when the server does not say it has it, rather than trying it and failing.
+The web client is released with the server. But a tab that stays open, an installed app, or a client
+built for a different deployment can meet a server of a different version. The client reads each field
+that a newer server added as optional (the pattern in `api.ts` is "absent from servers from before
+it"). It turns a feature off when the server does not say that it has it. It does not try the feature
+and fail.
 
 ## REST API
 
@@ -95,217 +102,248 @@ feature off when the server does not say it has it, rather than trying it and fa
 | Method   | Path             | Description          |
 |----------|------------------|----------------------|
 | `GET`    | `/api/v1/notes`     | List notes, one page at a time |
-| `GET`    | `/api/v1/notes/:id` | Get a single note    |
+| `GET`    | `/api/v1/notes/:id` | Get one note         |
 | `POST`   | `/api/v1/notes`     | Create a note        |
-| `POST`   | `/api/v1/notes/import` | Import up to 100 notes, keeping their ids |
+| `POST`   | `/api/v1/notes/import` | Import up to 100 notes, and keep their ids |
 | `PUT`    | `/api/v1/notes/:id` | Update a note        |
 | `PUT`    | `/api/v1/notes/:id/key` | Put the note under a new key (owner, session only) |
-| `DELETE` | `/api/v1/notes/:id` | Permanently delete   |
-| `DELETE` | `/api/v1/notes`     | Permanently delete every note the user owns |
+| `DELETE` | `/api/v1/notes/:id` | Delete permanently   |
+| `DELETE` | `/api/v1/notes`     | Delete permanently all notes that the user owns |
 
-The notes a user sees are their own and the ones [shared with them](features/sharing-with-people.md)
-that they accepted. A shared note is theirs to read (and, as an editor, to write), and their
-personal fields are theirs to change, `trashed` included. A viewer's `PUT` with a shared field, and
-a recipient's with `readonly` or `source`, is `403` with nothing written. A recipient's `DELETE`
-removes the note from their notes (their share goes, the note stays with everyone else) and answers
-`204`, as emptying it from their own trash. `DELETE /api/v1/notes` deletes only the notes the user
-owns; the ones shared with them stay.
+A user sees their own notes, and the notes [shared with them](features/sharing-with-people.md) that
+they accepted.
 
-`POST /api/v1/notes/import` takes `{ "notes": [...] }`, at most `MAX_NOTES_PER_IMPORT` (100)
-per request, each a note as `POST /api/v1/notes` takes it plus the `createdAt` it had where it
-came from. An `id` the user owns is updated in place, so importing the same backup twice changes
-nothing; an `id` shared with them is skipped. An `id` taken by anyone else's note is not imported
-and is named in `taken`: a sealed note is bound to its id, so the client seals it again under a new
-one and sends it once more. A note the user owns is written only under the key it has: one that
-arrives under another `key` or `keyVersion` (sealed before the note's key was replaced) is not
-written and is named in `stale`, and the client reads the note again and seals under its key.
-Images must be attachment references, as for any note write. It answers
-`{ "created": number, "updated": number, "skipped": number, "taken"?: string[], "stale"?: string[] }`. A backup larger
-than one request, by count or by the 1 MiB body limit, is sent in several.
+- A user can read a shared note (and, as an editor, write it). They can change their own personal
+  fields, also `trashed`.
+- A `PUT` with a shared field by a viewer, and a `PUT` with `readonly` or `source` by a recipient, get
+  `403`, and nothing is written.
+- A `DELETE` by a recipient removes the note from their notes (their share goes, and the note stays
+  with all other persons), and answers `204`, as when they empty it from their own trash.
+- `DELETE /api/v1/notes` deletes only the notes that the user owns. The notes shared with them stay.
+
+`POST /api/v1/notes/import` takes `{ "notes": [...] }`, a maximum of `MAX_NOTES_PER_IMPORT` (100) for
+each request. Each item is a note as `POST /api/v1/notes` takes it, plus the `createdAt` that it had
+in its source.
+
+- The server updates an `id` that the user owns in place. Thus, if you import the same backup two
+  times, nothing changes.
+- The server skips an `id` that is shared with the user.
+- The server does not import an `id` that a note of a different person has, and names it in `taken`.
+  A sealed note is bound to its id. Thus, the client seals it again under a new id, and sends it one
+  more time.
+- The server writes a note that the user owns only under the key that it has. If a note arrives under
+  a different `key` or `keyVersion` (sealed before the key of the note was replaced), the server does
+  not write it, and names it in `stale`. The client reads the note again, and seals under its key.
+- Images must be attachment references, as for all note writes.
+- It answers
+  `{ "created": number, "updated": number, "skipped": number, "taken"?: string[], "stale"?: string[] }`.
+- If a backup is larger than one request, by count or by the 1 MiB body limit, the client sends it
+  in many requests.
 
 #### Sealed notes
 
-The app seals a note in the browser before it sends it, and the server stores and returns it
-sealed ([Encryption](features/encryption.md)). A token that carries keys is the exception: for a
-request that presents one the server opens and seals with those keys, so it sends and is sent a
-readable `Note`, with an `id` the server assigns, as this page describes everywhere else. A token
-without keys is refused the note routes with `403`. Every route above takes and answers a
-`SealedNote` (`packages/shared/src/api/sealed.ts`) for a session:
+The app seals a note in the browser before it sends it. The server stores and returns it sealed
+([Encryption](features/encryption.md)). A token that carries keys is the exception. For a request with
+such a token, the server opens and seals with those keys. Thus, the token sends and gets a readable
+`Note`, with an `id` that the server gives, as all other parts of this page describe. The server
+refuses the note routes to a token without keys, with `403`. For a session, each route above takes
+and answers a `SealedNote` (`packages/shared/src/api/sealed.ts`):
 
 - **Sealed under the note key**: `title`, `content`, `excerpt` (the first 140 characters of the
-  text), `font`, `images` (the list of the note's images) and `linkPreviews`.
-- **Sealed under the reader's personal key**: `color` and `tags`. Either is `""` when never set,
-  which is how a shared note first reaches its recipient.
-- **`reminderKey`**, on a note with a reminder, is the note key wrapped under the reader's own
-  reminder key, for their calendar feed. It is the reader's own, like the reminder.
-- **`format`** is the [format](data-model.md#format) the words under the note key are in. A write
-  that carries any of them carries `format` too (`422` otherwise), and is held to the note's in the
-  statement that writes it: words in an older format than the note's are `409` with
-  `code: "note_format_newer"`, from an app that has to be reloaded, and words in a newer format
-  are taken only with every one of them (`409`, `note_format_incomplete`), since a note keeps one
-  format for all its words. An import over a note in a newer format skips it.
-- **`key`** is the note key wrapped under the reader's own notes key, and `keyVersion` says which
-  note key the values are under. `previousKeys`, present once the key has been replaced, is the
-  keys before it sealed under the one the note has now: what opens the versions, comments and
-  edits written under them. `rekeyDue: true` tells the owner, and nobody else, that someone who
-  held the key no longer holds the note.
-- **Readable**, since the server acts on them: `id`, `format`, `pinned`, `archived`, `trashed`, `trashedAt`,
-  `position`, `reminder`, `readonly`, `source`, `sharing`, `createdAt` and `updatedAt`.
+  text), `font`, `images` (the list of the images of the note) and `linkPreviews`.
+- **Sealed under the personal key of the reader**: `color` and `tags`. Each is `""` when never set.
+  A shared note reaches its recipient in that way the first time.
+- **`reminderKey`**, on a note with a reminder: the note key wrapped under the own reminder key of the
+  reader, for their calendar feed. It belongs to the reader, as the reminder does.
+- **`format`**: the [format](data-model.md#format) of the words under the note key.
+  - A write that contains one of those words also contains `format` (if not, `422`).
+  - The statement that writes it compares it with the format of the note. Words in an older format
+    than that of the note get `409` with `code: "note_format_newer"`. They come from an app that must
+    reload.
+  - The server accepts words in a newer format only with all of the words (if not, `409`,
+    `note_format_incomplete`), because a note keeps one format for all of its words.
+  - An import over a note in a newer format skips it.
+- **`key`**: the note key wrapped under the own notes key of the reader. `keyVersion` tells under
+  which note key the values are. `previousKeys` is present after the key was replaced. It contains the
+  previous keys, sealed under the current key of the note. These open the versions, comments and
+  edits written under them. `rekeyDue: true` tells the owner, and nobody else, that a person who had
+  the key does not have the note now.
+- **Readable**, because the server acts on them: `id`, `format`, `pinned`, `archived`, `trashed`,
+  `trashedAt`, `position`, `reminder`, `readonly`, `source`, `sharing`, `createdAt` and `updatedAt`.
 
 A sealed value is `e1.` and the base64url of a nonce, the ciphertext and its tag. The server checks
-that shape and a size for each field, and answers `422` for anything else in a sealed field: it
-holds no key, so the shape is all it can check. It can no longer hold a title to 500 characters or
-a note to 50 tags; the client that seals a note does.
+that shape and a size for each field. It answers `422` for all other values in a sealed field. It has
+no key. Thus, it can only check the shape. It cannot limit a title to 500 characters or a note to 50
+tags now. The client that seals a note does this.
 
-The client chooses a new note's `id`, since every sealed value is bound to the id of its note:
-`POST /api/v1/notes` takes it, and answers `409` for one that is taken. A write that carries `images`
-carries `imageRefs` beside it, and one that carries `linkPreviews` carries `previewRefs`: the
-`attachment:` references each sealed list names, which is how the server knows which images a note
-still uses. They are never sent back. `content` travels with `excerpt`.
+The client selects the `id` of a new note, because each sealed value is bound to the id of its note.
+`POST /api/v1/notes` takes it, and answers `409` for an id that is taken.
+
+- A write that contains `images` also contains `imageRefs`. A write that contains `linkPreviews` also
+  contains `previewRefs`. These are the `attachment:` references that each sealed list names. Thus,
+  the server knows which images a note still uses. The server never sends them back.
+- `content` goes with `excerpt`.
 
 ### Sharing
 
-Bearer-protected, and share the per-user API limit.
+These routes need a bearer token, and share the API limit for each user.
 
 | Method   | Path                                 | Description |
 |----------|--------------------------------------|-------------|
 | `POST`   | `/api/v1/notes/:id/shares`              | Invite an account: `{ userId, role, key? }`, `201` `{ note }` |
-| `PUT`    | `/api/v1/notes/:id/shares/:userId/key`  | Hand someone on the note its key (`OfferedKey`), as anyone who holds it: `204`; `409` when they are not waiting for one and the caller is not the owner |
-| `PUT`    | `/api/v1/notes/:id/held-key`            | A recipient keeps the note's replaced key under their own notes key: `{ key, keyVersion }`, `{ note }` |
-| `GET`    | `/api/v1/users/:id/keys`                | An account's public keys: `{ userId, version, publicKeys }`; `404` until it has any |
+| `PUT`    | `/api/v1/notes/:id/shares/:userId/key`  | Give its key to a person on the note (`OfferedKey`), as a person who has it: `204`. `409` when they do not wait for one and the caller is not the owner |
+| `PUT`    | `/api/v1/notes/:id/held-key`            | A recipient keeps the replaced key of the note under their own notes key: `{ key, keyVersion }`, `{ note }` |
+| `GET`    | `/api/v1/users/:id/keys`                | The public keys of an account: `{ userId, version, publicKeys }`. `404` until it has some |
 | `PUT`    | `/api/v1/notes/:id/shares/:userId`      | Change their role: `{ role }`, `{ note }` |
 | `DELETE` | `/api/v1/notes/:id/shares/:userId`      | Remove them or withdraw the invitation (owner), or leave the note (the user themselves): `204` |
-| `GET`    | `/api/v1/invitations`                   | Invitations waiting for the signed-in user: `{ invitations: ShareInvitation[] }` |
-| `POST`   | `/api/v1/invitations/:noteId/accept`    | Accept, keeping the note's key: `{ key, keyVersion }`, answered with `{ note }`, the recipient's copy |
+| `GET`    | `/api/v1/invitations`                   | The invitations that wait for the signed-in user: `{ invitations: ShareInvitation[] }` |
+| `POST`   | `/api/v1/invitations/:noteId/accept`    | Accept, and keep the key of the note: `{ key, keyVersion }`. The answer is `{ note }`, the copy of the recipient |
 | `POST`   | `/api/v1/invitations/:noteId/decline`   | Decline: `204` |
-| `GET`    | `/api/v1/notes/:id/comments`            | The [comments](features/sharing-with-people.md#comments) beside a note, oldest first: `{ comments: NoteComment[] }`. Anyone who can see the note |
-| `POST`   | `/api/v1/notes/:id/comments`            | Write one: `{ id, body, keyVersion }`, the text sealed under the note key and bound to the id the client chose, `201` `{ comment }`; `409` when the note holds 500, or the id is taken |
-| `PUT`    | `/api/v1/notes/:id/comments/:commentId` | Change one's own: `{ body, keyVersion }`, `{ comment }` with `editedAt` set; `403` for anyone else's |
-| `DELETE` | `/api/v1/notes/:id/comments/:commentId` | Delete one's own, or any as the note's owner: `204` |
+| `GET`    | `/api/v1/notes/:id/comments`            | The [comments](features/sharing-with-people.md#comments) of a note, oldest first: `{ comments: NoteComment[] }`. All persons who can see the note |
+| `POST`   | `/api/v1/notes/:id/comments`            | Write one: `{ id, body, keyVersion }`, the text sealed under the note key and bound to the id that the client selected. `201` `{ comment }`. `409` when the note has 500, or the id is taken |
+| `PUT`    | `/api/v1/notes/:id/comments/:commentId` | Change your own: `{ body, keyVersion }`, `{ comment }` with `editedAt` set. `403` for the comment of a different person |
+| `DELETE` | `/api/v1/notes/:id/comments/:commentId` | Delete your own, or any comment as the owner of the note: `204` |
 | `GET`    | `/api/v1/users?q=`                      | Accounts to share with: `{ users: DirectoryUser[] }` |
-| `GET`    | `/api/v1/teams`                         | The teams the signed-in user is in: `{ teams: Team[] }` |
-| `GET`    | `/api/v1/notes/:id/team-shares`         | The teams the note is shared with (owner): `{ teamShares: TeamShare[] }` |
-| `POST`   | `/api/v1/notes/:id/team-shares`         | Share with a team the owner is in: `{ teamId, role }`, `201` `{ teamShares }`; its members are invited |
-| `PUT`    | `/api/v1/notes/:id/team-shares/:teamId` | Change the team's role, and its members' with it: `{ role }`, `{ teamShares }` |
-| `DELETE` | `/api/v1/notes/:id/team-shares/:teamId` | Stop sharing with the team, taking the note from those who had it through it: `204` |
-| `GET`    | `/api/v1/notes/:id/links`               | The note's [public links](features/sharing.md#public-links) (owner): `{ links: PublicLink[] }` |
+| `GET`    | `/api/v1/teams`                         | The teams of the signed-in user: `{ teams: Team[] }` |
+| `GET`    | `/api/v1/notes/:id/team-shares`         | The teams with which the note is shared (owner): `{ teamShares: TeamShare[] }` |
+| `POST`   | `/api/v1/notes/:id/team-shares`         | Share with a team of the owner: `{ teamId, role }`, `201` `{ teamShares }`. Its members get invitations |
+| `PUT`    | `/api/v1/notes/:id/team-shares/:teamId` | Change the role of the team, and of its members: `{ role }`, `{ teamShares }` |
+| `DELETE` | `/api/v1/notes/:id/team-shares/:teamId` | Stop the share with the team, and remove the note from the persons who had it through the team: `204` |
+| `GET`    | `/api/v1/notes/:id/links`               | The [public links](features/sharing.md#public-links) of the note (owner): `{ links: PublicLink[] }` |
 | `POST`   | `/api/v1/notes/:id/links`               | Publish it: `{ mode, expiresInDays?, password?, maxViews?, sealedLinkKey, wrappedKey? or snapshot? }`, `201` `{ link }` (owner) |
 | `DELETE` | `/api/v1/notes/:id/links/:token`        | Revoke a link: `204` (owner) |
 
-`role` is `"edit"` or `"view"`. The `{ note }` a share route returns is the owner's copy, with
-`sharing` brought up to date.
+`role` is `"edit"` or `"view"`. The `{ note }` that a share route returns is the copy of the owner,
+with an updated `sharing`.
 
-A comment's `body` is a ciphertext, and `keyVersion` says which note key it is under. The server
-holds it to the shape and size of one (`422` otherwise) and can no longer hold its text to 1 to 2000
-characters or trim it: the client that seals it does.
+The `body` of a comment is a ciphertext. `keyVersion` tells under which note key it is. The server
+checks the shape and the size (if not correct, `422`). It cannot check that the text has 1 to 2000
+characters, and cannot trim it now. The client that seals it does this.
 
-A token that carries keys reads and writes a comment in plain words, as it does a note: it sends
-`{ body }` (trimmed, 1 to 2000 characters, `422` otherwise) with no `id` or `keyVersion`, the
-server seals it under the note's key and chooses the id, and every `body` it is answered with is
-readable. A comment that does not open with the token's keys is left out of the list, and a note
-whose key they do not open is `409`.
+A token that carries keys reads and writes a comment in plain words, as it does a note. It sends
+`{ body }` (trimmed, 1 to 2000 characters, if not `422`) with no `id` or `keyVersion`. The server
+seals it under the key of the note and selects the id. Each `body` in the answer is readable. The list
+does not include a comment that does not open with the keys of the token. A note whose key they do
+not open gets `409`.
 
-- Inviting, changing a role and removing someone else are the owner's: another participant gets
-  `403`, and someone who cannot see the note `404`.
-- Inviting yourself, or to an automatic note (`readonly`), is `422`. Inviting someone who already
-  holds an invitation or a share, or to a note in the trash, is `409`. An unknown `userId` is `404`.
-- Accepting or declining an invitation that is not there (withdrawn, the note trashed or deleted, or
-  already answered) is `404`. Declining is for invitations only; leaving an accepted note is the
+- Only the owner can invite, change a role, and remove a different person. A different participant
+  gets `403`. A person who cannot see the note gets `404`.
+- An invitation of yourself, or to an automatic note (`readonly`), gets `422`. An invitation of a
+  person who already has an invitation or a share, or to a note in the trash, gets `409`. An unknown
+  `userId` gets `404`.
+- To accept or decline an invitation that is not there (withdrawn, the note trashed or deleted, or
+  already answered) gets `404`. Decline is only for invitations. To leave an accepted note, use the
   `DELETE` above.
 - `ShareInvitation` is `{ noteId, role, owner: ShareUser, title, content, font, keyVersion, offered,
-  invitedAt }`: the note's title, text and font, sealed under its note key, so the invitation can
-  show the note itself. The owner's colour is their own and is not part of it. Attachments and link
-  previews come with the note once it is accepted. Invitations to a note in the trash are not listed.
+  invitedAt }`: the title, text and font of the note, sealed under its note key. Thus, the invitation
+  can show the note itself. The color of the owner belongs to the owner, and is not part of it.
+  Attachments and link previews come with the note after the recipient accepts it. The list does not
+  include invitations to a note in the trash.
 
 #### Handing the note's key on
 
-A shared note is sealed, so everyone on it needs its key ([Encryption](features/encryption.md#sharing)):
+A shared note is sealed. Thus, all persons on it need its key
+([Encryption](features/encryption.md#sharing)):
 
 - **`OfferedKey`** is `{ keyVersion, ephemeral, wrapped, signer, signature }`: the note key sealed
-  under what an ephemeral P-256 key and the recipient's public key agree on, and signed by the
-  account that wrapped it, over the note, the version, the recipient and the wrap. The server stores
-  and passes it on, and checks only its shape, that `signer` is the caller, and that it is for the
-  key the note is under.
-- **With the invitation**: the owner's client sends it as `key` when the recipient has public keys.
-  Without one the invitation's `offered` is `null`: it is waiting for a key, shows nothing, and
-  cannot be accepted yet.
-- **Later, by anyone who holds the note**: `PUT /api/v1/notes/:id/shares/:userId/key`. A share to a
-  team reaches members the owner's client never wrapped for, and the first client of anyone on the
-  note does it. `NoteMember.waitingForKey` is `true` while nobody has, for everyone on the note to
-  see. Only someone waiting is handed one this way: for a person who holds the key, or has an offer
-  of it they have not taken, anyone but the owner is answered `409`, or any holder could put a key
-  of their own making in place of the real one. The recipient's client checks the signature and
-  that the key opens the note's sealed fields, and keeps none that fails either.
-- **Accepting** sends the key back wrapped under the recipient's own notes key, as they keep the
-  key of a note of their own; `409` when it is for another key than the note is now under.
-- **A recipient whose copy is behind** the note's key (after it was replaced) is sent the note with
-  `key: ""` and the current `offered`, takes it, and stores it with `PUT /api/v1/notes/:id/held-key`.
-- **A note is due a new key** when a share whose holder was ever handed the key ends (removed,
-  left, declined, withdrawn, expired from the recipient's trash, the team's or the account's going)
-  or a live public link is revoked.
-  The owner's app then sends `PUT /api/v1/notes/:id/key` with `{ keyVersion, key, previousKeys, title,
-  content, excerpt, font, images, linkPreviews, links? }`: everything under the note key sealed
-  again, `keyVersion` one more than the note's (`409` otherwise), and for each live link that
-  stays `{ token, wrappedKey }`. `If-Match` carries the `updatedAt` of the note those fields were
-  sealed again from and is required (`428` without it): a note written since is answered `412`,
-  and the app reads it again, so replacing a key never undoes someone's edit. The server moves the
-  whole note at once and answers `{ note }`.
-  Everyone else on the note is then `waitingForKey` until a client holding the new key wraps it
-  for them. A `PUT /api/v1/notes/:id` that carries sealed words says which key they are under in
-  `keyVersion`, and is answered `409` when the note has left that key; the check is part of the
-  write, so a replacement cannot land between the two. A token's write is held to the key the
-  server sealed it under in the same way.
+  under the agreement of an ephemeral P-256 key and the public key of the recipient. The account that
+  wrapped it signs it, over the note, the version, the recipient and the wrap. The server stores and
+  sends it. It only checks its shape, that `signer` is the caller, and that it is for the current key
+  of the note.
+- **With the invitation**: the client of the owner sends it as `key` when the recipient has public
+  keys. Without one, the `offered` of the invitation is `null`. The invitation waits for a key, shows
+  nothing, and cannot be accepted yet.
+- **Later, by a person who has the note**: `PUT /api/v1/notes/:id/shares/:userId/key`.
+  - A share to a team reaches members for whom the client of the owner did not wrap a key. The first
+    client of a person on the note does it.
+  - `NoteMember.waitingForKey` is `true` while nobody did it. All persons on the note can see it.
+  - Only a person who waits gets a key in this way. For a person who has the key, or has an offer of
+    it that they did not take, all persons other than the owner get `409`. If not, each holder could
+    put their own key in place of the real key.
+  - The client of the recipient checks the signature, and that the key opens the sealed fields of the
+    note. It keeps no key that fails either check.
+- **Accepting** sends the key back, wrapped under the own notes key of the recipient, as they keep the
+  key of their own note. It gets `409` when it is for a different key than the current key of the
+  note.
+- **A recipient whose copy is behind** the key of the note (after a replacement) gets the note with
+  `key: ""` and the current `offered`. The client takes it, and stores it with
+  `PUT /api/v1/notes/:id/held-key`.
+- **A note is due a new key** when a share ends whose holder ever got the key (removed, left,
+  declined, withdrawn, expired from the trash of the recipient, the removal of the team or the
+  account), or when a live public link is revoked.
+  - The app of the owner then sends `PUT /api/v1/notes/:id/key` with `{ keyVersion, key,
+    previousKeys, title, content, excerpt, font, images, linkPreviews, links? }`: all values under the
+    note key sealed again, `keyVersion` one more than that of the note (if not, `409`), and
+    `{ token, wrappedKey }` for each live link that stays.
+  - `If-Match` contains the `updatedAt` of the note from which those fields were sealed again. It is
+    required (without it, `428`). A note written after that gets `412`, and the app reads it again.
+    Thus, a key replacement never undoes the edit of a person.
+  - The server moves the full note at the same time, and answers `{ note }`.
+  - All other persons on the note are then `waitingForKey` until a client that has the new key wraps
+    it for them.
+  - A `PUT /api/v1/notes/:id` that contains sealed words tells their key in `keyVersion`. It gets
+    `409` when the note is not under that key now. The check is part of the write. Thus, a replacement
+    cannot occur between the two. The write of a token has the same check against the key under which
+    the server sealed it.
 
-The recipient's client uses no offered key whose signature does not check against the signing key
-of the account it names, and takes that signing key only if it is the one it remembers for them.
+The client of the recipient uses no offered key whose signature does not pass the check against the
+signing key of the account that it names. It takes that signing key only if it is the key that it
+remembers for them.
 
 | Method | Path                            | Description |
 | ------ | ------------------------------- | ----------- |
-| `GET`  | `/api/v1/auth/keys/seen`           | `{ seen }`: the public keys this account has seen of others, by account id, each sealed under its own personal key |
-| `PUT`  | `/api/v1/auth/keys/seen/:userId`   | `{ sealed }`: remember that account's keys, over what was remembered before; `204`, or `409` past 5000 accounts |
+| `GET`  | `/api/v1/auth/keys/seen`           | `{ seen }`: the public keys of other accounts that this account saw, by account id. Each is sealed under its own personal key |
+| `PUT`  | `/api/v1/auth/keys/seen/:userId`   | `{ sealed }`: remember the keys of that account, over the previous value. `204`, or `409` after 5000 accounts |
 
-Session only. The server hands out public keys (`GET /api/v1/users/:id/keys`), so it could hand out
-one of its own; this list is how a client tells a key it has met from one that changed. The server
-keeps it and can read none of it. It goes when the account's keys do.
+Session only. The server gives out public keys (`GET /api/v1/users/:id/keys`). Thus, it could give out
+its own key. With this list, a client can tell a key that it knows from a key that changed. The server
+keeps the list, and can read none of it. The list goes when the keys of the account go.
 
-A public link is read without an account, and none of these send a bearer token:
+A person reads a public link without an account. None of these routes sends a bearer token:
 
 | Method   | Path                                   | Description |
 |----------|----------------------------------------|-------------|
-| `GET`    | `/api/v1/public/:token`                   | The note: `{ note: PublicNote, wrappedKey, access: null }`, counting a view; `401` `{ passwordRequired: true }` for a link with a password, counting nothing |
-| `POST`   | `/api/v1/public/:token/unlock`            | With `{ password }`: `{ note, wrappedKey, access }`, counting a view; `403` for a wrong one |
-| `GET`    | `/api/v1/public/:token/attachments/:id`   | A picture the note shows, sealed, and no other; a link with a password needs `X-Link-Access: <access>` |
+| `GET`    | `/api/v1/public/:token`                   | The note: `{ note: PublicNote, wrappedKey, access: null }`, and counts a view. `401` `{ passwordRequired: true }` for a link with a password, and counts nothing |
+| `POST`   | `/api/v1/public/:token/unlock`            | With `{ password }`: `{ note, wrappedKey, access }`, and counts a view. `403` for a wrong password |
+| `GET`    | `/api/v1/public/:token/attachments/:id`   | A picture that the note shows, sealed, and no other. A link with a password needs `X-Link-Access: <access>` |
 
 `mode` is `"live"` or `"snapshot"`. `PublicLink` is `{ token, noteId, mode, expiresAt, hasPassword,
-maxViews, viewCount, lastViewedAt, createdAt, sealedLinkKey }`; `PublicNote` is `{ id, keyVersion,
-format, title, content, font, images, linkPreviews, updatedAt }`, every word of it sealed, and a
-snapshot is sent with the `format` its copy was sealed in.
+maxViews, viewCount, lastViewedAt, createdAt, sealedLinkKey }`. `PublicNote` is `{ id, keyVersion,
+format, title, content, font, images, linkPreviews, updatedAt }`. Each word of it is sealed. A snapshot
+comes with the `format` in which its copy was sealed.
 
-What a link shows opens only with its **link key**, 256 random bits the owner's app makes and puts
-in the fragment of the address (`/p/<token>#k=<key>`), which no browser sends to a server. The key
-is not the token, and the server never holds it. A `live` link is created with `wrappedKey`, the
-note key wrapped by the link key, and answers with the note's own sealed fields; a `snapshot` link
-is created with `snapshot`, a copy of the note sealed under a key derived from the link key, and
-the attachment references it names, which must be the note's. `sealedLinkKey` is the link key
-sealed under the owner's personal key, handed back so the owner can copy the address again. The
-password, the expiry and the view limit stay gates the server keeps. Every public route answers the same `404` for a link that does not
-open (never made, revoked, expired, used up, its note in the trash; with `PUBLIC_LINKS=off`, the 404 of
-a route that does not exist), sends
-`Cache-Control: no-store` and `X-Robots-Tag: noindex`, and is limited per address; `unlock` also per
-link. The owner routes take the `sharing` token scope, and answer `403` to anyone else on the note.
+What a link shows opens only with its **link key**: 256 random bits that the app of the owner makes,
+and puts in the fragment of the address (`/p/<token>#k=<key>`). No browser sends the fragment to a
+server. The key is not the token, and the server never has it.
 
-A team the owner is not in answers `404`, as does one that does not exist. `Team` is `{ id, name,
-source, memberCount }`, `source` being `local` (an admin's) or `oidc` (a group at the identity
-provider); `TeamShare` is `{ teamId, name, role }`. A share or invitation that came through a team
-names it: `NoteMember.team` and `ShareInvitation.team` are `{ id, name }`, absent for a direct share.
-The rules for what a team share does to each member are in
-[Sharing with people](features/sharing-with-people.md#teams).
+- A `live` link is created with `wrappedKey`, the note key wrapped by the link key. It answers with the
+  sealed fields of the note.
+- A `snapshot` link is created with `snapshot`: a copy of the note sealed under a key derived from the
+  link key, and the attachment references that it names, which must belong to the note.
+- `sealedLinkKey` is the link key sealed under the personal key of the owner. The server gives it
+  back, so that the owner can copy the address again.
+- The server still controls the password, the expiry and the view limit.
+- Each public route answers the same `404` for a link that does not open (never made, revoked,
+  expired, at its view limit, its note in the trash; with `PUBLIC_LINKS=off`, the 404 of a route that
+  does not exist). It sends `Cache-Control: no-store` and `X-Robots-Tag: noindex`. It has a limit for
+  each address. `unlock` also has a limit for each link.
+- The owner routes take the `sharing` token scope. They answer `403` to all other persons on the note.
 
-`GET /api/v1/users` depends on `USER_LOOKUP`. Under `exact` (the default) it returns only an account
-whose username or email address is `q` exactly (regardless of case), each as `DirectoryUser`
-`{ id, username, displayName, avatarColor, email? }`, and never includes `email`. Under `search`
-it returns up to 10 accounts whose username, display name or email contains `q`, regardless of
-case, with `email`. Either way the caller is never among the results, and an empty `q` returns none.
+A team that the owner is not in gets `404`, the same as a team that does not exist. `Team` is
+`{ id, name, source, memberCount }`. `source` is `local` (made by an admin) or `oidc` (a group at the
+identity provider). `TeamShare` is `{ teamId, name, role }`. A share or an invitation that came through
+a team names it: `NoteMember.team` and `ShareInvitation.team` are `{ id, name }`, absent for a direct
+share. [Sharing with people](features/sharing-with-people.md#teams) gives the rules for what a team
+share does to each member.
+
+`GET /api/v1/users` depends on `USER_LOOKUP`.
+
+- With `exact` (the default), it returns only an account whose username or email address is exactly
+  `q` (whatever the case), as `DirectoryUser` `{ id, username, displayName, avatarColor, email? }`. It
+  never includes `email`.
+- With `search`, it returns up to 10 accounts whose username, display name or email contains `q`,
+  whatever the case, with `email`.
+- In both cases, the results never include the caller. An empty `q` returns nothing.
 
 ### Search
 
@@ -313,16 +351,16 @@ case, with `email`. Either way the caller is never among the results, and an emp
 |----------|-------------------|----------------------|
 | `GET`    | `/api/v1/search?q=`  | Search notes, one page at a time |
 
-The server cannot read a note, so it cannot search one for the app, which searches the notes it
-has opened in memory ([Search](features/search.md)). A session is answered `403`. The route is for
-a token that carries a key: the server opens the account's notes in memory for the request and
-returns those whose title or text holds `q`, whatever its case, newest first.
+The server cannot read a note. Thus, it cannot search notes for the app. The app searches the notes
+that it opened in memory ([Search](features/search.md)). A session gets `403`. The route is for a
+token that carries a key. The server opens the notes of the account in memory for the request. It
+returns the notes whose title or text contains `q`, whatever its case, newest first.
 
 ### Sync
 
 | Method   | Path              | Description          |
 |----------|-------------------|----------------------|
-| `GET`    | `/api/v1/sync?since=` | The notes changed since a checkpoint, one page at a time, and on the last page every visible id and the next checkpoint |
+| `GET`    | `/api/v1/sync?since=` | The notes changed since a checkpoint, one page at a time. The last page also has all visible ids and the next checkpoint |
 
 See [Catching up after a reconnect](#catching-up-after-a-reconnect).
 
@@ -330,112 +368,131 @@ See [Catching up after a reconnect](#catching-up-after-a-reconnect).
 
 | Method   | Path              | Description          |
 |----------|-------------------|----------------------|
-| `GET`    | `/api/v1/tokens`     | The caller's personal API tokens (`ApiTokensResponse`), never their secrets |
-| `POST`   | `/api/v1/tokens`     | Mint one (`ApiTokenCreateRequest`); the response carries the secret, once |
-| `DELETE` | `/api/v1/tokens/:id` | Revoke one; sockets opened with it close with `4401` |
+| `GET`    | `/api/v1/tokens`     | The personal API tokens of the caller (`ApiTokensResponse`), never their secrets |
+| `POST`   | `/api/v1/tokens`     | Make one (`ApiTokenCreateRequest`). The response contains the secret, one time |
+| `DELETE` | `/api/v1/tokens/:id` | Revoke one. Sockets opened with it close with `4401` |
 
-A personal API token is a bearer token like a session, under either auth provider. It starts with
-`mfp_`, is stored as a SHA-256 hash, has no sliding expiry (only the one chosen when minting, or none),
-and records when it was last used. Ending a user's sessions (a password change, an admin reset) ends
-their tokens too, since whoever knew the password could have minted one. A user holds at most 50.
+A personal API token is a bearer token, the same as a session, with both auth providers.
 
-A token reaches only what its **scopes** name, chosen when it is minted:
+- It starts with `mfp_`, and is stored as a SHA-256 hash.
+- It has no sliding expiry. It has only the expiry selected when it was made, or none.
+- It records its last use.
+- When the sessions of a user end (a password change, an admin reset), their tokens also end, because
+  a person who knew the password could have made one.
+- A user can have a maximum of 50.
+
+A token reaches only what its **scopes** name. You select them when you make the token:
 
 | Scope | Reaches |
 |---|---|
-| `notes:read` | Listing, reading and searching notes, their versions and images, the export, and `/api/v1/ws` |
-| `notes:write` | Creating, changing, importing and deleting notes, uploading images, link previews, and `/api/v1/yjs`; includes `notes:read` |
-| `sharing` | Inviting people to a note, changing or removing them, answering invitations, finding accounts |
-| `account:read` | `GET /api/v1/auth/me` and the account's preferences |
-| `account:write` | Changing the preferences and the recorded language; includes `account:read` |
+| `notes:read` | List, read and search notes, their versions and images, the export, and `/api/v1/ws` |
+| `notes:write` | Create, change, import and delete notes, upload images, link previews, and `/api/v1/yjs`. Includes `notes:read` |
+| `sharing` | Invite people to a note, change or remove them, answer invitations, find accounts |
+| `account:read` | `GET /api/v1/auth/me` and the preferences of the account |
+| `account:write` | Change the preferences and the recorded language. Includes `account:read` |
 
-A request outside its scopes answers `403` naming the scope it lacks, and a socket closes with `4401`.
-Each operation's scope is `x-token-scope` in `/api/v1/openapi.json`, and an operation that names none is
-closed to tokens. The same document marks what only a session may call (`x-session-only`), what only an
-admin may (`x-admin-only`), and the rate limits an operation counts against (`x-rate-limits`): the
-server enforces each route's protection from that one list, so the document cannot say one thing and
-the route do another. No scope reaches what only a session may do (managing tokens and webhooks, a password
-or email address, two-factor sign-in, `/api/v1/admin/*`), so a token given to a script cannot be used to
-take over its account. Minted without `scopes`, a token gets `notes:read` and `notes:write`, which is
-also what every token from before scopes was narrowed to.
+A request outside its scopes gets `403`, which names the missing scope. A socket closes with `4401`.
 
-A **calendar token** (`kind: "calendar"`, `mfc_`) is not a bearer token at all: nothing accepts it in
-an `Authorization` header. It is the address of the user's reminder feed, `GET
-/api/v1/calendar/<token>.ics`, since a calendar app subscribing to a URL sends no header, and opens that
-and nothing else. It carries no scopes. The feed is iCalendar (`text/calendar`): one event per note
-with a reminder that is not in the trash, at the reminder's time in its timezone (`TZID`), repeating
-as it does (`RRULE`), fifteen minutes long, with an alarm when it starts. It may be cached for five
-minutes; any failure (a wrong, revoked or expired token, or an address without `.ics`) is `404`. See
-[Reminders](features/reminders.md#calendar-feed).
+- The scope of each operation is `x-token-scope` in `/api/v1/openapi.json`. Tokens cannot use an
+  operation that names no scope.
+- The same document marks what only a session can call (`x-session-only`), what only an admin can call
+  (`x-admin-only`), and the rate limits of an operation (`x-rate-limits`). The server enforces the
+  protection of each route from that one list. Thus, the document and the route always agree.
+- No scope reaches the functions that only a session can use (to manage tokens and webhooks, a
+  password or email address, two-factor sign-in, `/api/v1/admin/*`). Thus, a script cannot use its
+  token to take control of its account.
+- A token made without `scopes` gets `notes:read` and `notes:write`. All tokens from before scopes also
+  got only these.
 
-The app makes a feed's address as it makes a token that carries keys (`tokenHash`, `prefix`,
-`wrappedKeys`), and what it wraps is the account's reminder key alone. A sealed note that has a
-reminder carries `reminderKey`, the note key wrapped under its reader's reminder key, which the
-client sends with the reminder; the server clears it when the reminder is cleared or the note's key
-is replaced, and hands it back only to that reader. For a request to the feed's address the server
-opens the reminder key from the address and, through `reminderKey`, each note that has a reminder.
-An event whose note has no copy yet is named "Reminder" and holds no text.
+A **calendar token** (`kind: "calendar"`, `mfc_`) is not a bearer token. Nothing accepts it in an
+`Authorization` header.
 
-`POST /api/v1/tokens` with `"kind": "mcp"` mints a token for an AI assistant instead: it starts with
-`mfm_`, works at `/api/v1/mcp` and nowhere else (the REST API and both sockets answer `403` or close
-with `4401`), and takes only `notes:read` and `notes:write`; with `notes:read` alone it is read only.
-The server refuses one with `403` when it has `MCP` off. Every listed token carries its `kind` and
-`scopes`; one an assistant was given by signing in also carries `oauthClientId`, and its `prefix` is
-that of its first access token only, since each refresh replaces the secret.
+- It is the address of the reminder feed of the user, `GET /api/v1/calendar/<token>.ics`, because a
+  calendar app that subscribes to a URL sends no header. It opens that feed and nothing else. It has
+  no scopes.
+- The feed is iCalendar (`text/calendar`). It has one event for each note with a reminder that is not
+  in the trash: at the time of the reminder in its timezone (`TZID`), with the same repetition
+  (`RRULE`), fifteen minutes long, with an alarm when it starts.
+- Clients can cache it for five minutes. All failures (a wrong, revoked or expired token, or an
+  address without `.ics`) get `404`.
+- See [Reminders](features/reminders.md#calendar-feed).
+
+The app makes the address of a feed as it makes a token that carries keys (`tokenHash`, `prefix`,
+`wrappedKeys`). It wraps only the reminder key of the account.
+
+- A sealed note that has a reminder contains `reminderKey`, the note key wrapped under the reminder key
+  of its reader. The client sends it with the reminder.
+- The server clears it when the reminder is cleared, or when the key of the note is replaced. It gives
+  it back only to that reader.
+- For a request to the address of the feed, the server opens the reminder key from the address. It
+  then opens each note that has a reminder, through `reminderKey`.
+- An event whose note has no copy yet has the name "Reminder", and contains no text.
+
+`POST /api/v1/tokens` with `"kind": "mcp"` makes a token for an AI assistant.
+
+- It starts with `mfm_`. It works at `/api/v1/mcp` and nowhere else (the REST API and both sockets
+  answer `403`, or close with `4401`).
+- It accepts only `notes:read` and `notes:write`. With only `notes:read`, it is read only.
+- The server refuses it with `403` when `MCP` is off.
+- Each listed token contains its `kind` and `scopes`. A token that an assistant got through a sign-in
+  also contains `oauthClientId`. Its `prefix` is only that of its first access token, because each
+  refresh replaces the secret.
 
 ### Generating a client
 
-`GET /api/v1/openapi.json` is an OpenAPI 3.1 document a client generator can read, for any language that
-has one. It is the same on every deployment of a version, and the server prints it without a database
-or any configuration, so a build can generate from it with nothing running:
+`GET /api/v1/openapi.json` is an OpenAPI 3.1 document that a client generator can read, for each
+language that has one. It is the same on all deployments of a version. The server prints it without a
+database or a configuration. Thus, a build can generate code from it with nothing running:
 
 ```sh
 node dist/cli.js openapi > openapi.json        # or: curl https://notes.example/api/v1/openapi.json
 npx openapi-typescript openapi.json -o manifesto.d.ts      # TypeScript types
 ```
 
-For another language, take a generator that reads OpenAPI 3.1 and not only 3.0: the document writes
-a value that may be null the 3.1 way (`type: ["string", "null"]`, or `anyOf` with `null`).
+For a different language, use a generator that reads OpenAPI 3.1, not only 3.0. The document writes a
+value that can be null in the 3.1 way (`type: ["string", "null"]`, or `anyOf` with `null`).
 
-What a generator gets:
+A generator gets:
 
-- an `operationId` for every operation, made of the method and the path's words (`getNotesById` for
-  `GET /api/v1/notes/:id`), unique and changing only when the route does;
-- request bodies that are the schemas the server validates with, converted, so they cannot be out of date;
-- for the public surface, response bodies with every property typed and marked required unless it is
-  optional: the note in full (who it is shared with included), the paged listings, sync, the account,
-  the capabilities, invitations, the user lookup, versions, comments, teams, public links, link
-  previews and uploads. A color, a font and a link preview are each one named type wherever they
-  appear. Operations of the client's own surface (`x-stability: client`) are described by name and
-  loosely;
-- `x-token-scope` on each operation a token reaches, naming the scope it needs.
+- An `operationId` for each operation, made of the method and the words of the path
+  (`getNotesById` for `GET /api/v1/notes/:id`). It is unique, and changes only when the route
+  changes.
+- Request bodies that are the converted schemas with which the server validates. Thus, they are
+  always up to date.
+- For the public surface, response bodies in which each property has a type and is required, unless it
+  is optional. These include the full note (with the persons who share it), the paged listings, sync,
+  the account, the capabilities, invitations, the user lookup, versions, comments, teams, public
+  links, link previews and uploads. A color, a font and a link preview are each one named type in all
+  places. The document describes the operations of the client surface (`x-stability: client`) by
+  name, with less detail.
+- `x-token-scope` on each operation that a token reaches, with the name of the scope that it needs.
 
-`openapi.conformance.test.ts` calls the server and checks its real answers against those response
-schemas, so a field added to a response without the document following fails the build. The schemas
-themselves stay open (no `additionalProperties: false`), so a client generated from one version
-still reads a later server that answers more.
+`openapi.conformance.test.ts` calls the server, and checks its real answers against those response
+schemas. Thus, if a developer adds a field to a response and the document does not have it, the build
+fails. The schemas stay open (no `additionalProperties: false`). Thus, a client generated from one
+version can still read a later server that answers with more fields.
 
-Programs in TypeScript have a shorter road: the wire types are `@manifesto/shared`'s.
+Programs in TypeScript have a shorter way: the wire types are in `@manifesto/shared`.
 
 ### MCP
 
-`POST /api/v1/mcp`: the Model Context Protocol endpoint for AI assistants, taking an MCP token only. See
-[MCP](features/mcp.md).
+`POST /api/v1/mcp`: the Model Context Protocol endpoint for AI assistants. It accepts only an MCP
+token. See [MCP](features/mcp.md).
 
-An assistant can also be given its token by signing in through the browser (OAuth 2.1), described in
-[MCP](features/mcp.md#signing-in-through-the-browser):
+An assistant can also get its token through a sign-in in the browser (OAuth 2.1), as
+[MCP](features/mcp.md#signing-in-through-the-browser) describes:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET`  | `/.well-known/oauth-protected-resource/api/v1/mcp` | Where to sign in for `/api/v1/mcp` (RFC 9728); also without the path |
-| `GET`  | `/.well-known/oauth-authorization-server` | The authorization server's metadata (RFC 8414) |
+| `GET`  | `/.well-known/oauth-protected-resource/api/v1/mcp` | Where to sign in for `/api/v1/mcp` (RFC 9728). Also without the path |
+| `GET`  | `/.well-known/oauth-authorization-server` | The metadata of the authorization server (RFC 8414) |
 | `POST` | `/api/v1/oauth/register` | Register a public client (RFC 7591) |
-| `POST` | `/api/v1/oauth/token` | A form: trade a code and its PKCE verifier, or a refresh token, for an hour's `mfm_` token and the next `mfr_` refresh token |
-| `GET`  | `/api/v1/oauth/client` | Session only: the client a consent is about (`OAuthClientInfo`) |
-| `POST` | `/api/v1/oauth/authorize` | Session only, with the password: agree (`OAuthAuthorizeRequest`), answered with the client's redirect address. With `codeHash` and `wrappedKeys` (the app's own code, and the keys the grant carries wrapped under it) the address comes without a code, which the app adds; without them the server makes the code and the grant reaches no note |
+| `POST` | `/api/v1/oauth/token` | A form: trade a code and its PKCE verifier, or a refresh token, for an `mfm_` token for one hour and the next `mfr_` refresh token |
+| `GET`  | `/api/v1/oauth/client` | Session only: the client of a consent (`OAuthClientInfo`) |
+| `POST` | `/api/v1/oauth/authorize` | Session only, with the password: agree (`OAuthAuthorizeRequest`). The answer is the redirect address of the client. With `codeHash` and `wrappedKeys` (the own code of the app, and the keys of the grant wrapped under it), the address comes without a code, and the app adds it. Without them, the server makes the code, and the grant reaches no note |
 
-The first four answer any origin (CORS `*`), since they carry nothing a browser adds by itself.
-`/api/v1/capabilities` says whether the server offers this, in `features.mcpSignIn`.
+The first four answer all origins (CORS `*`), because they contain nothing that a browser adds by
+itself. `features.mcpSignIn` in `/api/v1/capabilities` tells if the server offers this.
 
 ### Webhooks
 
@@ -443,24 +500,25 @@ The first four answer any origin (CORS `*`), since they carry nothing a browser 
 
 ### Push
 
-Session-only, and the web client's own. See [Reminders](features/reminders.md#push-from-the-server).
+Session only. These routes are for the web client. See
+[Reminders](features/reminders.md#push-from-the-server).
 
 | Method   | Path                      | Description |
 |----------|---------------------------|-------------|
-| `GET`    | `/api/v1/push/key`           | The server's push public key, for `pushManager.subscribe`: `{ publicKey }` |
-| `POST`   | `/api/v1/push/subscriptions` | Keep this browser's subscription: `{ endpoint, keys: { p256dh, auth } }`, `204`. The endpoint must be `https`; one already held is replaced |
+| `GET`    | `/api/v1/push/key`           | The push public key of the server, for `pushManager.subscribe`: `{ publicKey }` |
+| `POST`   | `/api/v1/push/subscriptions` | Keep the subscription of this browser: `{ endpoint, keys: { p256dh, auth } }`, `204`. The endpoint must be `https`. It replaces an existing subscription with the same endpoint |
 | `DELETE` | `/api/v1/push/subscriptions` | Forget it: `{ endpoint }`, `204`. Stays open with `WEB_PUSH` off |
 
 ### Version history
 
 | Method   | Path                         | Description          |
 |----------|------------------------------|----------------------|
-| `GET`    | `/api/v1/notes/:id/versions`    | The note's versions, newest first: `{ versions: SealedNoteVersion[] }` |
-| `POST`   | `/api/v1/notes/:id/versions`    | Add a version (`SealedNoteVersionCreateRequest`); owner and editors |
+| `GET`    | `/api/v1/notes/:id/versions`    | The versions of the note, newest first: `{ versions: SealedNoteVersion[] }` |
+| `POST`   | `/api/v1/notes/:id/versions`    | Add a version (`SealedNoteVersionCreateRequest`). Owner and editors |
 
-A version's `title` and `content` are sealed under the note key and bound to the version's own
-`id`, which the client chooses (`409` for one that is taken). `keyVersion` says which note key it is
-under, and `format` which [format](data-model.md#format) its words are in.
+The `title` and `content` of a version are sealed under the note key, and bound to the own `id` of the
+version, which the client selects (`409` for an id that is taken). `keyVersion` tells under which note
+key it is, and `format` tells the [format](data-model.md#format) of its words.
 
 See [Version History](features/version-history.md).
 
@@ -468,387 +526,462 @@ See [Version History](features/version-history.md).
 
 | Method   | Path                     | Description          |
 |----------|--------------------------|----------------------|
-| `POST`   | `/api/v1/attachments`       | Upload an image sealed in the browser: the sealed bytes, its address in `X-Attachment-Address`; answers `{ ref }` |
-| `POST`   | `/api/v1/attachments/claim` | Make images the owner's of the note about to name them: `{ noteId?, refs }`, answered with `{ refs }`, the reference to name for each |
-| `GET`    | `/api/v1/attachments/:id`   | The sealed bytes of an image a note refers to as `attachment:<id>`, as `application/octet-stream` |
+| `POST`   | `/api/v1/attachments`       | Upload an image sealed in the browser: the sealed bytes, and its address in `X-Attachment-Address`. The answer is `{ ref }` |
+| `POST`   | `/api/v1/attachments/claim` | Give images to the owner of the note that will name them: `{ noteId?, refs }`. The answer is `{ refs }`, the reference to name for each |
+| `GET`    | `/api/v1/attachments/:id`   | The sealed bytes of an image to which a note refers as `attachment:<id>`, as `application/octet-stream` |
 
-A note's sealed `images` names `attachment:<id>` references from uploads, with the key and type of
-each; see [Attachments](features/attachments.md).
+The sealed `images` of a note names `attachment:<id>` references from uploads, with the key and the
+type of each. See [Attachments](features/attachments.md).
 
-A token that carries keys sends and is sent the image itself:
+A token that carries keys sends and gets the image itself:
 
-- `POST /api/v1/attachments` takes the image's bytes with no `X-Attachment-Address`. The server
-  checks that they are a PNG, JPEG, GIF, WebP or AVIF image (`415` otherwise, whatever the
-  `Content-Type` says), seals them, and answers `{ ref }` to put in a note's `images`.
+- `POST /api/v1/attachments` takes the bytes of the image, with no `X-Attachment-Address`. The server
+  checks that they are a PNG, JPEG, GIF, WebP or AVIF image (if not, `415`, whatever the
+  `Content-Type` says). It seals them, and answers `{ ref }` to put in the `images` of a note.
 - `GET /api/v1/attachments/:id?note=<note id>` answers the image, with its own `Content-Type`. `note`
-  is a note the token's account holds that names the image: the key that opens an image is inside
-  the note. It may be left out for an image the same account uploaded with a token, and is `400`
-  when it is needed and missing.
-- A token attaches images to notes its own account owns. One uploaded for a note someone else owns
-  is refused when the note is written (`422`), as any image that is not the owner's is.
+  is a note of the account of the token that names the image. The key that opens an image is inside
+  the note. You can omit it for an image that the same account uploaded with a token. It gets `400`
+  when it is necessary and missing.
+- A token attaches images to notes that its own account owns. If it uploads an image for a note that a
+  different person owns, the server refuses the image when the note is written (`422`), as for all
+  images that do not belong to the owner.
 
 ### Link previews
 
 | Method   | Path                     | Description          |
 |----------|--------------------------|----------------------|
-| `GET`    | `/api/v1/link-preview?url=` | Read a page's title, description, image and favicon |
+| `GET`    | `/api/v1/link-preview?url=` | Read the title, description, image and favicon of a page |
 
-Requires authentication. `url` must be `http` or `https` and at most 2048
-characters, or the server replies `422`. The response is
-`{ "preview": LinkPreview | null }`: `null` when the page could not be fetched
-(it was down, not HTML, too slow, or on an address that is not public), which is
-an ordinary answer rather than an error. `image` and `favicon` are the source
-images as fetched, inlined as `data:` URLs of up to 1.5 MB, and are **not** the
-form a note stores: the client shrinks each to at most 64 KB and uploads it with
-`POST /api/v1/attachments`, and the note holds the reference. A
-server with previews turned off (`LINK_PREVIEWS=off`) replies `404`, as for a route it does not have. Limited to
-40 requests a minute per user, on top of the general API limit. What the server
-will and will not fetch is in [Link Previews](features/link-previews.md#what-the-server-fetches).
+It requires authentication.
+
+- `url` must be `http` or `https`, with a maximum of 2048 characters. If not, the server sends `422`.
+- The response is `{ "preview": LinkPreview | null }`. It is `null` when the server could not get the
+  page (it was down, not HTML, too slow, or on an address that is not public). This is a usual answer,
+  not an error.
+- `image` and `favicon` are the source images as the server got them, inlined as `data:` URLs of up to
+  1.5 MB. They are **not** the form that a note stores. The client makes each one 64 KB or smaller,
+  and uploads it with `POST /api/v1/attachments`. The note contains the reference.
+- A server with previews off (`LINK_PREVIEWS=off`) sends `404`, as for a route that it does not have.
+- The limit is 40 requests each minute for each user, in addition to the general API limit.
+
+[Link Previews](features/link-previews.md#what-the-server-fetches) tells what the server gets and does
+not get.
 
 ### Authentication
 
-Endpoints under `/api/v1/auth/*` are owned by the configured auth provider. Two providers ship today:
+The configured auth provider owns the endpoints under `/api/v1/auth/*`. There are two providers now:
 
 **Local** (`AUTH_PROVIDER=local`):
 
 | Method   | Path                  | Description          |
 |----------|-----------------------|----------------------|
-| `POST`   | `/api/v1/auth/register`  | Create account: `{ username, password, email? }` |
+| `POST`   | `/api/v1/auth/register`  | Create an account: `{ username, password, email? }` |
 | `POST`   | `/api/v1/auth/login`     | Log in               |
 | `POST`   | `/api/v1/auth/logout`    | Log out              |
 | `POST`   | `/api/v1/auth/password`  | Change your own password |
-| `GET`    | `/api/v1/auth/two-factor` | Whether two-factor is on, and whether an authenticator app is set up: `{ enabled, authenticator }` |
-| `POST`   | `/api/v1/auth/two-factor/setup`, `/enable`, `/disable` | The authenticator app; `enable` and `disable` answer `204` |
+| `GET`    | `/api/v1/auth/two-factor` | If two-factor is on, and if an authenticator app is set up: `{ enabled, authenticator }` |
+| `POST`   | `/api/v1/auth/two-factor/setup`, `/enable`, `/disable` | The authenticator app. `enable` and `disable` answer `204` |
 | `GET`    | `/api/v1/auth/passkeys`  | Your passkeys (`PasskeysResponse`), never their keys |
 | `POST`   | `/api/v1/auth/passkeys/options` | With `{ password }`: options for `navigator.credentials.create()` |
-| `POST`   | `/api/v1/auth/passkeys`  | `{ name?, response }`: add the passkey the browser made |
+| `POST`   | `/api/v1/auth/passkeys`  | `{ name?, response }`: add the passkey that the browser made |
 | `DELETE` | `/api/v1/auth/passkeys/:id` | With `{ password }`: remove one |
-| `POST`   | `/api/v1/auth/passkey/options` | Public: a challenge to sign in with a passkey alone |
-| `POST`   | `/api/v1/auth/passkey/login` | Public: `{ response }`, the browser's answer; `AuthSuccessResponse` |
-| `POST`   | `/api/v1/auth/sign-in-link` | Public: `{ email, locale? }`, mails a sign-in link; always `204` |
-| `POST`   | `/api/v1/auth/sign-in-link/confirm` | Public: `{ token, otp?, passkey? }`; `AuthSuccessResponse` |
-| `POST`   | `/api/v1/auth/recovery`  | Public: `{ username, verifier }`, the first step of signing in with the [recovery key](#account-keys); `RecoveryOpenResponse` |
-| `POST`   | `/api/v1/auth/recovery/complete` | Public: the second step, with `newPassword` and the new wrapped keys; `AuthSuccessResponse` |
+| `POST`   | `/api/v1/auth/passkey/options` | Public: a challenge to sign in with only a passkey |
+| `POST`   | `/api/v1/auth/passkey/login` | Public: `{ response }`, the answer of the browser. `AuthSuccessResponse` |
+| `POST`   | `/api/v1/auth/sign-in-link` | Public: `{ email, locale? }`, sends a sign-in link by mail. Always `204` |
+| `POST`   | `/api/v1/auth/sign-in-link/confirm` | Public: `{ token, otp?, passkey? }`. `AuthSuccessResponse` |
+| `POST`   | `/api/v1/auth/recovery`  | Public: `{ username, verifier }`, the first step of a sign-in with the [recovery key](#account-keys). `RecoveryOpenResponse` |
+| `POST`   | `/api/v1/auth/recovery/complete` | Public: the second step, with `newPassword` and the new wrapped keys. `AuthSuccessResponse` |
 
-Passkey options and answers are WebAuthn's JSON forms, binary values as base64url. A ceremony is
-accepted only from a page this server's client is served from (an `Origin` in `CORS_ORIGINS`, that of
-`APP_URL`, or this server's own), whose host is the relying party ID; any other is `400`. Each challenge
-is good once, for five minutes, and for the purpose and account it was issued to. Signing in with a
-passkey alone wants the device to have verified its user, is throttled at 60 requests per 15 minutes
-per address, and answers any failure with the same `401`. See
-[Accounts](features/accounts.md#two-factor-sign-in).
+Passkey options and answers use the JSON forms of WebAuthn, with binary values as base64url.
 
-`POST /api/v1/auth/login` takes `{ username, password }`, and an optional
-`newPassword` that is read only when the account holds a temporary password an
-admin issued. Without it such a sign-in answers `403`
-`{ "error": "...", "code": "password_change_required" }` and issues no session;
-with it (at least 8 characters, and different from the temporary one) the server
-sets the new password and signs in. A wrong password is `401` either way, so
-the flag is never disclosed to a guess. See
-[Account Administration](features/accounts.md#temporary-passwords).
+- The server accepts a ceremony only from a page from which the client of this server is served (an
+  `Origin` in `CORS_ORIGINS`, that of `APP_URL`, or the origin of this server). The host of that page
+  is the relying party ID. All other origins get `400`.
+- Each challenge is good one time, for five minutes, and only for its purpose and its account.
+- A sign-in with only a passkey requires that the device verified its user. It has a throttle of 60
+  requests each 15 minutes for each address. All failures get the same `401`.
 
-With two-factor sign-in on, a right password answers `403` with
-`code: "two_factor_required"` and `twoFactor: { authenticator, passkey }`: whether
-the account has an authenticator app, and a challenge for its passkeys on this
-address (null when it has none there). The same request sent again with `otp`
-(an authenticator code) or `passkey` (the browser's answer) signs in. There are no recovery
-codes: an account that has lost its factors signs in with its [recovery key](#account-keys).
+See [Accounts](features/accounts.md#two-factor-sign-in).
 
-`POST /api/v1/auth/sign-in-link/confirm` signs in with the token of a mailed link (`MAGIC_LINKS`, and only
-with `SMTP_URL`; otherwise both routes are `404`). A token that is unknown, used or older than 15 minutes
-is `410`. For an account with two-factor sign-in it answers the same `403` `two_factor_required` as
-`/login`, and the same request sent again with `otp` or `passkey` signs in; a wrong one is `401`
-`two_factor_invalid` and leaves the link usable. Such an account is `429` with `Retry-After` while its
-budget of failed sign-ins is spent; one without a second factor is not. See
-[Accounts](features/accounts.md#signing-in-with-a-link).
+`POST /api/v1/auth/login` takes `{ username, password }`, and an optional `newPassword`. The server
+reads `newPassword` only when the account has a temporary password from an admin.
 
-Sign-in is budgeted twice over, and either budget answers `429` with a
-`Retry-After` header. Per source address, 10 requests every 15 minutes, shared
-with `/register` and `/password`: an IPv6 client is counted on its /64, since
-the addresses inside one belong to a single subscriber and counting the whole
-address would let one of them rotate freely. Per account name, 10 failed
-sign-ins every 15 minutes, which is the part a caller moving between addresses
-cannot escape. The right password clears the name's count, and the lock lapses
-with the window rather than waiting for an admin. A name nobody holds is
-counted exactly like one that exists, and costs the same password verify, so
-neither the refusal, its timing, nor the lock reports which accounts are there.
-Both counts live in the server process, so with more than one node each holds
-its own.
+- Without it, such a sign-in gets `403` `{ "error": "...", "code": "password_change_required" }`, and
+  no session.
+- With it (8 characters or more, and different from the temporary password), the server sets the new
+  password and signs in.
+- A wrong password gets `401` in both cases. Thus, a guess never learns about the flag.
 
-`POST /api/v1/auth/password` is bearer-protected and takes
-`{ currentPassword, newPassword }`. It answers `204`, then ends every other
-session of the account and closes their sockets; the calling session carries on.
-A wrong current password is `403`, not `401`, because the session itself is
-fine. A new password equal to the current one is `422`, and an account with no
-password (single sign-on) is `409`. It shares the sign-in throttle.
+See [Account Administration](features/accounts.md#temporary-passwords).
+
+With two-factor sign-in on, a correct password gets `403` with `code: "two_factor_required"` and
+`twoFactor: { authenticator, passkey }`. These tell if the account has an authenticator app, and give
+a challenge for its passkeys on this address (null when it has none there). The same request sent
+again with `otp` (an authenticator code) or `passkey` (the answer of the browser) signs in. There are
+no recovery codes. An account that lost its factors signs in with its
+[recovery key](#account-keys).
+
+`POST /api/v1/auth/sign-in-link/confirm` signs in with the token of a mailed link (`MAGIC_LINKS`, and
+only with `SMTP_URL`; if not, both routes get `404`).
+
+- A token that is unknown, used, or older than 15 minutes gets `410`.
+- For an account with two-factor sign-in, it gets the same `403` `two_factor_required` as `/login`.
+  The same request sent again with `otp` or `passkey` signs in. A wrong one gets `401`
+  `two_factor_invalid`, and the link stays usable.
+- Such an account gets `429` with `Retry-After` while its budget of failed sign-ins is used up. An
+  account without a second factor does not.
+
+See [Accounts](features/accounts.md#signing-in-with-a-link).
+
+Sign-in has two budgets. Each budget answers `429` with a `Retry-After` header.
+
+- **For each source address**: 10 requests each 15 minutes, shared with `/register` and `/password`.
+  The server counts an IPv6 client on its /64, because the addresses inside one /64 belong to one
+  subscriber. If the server counted the full address, that subscriber could change it freely.
+- **For each account name**: 10 failed sign-ins each 15 minutes. A caller that moves between addresses
+  cannot avoid this part. The correct password clears the count of the name. The lock ends with the
+  window. It does not wait for an admin.
+- The server counts a name that no account has in exactly the same way as a name that exists, with
+  the same password verification. Thus, the refusal, its time, and the lock do not tell which accounts
+  exist.
+- Both counts are in the server process. Thus, with more than one node, each node has its own counts.
+
+`POST /api/v1/auth/password` needs a bearer token, and takes `{ currentPassword, newPassword }`.
+
+- It answers `204`. Then it ends all other sessions of the account, and closes their sockets. The
+  calling session continues.
+- A wrong current password gets `403`, not `401`, because the session itself is correct.
+- A new password that is the same as the current password gets `422`. An account with no password
+  (single sign-on) gets `409`.
+- It shares the sign-in throttle.
 
 **OIDC** (`AUTH_PROVIDER=oidc`):
 
 | Method   | Path                  | Description                                                              |
 |----------|-----------------------|--------------------------------------------------------------------------|
-| `GET`    | `/api/v1/auth/login`     | 302 to the IdP's authorization endpoint (Authorization Code Flow + PKCE) |
-| `GET`    | `/api/v1/auth/callback`  | IdP redirects here; server exchanges code, mints session, 302 to client  |
+| `GET`    | `/api/v1/auth/login`     | 302 to the authorization endpoint of the IdP (Authorization Code Flow + PKCE) |
+| `GET`    | `/api/v1/auth/callback`  | The IdP redirects here. The server exchanges the code, makes a session, and sends a 302 to the client |
 | `POST`   | `/api/v1/auth/logout`    | Log out                                                                  |
 
-The login flow is bound to one browser. `GET /api/v1/auth/login` sets a
-`manifesto_oidc_flow` cookie (`HttpOnly`, `SameSite=Lax`, `Path=/api/v1/auth`,
-`Secure` when the redirect URI is https) holding the `state` it issued, and the
-callback rejects any request whose cookie does not match its `state` parameter.
-Without that, a callback URL captured from an attacker's own login can be
-replayed at a victim to sign them into the attacker's account. The cookie is
-cleared as soon as a callback is spent, so it is never a long-lived credential.
-Both endpoints are throttled per IP (30 requests / 15 minutes, shared).
+The login flow is bound to one browser.
+
+- `GET /api/v1/auth/login` sets a `manifesto_oidc_flow` cookie (`HttpOnly`, `SameSite=Lax`,
+  `Path=/api/v1/auth`, `Secure` when the redirect URI is https) that contains the `state` that it
+  gave.
+- The callback refuses each request whose cookie does not match its `state` parameter. Without this,
+  an attacker can capture a callback URL from their own login, and send it to a victim. The victim then
+  signs in to the account of the attacker.
+- The server clears the cookie immediately after a callback uses it. Thus, it is never a long-lived
+  credential.
+- Both endpoints have a throttle for each IP (30 requests in 15 minutes, shared).
 
 **Provider-agnostic** (always available):
 
 | Method   | Path                  | Description                                                              |
 |----------|-----------------------|--------------------------------------------------------------------------|
-| `GET`    | `/api/v1/auth/me`        | Bearer-protected: `{ user: AuthUser }`. Used by the client to fetch the current user from a token (e.g. after consuming an OIDC callback fragment), and on start to pick up admin rights granted or revoked since sign-in. |
-| `PUT`    | `/api/v1/auth/me`        | Bearer-protected: set or clear (`null`) your own email address with `{ email }`: `{ user: AuthUser }`. An account that signs in with single sign-on is `409`, since the identity provider owns its address. |
-| `DELETE` | `/api/v1/auth/me`        | A session only: delete your own account and everything it holds, with `{ password }` as below: `204`. The last admin is `409`. Its sessions end and its notes leave everyone they were shared with. See [Accounts](features/accounts.md#deleting-your-own-account). |
-| `GET`    | `/api/v1/auth/me/activity` | A session only: your own lines of the audit log, where you are the actor or the target, newest first, as `AuditLogResponse` (`limit`, `before`). An entry where someone else acted on you has `ip: null`. |
-| `GET`    | `/api/v1/auth/me/prefs`  | Bearer-protected: your [preferences](features/preferences.md) as your clients sent them, `{ prefs }`, a flat object whose values are each sealed under the account's personal key and bound to their name. `{}` until a client has sent any. |
-| `PATCH`  | `/api/v1/auth/me/prefs`  | Bearer-protected: set some preferences with `{ prefs }`, each value sealed and a key set to `null` removing it: `{ prefs }` with the result. At most 100 keys of up to 64 characters; `422` for a value that is not a ciphertext, `413` if the result would pass 32 KB as JSON. Every socket of the account hears `prefs:updated`. |
-| `PUT`    | `/api/v1/auth/me/locale` | Bearer-protected: record the language your client is set to with `{ locale }` (a tag such as `fi`): `204`. `AuthUser.locale` gives it back. Mail sent to you by someone else's action, a share invitation, is written in it. |
+| `GET`    | `/api/v1/auth/me`        | Needs a bearer token: `{ user: AuthUser }`. The client uses it to get the current user from a token (for example, after it reads an OIDC callback fragment), and at start to get admin rights given or removed since the sign-in. |
+| `PUT`    | `/api/v1/auth/me`        | Needs a bearer token: set or clear (`null`) your own email address with `{ email }`: `{ user: AuthUser }`. An account that signs in with single sign-on gets `409`, because the identity provider owns its address. |
+| `DELETE` | `/api/v1/auth/me`        | Only a session: delete your own account and all of its data, with `{ password }` as below: `204`. The last admin gets `409`. Its sessions end, and its notes go out of the notes of all persons who shared them. See [Accounts](features/accounts.md#deleting-your-own-account). |
+| `GET`    | `/api/v1/auth/me/activity` | Only a session: your own lines of the audit log, where you are the actor or the target, newest first, as `AuditLogResponse` (`limit`, `before`). An entry where a different person acted on you has `ip: null`. |
+| `GET`    | `/api/v1/auth/me/prefs`  | Needs a bearer token: your [preferences](features/preferences.md) as your clients sent them, `{ prefs }`. It is a flat object. Each value is sealed under the personal key of the account, and bound to its name. `{}` until a client sent some. |
+| `PATCH`  | `/api/v1/auth/me/prefs`  | Needs a bearer token: set some preferences with `{ prefs }`. Each value is sealed. A key set to `null` removes it. The answer is `{ prefs }` with the result. A maximum of 100 keys of up to 64 characters. `422` for a value that is not a ciphertext. `413` if the result would be larger than 32 KB as JSON. All sockets of the account get `prefs:updated`. |
+| `PUT`    | `/api/v1/auth/me/locale` | Needs a bearer token: record the language of your client with `{ locale }` (a tag such as `fi`): `204`. `AuthUser.locale` gives it back. Mail that a different person causes for you, a share invitation, is in this language. |
 
 #### Account keys
 
-The keys an account's notes are encrypted with ([Encryption](features/encryption.md#keys)) are made
-and wrapped in the browser. The server stores them, hands them back to the account's own sessions and
-can open none of them. All of these are session-only, and the ones that check a password or the
-recovery key are throttled like a sign-in (10 requests per 15 minutes per address, and the per-name
-budget of failed attempts).
+The browser makes and wraps the keys with which the notes of an account are encrypted
+([Encryption](features/encryption.md#keys)). The server stores them, and gives them back to the own
+sessions of the account. It can open none of them. All of these routes are session-only. The routes
+that check a password or the recovery key have the same throttle as a sign-in (10 requests in 15
+minutes for each address, and the budget of failed attempts for each name).
 
 | Method   | Path                              | Description |
 |----------|-----------------------------------|-------------|
-| `GET`    | `/api/v1/auth/keys`                  | `AccountKeysResponse`: `{ keys, sessionEndsAt }`. `keys` is null before the account is set up, and otherwise `{ version, wrappedBySecret, publicKeys, wrappedPrivateKeys }`. `sessionEndsAt` is when this session ends at the latest, which is when a device removes the keys it holds. |
-| `PUT`    | `/api/v1/auth/keys`                  | `AccountKeysSetupRequest`: the account's first keys. `204`, or `409` once it has some. |
-| `DELETE` | `/api/v1/auth/keys`                  | With `{ password? }`: remove the account's keys, so it is set up again. For when the secret key and the recovery key are both lost. `204`; ends the account's other sessions and tokens. |
-| `POST`   | `/api/v1/auth/keys/confirm`          | With `{ password? }`: `204` when the [confirmation](features/accounts.md#confirming-a-change-from-a-session) holds. The client asks before it shows the secret key it holds. |
-| `POST`   | `/api/v1/auth/keys/secret`           | `{ password?, wrappedBySecret }`: a new secret key. `204`; ends the account's other sessions, and leaves its tokens. |
+| `GET`    | `/api/v1/auth/keys`                  | `AccountKeysResponse`: `{ keys, sessionEndsAt }`. `keys` is null before the account is set up. After that, it is `{ version, wrappedBySecret, publicKeys, wrappedPrivateKeys }`. `sessionEndsAt` is the last possible end of this session. At that time, a device removes the keys that it holds. |
+| `PUT`    | `/api/v1/auth/keys`                  | `AccountKeysSetupRequest`: the first keys of the account. `204`, or `409` when it already has keys. |
+| `DELETE` | `/api/v1/auth/keys`                  | With `{ password? }`: remove the keys of the account, so that it is set up again. This is for when the secret key and the recovery key are both lost. `204`. It ends the other sessions and the tokens of the account. |
+| `POST`   | `/api/v1/auth/keys/confirm`          | With `{ password? }`: `204` when the [confirmation](features/accounts.md#confirming-a-change-from-a-session) is correct. The client asks before it shows the secret key that it holds. |
+| `POST`   | `/api/v1/auth/keys/secret`           | `{ password?, wrappedBySecret }`: a new secret key. `204`. It ends the other sessions of the account, and keeps its tokens. |
 | `POST`   | `/api/v1/auth/keys/recovery`         | `{ password?, wrappedByRecovery, recoveryVerifier }`: a new recovery key. `204`. |
-| `POST`   | `/api/v1/auth/keys/recover`          | `{ verifier }`: the first step of using the recovery key while signed in. `RecoveryOpenResponse`: `{ userId, version, wrappedByRecovery, hasPassword }`. A wrong key is `403` with `code: "recovery_key_invalid"`. |
-| `POST`   | `/api/v1/auth/keys/recover/complete` | `{ verifier, wrappedBySecret, wrappedByRecovery, recoveryVerifier }`: the second step, a new secret key and recovery key in place of the ones used. `204`; `409` if the recovery key was spent meanwhile. Ends the account's other sessions and tokens. |
+| `POST`   | `/api/v1/auth/keys/recover`          | `{ verifier }`: the first step to use the recovery key while signed in. `RecoveryOpenResponse`: `{ userId, version, wrappedByRecovery, hasPassword }`. A wrong key gets `403` with `code: "recovery_key_invalid"`. |
+| `POST`   | `/api/v1/auth/keys/recover/complete` | `{ verifier, wrappedBySecret, wrappedByRecovery, recoveryVerifier }`: the second step, a new secret key and recovery key in place of the used keys. `204`. `409` if the recovery key was used in the meantime. It ends the other sessions and the tokens of the account. |
 
-Every wrapped key is a ciphertext: `e1.` and the base64url of a nonce, the AES-256-GCM ciphertext
-and its tag. The server refuses anything else in its place with `422`, which is all it can check. A
-public key is an uncompressed P-256 point as base64url. The recovery key never reaches the server:
-`verifier` is 32 bytes the browser derives from it, as base64url, and the server holds its SHA-256.
+Each wrapped key is a ciphertext: `e1.` and the base64url of a nonce, the AES-256-GCM ciphertext and
+its tag. The server refuses all other values in its place with `422`. That is all that it can check.
+A public key is an uncompressed P-256 point as base64url. The recovery key never goes to the server.
+`verifier` is 32 bytes that the browser derives from it, as base64url. The server keeps its SHA-256.
 
-`POST /api/v1/auth/recovery` and `/api/v1/auth/recovery/complete` are the same two steps with nobody signed
-in, for a local account that has lost its password or its second factors: they take `username`
-beside the rest, the second takes `newPassword`, sets it, ends every session and token the account
-had and answers `AuthSuccessResponse`. A wrong key and a username nobody holds answer the same `401`.
-An account that signs in through single sign-on signs in there and uses the routes above.
+`POST /api/v1/auth/recovery` and `/api/v1/auth/recovery/complete` are the same two steps with nobody
+signed in. They are for a local account that lost its password or its second factors.
 
-`AuthUser` is `{ id, username, displayName, avatarColor, email, isAdmin }`, where `email` is a
-string or `null`.
+- They take `username` with the other values.
+- The second step takes `newPassword` and sets it. It ends all sessions and tokens of the account,
+  and answers `AuthSuccessResponse`.
+- A wrong key and a username that no account has get the same `401`.
+- An account that signs in through single sign-on signs in there, and uses the routes above.
 
-An email address is checked only for its shape (something, `@`, something; at most 254
-characters), is unique regardless of case, and is optional. One another account holds is `409`
-with `code: "email_taken"`, wherever it is given: registering, `PUT /api/v1/auth/me`, or the admin
-routes. See [Account Administration](features/accounts.md#email-addresses).
+`AuthUser` is `{ id, username, displayName, avatarColor, email, isAdmin }`. `email` is a string or
+`null`.
+
+The server checks only the shape of an email address (something, `@`, something; a maximum of 254
+characters). It is unique, whatever the case, and it is optional. An address that a different account
+has gets `409` with `code: "email_taken"`, in all places where you give it: registration,
+`PUT /api/v1/auth/me`, or the admin routes. See
+[Account Administration](features/accounts.md#email-addresses).
 
 ### Administration
 
-Bearer-protected, and the caller must be an admin, which is checked against the
-database on every request (`403` otherwise). Shares the per-user API limit. See
+These routes need a bearer token, and the caller must be an admin. The server checks this against
+the database on each request (if not, `403`). They share the API limit for each user. See
 [Account Administration](features/accounts.md) for the rules.
 
 | Method   | Path                              | Description |
 |----------|-----------------------------------|-------------|
-| `GET`    | `/api/v1/admin/users`                | Every account, by username: `{ users: AdminUser[] }` |
+| `GET`    | `/api/v1/admin/users`                | All accounts, by username: `{ users: AdminUser[] }` |
 | `POST`   | `/api/v1/admin/users`                | Create an account from `{ username, email? }`: `201` `{ user, temporaryPassword }` |
-| `PUT`    | `/api/v1/admin/users/:id`            | Grant or revoke admin with `{ isAdmin }`, set or clear the address with `{ email }`, or both: `{ user }` |
-| `POST`   | `/api/v1/admin/users/:id/password`   | Reset the password and end every session of the account: `{ user, temporaryPassword }` |
+| `PUT`    | `/api/v1/admin/users/:id`            | Give or remove admin rights with `{ isAdmin }`, set or clear the address with `{ email }`, or both: `{ user }` |
+| `POST`   | `/api/v1/admin/users/:id/password`   | Reset the password, and end all sessions of the account: `{ user, temporaryPassword }` |
 | `DELETE` | `/api/v1/admin/users/:id`            | Delete the account with its notes and sessions: `204` |
-| `GET`    | `/api/v1/admin/checks`               | What the overview's [setup checks](features/accounts.md#setup-checks) read: `{ appUrl, trustProxy, proxy, backup, mail }` |
-| `POST`   | `/api/v1/admin/checks/mail`          | Send a test message to the caller's own address: `{ sent }`. `409` without mail set up or an address on the account |
+| `GET`    | `/api/v1/admin/checks`               | What the [setup checks](features/accounts.md#setup-checks) of the overview read: `{ appUrl, trustProxy, proxy, backup, mail }` |
+| `POST`   | `/api/v1/admin/checks/mail`          | Send a test message to the own address of the caller: `{ sent }`. `409` without a mail setup, or without an address on the account |
 
 `AdminUser` is `{ id, username, displayName, avatarColor, email, isAdmin, provider,
-mustChangePassword, noteCount, createdAt, lastSeenAt }`, where `provider` is
-`"local"` or `"oidc"` and `lastSeenAt` is the latest use of any of the account's
-sessions, or `null` when it has none.
+mustChangePassword, noteCount, createdAt, lastSeenAt }`. `provider` is `"local"` or `"oidc"`.
+`lastSeenAt` is the latest use of a session of the account, or `null` when it has none.
 
-- The temporary password appears in that one response and is stored only as a
-  hash; it cannot be fetched again.
-- Creating an account and resetting a password are `404` under
-  `AUTH_PROVIDER=oidc`, where the identity provider owns both. Resetting the
-  password of an account that signs in with single sign-on is `409`.
-- A taken username is `409`, and an invalid one `422`. A taken email address is `409` with
-  `code: "email_taken"`. A `PUT` with neither field is `422`.
-- Acting on your own account (`PUT`, reset or `DELETE` with your own id) is
-  `409`, as is anything that would leave the server with no admin.
-- An unknown id is `404`.
+- The temporary password shows only in that one response. The server stores only a hash. You cannot
+  get it again.
+- Creating an account and resetting a password get `404` with `AUTH_PROVIDER=oidc`, where the
+  identity provider owns both. A password reset of an account that signs in with single sign-on gets
+  `409`.
+- A username that is taken gets `409`, and an invalid username `422`. An email address that is taken
+  gets `409` with `code: "email_taken"`. A `PUT` with neither field gets `422`.
+- An action on your own account (`PUT`, reset or `DELETE` with your own id) gets `409`. So does each
+  action that would leave the server with no admin.
+- An unknown id gets `404`.
 
-All `/api/v1/notes`, `/api/v1/search`, `/api/v1/invitations` and `/api/v1/users` endpoints require authentication. Requests include a session token in the `Authorization: Bearer <token>` header. The token format and the way it is issued depend on the auth provider; clients treat it as opaque.
+All `/api/v1/notes`, `/api/v1/search`, `/api/v1/invitations` and `/api/v1/users` endpoints require
+authentication. Requests send a session token in the `Authorization: Bearer <token>` header. The auth
+provider controls the token format and how the token is given. Clients treat it as opaque.
 
 ### Capabilities
 
-`GET /api/v1/capabilities` is public, and says what the server is and offers, as `CapabilitiesResponse`:
-its `version`, how to sign in (`auth`: the providers, whether the password form is folded away, whether
-registration, reset by mail, sign-in by a mailed link and passkey sign-in are on), which features are on (`features`: one
-boolean for each feature a host can turn off, below, plus `mcpSignIn` and `userLookup`, how people
-are found to share with), the
-`limits` a caller would otherwise meet as a `413`, `409` or `422` (request and image bytes, images and
-link previews per note, notes per page and per import, versions kept and for how long, tokens,
-webhooks and passkeys per account, public link views, preferences bytes), `editorSchemaVersion`, and
-`defaultPrefs`, the preferences the host set as the server's defaults (`DEFAULT_PREFS`, empty unless
-set; see [Preferences](features/preferences.md#defaults-from-the-server)).
-Each value is read from what enforces it, so it cannot drift from the server's behaviour.
+`GET /api/v1/capabilities` is public. It tells what the server is and what it offers, as
+`CapabilitiesResponse`:
 
-The web client reads it before anyone signs in, to choose what to show. It replaced
-`GET /api/v1/auth/methods`, which is gone.
+- `version`.
+- How to sign in (`auth`): the providers, if the password form is folded away, and if registration,
+  reset by mail, sign-in by a mailed link and passkey sign-in are on.
+- Which features are on (`features`): one boolean for each feature that a host can turn off (below),
+  and `mcpSignIn` and `userLookup` (how people are found for a share).
+- The `limits` that a caller would otherwise meet as a `413`, `409` or `422`: request and image bytes,
+  images and link previews for each note, notes for each page and for each import, the number and age
+  of kept versions, tokens, webhooks and passkeys for each account, public link views, and preference
+  bytes.
+- `editorSchemaVersion`.
+- `defaultPrefs`: the preferences that the host set as the defaults of the server (`DEFAULT_PREFS`,
+  empty unless set; see [Preferences](features/preferences.md#defaults-from-the-server)).
+
+The server reads each value from the code that enforces it. Thus, it always agrees with the behavior
+of the server.
+
+The web client reads it before a person signs in, to select what to show. It replaced
+`GET /api/v1/auth/methods`, which does not exist now.
 
 ### Features a host can turn off
 
 `features` names each of them, as `SERVER_FEATURES` in `@manifesto/shared` lists them: `sharing`,
 `teams`, `publicLinks`, `linkPreviews`, `calendar`, `apiTokens`, `mcp`, `webhooks`, `passkeys`,
-`magicLinks`, `pushReminders` and `twoFactor`. The variable that switches each, and
-what it covers, is in
-[Deployment](server/deployment.md#turning-features-off). `teams` needs `sharing`, and is reported
+`magicLinks`, `pushReminders` and `twoFactor`. [Deployment](server/deployment.md#turning-features-off)
+tells which variable switches each one, and what it includes. `teams` needs `sharing`, and is reported
 off with it.
 
-An operation that belongs to one is marked `x-feature` in `/api/v1/openapi.json`. While the feature is
-off, it answers the same `404` as a path the server has no route for, before authentication, so a
-caller cannot tell a feature that is off from one the server never had. The ways out of a feature are
-never marked and stay open: `DELETE /api/v1/notes/:id/shares/:userId`, the team shares' listing and
-`DELETE`, the passkeys' listing and `DELETE`, the two-factor status and `disable`,
-and the tokens' listing and `DELETE`. A personal API token (`apiTokens`) or an MCP token (`mcp`)
-whose feature is off is refused wherever it is presented, as an unknown token is, and `POST
-/api/v1/tokens` answers `403` for a kind whose feature is off.
+An operation that belongs to a feature has the mark `x-feature` in `/api/v1/openapi.json`.
+
+- While the feature is off, the operation answers the same `404` as a path for which the server has no
+  route, before authentication. Thus, a caller cannot tell a feature that is off from a feature that
+  the server never had.
+- The ways out of a feature never have the mark, and stay open:
+  `DELETE /api/v1/notes/:id/shares/:userId`, the listing and the `DELETE` of team shares, the listing
+  and the `DELETE` of passkeys, the two-factor status and `disable`, and the listing and the `DELETE`
+  of tokens.
+- The server refuses a personal API token (`apiTokens`) or an MCP token (`mcp`) whose feature is off
+  in all places, as an unknown token. `POST /api/v1/tokens` answers `403` for a kind whose feature is
+  off.
 
 ### Request and Response Format
 
-- Content type: `application/json`
-- Note objects follow the schema defined in [Data Model](data-model.md)
-- `POST /api/v1/notes` accepts a note without `createdAt` or `updatedAt` (the server assigns these), under an `id` the client chose. `trashedAt` is server-assigned too: it is derived from `trashed`, and a value sent by a client is ignored
-- `PUT /api/v1/notes/:id` accepts a partial note (only the fields being changed), and supports `If-Match: <updatedAt>` for optimistic concurrency. On a stale match the server replies `412 Precondition Failed` with the current note so the client can run a 3-way merge and retry. Note: the compare-and-swap is timestamp-based at millisecond precision, so two writes that complete within the same millisecond can both succeed (the second silently overwrites the first). For high-concurrency editing of the same note, use the Yjs collaboration socket instead.
-- List endpoints return `{ "notes": [...], "nextCursor": string | null }`
-- Single note endpoints return `{ "note": ... }`, the note [sealed](#sealed-notes)
-- Errors return `{ "error": string }`, plus a `code` where a client has to do something other than show the message (`password_change_required`, `email_taken` to tell a taken address from a taken username, and `note_format_newer` / `note_format_incomplete` for a [note's format](data-model.md#format))
-- `PUT /api/v1/auth/me`, `DELETE /api/v1/auth/me`, `POST /api/v1/tokens`, `POST /api/v1/webhooks` and the two-factor changes take the account's `password` in the body. Without it they answer `403` with `confirmation_required`, with a wrong one `403` with `password_incorrect`, and after too many wrong ones `429`. An account without a password answers `403` with `reauthentication_required` unless its session was signed in within 15 minutes; `GET /api/v1/auth/login?reauth=1` signs in again. See [Accounts](features/accounts.md#confirming-a-change-from-a-session)
+- Content type: `application/json`.
+- Note objects follow the schema in [Data Model](data-model.md).
+- `POST /api/v1/notes` accepts a note without `createdAt` or `updatedAt` (the server sets these),
+  under an `id` that the client selected. The server also sets `trashedAt`. It calculates it from
+  `trashed`, and ignores a value that a client sends.
+- `PUT /api/v1/notes/:id` accepts a partial note (only the fields that change). It supports
+  `If-Match: <updatedAt>` for optimistic concurrency.
+  - On a stale match, the server replies `412 Precondition Failed` with the current note. The client
+    can then run a 3-way merge and try again.
+  - Note: the compare-and-swap uses timestamps with millisecond precision. Thus, if two writes complete
+    in the same millisecond, both can succeed. The second write then silently overwrites the first.
+  - For editing of the same note with high concurrency, use the Yjs collaboration socket.
+- List endpoints return `{ "notes": [...], "nextCursor": string | null }`.
+- Single note endpoints return `{ "note": ... }`, the note [sealed](#sealed-notes).
+- Errors return `{ "error": string }`. They also return a `code` where a client must do something
+  other than show the message: `password_change_required`, `email_taken` (to tell a taken address from
+  a taken username), and `note_format_newer` / `note_format_incomplete` for the
+  [format of a note](data-model.md#format).
+- `PUT /api/v1/auth/me`, `DELETE /api/v1/auth/me`, `POST /api/v1/tokens`, `POST /api/v1/webhooks` and
+  the two-factor changes take the `password` of the account in the body.
+  - Without it, they answer `403` with `confirmation_required`.
+  - With a wrong password, they answer `403` with `password_incorrect`. After too many wrong
+    passwords, they answer `429`.
+  - An account without a password gets `403` with `reauthentication_required`, unless its session was
+    signed in during the last 15 minutes. `GET /api/v1/auth/login?reauth=1` signs in again.
+  - See [Accounts](features/accounts.md#confirming-a-change-from-a-session).
 
 ### Paging the list endpoints
 
-`GET /api/v1/notes` and `GET /api/v1/search` return one page and, when there is more,
-an opaque `nextCursor` to pass back as `?cursor=`. `?limit=` sets the page size;
-it defaults to 200 and is clamped to 500 rather than refused, since a caller
-asking for more than a page holds wants as much as it can get and a `400` tells
-it nothing it can act on. A cursor the server did not write **is** refused with
-`400`: quietly restarting from the top would hand a paging client the first page
-over and over.
+`GET /api/v1/notes` and `GET /api/v1/search` return one page. When there is more, they return an
+opaque `nextCursor` that you send back as `?cursor=`.
 
-Notes are ordered by `(updatedAt, id)` descending. The id is part of the key
-rather than decoration. Two notes saved in the same millisecond have no order
-by timestamp alone, and a page boundary falling between them would repeat one
-and drop the other.
+- `?limit=` sets the page size. The default is 200. The server clamps it to 500, and does not refuse a
+  larger value. A caller that asks for more than one page wants as much as possible, and a `400` tells
+  it nothing on which it can act.
+- The server **refuses** a cursor that it did not write, with `400`. If it started again from the top,
+  a paging client would get the first page again and again.
 
-The first-party client drains every page on load: it keeps all of a user's notes
-in memory, because tag counts, filtering and open-mode search are computed over
-the whole list. Paging bounds any single response; it does not change what the
-client holds.
+Notes are in the order `(updatedAt, id)`, descending. The id is a real part of the key. Two notes
+saved in the same millisecond have no order by timestamp alone. If a page boundary is between them,
+the server would repeat one note and lose the other.
+
+The first-party client gets all pages on load. It keeps all notes of a user in memory, because it
+calculates tag counts, filters and open-mode search from the full list. Paging sets a limit on one
+response. It does not change what the client keeps.
 
 ### Catching up after a reconnect
 
-`GET /api/v1/sync` answers "what changed since I last looked", so a client that was
-offline reads what it missed rather than every note it has. It pages like the
-list endpoints (`?limit=`, `?cursor=`, the same order) and returns the notes
-whose row or members changed after `?since=`, without their attachments. Leave
-`since` out for everything.
+`GET /api/v1/sync` answers "what changed since I last looked". Thus, a client that was offline reads
+only what it missed, not all of its notes. It pages as the list endpoints do (`?limit=`, `?cursor=`,
+the same order). It returns the notes whose row or members changed after `?since=`, without their
+attachments. Omit `since` to get all notes.
 
-The last page, and only the last, also carries:
+Only the last page also contains:
 
-- **`checkpoint`**: opaque; send it back as `since` next time. It is fixed when
-  the first page is asked for, so whatever changes while a client pages is in
-  the next sync rather than lost between pages. It sits two minutes before the
-  moment it was taken, because a write is stamped when its request starts and
-  may commit after a sync has read: every sync therefore reads the last two
-  minutes again, and a client must take a note it already holds unchanged
-  without fuss. A checkpoint the server did not write is refused with `400`.
-- **`ids`**: every note the user can see, changed or not. Deletions are not
-  recorded, so this is how a client learns that a note it holds was deleted,
-  emptied from the trash, or taken away from it (its share removed, or the note
-  trashed by its owner). It may drop such a note, but only one it held before
-  sending the request: a note that reached it since may be newer than the ids.
+- **`checkpoint`**: an opaque value. Send it back as `since` the next time.
+  - The server sets it when the client asks for the first page. Thus, a change during the paging goes
+    into the next sync, and is not lost between pages.
+  - It is two minutes before the time when the server took it. A write gets its timestamp when its
+    request starts, and can commit after a sync read. Thus, each sync reads the last two minutes again.
+    A client must accept a note that it already has, unchanged, without a problem.
+  - The server refuses a checkpoint that it did not write, with `400`.
+- **`ids`**: all notes that the user can see, changed or not. The server does not record deletions.
+  Thus, with this list, a client learns that a note that it has was deleted, emptied from the trash,
+  or taken away from it (its share removed, or the note trashed by its owner). It can drop such a
+  note, but only a note that it had before it sent the request. A note that arrived after that can be
+  newer than the ids.
 
-A note counts as changed when its `updatedAt` moves (any write by anyone,
-including a recipient's personal fields) or when its members change: someone
-invited, accepting, given another role, removed, or leaving by their share
-expiring from their trash. The second does not move `updatedAt`, since that is
-the `If-Match` token and a membership change is no reason to fail someone's
-write.
+A note counts as changed when its `updatedAt` moves (each write by any person, also the personal
+fields of a recipient), or when its members change: a person is invited, accepts, gets a different
+role, is removed, or leaves because their share expired from their trash. A change of members does not
+move `updatedAt`, because that is the `If-Match` token, and a change of members must not make the
+write of a person fail.
 
-The checkpoint is kept by the client. The server stores nothing per device.
+The client keeps the checkpoint. The server stores nothing for each device.
 
 ### Images in a listing
 
-A listed note carries its sealed `images`, like any other field: the list holds references, a few
-dozen bytes an image, and the bytes of each come from `GET /api/v1/attachments/:id` when a card draws
-it. `imageCount` is no longer sent.
+A listed note contains its sealed `images`, as all other fields. The list contains references, a few
+dozen bytes for each image. The bytes of each image come from `GET /api/v1/attachments/:id` when a
+card draws it. The server does not send `imageCount` now.
 
 ## WebSocket APIs
 
-The server exposes two WebSocket endpoints. They authenticate differently, because the collaboration socket is a Hocuspocus room rather than a plain JSON stream; see each section below.
+The server has two WebSocket endpoints. Their authentication is different, because the collaboration
+socket is a Hocuspocus room, not a plain JSON stream. See each section below.
 
 ### Application socket: `/api/v1/ws`
 
-A JSON event stream used for fan-out of REST writes and presence tracking.
+A JSON event stream. It distributes REST writes, and tracks presence.
 
 | Event              | Direction        | Description                              |
 |--------------------|------------------|------------------------------------------|
 | `note:created`     | Server → Client  | A new note was created                   |
-| `note:updated`     | Server → Client  | A note was changed                       |
+| `note:updated`     | Server → Client  | A note changed                           |
 | `note:deleted`     | Server → Client  | A note was permanently deleted           |
-| `presence:join`    | Server → Client  | A user started viewing/editing a note    |
-| `presence:leave`   | Server → Client  | A user stopped viewing/editing a note    |
-| `invitation:created` | Server → Client | Someone offered this user a note, or changed the offer: `{ invitation: ShareInvitation }` |
-| `comment:created`, `comment:updated` | Server → Client | A comment beside a note was written or edited: `{ comment }`, to everyone who can see the note |
+| `presence:join`    | Server → Client  | A user started to look at or edit a note |
+| `presence:leave`   | Server → Client  | A user stopped to look at or edit a note |
+| `invitation:created` | Server → Client | A person offered this user a note, or changed the offer: `{ invitation: ShareInvitation }` |
+| `comment:created`, `comment:updated` | Server → Client | A comment of a note was written or edited: `{ comment }`, to all persons who can see the note |
 | `comment:deleted` | Server → Client | A comment is gone: `{ noteId, id }` |
-| `invitation:removed` | Server → Client | An invitation is gone (accepted in another tab, declined, withdrawn, the note trashed or deleted): `{ noteId }` |
-| `prefs:updated`    | Server → Client  | The account's preferences changed, on any device: `{ prefs }`, the whole copy |
-| `heartbeat`        | Server → Client  | Sent every 30 seconds; carries nothing   |
-| `presence:update`  | Client → Server  | The client is viewing/editing a note     |
+| `invitation:removed` | Server → Client | An invitation is gone (accepted in a different tab, declined, withdrawn, the note trashed or deleted): `{ noteId }` |
+| `prefs:updated`    | Server → Client  | The preferences of the account changed, on any device: `{ prefs }`, the full copy |
+| `heartbeat`        | Server → Client  | Sent each 30 seconds. It contains nothing |
+| `presence:update`  | Client → Server  | The client looks at or edits a note      |
 
-REST is the authoritative write path; the server fans out `note:*` events from REST handlers. A `note:edit` client→server event is reserved but not currently handled.
+REST is the authoritative write path. The REST handlers make the server send the `note:*` events. A
+`note:edit` client→server event is reserved, but the server does not handle it now.
 
-A change to a shared note reaches every participant, each as their own copy (their personal fields,
-their role in `sharing`) in `note:updated`. Someone who can no longer see a note (removed from it,
-or the owner trashed it) gets `note:deleted` for it; restoring it from the trash sends
-`note:updated` again, which a client treats as an insert for a note it does not have.
+A change to a shared note goes to each participant, each as their own copy (their personal fields,
+their role in `sharing`) in `note:updated`. A person who cannot see a note now (removed from it, or the
+owner trashed it) gets `note:deleted` for it. A restore from the trash sends `note:updated` again. A
+client handles that as an insert for a note that it does not have.
 
-`presence:update` names a note by id. The server relays it only if the user can see that note, and
-only to the note's owner and the people who accepted it. Someone is sent a `presence:join` for each
-other person already on a note they can see whenever they could not have heard it announced:
-when they open the note themselves, when their socket connects, and when they gain the note
-(accepting it, or its owner restoring it from the trash) while someone is on it.
+`presence:update` names a note by id. The server sends it only if the user can see that note, and only
+to the owner of the note and the people who accepted it. A person gets a `presence:join` for each other
+person already on a note that they can see, each time that they could not have heard the announcement:
+when they open the note themselves, when their socket connects, and when they get the note (they
+accept it, or its owner restores it from the trash) while a person is on it.
 
-A connection that vanishes without a close (a network change, a device asleep, a NAT that forgot
-it) stays open to both ends until TCP gives up, so each end watches for silence. Every 30 seconds
-the server sends a protocol ping and a `heartbeat` event; a peer that has not answered the previous
-ping is terminated, which ends its presence like any other departure. A browser answers pings
-without the page, but cannot see them, which is why the event exists. A client that has heard a
-`heartbeat` and then hears nothing for 75 seconds treats the socket as closed and reconnects, as
-it does when coming back to the foreground after longer than that. A client that has never heard
-one, because the server predates it, does not judge the socket by silence.
+A connection can stop without a close (a network change, a device that sleeps, a NAT that forgot it).
+It then stays open at both ends until TCP stops. Thus, each end watches for silence.
 
-The application socket authenticates by passing the bearer token through `Sec-WebSocket-Protocol` alongside the `manifesto-session` subprotocol. A frame from the client may be at most 16 KiB; a larger one closes the socket with `1009`. Both sockets look at their credential again every five minutes and close with `4401` once it no longer opens them (an expired session or token).
+- Each 30 seconds, the server sends a protocol ping and a `heartbeat` event. It terminates a peer that
+  did not answer the previous ping. This ends its presence, as all other departures do.
+- A browser answers pings without the page, but the page cannot see them. For this reason, the event
+  exists.
+- A client that heard a `heartbeat`, and then hears nothing for 75 seconds, handles the socket as
+  closed and reconnects. It does the same when it comes back to the foreground after a longer time.
+- A client that never heard one, because the server is older, does not judge the socket by silence.
+
+The application socket authenticates with the bearer token in `Sec-WebSocket-Protocol`, together with
+the `manifesto-session` subprotocol. A frame from the client can be a maximum of 16 KiB. A larger frame
+closes the socket with `1009`. Both sockets check their credential again each five minutes. They close
+with `4401` when it does not open them now (an expired session or token).
 
 ### Collaboration socket: `/api/v1/yjs`
 
-A Hocuspocus-backed Yjs channel for per-note collaborative editing. One endpoint serves every note: Hocuspocus multiplexes documents over a single socket by name, so the note id travels in the protocol as the document name rather than in the path.
+A Yjs channel with Hocuspocus, for collaborative editing of each note. One endpoint serves all notes.
+Hocuspocus sends many documents over one socket, by name. Thus, the note id is in the protocol as the
+document name, not in the path.
 
-Authentication uses the Hocuspocus `Auth` message, not `Sec-WebSocket-Protocol`: clients send the bearer token as the provider's `token` option. The server's `onAuthenticate` hook resolves the token to a user and then verifies that the user may edit the note named by that document (its owner, or an accepted recipient with the `edit` role), rejecting with a permission-denied message before the document is created or joined. Losing that right closes the user's socket with `4403`. Checking the document name rather than a path segment is what makes the check binding: Hocuspocus keys its document map on the name in the frame and never reads the URL.
+Authentication uses the Hocuspocus `Auth` message, not `Sec-WebSocket-Protocol`. Clients send the
+bearer token as the `token` option of the provider.
 
-Awareness states are rewritten on the way in: each carries the authenticated user as `user` (`{ id, name, color }`, from the account's display name and avatar colour), and a state for a client id another connection already publishes is dropped.
+- The `onAuthenticate` hook of the server resolves the token to a user. Then it verifies that the user
+  can edit the note that the document names (its owner, or an accepted recipient with the `edit`
+  role).
+- If not, it refuses with a permission-denied message, before the document is created or joined.
+- When a user loses that right, the server closes their socket with `4403`.
+- The check uses the document name, not a path segment. This makes the check binding: Hocuspocus uses
+  the name in the frame as the key of its document map, and never reads the URL.
 
-The connection URL carries the client's editor schema version as `?editor=<n>`. A version below the server's `EDITOR_SCHEMA_VERSION`, or one that is not a number, is refused at the `Auth` message with the reason `editor-outdated` (see [Collaborative Editing](features/collaborative-editing.md#editor-versions)). A URL without the parameter counts as version 1.
+The server changes awareness states when they come in. Each one gets the authenticated user as `user`
+(`{ id, name, color }`, from the display name and the avatar color of the account). The server drops a
+state for a client id that a different connection already publishes.
 
-Persisted Y.Doc state lives in the configured storage driver (SQLite or Postgres). A frame, and a note's whole state, may be at most 8 MiB: a larger frame closes the socket with `1009` before it is read, and a state that has grown past it is not stored and its editors are disconnected with the same code.
+The connection URL contains the editor schema version of the client as `?editor=<n>`. A version below
+the `EDITOR_SCHEMA_VERSION` of the server, or a value that is not a number, gets a refusal at the
+`Auth` message with the reason `editor-outdated` (see
+[Collaborative Editing](features/collaborative-editing.md#editor-versions)). A URL without the
+parameter counts as version 1.
 
-What that document holds is ciphertext. The note's text is in a second document that never leaves
-the browser; the one synced here is a list (`log`) of entries, each an edit to the first or a
-snapshot of all of it, sealed under a key derived from the note key
-([Collaborative Editing](features/collaborative-editing.md#sealed), [Encryption](features/encryption.md#collaboration)).
-An awareness state is `{ sealed }`, a cursor sealed the same way, beside the `user` the server
-stamps on it.
+The configured storage driver (SQLite or Postgres) keeps the persisted Y.Doc state. A frame, and the
+full state of a note, can be a maximum of 8 MiB. A larger frame closes the socket with `1009` before
+the server reads it. If a state becomes larger than that, the server does not store it, and
+disconnects its editors with the same code.
+
+That document contains only ciphertext. The text of the note is in a second document that never goes
+out of the browser. The document that syncs here is a list (`log`) of entries. Each entry is an edit to
+the first document, or a snapshot of all of it, sealed under a key derived from the note key
+([Collaborative Editing](features/collaborative-editing.md#sealed),
+[Encryption](features/encryption.md#collaboration)). An awareness state is `{ sealed }`, a cursor sealed
+in the same way, next to the `user` that the server adds.

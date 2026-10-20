@@ -15,7 +15,7 @@ export function createBroadcaster(): Broadcaster {
         try {
           listener(userId, event);
         } catch {
-          // listeners must not throw across other subscribers
+          // A listener must not throw to the other subscribers.
         }
       }
     },

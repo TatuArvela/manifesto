@@ -10,16 +10,16 @@ import {
   type PickedInkChoice,
 } from "#/utils/boardTextures.ts";
 
-// What each preference may hold and how a stored value is read back: the
-// types, the lists of choices, and `PREF_PARSERS`, the one table that loading,
-// saving, adopting another tab's blob and syncing with the account all read.
-// The signals built on it are in `prefs.ts`.
+// What each preference can contain, and how the code reads back a stored value:
+// the types, the lists of choices, and `PREF_PARSERS`. That is the one table
+// that the load, the save, the adoption of the blob of a different tab and the
+// sync with the account all read. The signals built on it are in `prefs.ts`.
 
 // --- Types ---
 
 export type ViewMode = "grid" | "list";
 export type NoteSize = "fit" | "square";
-/** How wide the grid's cards are: big fits fewer to a row, small more. */
+/** How wide the cards of the grid are: big puts fewer in a row, small more. */
 export type NoteScale = "big" | "small";
 export type SortMode = "default" | "updated" | "created";
 export type ThemeMode = "system" | "light" | "dark";
@@ -27,21 +27,21 @@ export type DefaultNoteColor = NoteColor | "random";
 export type DefaultNoteFont = NoteFont | "random";
 export type DecimalSeparator = "auto" | "." | ",";
 export type NoteCorners = "straight" | "rounded";
-/** Whether the cards sit level on the board, or each leans a little. */
+/** If the cards are level on the board, or each one tilts a little. */
 export type NoteTilt = "tidy" | "messy";
 export type EditMode = "normal" | "raw";
-/** A colour a tag can be given: any note colour but the plain one. */
+/** A color that a tag can get: any note color other than the plain one. */
 export type TagColor = Exclude<NoteColor, NoteColor.Default>;
 /**
- * A preset board colour, each with a light and a dark shade in styles.css:
- * the hues of the note colours, which the pattern colours share.
+ * A preset board color, each with a light and a dark shade in styles.css: the
+ * hues of the note colors, which the pattern colors share.
  */
 export type BoardColor = InkColor;
-/** White, gray and black boards, each a light and a dark shade too. */
+/** White, gray and black boards, each also with a light and a dark shade. */
 export type BoardNeutral = "white" | "gray" | "black";
 /**
- * The board's colour: the page's own, a neutral, a preset,
- * `boardCustomColor`, or a preset picked at random on each visit.
+ * The color of the board: the own color of the page, a neutral, a preset,
+ * `boardCustomColor`, or a preset selected at random on each visit.
  */
 export type BoardColorChoice =
   | "none"
@@ -49,7 +49,7 @@ export type BoardColorChoice =
   | BoardColor
   | "custom"
   | "random";
-/** Drawn over the board's colour in CSS, in ink that follows the theme. */
+/** Drawn over the color of the board in CSS, in ink that follows the theme. */
 export type BoardTexture =
   | "none"
   | "paper"
@@ -64,17 +64,17 @@ export type BoardTexture =
   | "stripes"
   | "sawtooth";
 /**
- * What the textures are drawn in: the theme's own faint ink, white, black, a
- * colourful preset, `boardInkColor`, or a colourful preset picked at random on
+ * The color of the textures: the faint ink of the theme, white, black, a
+ * colorful preset, `boardInkColor`, or a colorful preset selected at random on
  * each visit.
  */
 export type BoardInk = "auto" | PickedInkChoice | "random";
-/** A texture, or a different one picked at random on each visit. */
+/** A texture, or a different texture selected at random on each visit. */
 export type BoardTextureChoice = BoardTexture | "random";
 /**
- * The colour the board fades to from its own, or "none" for a flat board.
- * "custom" is `boardGradientCustomColor`, a second picked colour, and
- * "random" a preset picked on each visit, like the first colour's.
+ * The color to which the board fades from its own, or "none" for a flat board.
+ * "custom" is `boardGradientCustomColor`, a second selected color. "random" is
+ * a preset selected on each visit, as for the first color.
  */
 export type BoardGradientChoice =
   | "none"
@@ -82,7 +82,10 @@ export type BoardGradientChoice =
   | BoardColor
   | "custom"
   | "random";
-/** Which way the board's colour fades into the gradient's, as a CSS side or corner. */
+/**
+ * The direction in which the color of the board fades into that of the
+ * gradient, as a CSS side or corner.
+ */
 export type BoardGradientDirection =
   | "top"
   | "top-right"
@@ -92,11 +95,11 @@ export type BoardGradientDirection =
   | "bottom-left"
   | "left"
   | "top-left";
-/** A direction, or one picked at random on each visit. */
+/** A direction, or a direction selected at random on each visit. */
 export type BoardGradientDirectionChoice = BoardGradientDirection | "random";
 /**
- * The dark theme's shade: a grey with a cast, a dimmed or black one, or a
- * tint in the hue of one of the board's preset colours.
+ * The shade of the dark theme: a gray with a hue, a dimmed or black shade, or a
+ * tint in the hue of one of the preset colors of the board.
  */
 export type DarkHue =
   | "neutral"
@@ -109,10 +112,10 @@ export type DarkHue =
   | "ocean"
   | "black"
   | BoardColor;
-/** The light theme's shade: plain white, or a tint of a preset colour. */
+/** The shade of the light theme: plain white, or a tint of a preset color. */
 export type LightHue = "white" | BoardColor;
 
-/** In compass order from the top, which is how Settings lays them out. */
+/** In compass order from the top, which is the layout in Settings. */
 export const BOARD_GRADIENT_DIRECTIONS: readonly BoardGradientDirection[] = [
   "top",
   "top-right",
@@ -140,12 +143,12 @@ export const BOARD_TEXTURES: readonly BoardTexture[] = [
 ];
 
 /**
- * The preset colours, the same eight for the board and its pattern, each
- * drawn in a shade that suits where it is used.
+ * The preset colors, the same eight for the board and its pattern, each drawn
+ * in a shade that is correct for where it is used.
  */
 export const BOARD_COLORS = Object.keys(INK_COLORS) as BoardColor[];
 
-/** Light to dark, which is how Settings lays them out. */
+/** Light to dark, which is the layout in Settings. */
 export const BOARD_NEUTRALS: readonly BoardNeutral[] = [
   "white",
   "gray",
@@ -153,8 +156,8 @@ export const BOARD_NEUTRALS: readonly BoardNeutral[] = [
 ];
 
 /**
- * The muted presets the board had before, each read as the preset nearest
- * it, so a board kept in one stays coloured.
+ * The muted presets that the board had before, each read as the nearest preset.
+ * Thus, a board kept in one keeps a color.
  */
 const RETIRED_BOARD_COLORS: Record<string, BoardColor> = {
   sand: "orange",
@@ -187,11 +190,20 @@ export const BOARD_INKS: readonly BoardInk[] = [
   "random",
 ];
 
-/** What the custom colour starts as before one is picked: a warm corkboard. */
+/**
+ * The start value of the custom color before the user selects one: a warm
+ * corkboard.
+ */
 export const DEFAULT_BOARD_CUSTOM_COLOR = "#d9bf94";
-/** The pattern colour's start, until one is picked: a soft rose. */
+/**
+ * The start value of the pattern color, until the user selects one: a soft
+ * rose.
+ */
 export const DEFAULT_BOARD_INK_COLOR = "#e0607a";
-/** The second custom colour's start: a dusk blue to fade the corkboard into. */
+/**
+ * The start value of the second custom color: a dusk blue into which the
+ * corkboard fades.
+ */
 export const DEFAULT_BOARD_GRADIENT_CUSTOM_COLOR = "#9fb7d4";
 
 function parseBoardColor(value: unknown): BoardColorChoice {
@@ -204,7 +216,10 @@ function parseBoardGradient(value: unknown): BoardGradientChoice {
   return parsePresetColor(value);
 }
 
-/** Textures the board had before, each read as the nearest one left. */
+/**
+ * Textures that the board had before, each read as the nearest texture that
+ * remains.
+ */
 const RETIRED_BOARD_TEXTURES: Record<string, BoardTexture> = {
   cork: "paper",
   felt: "paper",
@@ -231,23 +246,23 @@ export function pickOne<T>(list: readonly T[]): T {
   return picked;
 }
 
-/** What "random" stands for, which is anything but plain. */
+/** What "random" means, which is any texture other than plain. */
 export function rollBoardTexture(): BoardTexture {
   return pickOne(BOARD_TEXTURES.filter((texture) => texture !== "none"));
 }
 
 /**
- * A coloured preset: the page's own colour is no colour, a neutral hardly
- * one, and a custom one is chosen.
+ * A colored preset. The own color of the page is no color, a neutral is almost
+ * none, and a custom color is selected.
  */
 export function rollBoardColor(except?: string | undefined): BoardColor {
   return pickOne(BOARD_COLORS.filter((color) => color !== except));
 }
 
 /**
- * Only a six-digit hex colour, which is all `<input type="color">` produces.
- * The value is written into a CSS custom property, so anything freer would be
- * a way to inject arbitrary CSS through a hand-edited preferences blob.
+ * Only a six-digit hex color, which is all that `<input type="color">` makes.
+ * The value is written into a CSS custom property. Thus, a less strict value
+ * would be a way to inject any CSS through a manually edited preferences blob.
  */
 function hexColor(fallback: string) {
   return (value: unknown): string =>
@@ -262,7 +277,7 @@ const DECIMAL_SEPARATOR_VALUES: readonly DecimalSeparator[] = [
   ",",
 ];
 
-// Neutral and the near-black beside it, then the tints warm to cool along
+// Neutral and the near-black next to it, then the tints from warm to cool along
 // the violet-blue arc, with true black at the far end.
 export const DARK_HUES: readonly DarkHue[] = [
   "neutral",
@@ -277,13 +292,14 @@ export const DARK_HUES: readonly DarkHue[] = [
   ...BOARD_COLORS,
 ];
 
-/** White, then the preset colours in the board's order. */
+/** White, then the preset colors in the order of the board. */
 export const LIGHT_HUES: readonly LightHue[] = ["white", ...BOARD_COLORS];
 
 /**
- * First-run default for the animations preference: follow the OS accessibility
- * setting. Once the user flips the toggle their choice is persisted and wins,
- * so a later OS change does not override it.
+ * The default of the animations preference on the first run: follow the
+ * accessibility setting of the OS. After the user changes the toggle, their
+ * choice is persisted and wins. Thus, a later change in the OS does not
+ * override it.
  */
 function prefersReducedMotion(): boolean {
   return (
@@ -297,9 +313,9 @@ const NOTE_COLORS = new Set<string>(Object.values(NoteColor));
 const NOTE_FONTS = new Set<string>(Object.values(NoteFont));
 
 /**
- * The value indexes `noteColorMap` when a note is created, so anything
- * unrecognised falls back rather than reaching a card as `undefined`. The
- * setting was once `"plain" | "random"`, and `"plain"` falls back to what it
+ * The value is an index into `noteColorMap` when a note is created. Thus, an
+ * unknown value falls back, and does not reach a card as `undefined`. The
+ * setting was `"plain" | "random"` before, and `"plain"` falls back to what it
  * meant, `NoteColor.Default`.
  */
 function parseDefaultNoteColor(value: unknown): DefaultNoteColor {
@@ -316,7 +332,10 @@ function parseDefaultNoteFont(value: unknown): DefaultNoteFont {
     : NoteFont.Default;
 }
 
-/** Strings only, each once: anything else in a hand-edited blob is dropped. */
+/**
+ * Only strings, each one time. The code drops all other values in a manually
+ * edited blob.
+ */
 function parseTagList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return [
@@ -325,12 +344,15 @@ function parseTagList(value: unknown): string[] {
 }
 
 /**
- * How many tags can hold a colour. The account's whole copy has to stay
- * within 16 KB, and this map is the one preference that grows with use.
+ * How many tags can have a color. The full copy of the account must stay within
+ * 16 KB, and this map is the one preference that grows with use.
  */
 export const MAX_TAG_COLORS = 200;
 
-/** Tag to colour, dropping whatever a hand-edited blob holds besides. */
+/**
+ * Tag to color. The code drops all other data that a manually edited blob
+ * contains.
+ */
 function parseTagColors(value: unknown): Record<string, TagColor> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   const colors = Object.values(NoteColor) as string[];
@@ -355,10 +377,11 @@ function flag(fallback: boolean) {
 }
 
 /**
- * Every preference, as the parser that reads it from the stored blob. A
- * missing or unrecognised value parses to the default, so the defaults are
- * `parse(undefined)`. Adding a preference is one line here and one `pref()`
- * in `prefs.ts`; loading, saving and adopting another tab's blob all read this table.
+ * Each preference, as the parser that reads it from the stored blob. A missing
+ * or unknown value parses to the default. Thus, the defaults are
+ * `parse(undefined)`. A new preference is one line here and one `pref()` in
+ * `prefs.ts`. The load, the save and the adoption of the blob of a different
+ * tab all read this table.
  */
 export const PREF_PARSERS = {
   viewMode: oneOf<ViewMode>(["grid", "list"], "grid"),
@@ -367,7 +390,7 @@ export const PREF_PARSERS = {
   noteScale: oneOf<NoteScale>(["big", "small"], "big"),
   theme: oneOf<ThemeMode>(["system", "light", "dark"], "system"),
   defaultNoteColor: parseDefaultNoteColor,
-  // `noteFont` is the key's old name.
+  // `noteFont` is the old name of the key.
   defaultNoteFont: (value: unknown, blob: Record<string, unknown>) =>
     parseDefaultNoteFont(value ?? blob.noteFont),
   locale: (value: unknown): Locale =>
@@ -376,40 +399,44 @@ export const PREF_PARSERS = {
   decimalSeparator: oneOf(DECIMAL_SEPARATOR_VALUES, "auto"),
   noteCorners: oneOf<NoteCorners>(["straight", "rounded"], "straight"),
   noteTilt: oneOf<NoteTilt>(["tidy", "messy"], "tidy"),
-  // First-run default follows the OS setting; once the user flips the
-  // toggle, their choice wins.
+  // The default on the first run follows the OS setting. After the user changes
+  // the toggle, their choice wins.
   animations: (value: unknown): boolean =>
     typeof value === "boolean" ? value : !prefersReducedMotion(),
   lightHue: oneOf(LIGHT_HUES, "white"),
-  // Lavender was called violet until purple joined the list beside it.
+  // Lavender had the name violet until purple joined the list next to it.
   darkHue: (value: unknown) =>
     oneOf(DARK_HUES, "neutral")(value === "violet" ? "lavender" : value),
   noteQuips: flag(true),
   formattingToolbar: flag(true),
-  /** Whether ticking a checklist item moves it below the ones still to do. */
+  /**
+   * If a tick of a checklist item moves it below the items that are still to
+   * do.
+   */
   checkedItemsLast: flag(false),
-  /** Whether a card with a checklist shows how much of it is ticked. */
+  /** If a card with a checklist shows how much of it is ticked. */
   checklistProgress: flag(true),
-  /** Whether a link pasted or inserted into a note gets a preview card. */
+  /** If a link pasted or inserted into a note gets a preview card. */
   linkPreviewCards: flag(true),
   /**
-   * In the app installed on a phone, whether a link opens in the system's
-   * browser rather than the app's own view of it (`state/externalLinks.ts`).
+   * In the app installed on a phone, if a link opens in the browser of the
+   * system, not in the own view of the app (`state/externalLinks.ts`).
    */
   openLinksInBrowser: flag(false),
   /**
-   * On a phone, whether the top bar stays at the top of the screen while the
-   * board scrolls, or scrolls away with it. Wider screens always keep it.
+   * On a phone, if the top bar stays at the top of the screen while the board
+   * scrolls, or scrolls away with it. Wider screens always keep it.
    */
   stickyTopBar: flag(true),
   /**
    * Tags whose notes stay out of the Notes view. They are still in Tags,
-   * Search, Reminders and the rest; this only keeps the main board clear.
+   * Search, Reminders and the other views. This only keeps the main board
+   * clear.
    */
   hiddenTags: parseTagList,
   /**
-   * The colour each tag is drawn with, for this user: the tags themselves
-   * are on the notes, and someone a note is shared with has their own.
+   * The color with which each tag is drawn, for this user. The tags themselves
+   * are on the notes, and a person with whom a note is shared has their own.
    */
   tagColors: parseTagColors,
   confirmBeforeDelete: flag(false),
@@ -425,7 +452,7 @@ export const PREF_PARSERS = {
   boardTexture: parseBoardTexture,
   boardInk: oneOf(BOARD_INKS, "auto"),
   boardInkColor: hexColor(DEFAULT_BOARD_INK_COLOR),
-  /** How opaque the pattern is drawn, in whole percent, whatever its colour. */
+  /** The opacity of the pattern, in whole percent, whatever its color. */
   boardTextureOpacity: (value: unknown): number =>
     typeof value === "number" && Number.isFinite(value)
       ? Math.min(
@@ -434,14 +461,14 @@ export const PREF_PARSERS = {
         )
       : DEFAULT_TEXTURE_OPACITY,
   /**
-   * Whether the picture on file covers the board, in place of the colour and
-   * texture. Those are kept, so turning the picture off brings them back.
+   * If the stored picture covers the board, in place of the color and texture.
+   * Those are kept. Thus, when the picture is turned off, they come back.
    */
   boardUsePicture: flag(false),
   /**
-   * When the board picture was last replaced, or 0 with none on file. The
-   * picture is in IndexedDB, which no other tab hears about, so this is what
-   * changes in the preferences blob and tells them to load it again.
+   * When the board picture was last replaced, or 0 when none is stored. The
+   * picture is in IndexedDB, which tells no other tab. Thus, this value changes
+   * in the preferences blob, and tells them to load it again.
    */
   boardImageStamp: (value: unknown): number =>
     typeof value === "number" && Number.isFinite(value) ? value : 0,
@@ -453,9 +480,10 @@ export const PREF_PARSERS = {
 export type PrefKey = keyof typeof PREF_PARSERS;
 
 /**
- * The preferences that belong to this device rather than the account, and so
- * never go to the server: the phone's top bar, card size and motion suit this
- * screen and its OS setting, and the board picture lives in this browser.
+ * The preferences that belong to this device, not to the account, and thus
+ * never go to the server. The top bar of the phone, the card size and the
+ * motion suit this screen and its OS setting, and the board picture is in this
+ * browser.
  */
 const DEVICE_PREFS: ReadonlySet<PrefKey> = new Set<PrefKey>([
   "stickyTopBar",
@@ -472,7 +500,7 @@ export type LoadedPrefs = {
 
 export const PREF_KEYS = Object.keys(PREF_PARSERS) as PrefKey[];
 
-/** Every preference that follows the account in connected mode. */
+/** Each preference that follows the account in connected mode. */
 export const ACCOUNT_PREF_KEYS: readonly string[] = PREF_KEYS.filter(
   (key) => !DEVICE_PREFS.has(key),
 );
@@ -486,7 +514,7 @@ export function parsePrefs(raw: string | null): LoadedPrefs {
         blob = parsed as Record<string, unknown>;
       }
     } catch {
-      // Unreadable: every preference takes its default.
+      // Unreadable: each preference takes its default.
     }
   }
   const loaded: Record<string, unknown> = {};

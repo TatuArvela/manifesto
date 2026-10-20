@@ -13,11 +13,11 @@ import {
 } from "./passwordConfirmation.ts";
 
 /**
- * The signed-in user's personal API tokens. Each call resolves with what
- * happened rather than rejecting; the dialog says it in its own words.
+ * The personal API tokens of the signed-in user. Each call resolves with what
+ * occurred, and does not reject. The dialog tells it in its own words.
  */
 
-/** Null if they could not be read. */
+/** Null if the client could not read them. */
 export async function listApiTokens(): Promise<ApiToken[] | null> {
   const res = await apiFetch("GET", "/tokens");
   if (!res?.ok) return null;
@@ -30,7 +30,7 @@ export type CreateApiTokenResult =
   | { kind: "refused"; refusal: ConfirmationRefusal }
   | { kind: "failed" };
 
-/** What each kind of token that carries keys starts with. */
+/** The start of each kind of token that carries keys. */
 const KEYED_PREFIX: Partial<Record<ApiTokenKind, string>> = {
   api: "mfp_",
   mcp: "mfm_",
@@ -38,15 +38,15 @@ const KEYED_PREFIX: Partial<Record<ApiTokenKind, string>> = {
 };
 
 /**
- * A script's token unless `kind` says otherwise, reaching what `scopes`
- * name (an MCP token only the note scopes).
+ * A token for a script unless `kind` says differently, with access to what
+ * `scopes` names (an MCP token only the note scopes).
  *
- * A token that reaches notes carries the keys to open them, so its secret is
- * made here and the server is sent its hash and the keys wrapped under it;
- * the server never sees the secret until the token is used. A calendar
- * feed's address is made the same way and carries the reminder key alone,
- * which opens the notes that have a reminder. A token for the account
- * alone is made by the server as before.
+ * A token that reaches notes carries the keys to open them. Thus, its secret is
+ * made here, and the server gets its hash and the keys wrapped under it. The
+ * server never sees the secret until the token is used. The address of a
+ * calendar feed is made in the same way, and carries only the reminder key,
+ * which opens the notes that have a reminder. The server makes a token only for
+ * the account, as before.
  */
 export async function createApiToken(
   name: string,
@@ -61,8 +61,8 @@ export async function createApiToken(
   let made: Awaited<ReturnType<NonNullable<typeof sealer.value>["newToken"]>> =
     null;
   if (prefix !== undefined && reachesNotes) {
-    // Locked: no keys to give it, and a token without them is sent no note
-    // it can open.
+    // Locked: there are no keys to give it, and a token without them gets no
+    // note that it can open.
     const sealing = sealer.peek();
     if (!sealing) {
       console.warn("Cannot make a token's keys while locked");
@@ -82,7 +82,7 @@ export async function createApiToken(
     name,
     ...made?.fields,
     ...(expiresInDays !== null && { expiresInDays }),
-    // `api` is what a server takes when none is named, older ones included.
+    // A server takes `api` when no kind is named, also older servers.
     ...(kind !== "api" && { kind }),
     // A calendar token reaches its feed, which no scope names.
     ...(kind !== "calendar" && { scopes }),
@@ -95,7 +95,7 @@ export async function createApiToken(
   const created = (await res.json()) as ApiTokenCreatedResponse;
   return {
     kind: "ok",
-    // The secret of a token made here is known here alone.
+    // Only this client knows the secret of a token made here.
     created: made ? { ...created, secret: made.secret } : created,
   };
 }

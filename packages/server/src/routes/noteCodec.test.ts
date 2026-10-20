@@ -29,15 +29,15 @@ import {
 } from "./noteCodec.ts";
 
 /**
- * The translation a token's request goes through, without the routes around
- * it: what the routes do with the result is `notes.test.ts`, and that a
- * token reaches them at all is `tokens.test.ts`. A note here is sealed with
- * real keys, so what is checked is that it opens again as it was written.
+ * The translation of the request of a token, without the routes around it.
+ * `notes.test.ts` tests what the routes do with the result. `tokens.test.ts`
+ * tests that a token reaches them. A note here is sealed with real keys. Thus,
+ * the test checks that it opens again as it was written.
  */
 
 type Ctx = Parameters<typeof tokenKeys>[0];
 
-/** A request as a route sees it: who is asking, and the body they sent. */
+/** A request as a route sees it: who asks, and the body that they sent. */
 function request(
   body: unknown,
   auth: { via: "session" | "api"; keys?: AccountSealKeys },
@@ -68,7 +68,9 @@ const PLAIN = {
   reminder: null,
 };
 
-/** The status `work` was refused with, or null when it was not. */
+/**
+ * The status with which `work` was refused, or null when it was not refused.
+ */
 async function refusal(work: () => Promise<unknown>): Promise<number | null> {
   try {
     await work();
@@ -96,7 +98,7 @@ describe("noteCodec", () => {
 
   const token = (body: unknown = {}) => request(body, { via: "api", keys });
 
-  /** A note written as a token's `POST /api/v1/notes` writes it. */
+  /** A note written as the `POST /api/v1/notes` of a token writes it. */
   async function stored(
     plain: Partial<typeof PLAIN> = {},
     as: { userId: string; keys: AccountSealKeys } = { userId, keys },
@@ -314,8 +316,8 @@ describe("noteCodec", () => {
   });
 
   describe("a note's format", () => {
-    // A step that writes every title in capitals: format 2, as this build
-    // knows it while the test runs.
+    // A step that writes each title in capitals: format 2, as this build knows
+    // it while the test runs.
     const shout = (words: { title?: string }) =>
       words.title === undefined ? {} : { title: words.title.toUpperCase() };
 

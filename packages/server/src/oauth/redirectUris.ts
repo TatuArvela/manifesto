@@ -1,10 +1,12 @@
 /**
- * Where an OAuth client may have the browser sent back to. The consent page
- * navigates to it, so this is what keeps a registration from turning that
- * page into a script runner (`javascript:`) or a reader of local files.
+ * The addresses to which an OAuth client can have the browser sent back. The
+ * consent page goes to it. Thus, this prevents a registration from making that
+ * page a script runner (`javascript:`) or a reader of local files.
  */
 
-/** Schemes a browser gives meaning of its own, which no client listens on. */
+/**
+ * Schemes to which a browser gives its own meaning. No client listens on them.
+ */
 const REFUSED_SCHEMES = new Set([
   "javascript:",
   "data:",
@@ -29,10 +31,10 @@ function isLoopbackHost(hostname: string): boolean {
 }
 
 /**
- * Why a client may not name this address, or null if it may: `https`, `http`
- * to this computer only (a desktop assistant listening on a port, RFC 8252),
- * or a scheme of the client's own (`cursor://`, `com.example.app:`), which
- * the system hands to the app that claimed it.
+ * Why a client cannot name this address, or null if it can. It can name
+ * `https`, `http` only to this computer (a desktop assistant that listens on a
+ * port, RFC 8252), or its own scheme (`cursor://`, `com.example.app:`), which
+ * the system gives to the app that claimed it.
  */
 export function redirectUriProblem(text: string): string | null {
   if (text.length > MAX_REDIRECT_URI_LENGTH) return "is too long";
@@ -55,9 +57,10 @@ export function redirectUriProblem(text: string): string | null {
 }
 
 /**
- * Whether `given` is one of the addresses a client registered. Exact, except
- * that a loopback address may come back on another port: a desktop app takes
- * whichever port is free when it starts listening (RFC 8252, section 7.3).
+ * If `given` is one of the addresses that a client registered. It must be
+ * exact, but a loopback address can come back on a different port. A desktop
+ * app takes the port that is free when it starts to listen (RFC 8252, section
+ * 7.3).
  */
 export function redirectUriMatches(
   registered: readonly string[],

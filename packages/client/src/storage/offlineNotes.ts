@@ -10,32 +10,35 @@ import { accountSubkey } from "#/utils/keyMaterial.ts";
 import type { StorageKeys } from "./sealing.ts";
 
 /**
- * What this device keeps of notes that are not stored yet: the new-note
- * composer's draft, and notes written while the server could not be reached,
- * waiting to be sent (`state/composerDraft.ts`, `state/unsentNotes.ts`).
+ * What this device keeps of notes that are not stored yet: the draft of the
+ * new-note composer, and notes written while the server was not available,
+ * which wait to be sent (`state/composerDraft.ts`, `state/unsentNotes.ts`).
  *
- * In connected mode every record is sealed under a key derived from the
- * account key, bound to the account, its key version and the record, so the
- * device holds no note's words readable. A session the server ended leaves
- * the records where they are, unreadable until the account is unlocked here
- * again, so that nothing written offline is lost to a session running out;
- * signing out deletes them. In open mode, where the notes themselves are kept
- * readable in this browser, the records are too.
+ * In connected mode, each record is sealed under a key derived from the account
+ * key, bound to the account, its key version and the record. Thus, the device
+ * has the words of no note readable. A session that the server ended leaves the
+ * records where they are, unreadable until the account is unlocked here again.
+ * Thus, nothing written offline is lost when a session ends. A sign-out deletes
+ * them. In open mode, the notes themselves are kept readable in this browser,
+ * and so are the records.
  *
- * Plain IndexedDB: this runs at sign-out in the entry bundle. Nothing here
- * rejects; a browser that refuses IndexedDB keeps nothing, and the caller
- * holds what it has in memory.
+ * Plain IndexedDB, because this runs at sign-out in the entry bundle. Nothing
+ * here rejects. A browser that refuses IndexedDB keeps nothing, and the caller
+ * keeps what it has in memory.
  */
 
 const DB_NAME = "manifesto-offline";
 const STORE = "records";
 
-/** The two things kept: the composer's draft, and notes waiting to be sent. */
+/**
+ * The two things kept: the draft of the composer, and notes that wait to be
+ * sent.
+ */
 export type OfflineKind = "draft" | "unsent";
 
 /**
- * Whose records these are. `keys` seals them in connected mode; in open mode
- * it is null and `id` is {@link openModeOwner}.
+ * The owner of these records. `keys` seals them in connected mode. In open
+ * mode, it is null and `id` is {@link openModeOwner}.
  */
 export interface OfflineOwner {
   id: string;
@@ -50,9 +53,10 @@ export function openModeOwner(): OfflineOwner {
 }
 
 /**
- * Test seam: browser test files run side by side in frames of one origin,
- * which share one IndexedDB, so each keeps open mode's records apart under a
- * name of its own, or a draft one file left would open in another.
+ * Test seam. Browser test files run in parallel in frames of one origin, which
+ * share one IndexedDB. Thus, each keeps the records of open mode separate under
+ * its own name. If not, a draft that one file left would open in a different
+ * file.
  */
 export function setOpenModeOwnerForTests(id: string): void {
   openModeId = id;
@@ -63,17 +67,19 @@ interface StoredRecord {
   owner: string;
   kind: OfflineKind;
   id: string;
-  /** Sealed in connected mode; JSON in open mode. */
+  /** Sealed in connected mode. JSON in open mode. */
   value: string;
   /**
-   * The format the note's words in it are in (`noteFormat.ts` in shared).
+   * The format of the words of the note in it (`noteFormat.ts` in shared).
    * Absent in a record kept before formats were recorded, which is format 1.
    */
   format?: number;
 }
 
-/** A record as kept, opened. Whoever reads its value brings the words in it
- * from `format` up to date. */
+/**
+ * A record as kept, opened. The code that reads its value updates the words in
+ * it from `format`.
+ */
 export interface OfflineRecord {
   id: string;
   value: unknown;
@@ -131,7 +137,10 @@ function isStoredRecord(value: unknown): value is StoredRecord {
   );
 }
 
-/** A key for this job alone, derived when first asked for each account key. */
+/**
+ * A key only for this job, derived the first time that code asks for it for
+ * each account key.
+ */
 const sealingKeys = new WeakMap<CryptoKey, Promise<CryptoKey>>();
 
 function sealingKey(keys: StorageKeys): Promise<CryptoKey> {
@@ -192,7 +201,7 @@ export async function openOffline(
   }
 }
 
-/** Keeps `value` on this device; false when it could not be. */
+/** Keeps `value` on this device. False when that was not possible. */
 export async function keepOffline(
   owner: OfflineOwner,
   kind: OfflineKind,
@@ -217,9 +226,10 @@ export async function keepOffline(
 }
 
 /**
- * The owner's records of `kind` that open. One that does not (sealed under a
- * key the account no longer has), and one a newer version of the app kept,
- * which this one would misread, is left out and left in place.
+ * The records of `kind` of the owner that open. The code does not include, and
+ * does not move, a record that does not open (sealed under a key that the
+ * account does not have now). The same applies to a record that a newer version
+ * of the app kept, which this version would read incorrectly.
  */
 export async function readOffline(
   owner: OfflineOwner,
@@ -256,11 +266,11 @@ export async function dropOffline(
       store.delete(recordKey(ownerId, kind, id)),
     );
   } catch {
-    // Nothing to remove it from.
+    // Nothing from which to remove it.
   }
 }
 
-/** Removes every record of `ownerId`, or every record there is. */
+/** Removes each record of `ownerId`, or each record that there is. */
 export async function dropAllOffline(ownerId?: string): Promise<void> {
   if (!available()) return;
   try {
@@ -288,14 +298,14 @@ export async function dropAllOffline(ownerId?: string): Promise<void> {
       db.close();
     }
   } catch {
-    // Nothing to remove them from.
+    // Nothing from which to remove them.
   }
 }
 
 /**
- * Every image reference the records kept in open mode name, so that the
- * sweep of images no note refers to spares a draft's. Empty when they cannot
- * be read.
+ * Each image reference that the records kept in open mode name. Thus, the sweep
+ * of images to which no note refers keeps those of a draft. Empty when the code
+ * cannot read them.
  */
 export async function openModeImageRefs(): Promise<string[]> {
   const owner = openModeOwner();

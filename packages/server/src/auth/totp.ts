@@ -1,16 +1,19 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 /**
- * Time-based one-time passwords (RFC 6238 over RFC 4226), the six-digit codes
- * authenticator apps show, with the parameters every one of them defaults to:
- * SHA-1, six digits, thirty-second steps. Written out rather than taken from
- * a library because it is forty lines of HMAC and arithmetic, and the tests
- * hold it to the RFC's own vectors.
+ * Time-based one-time passwords (RFC 6238 over RFC 4226): the six-digit codes
+ * that authenticator apps show, with the default parameters of all apps: SHA-1,
+ * six digits, thirty-second steps. We wrote it here, and did not use a library,
+ * because it is forty lines of HMAC and arithmetic. The tests compare it with
+ * the own vectors of the RFC.
  */
 
 export const TOTP_STEP_SECONDS = 30;
 const DIGITS = 6;
-/** Steps either side of now a code is accepted from, for clock drift. */
+/**
+ * The number of steps before and after now from which a code is accepted, for
+ * clock drift.
+ */
 const WINDOW = 1;
 
 const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -49,7 +52,7 @@ export function base32Decode(text: string): Buffer {
   return Buffer.from(out);
 }
 
-/** 160 bits, as RFC 4226 recommends, in the base32 the apps take. */
+/** 160 bits, as RFC 4226 recommends, in the base32 that the apps accept. */
 export function newTotpSecret(): string {
   return base32Encode(randomBytes(20));
 }
@@ -68,9 +71,9 @@ export function totpStep(nowMs: number): number {
 }
 
 /**
- * The step `code` belongs to, within the window around `nowMs`, or null. The
- * caller stores the step and refuses any code from it or before, so a code
- * seen over someone's shoulder cannot be used a second time.
+ * The step to which `code` belongs, within the window around `nowMs`, or null.
+ * The caller stores the step, and refuses all codes from it or before it. Thus,
+ * a person who saw a code cannot use it a second time.
  */
 export function verifyTotp(
   secret: string,
@@ -80,7 +83,7 @@ export function verifyTotp(
   const digits = code.replace(/\s/g, "");
   if (!/^\d{6}$/.test(digits)) return null;
   const key = base32Decode(secret);
-  // No secret is not a secret: its codes are anyone's to work out.
+  // No secret is not a secret. All persons can calculate its codes.
   if (key.length === 0) return null;
   const now = totpStep(nowMs);
   for (let step = now - WINDOW; step <= now + WINDOW; step++) {
@@ -90,7 +93,7 @@ export function verifyTotp(
   return null;
 }
 
-/** What an authenticator app scans (or opens, tapped on a phone). */
+/** What an authenticator app scans (or opens, when you tap it on a phone). */
 export function otpauthUri(
   issuer: string,
   account: string,

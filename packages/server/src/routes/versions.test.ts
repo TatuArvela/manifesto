@@ -139,7 +139,8 @@ describe("version routes", () => {
       ...owner,
       token: defined(((await minted.json()) as ApiTokenCreatedResponse).secret),
     };
-    // Written by the token, so under keys the server really opens with.
+    // Written by the token. Thus, under keys with which the server really
+    // opens.
     const made = await call(script, "POST", "/api/v1/notes", baseNote);
     const id = ((await made.json()) as { note: Note }).note.id;
     const add = (content: string) =>
@@ -149,7 +150,7 @@ describe("version routes", () => {
       });
     expect((await add("before")).status).toBe(201);
 
-    // The owner's app replaces the key, as `Sealer.rekey` does.
+    // The app of the owner replaces the key, as `Sealer.rekey` does.
     const read = await rig.rawRequest(`/api/v1/notes/${id}`, {
       headers: authHeaders(owner.token),
     });

@@ -16,8 +16,8 @@ export interface AuditRow {
 const KNOWN = new Set<string>(AUDIT_ACTIONS);
 
 export function rowToAudit(row: AuditRow): AuditRecord | null {
-  // An action a later version recorded and this one does not know is left
-  // out rather than mislabelled.
+  // The code skips an action that a later version recorded and that this
+  // version does not know. It does not give it a wrong label.
   if (!KNOWN.has(row.action)) return null;
   const detail = parseJson<unknown>(row.detail, {});
   return {

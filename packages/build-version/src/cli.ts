@@ -1,5 +1,5 @@
-// Prints the resolved build version, for the server build and for workflows
-// that must compute it before a Docker build context drops `.git`.
+// Prints the resolved build version, for the server build, and for workflows
+// that must calculate it before a Docker build context drops `.git`.
 import { fileURLToPath } from "node:url";
 import { resolveBuildVersion } from "./index.ts";
 

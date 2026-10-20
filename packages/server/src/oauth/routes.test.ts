@@ -209,7 +209,7 @@ describe("OAuth for /api/v1/mcp", () => {
     expect((await mcp(first.access_token)).status).toBe(200);
     // The refresh token opens nothing.
     expect((await mcp(first.refresh_token)).status).toBe(401);
-    // Nor does the access token anywhere but /api/v1/mcp.
+    // Also, the access token opens nothing other than /api/v1/mcp.
     const rest = await rig.request("/api/v1/notes", {
       headers: authHeaders(first.access_token),
     });
@@ -237,7 +237,7 @@ describe("OAuth for /api/v1/mcp", () => {
   it("carries the notes' keys from the consent to each token it becomes, and no copy outlives its token", async () => {
     const clientId = await registeredClient();
     const { verifier, challenge } = pkce();
-    // The consent page makes the code and wraps the keys under it.
+    // The consent page makes the code, and wraps the keys under it.
     const code = randomBytes(32).toString("base64url");
     const half = await authorize(clientId, challenge, {
       codeHash: hashToken(code),
@@ -248,7 +248,7 @@ describe("OAuth for /api/v1/mcp", () => {
       wrappedKeys: await wrapTestKeys(code, userId),
     });
     expect(agreed.status).toBe(200);
-    // The server never had the code, so the address comes without it.
+    // The server never had the code. Thus, the address comes without it.
     const { redirectTo } = (await agreed.json()) as OAuthAuthorizeResponse;
     expect(new URL(redirectTo).searchParams.has("code")).toBe(false);
     expect(new URL(redirectTo).searchParams.get("state")).toBe("xyz");
@@ -323,7 +323,7 @@ describe("OAuth for /api/v1/mcp", () => {
     expect(await opens(second.refresh_token, after.refreshWrappedKeys)).toBe(
       true,
     );
-    // The tokens before open nothing that is still stored.
+    // The previous tokens open nothing that is still stored.
     expect(await opens(first.access_token, after.wrappedKeys)).toBe(false);
     expect(await opens(first.refresh_token, after.refreshWrappedKeys)).toBe(
       false,
@@ -333,8 +333,8 @@ describe("OAuth for /api/v1/mcp", () => {
   it("refuses an access token past its hour", async () => {
     const clientId = await registeredClient();
     const { refresh_token } = await signIn(clientId);
-    // Not by moving the clock: `nowIso` never goes back, and would carry an
-    // hour's jump into every later test.
+    // Not with a move of the clock. `nowIso` never goes back, and would put a
+    // jump of one hour into all later tests.
     await rig.storage.apiTokens.rotate(hashToken(refresh_token), {
       tokenHash: hashToken("mfm_lapsed"),
       refreshHash: hashToken("mfr_next"),
@@ -360,7 +360,7 @@ describe("OAuth for /api/v1/mcp", () => {
     const replay = await refresh(first.refresh_token);
     expect(replay.status).toBe(400);
     expect((await replay.json()).error).toBe("invalid_grant");
-    // The copy's holder and the assistant alike are out.
+    // The holder of the copy and the assistant both lose access.
     expect((await refresh(second.refresh_token)).status).toBe(400);
     expect((await mcp(second.access_token)).status).toBe(401);
   });
@@ -487,7 +487,7 @@ describe("OAuth for /api/v1/mcp", () => {
       redirectUri: REDIRECT,
       scopes: ["notes:read"],
     });
-    // Another loopback port is the same desktop app.
+    // A different loopback port is the same desktop app.
     expect((await query("http://localhost:5000/callback")).status).toBe(200);
     expect((await query("https://evil.example/callback")).status).toBe(400);
     expect((await query(REDIRECT, "account:write")).status).toBe(400);
@@ -580,7 +580,7 @@ describe("OAuth clients identified by a metadata document", () => {
       scopes: ["notes:read", "notes:write"],
     });
     await lookup();
-    // Kept a while rather than fetched for every call.
+    // Kept for a time, not fetched for each call.
     expect(fetched).toEqual([CLIENT_ID]);
     await storage.close();
   });

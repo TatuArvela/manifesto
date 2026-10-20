@@ -7,7 +7,7 @@ import {
 import { describe, expect, it } from "vitest";
 import { type ListKind, toggleList } from "./listToggle.ts";
 
-// The list nodes as Milkdown's presets have them: an item knows its own
+// The list nodes as the presets of Milkdown have them: an item knows its own
 // `listType` and `label`, and a task is an item whose `checked` is set.
 const schema = new Schema({
   nodes: {
@@ -28,7 +28,9 @@ const schema = new Schema({
   },
 });
 
-/** Each text block as a line: its marker, indented two spaces per level. */
+/**
+ * Each text block as a line: its marker, indented two spaces for each level.
+ */
 function outline(doc: ProseNode): string[] {
   const lines: string[] = [];
   const walk = (node: ProseNode, depth: number, marker: string) => {

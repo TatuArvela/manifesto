@@ -10,14 +10,15 @@ paths:
 
 # Pagination
 
-`/api/v1/notes` and `/api/v1/sync` page with `?limit=&cursor=`, ordered by `(updatedAt, id)`, because two
-notes saved in the same millisecond have no order by timestamp alone, and a page boundary between
-them would repeat one and drop the other. The client drains every page, because `allTags`, tag
-counts and the filter chain are computed over the whole list. Paging bounds a response, it does not
-change the model.
+`/api/v1/notes` and `/api/v1/sync` send pages with `?limit=&cursor=`. The order is
+`(updatedAt, id)`. If two notes save in the same millisecond, the timestamp alone does not give an
+order. A page boundary between those two notes then repeats one note and loses the other. The
+client gets all of the pages, because it calculates `allTags`, the tag counts and the filter chain
+from the full list. Paging sets a limit on the size of a response. It does not change the model.
 
-A listed note carries its images: in connected mode they are a sealed list of references, small
-enough to travel with the note, and the bytes of each come from `GET /api/v1/attachments/:id` when
-`StoredImage` draws it. `imageCount`, `hasUnloadedImages` and `ensureImages` are from when a
-listing left the images behind; a server no longer sends the count, so in both modes `images` is
-complete and those are no-ops kept for the callers that still ask.
+A listed note contains its images. In connected mode, the images are a sealed list of references.
+The list is small, so it can go with the note. When `StoredImage` draws an image, it gets the bytes
+from `GET /api/v1/attachments/:id`. `imageCount`, `hasUnloadedImages` and `ensureImages` are from
+an older design, where a listing did not include the images. The server does not send the count
+now. Thus, in both modes `images` is complete, and those three do nothing. We keep them for the
+callers that still use them.

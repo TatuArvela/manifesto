@@ -16,9 +16,9 @@ import { MemberRow, PersonRow } from "./ShareMembers.tsx";
 import { TeamShares } from "./TeamShares.tsx";
 
 /**
- * The one share dialog, mounted by `App` and opened by setting `shareDialog`.
- * A note that disappears while it is open (its owner took this user off it)
- * closes it rather than leaving it talking about nothing.
+ * The one share dialog, mounted by `App`, and opened when `shareDialog` is set.
+ * A note that disappears while it is open (its owner removed this user from it)
+ * closes it. It does not stay open about nothing.
  */
 export function ShareDialogHost() {
   const open = shareDialog.value;
@@ -40,8 +40,8 @@ export function ShareDialogHost() {
 }
 
 /**
- * Who has a note. Its owner invites people, sets what each may do and takes
- * them off it; everyone else sees who is there and may leave.
+ * Who has a note. Its owner invites people, sets what each can do, and removes
+ * them. All other persons see who is there, and can leave.
  */
 function ShareDialog({ note, onClose }: { note: Note; onClose: () => void }) {
   const me = currentUser.value;

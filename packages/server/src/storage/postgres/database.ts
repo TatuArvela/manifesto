@@ -11,9 +11,9 @@ export interface PostgresOpenOptions {
 }
 
 /**
- * How long a request waits for a connection before it fails. Without one, a
- * pool with every connection busy or the database unreachable holds each
- * request open for good.
+ * How long a request waits for a connection before it fails. Without a limit, a
+ * pool with all connections busy, or with no database connection, keeps each
+ * request open forever.
  */
 const CONNECTION_TIMEOUT_MS = 10_000;
 
@@ -24,10 +24,10 @@ export function openPostgres(opts: PostgresOpenOptions): PgPool {
         connectionString: opts.connectionString,
         connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
       });
-  // The pool reports a connection that died while idle (the database
-  // restarted, a firewall cut it) as an `error` event, and an `error` nobody
-  // listens for ends the process. The pool has already dropped that
-  // connection and opens another on the next query, so saying so is enough.
+  // The pool reports a connection that died while idle (the database restarted,
+  // a firewall cut it) as an `error` event. An `error` for which nobody listens
+  // ends the process. The pool already dropped that connection, and opens a
+  // different one on the next query. Thus, a message is sufficient.
   pool.on("error", (err) => {
     logger.error("Postgres connection lost while idle", {
       error: err.message,

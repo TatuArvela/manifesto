@@ -16,7 +16,7 @@ describe("the loading screen", () => {
 
     revealApp();
     await vi.waitFor(() => expect(splash.dataset.done).toBe("true"));
-    // Nothing transitions here, so it is the timer that takes it out.
+    // Nothing has a transition here. Thus, the timer removes it.
     await vi.waitFor(() => expect(splash.isConnected).toBe(false), {
       timeout: 1500,
     });

@@ -17,9 +17,9 @@ import { Tooltip } from "./Tooltip.tsx";
 
 /**
  * The signed-in user, at the right end of the header: who you are, the way to
- * your account settings, and signing out. Everything else about the account
- * lives on its pages in the settings modal. Open mode has no accounts, so there
- * it renders nothing at all rather than an empty menu.
+ * your account settings, and the sign-out. All other parts of the account are
+ * on its pages in the settings modal. Open mode has no accounts. Thus, there it
+ * renders nothing, not an empty menu.
  */
 export function AccountMenu() {
   const [open, setOpen] = useState(false);
@@ -79,7 +79,8 @@ export function AccountMenu() {
         class={menuItemClass}
         onClick={async () => {
           setOpen(false);
-          // Signing out takes them off this device, the only place they are.
+          // The sign-out removes them from this device, which is the only place
+          // where they are.
           const unsent = unsentNotes.peek().length;
           if (
             unsent > 0 &&

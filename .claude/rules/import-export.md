@@ -18,30 +18,52 @@ paths:
 
 # Sharing, Import and Export
 
-`utils/shareLink.ts` encodes a note into the URL fragment (LZ-String over a five-field JSON payload),
-so a share link needs no server and no account. The fragment is attacker-controlled, so
-`decodeSharePayload` is a total type guard, not a cast: every field is checked, color and font
-against the enums, and anything that fails returns `null` rather than a partly-trusted note. `App`
-shows `SharedNoteDialog` when the fragment is present, and the recipient chooses whether to save.
-The rendered preview still goes through `remarkRenderer`, which sanitizes.
+## Share links
 
-Public links (`routes/publicLinks.ts`, `state/publicLinks.ts`) are the revocable, server-side
-counterpart: `/p/<token>` renders `PublicNotePage` in place of the app (`main.tsx`), with no account.
-Every way a link fails answers the same 404, and a view is counted by one conditional `UPDATE`
-(`recordView`), never a read then a write. A link's password checks run one at a time (`inTurn`), for
-the same reason: the failure count is read before a verify that takes long enough for others to arrive. A snapshot's pictures are referrers for the attachment
-sweep in both drivers, so a new place that keeps attachment references must be added there too.
+`utils/shareLink.ts` encodes a note into the URL fragment (LZ-String over a JSON payload with five
+fields). Thus, a share link needs no server and no account. An attacker can control the fragment.
+Thus, `decodeSharePayload` is a total type guard, not a cast:
 
-Other apps' formats (Evernote, Joplin, Simplenote, Standard Notes, HTML) are `Importer`s in
-`utils/importers/`, registered in its `index.ts`; `importFiles` offers each file and each archived
-JSON document to them, so a new format is one file there.
+- It checks each field. It checks the color and the font against the enums.
+- If a check fails, it returns `null`. It does not return a note that is partly trusted.
 
-`utils/importExport.ts` reads files in, for Markdown and JSON, single note and bulk; `utils/importedNote.ts`
-turns their contents into notes, and `utils/noteDownload.ts` saves one note out. It
-caps input at 50MB, because a multi-GB drop locks the tab inside `JSON.parse` before any of our
-code runs. The full export is a zip in both modes, laid out by `exportArchiveFiles` in
-`@manifesto/shared` so the server's download and open mode's `exportArchive` stay the same archive;
-importing one files its `versions.json` through `restoreVersions`. In connected mode the archive
-holds the notes the account owns (`sharing.role`), never one shared with it, and is refused while
-one of its own did not open on this device (`Sealer.missesOwnNotes`). Export is one of the three callers that genuinely needs image bytes rather than
-`imageCount`; see `pagination.md`.
+When the fragment is present, `App` shows `SharedNoteDialog`. The recipient decides to save the note
+or not. The preview still goes through `remarkRenderer`, which sanitizes it.
+
+## Public links
+
+Public links (`routes/publicLinks.ts`, `state/publicLinks.ts`) are the server-side equivalent, and
+you can revoke them. `/p/<token>` shows `PublicNotePage` in place of the app (`main.tsx`). It needs
+no account.
+
+- All of the failures of a link give the same 404.
+- One conditional `UPDATE` (`recordView`) counts a view. The code never reads and then writes.
+- The password checks of a link run one at a time (`inTurn`), for the same reason. The code reads
+  the failure count before a verification, and the verification takes a long time. During that
+  time, other requests can arrive.
+- In both drivers, the pictures of a snapshot are referrers for the attachment sweep. If you add a
+  new place that keeps attachment references, add it to the sweep too.
+
+## Importers
+
+The formats of other apps (Evernote, Joplin, Simplenote, Standard Notes, HTML) are `Importer`s in
+`utils/importers/`. Its `index.ts` registers them. `importFiles` gives each file, and each JSON
+document in an archive, to the importers. Thus, to add a format, add one file there.
+
+## Import and export of files
+
+- `utils/importExport.ts` reads files: Markdown and JSON, one note or many.
+- `utils/importedNote.ts` changes their contents into notes.
+- `utils/noteDownload.ts` saves one note to a file.
+
+The input limit is 50MB. The reason is that a drop of many GB stops the tab inside `JSON.parse`,
+before our code can run.
+
+In both modes, the full export is a zip. `exportArchiveFiles` in `@manifesto/shared` sets the
+layout. Thus, the download from the server and the `exportArchive` of open mode make the same
+archive. An import of an archive restores its `versions.json` through `restoreVersions`.
+
+In connected mode, the archive contains the notes that the account owns (`sharing.role`). It never
+contains a note that a different account shared with it. The export stops if one of the notes of the
+account did not open on this device (`Sealer.missesOwnNotes`). Export is one of the three callers
+that must have the image bytes, not only `imageCount`. See `pagination.md`.

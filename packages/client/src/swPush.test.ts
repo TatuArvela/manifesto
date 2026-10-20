@@ -112,8 +112,10 @@ describe("wordedPush", () => {
     reminder: null,
   };
 
-  /** A device that is signed in, and the push the server would send it for
-   * a note of the account's. */
+  /**
+   * A device that is signed in, and the push that the server would send it for
+   * a note of the account.
+   */
   async function device(note: Partial<NoteCreate> = {}) {
     const keys = await testKeys();
     const sealed = await new Sealer(keys).sealNew("01J", { ...draft, ...note });
@@ -141,7 +143,7 @@ describe("wordedPush", () => {
       title: "Dentist",
       body: "Bring the x-rays and the referral",
     });
-    // As the server sends it, through the check every message gets.
+    // As the server sends it, through the check that each message gets.
     const read = readReminderPush(JSON.parse(JSON.stringify(sent)));
     expect(read?.sealed).toEqual(sent.sealed);
   });
@@ -169,7 +171,7 @@ describe("wordedPush", () => {
     expect(
       await wordedPush(sent, { ...other, endsAt: held.endsAt }, NOW),
     ).toEqual(bare);
-    // A message about another note than its key is for opens nothing.
+    // A message about a note different from the note of its key opens nothing.
     expect(await wordedPush({ ...sent, noteId: "01K" }, held, NOW)).toEqual(
       bare,
     );

@@ -5,15 +5,15 @@ import {
 } from "#/utils/systemBrowser.ts";
 import { openLinksInBrowser } from "./prefs.ts";
 
-/** Whether "Open Links in Browser" can change anything on this device. */
+/** If "Open Links in Browser" can change anything on this device. */
 export function canOpenInSystemBrowser(): boolean {
   return isInstalledApp() && linkPlatform() !== "other";
 }
 
 /**
- * The address to send a web link to instead of opening it in the app's own
- * view, with "Open Links in Browser" on in the installed app; null when the
- * link opens as it always has.
+ * The address to which to send a web link, in place of the own view of the app,
+ * with "Open Links in Browser" on in the installed app. Null when the link
+ * opens as it always did.
  */
 export function handOffHref(href: string): string | null {
   if (!openLinksInBrowser.value || !canOpenInSystemBrowser()) return null;

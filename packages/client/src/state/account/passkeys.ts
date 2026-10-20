@@ -7,11 +7,12 @@ import { apiFetch } from "#/storage/apiRequest.ts";
 import { createPasskey } from "#/utils/webauthn.ts";
 
 /**
- * The signed-in local account's passkeys. Each call resolves with what
- * happened, never rejects, for the settings tab to say in its own words.
+ * The passkeys of the signed-in local account. Each call resolves with what
+ * occurred, and never rejects, so that the settings tab can tell it in its own
+ * words.
  */
 
-/** Null if they could not be read. */
+/** Null if the client could not read them. */
 export async function listPasskeys(): Promise<Passkey[] | null> {
   const res = await apiFetch("GET", "/auth/passkeys");
   if (!res?.ok) return null;
@@ -24,8 +25,10 @@ export type AddPasskeyResult =
       kind: "wrong-password" | "cancelled" | "exists" | "too-many" | "failed";
     };
 
-/** Asks the server for a challenge (with the password), has the browser make
- * a passkey for it, and hands that back to be kept. */
+/**
+ * Asks the server for a challenge (with the password), lets the browser make a
+ * passkey for it, and gives that back for the server to keep.
+ */
 export async function addPasskey(
   name: string,
   password: string,

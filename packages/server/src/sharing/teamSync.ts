@@ -4,10 +4,11 @@ import type { StorageDriver } from "#/storage/types.ts";
 import type { TeamShares } from "./teamShares.ts";
 
 /**
- * Puts a user in exactly the identity provider's teams it just named for
- * them: those groups' teams, made when first seen, and out of every other
- * `oidc` team. Admin-made (`local`) teams are left alone. Joining and leaving
- * go through `teamShares`, so they bring and take away the teams' notes.
+ * Puts a user in exactly the teams of the identity provider that it just named
+ * for them: the teams of those groups, made when first seen. It removes the
+ * user from all other `oidc` teams. It does not change teams that an admin made
+ * (`local`). Joins and leaves go through `teamShares`. Thus, they bring and
+ * take away the notes of the teams.
  */
 export async function syncOidcTeams(
   storage: StorageDriver,
@@ -19,7 +20,8 @@ export async function syncOidcTeams(
   for (const name of new Set(groups)) {
     let team = await storage.teams.findByName("oidc", name);
     if (!team) {
-      // Two sign-ins racing to make it: whichever loses reads the winner's.
+      // Two sign-ins try to make it at the same time. The one that loses reads
+      // the team of the winner.
       await storage.teams.create({
         id: newId(),
         name,

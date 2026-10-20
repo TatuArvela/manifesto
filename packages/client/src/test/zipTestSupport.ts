@@ -1,4 +1,4 @@
-/** Builds a zip in memory for tests: deflated unless `stored` is set. */
+/** Builds a zip in memory for tests: deflated, unless `stored` is set. */
 export async function buildZip(
   files: Record<string, string | Uint8Array>,
   { stored = false }: { stored?: boolean } = {},

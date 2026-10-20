@@ -27,15 +27,15 @@ const PASSWORD = "test-pass-12";
 const ENDS = "2099-01-01T00:00:00.000Z";
 
 /**
- * The server's side of an account's keys, as much of it as the client leans
- * on: it stores what it is sent, checks the recovery key by its verifier and
- * the password by comparing, and can open none of it.
+ * The server side of the keys of an account, as much as the client uses. It
+ * stores what it gets, checks the recovery key by its verifier and the password
+ * by a comparison, and can open none of it.
  */
 interface Stored extends AccountKeysSetupRequest {
   version: number;
 }
 let stored: Stored | null;
-/** The next key replaced is, but its answer never arrives. */
+/** The next key is replaced, but its answer never arrives. */
 let loseAnswer = false;
 let requests: { method: string; path: string; body: unknown }[];
 
@@ -139,7 +139,7 @@ async function signOut(): Promise<void> {
   await state("none");
 }
 
-/** Sets the account up and answers the sheet it was given. */
+/** Sets up the account and answers the sheet that it got. */
 async function setUp() {
   await signIn();
   await state("setup");
@@ -149,7 +149,7 @@ async function setUp() {
   return { secretKey: sheet.secretKey, recoveryKey: sheet.recoveryKey };
 }
 
-/** As another device would be: signed in, with nothing held. */
+/** As a different device would be: signed in, with nothing held. */
 async function signInAfresh(): Promise<void> {
   await signOut();
   await signIn();
@@ -191,8 +191,8 @@ describe("account keys", () => {
     expect(parseUserKey(sheet?.recoveryKey ?? "", "recovery")).toBe(
       sheet?.recoveryKey,
     );
-    // Nothing has reached the server while the sheet is only being shown,
-    // and showing it again shows the same keys.
+    // Nothing reached the server while the sheet only shows, and when it shows
+    // again, it shows the same keys.
     expect(stored).toBeNull();
     expect(await keys.prepareSetup()).toEqual(sheet);
     expect(keys.accountKey()).toBeNull();
@@ -200,7 +200,7 @@ describe("account keys", () => {
     expect(await keys.completeSetup()).toBe("ok");
     expect(keys.keyState.value).toBe("unlocked");
     expect(keys.accountKey()).not.toBeNull();
-    // What was sent holds neither key a person keeps.
+    // What was sent contains neither key that a person keeps.
     const sent = JSON.stringify(requests);
     expect(sent).not.toContain(sheet?.secretKey);
     expect(sent).not.toContain(sheet?.recoveryKey);
@@ -216,7 +216,8 @@ describe("account keys", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(keys.keyState.value).toBe("setup");
     expect(requests.length).toBe(asked);
-    // The keys already on the screen, or on paper, are the ones set up.
+    // The keys already on the screen, or on paper, are the keys that were set
+    // up.
     expect(await keys.prepareSetup()).toEqual(sheet);
     expect(await keys.completeSetup()).toBe("ok");
   });
@@ -260,7 +261,7 @@ describe("account keys", () => {
     await state("setup");
     await keys.prepareSetup();
     const setup = keys.completeSetup();
-    // Signed out with the request on its way.
+    // Signed out while the request is on its way.
     authToken.value = null;
     currentUser.value = null;
     expect(await setup).toBe("failed");
@@ -315,7 +316,7 @@ describe("account keys", () => {
     });
     expect((await keys.completeRenewal(PASSWORD)).kind).toBe("ok");
     expect(stored?.wrappedBySecret).not.toBe(before);
-    // This device goes on, and now holds the new key to show.
+    // This device continues, and now has the new key to show.
     expect(keys.keyState.value).toBe("unlocked");
     expect(await keys.revealSecretKey(PASSWORD)).toEqual({
       kind: "ok",
@@ -406,7 +407,8 @@ describe("account keys", () => {
       username: "alice",
       newPassword: "a-new-pass-34",
     });
-    // The check the sign-in set off finds the account unlocked and stays so.
+    // The check that the sign-in started finds the account unlocked, and it
+    // stays so.
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(keys.keyState.value).toBe("unlocked");
   });
@@ -425,7 +427,7 @@ describe("account keys", () => {
   });
 });
 
-/** A set-up as some other device would have made it. */
+/** A set-up as a different device would make it. */
 async function otherDeviceSetup(): Promise<AccountKeysSetupRequest> {
   const { createAccountKeys } = await import("#/utils/keyMaterial.ts");
   return (await createAccountKeys(USER.id)).request;

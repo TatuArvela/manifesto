@@ -30,8 +30,8 @@ const baseNote: NoteCreate = {
 type Account = { token: string; userId: string };
 
 /**
- * Starting an account again: its keys are gone, so what was sealed under
- * them goes too, and what others shared with it is given up.
+ * A new start of an account. Its keys are gone. Thus, the data sealed under
+ * them also goes, and the code gives up what others shared with it.
  */
 describe("emptyAccount", () => {
   let rig: TestRig;
@@ -119,7 +119,7 @@ describe("emptyAccount", () => {
     expect((await idsOf(alice)).sort()).toEqual([shared.id, offered.id].sort());
     const invitations = await call(bob, "GET", "/api/v1/invitations");
     expect(await invitations.json()).toEqual({ invitations: [] });
-    // The owner sees that nobody holds either note any more.
+    // The owner sees that nobody has either note now.
     const res = await call(alice, "GET", `/api/v1/notes/${shared.id}`);
     expect(((await res.json()) as { note: Note }).note.sharing).toBeUndefined();
   });
@@ -132,7 +132,7 @@ describe("emptyAccount", () => {
 
     await empty();
 
-    // Restored, it would have come back under a key the account has lost.
+    // A restore would bring it back under a key that the account lost.
     expect(await rig.storage.shares.listByRecipient(bob.userId)).toEqual([]);
     await call(alice, "PUT", `/api/v1/notes/${shared.id}`, { trashed: false });
     expect(await idsOf(bob)).toEqual([]);

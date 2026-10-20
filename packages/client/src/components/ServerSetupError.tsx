@@ -6,14 +6,15 @@ interface Props {
 }
 
 /**
- * Shown instead of the app when this page cannot reach the server it names.
+ * Shown in place of the app when this page cannot reach the server that it
+ * names.
  *
- * It takes the whole screen rather than warning beside a login form, because
- * in this state every request is blocked before it leaves the browser: the
- * form would accept a password and then fail with nothing to go on. The
- * audience is whoever deployed the copy, so the text names the file and the
- * exact lines to add, and the app offers no way past it. There is nothing on
- * the other side.
+ * It uses the full screen, and does not show a warning next to a login form. In
+ * this state, the browser blocks each request before it goes out. The form
+ * would accept a password, and then fail with no information. The audience is
+ * the person who deployed the copy. Thus, the text names the file and the exact
+ * lines to add, and the app gives no way past it. There is nothing on the other
+ * side.
  */
 export function ServerSetupError({ problem }: Props) {
   return (

@@ -46,7 +46,7 @@ async function accountOf(keys: StorageKeys): Promise<AccountSealKeys> {
   };
 }
 
-/** A sealed note as a server would hand it back. */
+/** A sealed note as a server would give it back. */
 function served(sealed: SealedNoteCreate) {
   const { imageRefs: _i, previewRefs: _p, ...note } = sealed;
   return { ...note, createdAt: "c", updatedAt: "u" } satisfies SealedNote;
@@ -67,7 +67,7 @@ describe("sealing a note", () => {
         lengths.add(sealed.font.length);
       }
     }
-    // Few values, so the length of a ciphertext would otherwise name one.
+    // Few values. Thus, the length of a ciphertext would otherwise tell one.
     expect(lengths.size).toBe(1);
   });
 
@@ -93,7 +93,7 @@ describe("sealing a note", () => {
     await refused({ content: "x".repeat(100_001) });
     await refused({ tags: ["x".repeat(65)] });
     await refused({ tags: [""] });
-    // An image still inline: it is uploaded before a note is sealed.
+    // An image that is still inline. It is uploaded before a note is sealed.
     await refused({ images: ["data:image/png;base64,AAAA"] });
   });
 
@@ -106,8 +106,8 @@ describe("sealing a note", () => {
         { url: "https://example.com", title: "Fine", domain: "example.com" },
       ],
     });
-    // What another client's sealing might hold: checked here, since no
-    // server could.
+    // What the seal of a different client could contain. Checked here, because
+    // no server could.
     const other = await sealNewNote(account, "n1", {
       ...draft,
       linkPreviews: [
@@ -131,7 +131,7 @@ describe("sealing a note", () => {
       served(other.sealed),
       other.key,
     );
-    // Sealing drops them too, so nothing of either reaches the reader.
+    // The seal also drops them. Thus, nothing of either reaches the reader.
     expect(theirs?.note.linkPreviews).toEqual([
       { url: "https://example.com/b", title: "Kept", domain: "example.com" },
     ]);
@@ -151,13 +151,13 @@ describe("sealing a note", () => {
       { ...draft, images: [first, second], imageAlts: ["", "A red bicycle"] },
       imageKeys,
     );
-    // Nothing of a description travels beside the sealed list.
+    // Nothing of a description goes next to the sealed list.
     expect(JSON.stringify(sealed)).not.toContain("bicycle");
     const opened = await openSealedNote(account, served(sealed), key);
     expect(opened?.note.images).toEqual([first, second]);
     expect(opened?.note.imageAlts).toEqual(["", "A red bicycle"]);
 
-    // A note none of whose images is described has no list at all.
+    // A note with no described images has no list.
     const plain = await sealNewNote(
       account,
       "n2",
@@ -167,7 +167,7 @@ describe("sealing a note", () => {
     const bare = await openSealedNote(account, served(plain.sealed), plain.key);
     expect(bare?.note).not.toHaveProperty("imageAlts");
 
-    // The descriptions are sealed with the list, never on their own.
+    // The descriptions are sealed with the list, never alone.
     await expect(
       sealNoteUpdate(account, key, "n1", { imageAlts: ["x"] }, imageKeys),
     ).rejects.toBeInstanceOf(NoteLimitError);
@@ -217,7 +217,7 @@ describe("Sealer", () => {
       hiddenTags: ["work"],
       theme: "dark",
     });
-    // A value moved under another name does not open.
+    // A value moved under a different name does not open.
     expect(
       await sealer.openPrefs({ theme: stored.hiddenTags, other: "plain" }),
     ).toEqual({});
@@ -241,7 +241,7 @@ describe("Sealer", () => {
     const listing: SealedNote[] = [];
     for (let i = 0; i < 20; i++) {
       const note = { ...draft, title: `Note ${i}` };
-      // Every fifth is someone else's, and does not open.
+      // Each fifth belongs to a different person, and does not open.
       listing.push(
         served(
           i % 5 === 0
@@ -286,7 +286,7 @@ describe("Sealer", () => {
     const own = served((await sealNewNote(theirs, "n2", draft)).sealed);
     expect(await mine.open(own)).toBeNull();
     expect(mine.missesOwnNotes()).toBe(true);
-    // Deleted, it is missed no more.
+    // After it is deleted, it is not counted as missing.
     mine.forget("n2");
     expect(mine.missesOwnNotes()).toBe(false);
   });
@@ -319,7 +319,7 @@ describe("Sealer", () => {
     let asked = 0;
     const load = async () => {
       asked++;
-      // The first answer is not what was expected at all.
+      // The first answer is not what the test expected.
       if (asked === 1) throw new TypeError("no wrappedPrivateKeys");
       return { version: made.version, ...made.request };
     };
@@ -351,11 +351,12 @@ describe("Sealer", () => {
       editedAt: null,
       ...sealed,
     };
-    // Another device, which reads the note's key from the server first.
+    // A different device, which reads the key of the note from the server
+    // first.
     const opened = await new Sealer(keys).openComments("n1", [comment], fetch);
     expect(opened).toEqual([{ ...comment, body: "Shall we?" }]);
-    // Under another comment's id, or said to be under another key, it does
-    // not open and is left out.
+    // Under the id of a different comment, or said to be under a different key,
+    // it does not open, and is not included.
     expect(
       await sealer.openComments(
         "n1",
@@ -387,7 +388,7 @@ describe("Sealer", () => {
     expect(made.fields.tokenHash).toBe(await tokenHashOf(made.secret));
     expect(made.fields.wrappedKeys).not.toContain(made.secret);
 
-    // What the server does when the token is presented.
+    // What the server does when it gets the token.
     const carried = await unwrapTokenKeys(
       made.secret,
       made.fields.wrappedKeys,
@@ -427,7 +428,7 @@ describe("Sealer", () => {
     const made = await sealer.newToken("mfc_", "reminders");
     if (!made) throw new Error("no address");
     expect(made.secret.startsWith("mfc_")).toBe(true);
-    // The address carries the reminder key and nothing that opens a note
+    // The address carries the reminder key, and nothing that opens a note
     // directly.
     expect(
       await unwrapTokenKeys(made.secret, made.fields.wrappedKeys, keys.userId),
@@ -444,7 +445,7 @@ describe("Sealer", () => {
     );
     if (!key) throw new Error("the feed does not open the note");
     expect((await openSharedFields(key, "n1", dentist)).title).toBe("Dentist");
-    // Not another note with that copy, and not with another address.
+    // Not a different note with that copy, and not with a different address.
     expect(
       await openReminderKey(
         feed.reminders,
@@ -458,8 +459,8 @@ describe("Sealer", () => {
       await unwrapFeedKey("mfc_another", made.fields.wrappedKeys),
     ).toBeNull();
 
-    // Setting a reminder later sends the copy with it; a note that has a
-    // reminder and no copy (a script set it) is marked for one.
+    // A reminder set later sends the copy with it. A note that has a reminder
+    // and no copy (a script set it) gets a mark for one.
     const fetch = async () => served(diary);
     expect(
       (await sealer.sealUpdate("n2", { reminder }, fetch)).reminderKey,

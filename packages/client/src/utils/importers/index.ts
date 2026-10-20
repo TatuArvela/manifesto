@@ -10,8 +10,8 @@ export type { Importer } from "./importer.ts";
 export { checkImportSize, MAX_IMPORT_BYTES } from "./importer.ts";
 
 /**
- * Every other app's format this one reads, beside its own export, Markdown
- * and Google Keep (`importExport.ts`, `keep.ts`). A new format is an
+ * Each format of other apps that this app reads, other than its own export,
+ * Markdown and Google Keep (`importExport.ts`, `keep.ts`). A new format is an
  * `Importer` added here, and nothing else changes.
  */
 export const IMPORTERS: readonly Importer[] = [
@@ -22,7 +22,7 @@ export const IMPORTERS: readonly Importer[] = [
   standardNotesImporter,
 ];
 
-/** The importer that takes files with this extension, if any. */
+/** The importer that takes files with this extension, if there is one. */
 export function importerForFile(extension: string): Importer | null {
   return (
     IMPORTERS.find(
@@ -32,7 +32,7 @@ export function importerForFile(extension: string): Importer | null {
   );
 }
 
-/** The notes in a parsed JSON document of another app's, or null. */
+/** The notes in a parsed JSON document of a different app, or null. */
 export async function notesFromForeignJson(
   data: unknown,
 ): Promise<Note[] | null> {

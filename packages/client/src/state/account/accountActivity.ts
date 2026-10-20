@@ -2,9 +2,9 @@ import type { AuditLogResponse } from "@manifesto/shared";
 import { apiFetch } from "#/storage/apiRequest.ts";
 
 /**
- * The signed-in user's own lines of the audit log: what an admin can see
- * about them, including what an admin did to their account. Resolves with
- * null rather than rejecting; the page says so in its own words.
+ * The lines of the audit log about the signed-in user: what an admin can see
+ * about them, also what an admin did to their account. Resolves with null, and
+ * does not reject. The page tells this in its own words.
  */
 export async function loadAccountActivity(
   before?: string,

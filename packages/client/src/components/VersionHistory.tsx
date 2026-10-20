@@ -23,8 +23,8 @@ export function VersionHistory({
   onRestore: (title: string, content: string) => void;
   onClose: () => void;
 }) {
-  // Null while loading; a failed load reads as an empty history rather than
-  // a spinner that never ends.
+  // Null while it loads. A failed load shows as an empty history, not as a
+  // spinner that never ends.
   const [versions, setVersions] = useState<NoteVersion[] | null>(null);
   const [selected, setSelected] = useState<NoteVersion | null>(null);
   const colors = noteColorMap[color];

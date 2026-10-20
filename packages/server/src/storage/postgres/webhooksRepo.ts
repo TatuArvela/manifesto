@@ -3,9 +3,12 @@ import type { WebhooksRepo } from "#/storage/types.ts";
 import { rowToWebhook, type WebhookRow } from "#/storage/webhookMapping.ts";
 import type { PgPool } from "./database.ts";
 
-/** See the SQLite copy. The failure count is read, then written, rather than
- * computed in one `CASE`, which pg-mem handles unreliably; a webhook's
- * deliveries are serialised by the dispatcher, so nothing races it. */
+/**
+ * See the SQLite copy. The code reads the failure count and then writes it. It
+ * does not calculate it in one `CASE`, which pg-mem does not handle reliably.
+ * The dispatcher sends the deliveries of a webhook in sequence. Thus, nothing
+ * races it.
+ */
 export function createPostgresWebhooksRepo(pool: PgPool): WebhooksRepo {
   return {
     async create(input) {

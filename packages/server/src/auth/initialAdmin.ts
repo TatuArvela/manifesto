@@ -16,13 +16,18 @@ export const INITIAL_ADMIN_USERNAME = "admin";
 export interface InitialAdmin {
   username: string;
   password: string;
-  /** False when an existing, still unclaimed admin account got a new password. */
+  /**
+   * False when an existing admin account that nobody claimed got a new
+   * password.
+   */
   created: boolean;
-  /** The password came from `INITIAL_ADMIN_PASSWORD`, so the operator has it. */
+  /**
+   * The password came from `INITIAL_ADMIN_PASSWORD`. Thus, the operator has it.
+   */
   fromConfig: boolean;
 }
 
-/** An admin someone can actually sign in as with a password of their own. */
+/** An admin with their own password, as which a person can really sign in. */
 function isSettledLocalAdmin(user: User): boolean {
   return (
     user.provider === "local" &&
@@ -32,28 +37,28 @@ function isSettledLocalAdmin(user: User): boolean {
 }
 
 /**
- * Make sure a server using local sign-in can be administered, before it
- * accepts its first request.
+ * Make sure that a server with local sign-in has an admin, before it accepts
+ * its first request.
  *
- * When no admin has a password of their own (a new server, or one whose only
- * admins sign in with an identity provider it no longer uses), this issues a
- * temporary password for an `admin` account and returns it for the caller to
- * print. The account has to choose a real password at first sign-in, through
- * the same flow as any account an admin creates.
+ * When no admin has their own password (a new server, or a server whose only
+ * admins sign in with an identity provider that it does not use now), this
+ * gives a temporary password to an `admin` account, and returns it for the
+ * caller to print. The account must select a real password at the first
+ * sign-in, through the same flow as all accounts that an admin creates.
  *
- * It runs on every boot until that happens, and each run issues a fresh
- * password for the same unclaimed account, so an operator who lost the output
- * restarts the server rather than editing the database. Once any admin has
- * settled a password this does nothing, which is also why a server upgraded
- * with an admin already in it never gets one.
+ * It runs at each start until that occurs. Each run gives a new password to the
+ * same unclaimed account. Thus, an operator who lost the output restarts the
+ * server, and does not edit the database. When an admin has a password, this
+ * does nothing. For this reason, a server that you upgrade with an existing
+ * admin never gets one.
  *
- * Deliberately not `admin`/`admin`: a well-known default is claimed by
- * whoever tries it first, scanners included, and a forced password change
- * then hands the server to them. A random password is only known to whoever
- * can read the server's output.
+ * It is not `admin`/`admin`, on purpose. The first person who tries a
+ * well-known default gets it, also scanners. A mandatory password change then
+ * gives the server to them. Only a person who can read the output of the server
+ * knows a random password.
  *
- * Under single sign-on there is no password to sign in with, and the first
- * person to sign in becomes the admin instead (see `UsersRepo.create`).
+ * With single sign-on, there is no password for a sign-in. The first person who
+ * signs in becomes the admin (see `UsersRepo.create`).
  */
 export async function ensureInitialAdmin(
   storage: StorageDriver,
@@ -87,8 +92,9 @@ export async function ensureInitialAdmin(
     };
   }
 
-  // A user may already hold the name, having registered before this ran
-  // against a database that had lost its admin. Their account is left alone.
+  // A user can already have the name, because they registered before this ran
+  // against a database that lost its admin. The code does not change their
+  // account.
   const candidates = [
     INITIAL_ADMIN_USERNAME,
     `${INITIAL_ADMIN_USERNAME}-${newShortSuffix()}`,
@@ -118,10 +124,10 @@ export async function ensureInitialAdmin(
 }
 
 /**
- * Put the initial admin's credentials in front of the operator. Written
- * whatever `LOG_LEVEL` says, since a server nobody can sign in to is worse
- * than one noisy line, and as the same JSON shape as every other log line so
- * log shippers keep parsing.
+ * Show the credentials of the initial admin to the operator. It writes them
+ * whatever the value of `LOG_LEVEL`, because a server on which nobody can sign
+ * in is worse than one noisy line. It uses the same JSON shape as all other log
+ * lines. Thus, log shippers continue to parse.
  */
 export function announceInitialAdmin(
   admin: InitialAdmin,
@@ -135,7 +141,7 @@ export function announceInitialAdmin(
         ? "Created the initial admin account. Sign in with this temporary password and choose your own."
         : "No admin has signed in yet. The initial admin account has a new temporary password.",
       username: admin.username,
-      // Not repeated when the operator supplied it.
+      // Not repeated when the operator gave it.
       temporaryPassword: admin.fromConfig
         ? "(INITIAL_ADMIN_PASSWORD)"
         : admin.password,

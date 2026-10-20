@@ -1,22 +1,23 @@
 /**
- * The browser's back (Android's back button, the edge swipe in a Safari tab)
- * closes the newest sheet, as it would a screen in an app, rather than leaving
- * the view underneath it.
+ * The back of the browser (the back button of Android, the edge swipe in a
+ * Safari tab) closes the newest sheet, as it would close a screen in an app. It
+ * does not leave the view under it.
  *
  * Each sheet that opens pushes a history entry at the same address, marked as
- * its own. Going back pops that entry, and the sheet whose entry it was is
- * closed. A sheet closed any other way (its back arrow, Escape, Done) takes
- * its entry off again with `history.back()`, so there is never a dead entry
- * left for the next press of back to land on with nothing happening.
+ * its own. A back navigation pops that entry, and the sheet whose entry it was
+ * closes. A sheet closed in a different way (its back arrow, Escape, Done)
+ * removes its entry again with `history.back()`. Thus, there is never a dead
+ * entry left where the next back press would do nothing.
  *
- * A sheet may decline to close (one that asks before throwing work away) by
- * returning `false` from its `close`. Its entry is then put straight back, so
- * the next press of back is still the sheet's, and not the one underneath's.
+ * A sheet can refuse to close (a sheet that asks before it discards work) when
+ * its `close` returns `false`. Its entry is then put back immediately. Thus,
+ * the next back press still belongs to the sheet, not to the sheet under it.
  *
  * `history.back()` is asynchronous, and anything pushed before its `popstate`
- * arrives would be the entry it goes back from. So a sheet opened in that gap
- * (a reminder opening another note over the one closing) waits for it, and the
- * router defers its own pushes the same way through `afterHistorySettles`.
+ * arrives would be the entry from which it goes back. Thus, a sheet opened in
+ * that gap (a reminder that opens a different note over the note that closes)
+ * waits for it. The router delays its own pushes in the same way through
+ * `afterHistorySettles`.
  *
  * Sheets reach this through `useBackToClose`.
  */
@@ -27,13 +28,13 @@ interface Layer {
   id: number;
   /** Returns `false` when the sheet stays open. */
   close: () => unknown;
-  /** Whether the entry for this layer is in the history now. */
+  /** If the entry for this layer is in the history now. */
   pushed: boolean;
 }
 
 const layers: Layer[] = [];
 let nextId = 1;
-/** Pops still to come from our own `history.back()` calls. */
+/** Pops that are still to come from our own `history.back()` calls. */
 let ownPops = 0;
 let waiting: (() => void)[] = [];
 
@@ -50,7 +51,7 @@ function push(layer: Layer) {
   layer.pushed = true;
 }
 
-/** Runs `fn` now, or once every `history.back()` of ours has landed. */
+/** Runs `fn` now, or after each of our `history.back()` calls arrived. */
 export function afterHistorySettles(fn: () => void): void {
   if (ownPops === 0) fn();
   else waiting.push(fn);
@@ -68,8 +69,8 @@ function onPopState() {
     }
     return;
   }
-  // Back from the newest sheet's entry: that sheet is what closes. Its entry
-  // is already gone, so the cleanup that follows has nothing to take off.
+  // Back from the entry of the newest sheet: that sheet closes. Its entry is
+  // already gone. Thus, the cleanup that follows has nothing to remove.
   const top = layers[layers.length - 1];
   if (top?.pushed && !isOwnEntry(history.state, top.id)) {
     top.pushed = false;
@@ -78,8 +79,9 @@ function onPopState() {
 }
 
 function register(layer: Layer) {
-  // Adding a listener that is already there is a no-op, which covers a sheet
-  // opened while the last one's `history.back()` is still on its way.
+  // A listener that is already there cannot be added again, which covers a
+  // sheet opened while the `history.back()` of the last sheet is still on its
+  // way.
   window.addEventListener("popstate", onPopState);
   layers.push(layer);
   afterHistorySettles(() => {
@@ -90,8 +92,9 @@ function register(layer: Layer) {
 function unregister(layer: Layer) {
   const index = layers.indexOf(layer);
   if (index !== -1) layers.splice(index, 1);
-  // Only when its entry is the one showing: something pushed over it since
-  // (which nothing does while a sheet is up) must not be undone instead.
+  // Only when its entry is the entry that shows. If something was pushed over
+  // it since then (nothing does that while a sheet is open), it must not be
+  // undone in its place.
   if (layer.pushed && isOwnEntry(history.state, layer.id)) {
     ownPops++;
     history.back();
@@ -102,10 +105,10 @@ function unregister(layer: Layer) {
 }
 
 /**
- * Pushes a history entry for a sheet that has just opened, and has back call
- * `close` while that entry is there; a `close` that returns `false` has kept
- * the sheet open, and keeps its entry. Returns the cleanup that takes the
- * entry off again when the sheet closes some other way.
+ * Pushes a history entry for a sheet that just opened, and makes back call
+ * `close` while that entry is there. A `close` that returns `false` kept the
+ * sheet open, and keeps its entry. Returns the cleanup that removes the entry
+ * again when the sheet closes in a different way.
  */
 export function openHistoryLayer(close: () => unknown): () => void {
   const layer: Layer = { id: nextId++, close, pushed: false };

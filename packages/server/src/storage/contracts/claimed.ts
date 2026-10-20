@@ -22,13 +22,13 @@ import type {
   StoredNoteUpdate,
 } from "#/storage/types.ts";
 
-// What the server's tests write notes with. The server never opens a note:
-// it checks that a sealed field is shaped as a ciphertext and stores it. So a
-// test does not need a key, only values of that shape that it can read back,
-// which is what `ciphertext` and `plain` are. Real sealing is tested where
-// it is done, in `@manifesto/shared` and the client.
+// What the tests of the server use to write notes. The server never opens a
+// note. It checks that a sealed field has the shape of a ciphertext, and stores
+// it. Thus, a test does not need a key, only values of that shape that it can
+// read back. `ciphertext` and `plain` give that. The real seal is tested where
+// it occurs, in `@manifesto/shared` and the client.
 
-/** The nonce and tag of a real ciphertext, as so many zero bytes. */
+/** The nonce and tag of a real ciphertext, as zero bytes. */
 const FILLER_BYTES = 28;
 
 /** `text` in the shape of a ciphertext. */
@@ -39,7 +39,7 @@ export function ciphertext(text: string): string {
   return CIPHERTEXT_PREFIX + bytesToBase64url(bytes);
 }
 
-/** What `ciphertext` was given; an empty field, never set, is empty. */
+/** What `ciphertext` got. An empty field, never set, is empty. */
 export function plain(sealed: string): string {
   if (sealed === "") return "";
   if (!sealed.startsWith(CIPHERTEXT_PREFIX)) {
@@ -49,9 +49,9 @@ export function plain(sealed: string): string {
   return fromUtf8(bytes.subarray(FILLER_BYTES)) ?? "";
 }
 
-// Storage takes only image references `claimImages` has checked (see
-// `ClaimedImages`). A storage test writes rows directly, with references it
-// made up or none, so it vouches for them here instead.
+// Storage accepts only image references that `claimImages` checked (see
+// `ClaimedImages`). A storage test writes rows directly, with references that
+// it made, or none. Thus, it vouches for them here.
 
 export function claimedImages(images: string[] = []): ClaimedImages {
   return images as ClaimedImages;
@@ -60,7 +60,7 @@ export function claimedImages(images: string[] = []): ClaimedImages {
 /** A note key as a recipient keeps it, for a test that accepts a share. */
 export const heldKey = { key: ciphertext("held key"), keyVersion: 1 };
 
-/** The changes of an update as the app sends them. */
+/** The changes of an update, as the app sends them. */
 export function sealedUpdate(changes: NoteUpdate): SealedNoteUpdate {
   const { title, content, font, images, linkPreviews, color, tags, ...rest } =
     changes;
@@ -69,7 +69,7 @@ export function sealedUpdate(changes: NoteUpdate): SealedNoteUpdate {
   );
   return {
     ...rest,
-    // Words come with the format they are in, as the app's do.
+    // Words come with their format, as those of the app do.
     ...(words && { format: 1 }),
     ...(title !== undefined && { title: ciphertext(title) }),
     ...(content !== undefined && {
@@ -92,7 +92,7 @@ export function sealedUpdate(changes: NoteUpdate): SealedNoteUpdate {
   };
 }
 
-/** A new note as the app sends it, under an id of its own unless given one. */
+/** A new note as the app sends it, under its own id unless it gets one. */
 export function sealedCreate(
   data: NoteCreate,
   id: string = newId(),
@@ -109,10 +109,12 @@ export function sealedCreate(
   };
 }
 
-/** A note's fields sealed and both lists vouched for, to insert directly. */
+/**
+ * The fields of a note, sealed, and both lists vouched for, to insert directly.
+ */
 export function claimed(data: NoteCreate): StoredNoteCreate {
-  // One id for every note's key, so two drivers given the same note store
-  // the same row.
+  // One id for the key of each note. Thus, two drivers that get the same note
+  // store the same row.
   const {
     id: _id,
     imageRefs,
@@ -126,7 +128,7 @@ export function claimed(data: NoteCreate): StoredNoteCreate {
   };
 }
 
-/** The changes of an update sealed and vouched for, to write directly. */
+/** The changes of an update, sealed and vouched for, to write directly. */
 export function claimedUpdate(changes: NoteUpdate): StoredNoteUpdate {
   const { imageRefs, previewRefs, ...sealed } = sealedUpdate(changes);
   return {
@@ -143,7 +145,7 @@ function parsed<T>(sealed: string, fallback: T): T {
   return text === "" ? fallback : (JSON.parse(text) as T);
 }
 
-/** A stored note with its fields read back, for a test to look at. */
+/** A stored note with its fields read back, for a test. */
 export function opened(note: SealedNote): Note {
   const {
     key: _key,

@@ -11,16 +11,17 @@ import {
 } from "./test/setup.ts";
 
 /**
- * A client generated from the document is only as right as the document. The
- * request bodies are the zod schemas the routes validate with, so they cannot
- * drift; the response shapes are written by hand, so here the server's real
- * answers are checked against them: every required property present, every
- * type as declared, and nothing answered that the document does not mention.
- * The last is checked here and not by the schemas, which stay open so that a
- * client generated today still reads a server that has since added a field.
+ * A client generated from the document is only as correct as the document. The
+ * request bodies are the zod schemas with which the routes validate. Thus, they
+ * always agree. The response shapes are written manually. Thus, this test
+ * checks the real answers of the server against them: each required property is
+ * present, each type is as declared, and no answer contains something that the
+ * document does not name. This test checks the last item, not the schemas. The
+ * schemas stay open, so that a client generated today can still read a server
+ * that added a field later.
  */
 
-/** As much of a JSON schema as the document's responses use. */
+/** The part of a JSON schema that the responses of the document use. */
 interface Described {
   $ref?: string;
   anyOf?: Described[];
@@ -46,7 +47,7 @@ const doc = buildOpenApiDocument("test") as unknown as {
   >;
 };
 
-/** The schema a `$ref` names, or the schema itself. */
+/** The schema that a `$ref` names, or the schema itself. */
 function resolved(schema: Described): Described {
   if (!schema.$ref) return schema;
   const name = schema.$ref.replace("#/components/schemas/", "");
@@ -55,7 +56,7 @@ function resolved(schema: Described): Described {
   return resolved(target);
 }
 
-/** The response schema the document gives an operation for a status. */
+/** The response schema that the document gives an operation for a status. */
 function referenceFor(method: string, path: string, status: number) {
   const reference =
     doc.paths[path]?.[method]?.responses[String(status)]?.content?.[
@@ -67,9 +68,9 @@ function referenceFor(method: string, path: string, status: number) {
   return reference;
 }
 
-/** That schema as something an answer can be parsed with. */
+/** That schema, in a form that can parse an answer. */
 function parserFor(reference: string) {
-  // zod resolves references into `$defs`, so the components go there.
+  // zod resolves references into `$defs`. Thus, the components go there.
   const local = <T>(value: T) =>
     JSON.parse(
       JSON.stringify(value).replaceAll("#/components/schemas/", "#/$defs/"),
@@ -81,15 +82,15 @@ function parserFor(reference: string) {
 }
 
 /**
- * Where an answer holds a property its schema does not declare. An object
- * described without properties, or with `additionalProperties` of its own
- * (the preferences, the features), is open by its description and holds
+ * Where an answer contains a property that its schema does not declare. An
+ * object described without properties, or with its own `additionalProperties`
+ * (the preferences, the features), is open by its description, and can contain
  * anything.
  */
 function undeclared(schema: Described, value: unknown, at = ""): string[] {
   const described = resolved(schema);
   if (described.anyOf) {
-    // Null or one thing, everywhere the document says `anyOf`.
+    // Null or one thing, in all places where the document says `anyOf`.
     return described.anyOf.flatMap((option) =>
       value === null ? [] : undeclared(option, value, at),
     );
@@ -115,7 +116,7 @@ const PREVIEW: LinkPreview = {
   domain: "example.com",
 };
 
-// The smallest thing the upload takes for an image.
+// The smallest value that the upload accepts for an image.
 const PNG = Buffer.from(`${"iVBORw0KGgo".repeat(4)}=`, "base64");
 
 const baseNote: NoteCreate = {
@@ -145,9 +146,9 @@ describe("the OpenAPI document against the server's answers", () => {
     path: string,
     body?: unknown,
   ) {
-    // A public link's page has no account and opens what it is sent with a
-    // key from its own address, so its answers are held to the document as
-    // the server gives them.
+    // The page of a public link has no account. It opens what it gets with a
+    // key from its own address. Thus, the test checks its answers against the
+    // document, as the server gives them.
     const send = path.startsWith("/api/v1/public/")
       ? rig.rawRequest
       : rig.request;
@@ -161,7 +162,7 @@ describe("the OpenAPI document against the server's answers", () => {
     return { status: res.status, body: (await res.json()) as unknown };
   }
 
-  /** Calls the server and holds the answer to the document. */
+  /** Calls the server, and checks the answer against the document. */
   async function conforms<T = unknown>(
     who: { token: string } | null,
     method: string,
@@ -329,8 +330,8 @@ describe("the OpenAPI document against the server's answers", () => {
   });
 
   it("describes a note shared with a team, and the team on it", async () => {
-    // The first account registered is the admin, and a note goes only to a
-    // team its owner is in.
+    // The first registered account is the admin. A note goes only to a team of
+    // its owner.
     const team = await call(owner, "post", "/api/v1/admin/teams", {
       name: "Travellers",
       memberIds: [owner.userId, other.userId],
@@ -356,7 +357,7 @@ describe("the OpenAPI document against the server's answers", () => {
       { role: "edit" },
     );
 
-    // Both carry the team, which a note shared directly leaves out.
+    // Both contain the team. A note shared directly does not.
     const invited = await conforms<{ invitations: { team?: object }[] }>(
       other,
       "get",
@@ -404,7 +405,7 @@ describe("the OpenAPI document against the server's answers", () => {
       200,
       { body: "Aisle seats?" },
     );
-    // Once its author has left the note, a comment stays without a name.
+    // After its author left the note, a comment stays without a name.
     const left = await rig.request(
       `/api/v1/notes/${id}/shares/${other.userId}`,
       {
@@ -458,7 +459,8 @@ describe("the OpenAPI document against the server's answers", () => {
     expect(
       undeclared({ $ref: reference }, { invitations: [invitation], more: 1 }),
     ).toEqual([".invitations[0].nickname", ".more"]);
-    // What is described as holding anything does.
+    // What the document describes as able to contain anything does contain
+    // anything.
     const prefs = referenceFor("get", "/api/v1/auth/me/prefs", 200);
     expect(undeclared({ $ref: prefs }, { prefs: { theme: "dark" } })).toEqual(
       [],

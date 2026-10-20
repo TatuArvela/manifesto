@@ -1,10 +1,10 @@
 import { normalizeTag } from "@manifesto/shared";
 
 /**
- * Every auto-note plugin source must begin with a `// @title <name>`
- * directive as its first non-empty line. This keeps the plugin name
- * colocated with its code so users can't end up with a mis-labeled plugin
- * after pasting or refetching.
+ * Each auto-note plugin source must start with a `// @title <name>` directive
+ * as its first line that is not empty. This keeps the name of the plugin with
+ * its code. Thus, after a paste or a refetch, a plugin cannot get an incorrect
+ * label.
  */
 
 const TITLE_RE = /^\s*\/\/\s*@title\s+(.+?)\s*$/;

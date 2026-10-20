@@ -10,12 +10,15 @@ import {
 import { animations } from "#/state/prefs.ts";
 import { edgeScroll, scrollParent } from "#/utils/edgeScroll.ts";
 
-/** How far the pointer must travel after the order changes before it may change again. */
+/**
+ * How far the pointer must move after the order changes before it can change
+ * again.
+ */
 const REORDER_SETTLE_PX = 8;
 /** How long the cards take to slide into a previewed order. */
 const SHIFT_MS = 180;
 
-/** The id of the card under a point, going by where each card is drawn. */
+/** The id of the card under a point, from where each card is drawn. */
 function cardIdAt(
   coords: { clientX: number; clientY: number },
   container: HTMLElement,
@@ -34,7 +37,7 @@ function cardIdAt(
   return null;
 }
 
-/** `ids` with `id` moved into the place `targetId` holds. */
+/** `ids`, with `id` moved into the position of `targetId`. */
 export function moveInto(
   ids: readonly string[],
   id: string,
@@ -59,7 +62,7 @@ function measureCards(container: HTMLElement): Map<string, DOMRect> {
   return rects;
 }
 
-/** What the grid and each card are given to take part in a drag. */
+/** What the grid and each card get, to take part in a drag. */
 export interface ReorderDrag {
   gridHandlers: {
     onDragEnter: (e: DragEvent) => void;
@@ -67,7 +70,9 @@ export interface ReorderDrag {
     onDragLeave: (e: DragEvent) => void;
     onDrop: (e: DragEvent) => void;
   };
-  /** The same functions on every render, so a memoized card stays put. */
+  /**
+   * The same functions on each render. Thus, a memoized card stays where it is.
+   */
   cardHandlers: {
     onDragStart: (e: DragEvent, id: string) => void;
     onDragEnd: (e: DragEvent) => void;
@@ -78,9 +83,9 @@ export interface ReorderDrag {
 }
 
 /**
- * Dragging one section's cards into a new order, by mouse and by touch. The
- * order is previewed while the drag lasts and handed to `onReorder` on the
- * drop; see `ReorderableGrid`.
+ * A drag of the cards of one section into a new order, with a mouse and with
+ * touch. The order shows as a preview during the drag, and goes to `onReorder`
+ * on the drop. See `ReorderableGrid`.
  */
 export function useReorderDrag({
   notes,
@@ -90,32 +95,32 @@ export function useReorderDrag({
 }: {
   notes: Note[];
   reorderable: boolean;
-  /** `ids` is this section's order before the move. */
+  /** `ids` is the order of this section before the move. */
   onReorder: (ids: string[], fromIndex: number, toIndex: number) => void;
   gridRef: RefObject<HTMLDivElement | null>;
 }): ReorderDrag {
-  // The order the cards are shown in while a drag is under way, or null for
-  // the real one. Shown through each card's CSS `order`, not by moving the
-  // DOM: a touch drag holds pointer capture on the card, and moving a node
-  // out of the document to put it back elsewhere drops the capture.
+  // The order in which the cards show during a drag, or null for the real
+  // order. The CSS `order` of each card shows it. The code does not move the
+  // DOM. A touch drag keeps pointer capture on the card, and when a node moves
+  // out of the document and back to a different place, the capture is lost.
   const [preview, setPreview] = useState<string[] | null>(null);
   const previewRef = useRef<string[] | null>(null);
   previewRef.current = preview;
   const dragSourceId = useRef<string | null>(null);
   const touchDragElRef = useRef<HTMLElement | null>(null);
-  // Where the pointer was when the order last changed, and the card it swapped
-  // places with. Cards move under the pointer when the order changes, and the
-  // card just swapped with often slides to where the pointer is: taken for the
-  // next target, it swapped straight back, and back again. It is passed over
-  // until the pointer has left it, and nothing moves until the pointer has
-  // travelled a little.
+  // Where the pointer was when the order last changed, and the card with which
+  // it swapped. Cards move under the pointer when the order changes, and the
+  // card that just swapped frequently slides to where the pointer is. When the
+  // code took it as the next target, it swapped back immediately, and back
+  // again. Thus, the code ignores it until the pointer leaves it, and nothing
+  // moves until the pointer moved a little.
   const settledAt = useRef<{ clientX: number; clientY: number } | null>(null);
   const lastTargetId = useRef<string | null>(null);
   // Where the cards were drawn just before the order changed, for the slide.
   const shiftFrom = useRef<Map<string, DOMRect> | null>(null);
   // `dragover` and `pointermove` arrive faster than frames, and each lookup
-  // measures every card, so the latest position waits for the next frame and
-  // is looked up once there. A drop reads it at once instead.
+  // measures each card. Thus, the latest position waits for the next frame, and
+  // the code looks it up one time there. A drop reads it immediately.
   const pendingCoords = useRef<{ clientX: number; clientY: number } | null>(
     null,
   );
@@ -130,8 +135,9 @@ export function useReorderDrag({
     setPreview(next);
   };
 
-  // Puts the previewed order on the cards and slides them there from where
-  // they were drawn: layout, so the first frame drawn is the slide's first.
+  // Puts the previewed order on the cards, and slides them there from where
+  // they were drawn. Layout. Thus, the first drawn frame is the first frame of
+  // the slide.
   useLayoutEffect(() => {
     const container = gridRef.current;
     if (!container) return;
@@ -146,8 +152,8 @@ export function useReorderDrag({
     for (const child of children) {
       const before = from.get(child.dataset.noteId ?? "");
       if (!before) continue;
-      // Measured mid-slide if one is running, which is where it is drawn;
-      // that one then gives way to this.
+      // Measured during a slide if one runs, because it is drawn there. That
+      // slide then stops for this one.
       for (const running of child.getAnimations()) {
         if ((running as Animation).id === "reorder-shift") running.cancel();
       }
@@ -184,7 +190,7 @@ export function useReorderDrag({
     if (previewRef.current) showOrder(null);
   };
 
-  /** Moves the dragged card into the place of the card under the pointer. */
+  /** Moves the dragged card into the position of the card under the pointer. */
   const moveTo = (coords: { clientX: number; clientY: number }) => {
     const container = gridRef.current;
     const sourceId = dragSourceId.current;
@@ -200,7 +206,7 @@ export function useReorderDrag({
     const targetId = cardIdAt(coords, container);
     if (targetId !== lastTargetId.current) lastTargetId.current = null;
     // Over the dragged card (already where it would go), a gap, or the card
-    // it has just swapped with: no change.
+    // with which it just swapped: no change.
     if (
       !targetId ||
       targetId === sourceId ||
@@ -222,8 +228,8 @@ export function useReorderDrag({
       moveFrame.current = 0;
       const coords = pendingCoords.current;
       pendingCoords.current = null;
-      // Through `latest`: this frame may run after a render this closure
-      // predates.
+      // Through `latest`. This frame can run after a render that is newer than
+      // this closure.
       if (coords) latest.current.moveTo(coords);
     });
   };
@@ -237,7 +243,7 @@ export function useReorderDrag({
     const toIndex = order.indexOf(sourceId);
     if (fromIndex === -1 || toIndex === -1) return;
     if (toIndex !== fromIndex) onReorder(ids, fromIndex, toIndex);
-    // The real order now matches the preview, so dropping it moves nothing.
+    // The real order now agrees with the preview. Thus, a drop moves nothing.
     shiftFrom.current = null;
     previewRef.current = null;
     setPreview(null);
@@ -249,8 +255,8 @@ export function useReorderDrag({
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = "move";
       const rect = target.getBoundingClientRect();
-      // An off-screen clone, so the ghost is the whole card rather than the
-      // part of it currently on screen (Safari/iOS behaviour).
+      // A clone off the screen. Thus, the ghost is the full card, not only the
+      // part of it that is on the screen now (the behavior of Safari/iOS).
       const clone = target.cloneNode(true) as HTMLElement;
       clone.style.position = "fixed";
       clone.style.top = "-10000px";
@@ -276,19 +282,19 @@ export function useReorderDrag({
     endDrag();
   };
 
-  // A touch drag has no drag image of the browser's own, so the card under
-  // the finger is a copy of ours, while the card itself holds its place in
-  // the preview invisibly, as it does under a mouse.
+  // A touch drag has no drag image from the browser. Thus, the card under the
+  // finger is our own copy, while the card itself invisibly keeps its position
+  // in the preview, as under a mouse.
   const ghostRef = useRef<{
     el: HTMLElement;
     startX: number;
     startY: number;
   } | null>(null);
 
-  // A finger holding a card cannot also scroll the board, so the board
-  // scrolls itself while the finger rests near its top or bottom edge. The
-  // card under a still finger changes as the board moves, so each frame that
-  // scrolls looks for it again.
+  // A finger that holds a card cannot also scroll the board. Thus, the board
+  // scrolls itself while the finger stays near its top or bottom edge. The card
+  // under a finger that does not move changes when the board moves. Thus, each
+  // frame that scrolls looks for it again.
   const touchScroll = useRef<{
     scroller: HTMLElement;
     frame: number;
@@ -378,11 +384,11 @@ export function useReorderDrag({
     scheduleMove(e);
   };
 
-  // Entering a card is accepted as well as moving over one. The previewed
-  // order moves cards under the pointer, so it often enters a new card just
-  // before it is released, with no `dragover` in between, and a drop onto an
-  // element whose `dragenter` went unanswered is refused: the drag ended as a
-  // cancel and put everything back.
+  // The code accepts an entry into a card, and also a move over one. The
+  // previewed order moves cards under the pointer. Thus, it frequently enters a
+  // new card just before the release, with no `dragover` between. The browser
+  // refuses a drop onto an element whose `dragenter` got no answer. Then the
+  // drag ended as a cancel, and all cards went back.
   const handleDragEnter = (e: DragEvent) => {
     if (!reorderable || !dragSourceId.current) return;
     e.preventDefault();
@@ -391,7 +397,7 @@ export function useReorderDrag({
 
   const handleDragLeave = (e: DragEvent) => {
     const container = gridRef.current;
-    // Moving between two cards leaves the card, not the grid.
+    // A move between two cards leaves the card, not the grid.
     if (
       container &&
       e.relatedTarget instanceof Node &&
@@ -399,24 +405,24 @@ export function useReorderDrag({
     ) {
       return;
     }
-    // Off the grid, a drop would change nothing, so the preview says so.
+    // Off the grid, a drop would change nothing. Thus, the preview shows that.
     cancelMove();
     settledAt.current = null;
     if (previewRef.current) showOrder(null);
   };
 
-  // A drop commits the order on screen. A move still waiting for its frame
-  // is dropped rather than applied: it would put the card somewhere the
-  // preview never showed.
+  // A drop commits the order on the screen. The code drops a move that still
+  // waits for its frame, and does not apply it. It would put the card in a
+  // position that the preview never showed.
   const handleDrop = (e: DragEvent) => {
     e.preventDefault();
     cancelMove();
     commitDrop();
   };
 
-  // What the cards are handed never changes identity, and calls through to
-  // this render's handlers: `NoteCard` is memoized, and a fresh closure per
-  // card per render made every card re-render on every drop-gap change.
+  // What the cards get never changes identity, and calls the handlers of this
+  // render. `NoteCard` is memoized. A new closure for each card on each render
+  // made each card render again on each change of the drop gap.
   const latest = useRef({
     moveTo,
     handleDragStart,

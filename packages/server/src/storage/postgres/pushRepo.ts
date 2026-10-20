@@ -11,8 +11,10 @@ import type {
 } from "#/storage/types.ts";
 import type { PgPool } from "./database.ts";
 
-/** See the SQLite copy. The failure count is read after it is written rather
- * than returned by the update, as the webhooks' is, for pg-mem's sake. */
+/**
+ * See the SQLite copy. The code reads the failure count after it writes it. The
+ * update does not return it, as for webhooks, because of pg-mem.
+ */
 export function createPostgresPushSubscriptionsRepo(
   pool: PgPool,
 ): PushSubscriptionsRepo {
@@ -129,8 +131,8 @@ export function createPostgresServerSecretsRepo(
       );
       const held = await read(name);
       if (held !== null) return held;
-      // What the name holds does not open. Only if it is still that value,
-      // so that of two processes that find it so, one's is kept by both.
+      // The value of the name does not open. Only if it is still that value.
+      // Thus, if two processes find this, both keep the value of one of them.
       await pool.query(
         `UPDATE server_secrets SET value = $1, created_at = $2
          WHERE name = $3 AND value = $4`,

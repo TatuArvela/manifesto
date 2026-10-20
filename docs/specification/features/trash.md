@@ -1,15 +1,24 @@
 # Trash
 
-Deleting a note is a soft delete: it moves the note to trash rather than permanently removing it.
+When you delete a note, the app does a soft delete. The note moves to the trash. The app does not
+remove the note permanently.
 
 ## Behavior
 
-- Deleting a note sets `trashed: true` and records `trashedAt` (see [Data Model](../data-model.md))
-- The card is crumpled into a ball and tossed away as it goes, and so is one deleted for good from the Trash; a restored one ascends, glowing as it floats up and out of the Trash view. Neither plays for a card that the change leaves in the current view, such as a search that covers both places
-- Trashed notes are accessible from the Trash view in the sidebar
-- The trash view shows when each note was trashed
-- A trashed note can be restored to its previous state (active or archived)
-- A trashed note can be permanently deleted from the Trash view
-- Notes in trash auto-expire after 30 days (`TRASH_RETENTION_DAYS`). In open mode the app checks on start; in connected mode the server does, hourly, and the client leaves it to the server
-- In connected mode, a note [shared with you](sharing-with-people.md#trash) goes to your own trash and leaves nobody else's notes; deleting it permanently takes it out of your notes only. A note its owner trashes disappears for everyone it was shared with
-
+- When you delete a note, the app sets `trashed: true` and records `trashedAt` (see
+  [Data Model](../data-model.md)).
+- The card becomes a crumpled ball and moves away. The same animation plays when you delete a note
+  permanently from the Trash. A restored card moves up and out of the Trash view, with a glow. No
+  animation plays for a card that stays in the current view after the change. An example is a
+  search that includes both places.
+- To see the trashed notes, open the Trash view in the sidebar.
+- The Trash view shows when each note went to the trash.
+- You can restore a trashed note to its previous state (active or archived).
+- You can delete a trashed note permanently from the Trash view.
+- A note in the trash expires automatically after 30 days (`TRASH_RETENTION_DAYS`). In open mode,
+  the app does this check when it starts. In connected mode, the server does the check each hour,
+  and the client does not do it.
+- In connected mode, a note [shared with you](sharing-with-people.md#trash) goes to your own trash.
+  It stays in the notes of the other people. When you delete it permanently, it goes out of your
+  notes only. When the owner moves a note to the trash, the note goes out of the notes of all the
+  people who have it.

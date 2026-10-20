@@ -2,12 +2,12 @@ import type { ResolvedPos } from "@milkdown/kit/prose/model";
 import type { EditorState } from "@milkdown/kit/prose/state";
 
 /**
- * The selection without its edges that only touch a line: dragged to the
- * end of a line, a selection reaches the start of the next one, and dragged
- * up from below it can start at the end of the line above, while selecting
- * nothing of either. Ends at the first and last text the selection covers,
- * counting an empty line it spans, or is the selection itself when it covers
- * no text (a caret).
+ * The selection without its edges that only touch a line. A selection dragged
+ * to the end of a line reaches the start of the next line. A selection dragged
+ * up from below can start at the end of the line above. Neither selects
+ * anything of those lines. It ends at the first and last text that the
+ * selection covers, and counts an empty line that it spans. It is the selection
+ * itself when it covers no text (a caret).
  */
 export function coveredRange(state: EditorState): {
   $from: ResolvedPos;

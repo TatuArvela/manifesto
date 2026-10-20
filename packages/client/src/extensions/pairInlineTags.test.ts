@@ -68,7 +68,7 @@ describe("pairChildren", () => {
   });
 
   it("reads a note of unclosed tags in time that follows its length", () => {
-    // 100,000 characters of `<u>`: scanning ahead from each was half a
+    // 100,000 characters of `<u>`. A scan ahead from each one was half a
     // billion tests, tens of seconds.
     const unclosed = Array.from({ length: 33_000 }, () => html("<u>"));
     const started = performance.now();

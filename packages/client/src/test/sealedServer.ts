@@ -11,13 +11,13 @@ import {
 import type { StorageKeys } from "#/storage/sealing.ts";
 
 /**
- * A server as the client meets it in connected mode, kept in memory: it
- * stores what it is sent and refuses anything readable where a ciphertext
- * belongs, as the real one does, and holds no key. A test reads `notes` to
- * see what a server would hold.
+ * A server as the client meets it in connected mode, kept in memory. It stores
+ * what it gets, and refuses all readable data where a ciphertext belongs, as
+ * the real server does. It has no key. A test reads `notes` to see what a
+ * server would have.
  */
 
-/** An unlocked account's key, as the device holds it. */
+/** The key of an unlocked account, as the device has it. */
 export async function testKeys(userId = "u1"): Promise<StorageKeys> {
   return {
     userId,
@@ -59,21 +59,24 @@ function json(body: unknown, status = 200): Response {
 export class SealedServer {
   readonly notes = new Map<string, SealedNote>();
   readonly versions = new Map<string, SealedNoteVersion[]>();
-  /** Ids that belong to someone else's note, which an import is refused. */
+  /**
+   * Ids that belong to the note of a different person, for which an import is
+   * refused.
+   */
   readonly taken = new Set<string>();
   /**
-   * What the reader is sent of a note in place of the owner's own: a
-   * recipient's copy of its key, or none and the key they are offered.
+   * What the reader gets of a note in place of the own copy of the owner: the
+   * copy of its key of a recipient, or none and the key that they are offered.
    */
   readonly views = new Map<string, Pick<SealedNote, "key" | "offered">>();
-  /** Every request made, as `METHOD path`. */
+  /** Each request made, as `METHOD path`. */
   readonly requests: string[] = [];
-  /** Sealed images, each with whose it is: `me` is the account under test. */
+  /** Sealed images, each with its owner. `me` is the account under test. */
   readonly attachments = new Map<
     string,
     { owner: string; bytes: Uint8Array<ArrayBuffer> }
   >();
-  /** The references each note was last sent beside its sealed lists. */
+  /** The references that each note last got next to its sealed lists. */
   readonly refs = new Map<
     string,
     { imageRefs?: string[]; previewRefs?: string[] }
@@ -115,12 +118,12 @@ export class SealedServer {
     return note;
   }
 
-  /** A note as the reader is sent it. */
+  /** A note as the reader gets it. */
   private seen(note: SealedNote): SealedNote {
     return { ...note, ...this.views.get(note.id) };
   }
 
-  /** Stands in for `fetch`. */
+  /** A replacement for `fetch`. */
   readonly fetch = async (
     input: RequestInfo | URL,
     init: RequestInit = {},
@@ -135,8 +138,8 @@ export class SealedServer {
         : {};
 
     if (path === "/api/v1/attachments/claim" && method === "POST") {
-      // Every note here is the account's own, so anything held by someone
-      // else is stored again for it.
+      // Each note here belongs to the account. Thus, all data that a different
+      // person has is stored again for it.
       const refs = (body.refs as string[]).map((ref) => {
         const held = this.attachments.get(ref.slice("attachment:".length));
         if (!held || held.owner === "me") return ref;
@@ -185,7 +188,7 @@ export class SealedServer {
           taken.push(item.id);
           continue;
         }
-        // A note already here is written only under the key it has.
+        // A note that is already here is written only under its current key.
         const held = this.notes.get(item.id);
         if (
           held &&
@@ -198,7 +201,7 @@ export class SealedServer {
         else created++;
         const { createdAt, ...fields } = item;
         const note = this.stored(fields, held?.createdAt ?? createdAt);
-        // An update leaves what the import does not carry as it was.
+        // An update keeps what the import does not carry as it was.
         if (held) this.notes.set(item.id, { ...held, ...note });
       }
       return json({
@@ -253,11 +256,12 @@ export class SealedServer {
           keyVersion,
           ...changes
         } = body as SealedNoteUpdate;
-        // Sealed under a key the note has since left.
+        // Sealed under a key that the note left since then.
         if (keyVersion !== undefined && keyVersion !== note.keyVersion) {
           return json({ error: "The note is under another key now" }, 409);
         }
-        // Words older than the note's, or a part of them in a newer format.
+        // Words older than those of the note, or a part of them in a newer
+        // format.
         const { format } = changes;
         if (format !== undefined && format < note.format) {
           return json(
@@ -283,8 +287,7 @@ export class SealedServer {
     return json({ error: "Not found" }, 404);
   };
 
-  /** Everything the server holds, as the text a copy of its database would
-   * be. */
+  /** All data that the server has, as the text of a copy of its database. */
   dump(): string {
     return JSON.stringify([
       [...this.notes.values()],

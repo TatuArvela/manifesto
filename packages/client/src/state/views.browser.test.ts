@@ -145,7 +145,7 @@ describe("hidden tags", () => {
     setTagHidden("private", true);
     expect(hiddenTags.value).toEqual(["private"]);
     expect(titles(filteredNotes.value)).toEqual(["visible"]);
-    // The archived one is not in Notes anyway, so it is not counted.
+    // The archived note is not in Notes anyway. Thus, it is not counted.
     expect(notesHiddenByTag.value).toBe(1);
   });
 

@@ -1,15 +1,15 @@
 import { BlockList, isIP } from "node:net";
 
 /**
- * Whether the server may open a connection to an address on a user's behalf.
+ * If the server can open a connection to an address for a user.
  *
- * Link previews make the server fetch a URL the user typed, so without this
- * any account could read the server's own admin ports, the cloud metadata
- * service at 169.254.169.254, or anything else on the network it sits in.
- * Only globally routable unicast addresses pass.
+ * Link previews make the server get a URL that the user typed. Without this,
+ * each account could read the admin ports of the server, the cloud metadata
+ * service at 169.254.169.254, or all other systems on its network. Only
+ * globally routable unicast addresses pass.
  *
  * `BlockList` checks an IPv4-mapped IPv6 address (`::ffff:127.0.0.1`) against
- * the IPv4 rules, so a mapped loopback is refused without a rule of its own.
+ * the IPv4 rules. Thus, it refuses a mapped loopback without its own rule.
  */
 const blocked = new BlockList();
 
@@ -35,8 +35,10 @@ for (const [net, prefix] of IPV4_SPECIAL) {
   blocked.addSubnet(net, prefix, "ipv4");
 }
 
-/** Global unicast. Everything outside it (loopback, ULA, link-local,
- * multicast, NAT64, mapped) is refused before the list below is consulted. */
+/**
+ * Global unicast. The code refuses all addresses outside it (loopback, ULA,
+ * link-local, multicast, NAT64, mapped) before it uses the list below.
+ */
 const ipv6GlobalUnicast = new BlockList();
 ipv6GlobalUnicast.addSubnet("2000::", 3, "ipv6");
 
@@ -64,11 +66,11 @@ export function isPublicAddress(address: string): boolean {
 }
 
 /**
- * The local network, for webhooks an operator has allowed to reach it
- * (`WEBHOOKS=private`): a Home Assistant or n8n beside the server. Private
- * ranges, carrier-grade NAT (where overlay networks such as Tailscale live),
- * loopback and IPv6 unique-local. Link-local stays out, since that is where
- * cloud metadata services answer.
+ * The local network, for webhooks that an operator permitted to reach it
+ * (`WEBHOOKS=private`): a Home Assistant or n8n near the server. Private
+ * ranges, carrier-grade NAT (where overlay networks such as Tailscale are),
+ * loopback and IPv6 unique-local. Link-local stays blocked, because cloud
+ * metadata services answer there.
  */
 const localNetwork = new BlockList();
 for (const [net, prefix] of [

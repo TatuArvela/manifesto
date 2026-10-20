@@ -25,7 +25,7 @@ export function rowToWebhook(row: WebhookRow): StoredWebhook {
     id: row.id,
     userId: row.user_id,
     url: row.url,
-    // Under the server key; one that no longer opens signs nothing.
+    // Under the server key. A secret that does not open now signs nothing.
     secret: atRest.open(row.secret, AT_REST.webhookSecret) ?? "",
     events: Array.isArray(events)
       ? events.filter((e): e is WebhookEventName => KNOWN.has(e))
@@ -39,7 +39,7 @@ export function rowToWebhook(row: WebhookRow): StoredWebhook {
   };
 }
 
-/** A listed webhook: the secret stays on the server. */
+/** A listed webhook. The secret stays on the server. */
 export function listedWebhook({
   secret: _secret,
   userId: _userId,

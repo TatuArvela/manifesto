@@ -1,18 +1,20 @@
 /**
- * The two keys a person holds: the secret key, which decrypts the notes, and
- * the recovery key, which brings the account back when everything else is
- * lost (`docs/specification/features/encryption.md`). Both are random, made
- * here, and shaped to be typed: seven groups of four letters and digits
+ * The two keys that a person keeps: the secret key, which decrypts the notes,
+ * and the recovery key, which brings the account back when all else is lost
+ * (`docs/specification/features/encryption.md`). Both are random, made here,
+ * and in a shape that you can type: seven groups of four letters and digits
  * behind a prefix that tells one from the other.
  *
- * 28 characters from an alphabet of 31 is about 138 bits, which nobody
- * guesses, so the wrap each derives needs no slow hash to protect it.
+ * 28 characters from an alphabet of 31 is approximately 138 bits, which nobody
+ * can guess. Thus, the wrap that each derives needs no slow hash to protect it.
  */
 
 export type UserKeyKind = "secret" | "recovery";
 
-/** No `0`, `1`, `I`, `L` or `O`: none of them survives being read aloud or
- * copied from paper. */
+/**
+ * No `0`, `1`, `I`, `L` or `O`. None of them stays correct when read aloud or
+ * copied from paper.
+ */
 const ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
 const GROUPS = 7;
 const GROUP_LENGTH = 4;
@@ -31,11 +33,11 @@ function format(kind: UserKeyKind, characters: string): string {
   return `${PREFIXES[kind]}-${groups.join("-")}`;
 }
 
-/** A new key of `kind`, every character equally likely. */
+/** A new key of `kind`, with each character equally probable. */
 export function newUserKey(kind: UserKeyKind): string {
-  // A byte is folded onto the alphabet only when it falls under the largest
-  // multiple of its length, or the first eight characters would come up a
-  // little more often than the rest.
+  // The code folds a byte onto the alphabet only when it is under the largest
+  // multiple of its length. If not, the first eight characters would occur a
+  // little more frequently than the others.
   const limit = 256 - (256 % ALPHABET.length);
   let characters = "";
   while (characters.length < LENGTH) {
@@ -48,14 +50,14 @@ export function newUserKey(kind: UserKeyKind): string {
   return format(kind, characters);
 }
 
-/** What was typed with its case, spaces and dashes taken out. */
+/** What was typed, with its case, spaces and dashes removed. */
 function bare(input: string): string {
   return input.toUpperCase().replace(/[\s-]/g, "");
 }
 
 /**
- * Which kind of key `input` says it is by its prefix, or null when it has
- * none: for telling someone they typed the other key.
+ * Which kind of key `input` says that it is by its prefix, or null when it has
+ * none. Used to tell a person that they typed the other key.
  */
 export function userKeyKindOf(input: string): UserKeyKind | null {
   const text = bare(input);
@@ -67,9 +69,9 @@ export function userKeyKindOf(input: string): UserKeyKind | null {
 }
 
 /**
- * A key of `kind` as typed, pasted or scanned, in the one form everything is
- * derived from, or null when it cannot be one: however it was cased, spaced
- * or dashed, with or without its prefix.
+ * A key of `kind` as typed, pasted or scanned, in the one form from which all
+ * is derived, or null when it cannot be one: whatever its case, spaces or
+ * dashes, with or without its prefix.
  */
 export function parseUserKey(input: string, kind: UserKeyKind): string | null {
   let text = bare(input);

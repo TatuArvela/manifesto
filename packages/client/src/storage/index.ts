@@ -8,19 +8,19 @@ export { LocalStorageAdapter } from "./LocalStorageAdapter.ts";
 export { RestApiAdapter } from "./RestApiAdapter.ts";
 export type { StorageAdapter } from "./StorageAdapter.ts";
 
-/** What it takes to reach a server, if there is one to reach. */
+/** What is necessary to reach a server, if there is one. */
 export interface StorageConnection {
   serverUrl: string | null;
   token: string | null;
-  /** Called when the server rejects the token. */
+  /** Called when the server refuses the token. */
   onUnauthorized?: () => void;
 }
 
 /**
- * Set by `state/account/auth.ts`, the module that knows about sessions.
- * Pushed in rather than read out, so storage, the bottom layer of the app,
- * never imports one of its own callers: anything touching a note would pull
- * the login screen's state in with it.
+ * Set by `state/account/auth.ts`, the module that knows about sessions. Pushed
+ * in, not read out. Thus, storage, the bottom layer of the app, never imports
+ * one of its own callers. If it did, all code that touched a note would bring
+ * in the state of the login screen with it.
  */
 export const storageConnection = signal<StorageConnection>({
   serverUrl: null,
@@ -28,19 +28,19 @@ export const storageConnection = signal<StorageConnection>({
 });
 
 /**
- * Reactive adapter that recomputes when the connection changes. Read
- * `currentStorage.value` at call time so actions always hit the right backend
- * after a login or logout.
+ * A reactive adapter that computes again when the connection changes. Read
+ * `currentStorage.value` at call time. Thus, actions always use the correct
+ * backend after a login or logout.
  */
 export const currentStorage = computed<StorageAdapter>(() => {
   const { serverUrl, token, onUnauthorized } = storageConnection.value;
-  // `=== null`, not falsiness: a same-origin deployment's base is the empty
-  // string, and reading that as "no server" sent every note to localStorage
-  // while the user believed they were signed in.
+  // `=== null`, not falsiness. The base of a same-origin deployment is the
+  // empty string. When the code read that as "no server", it sent each note to
+  // localStorage while the user thought that they were signed in.
   if (serverUrl !== null && token) {
-    // Without the account's keys (locked, or not set up yet) the adapter
-    // still reaches the server and refuses every note, which it could
-    // neither open nor seal.
+    // Without the keys of the account (locked, or not set up yet), the adapter
+    // still reaches the server, and refuses each note, because it could neither
+    // open nor seal it.
     return new RestApiAdapter(serverUrl, token, {
       onUnauthorized,
       sealer: sealer.value,
@@ -50,9 +50,9 @@ export const currentStorage = computed<StorageAdapter>(() => {
 });
 
 /**
- * The adapter in use at the moment of each call. Every method is looked up on
- * `currentStorage.value` when it is called, so a module can hold this for its
- * whole life and still reach the right backend after a login or logout.
+ * The adapter in use at the moment of each call. The code looks up each method
+ * on `currentStorage.value` when it is called. Thus, a module can keep this for
+ * its full life, and still reach the correct backend after a login or logout.
  */
 export const storage: StorageAdapter = new Proxy({} as StorageAdapter, {
   get(_, key) {

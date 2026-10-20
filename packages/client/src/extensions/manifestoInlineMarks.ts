@@ -15,8 +15,8 @@ import {
 
 const remarkManifestoInlineMarks: Plugin<[], AnyNode> = () => {
   return (tree) => {
-    // Once, from the root: `pairChildren` goes all the way down itself, and
-    // visiting each node to do it again repeated the work at every level.
+    // One time, from the root. `pairChildren` itself goes all the way down. A
+    // second visit to each node to do it again repeated the work at each level.
     if (tree.children) tree.children = pairChildren(tree.children);
   };
 };

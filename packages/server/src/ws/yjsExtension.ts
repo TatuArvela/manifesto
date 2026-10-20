@@ -8,32 +8,36 @@ import { logger } from "#/lib/logger.ts";
 import type { YjsStore } from "#/storage/types.ts";
 
 /**
- * The most a note's collaborative state may weigh, and so the largest frame
- * `/api/v1/yjs` reads. A note's text stops at 100,000 characters and its state
- * is a small multiple of that, edit history included, so this is far above
- * any real note. Without it anyone who may edit a note could grow the row
- * its owner keeps it in without end: the state is the one part of a note no
- * request schema sees.
+ * The maximum size of the collaborative state of a note, and thus the largest
+ * frame that `/api/v1/yjs` reads. The text of a note stops at 100,000
+ * characters, and its state is a small multiple of that, with the edit history.
+ * Thus, this is much larger than any real note. Without it, each person who can
+ * edit a note could make the row of its owner grow without limit. The state is
+ * the only part of a note that no request schema sees.
  */
 export const MAX_YJS_BYTES = 8 * 1024 * 1024;
 
-/** Standard close code for a message too big to take. */
+/** The standard close code for a message that is too big. */
 const CLOSE_TOO_BIG = 1009;
 
 export interface YjsAuthContext {
   userId: string;
   noteId: string;
-  /** Whose note it is. The state is stored under the owner whichever
-   * participant's connection happens to write it. */
+  /**
+   * The owner of the note. The state is stored under the owner, whatever the
+   * participant whose connection writes it.
+   */
   ownerId: string;
-  /** The bearer token the connection authenticated with, so ending a session
-   * can find the sockets it opened. */
+  /**
+   * The bearer token with which the connection authenticated. Thus, the end of
+   * a session can find the sockets that it opened.
+   */
   token: string;
   /** Who this connection is, as the `user` field of its awareness states. */
   user: AwarenessUser;
 }
 
-/** The label at a remote cursor, in the shape `yCursorPlugin` reads. */
+/** The label at a remote cursor, in the shape that `yCursorPlugin` reads. */
 export interface AwarenessUser {
   id: string;
   name: string;
@@ -72,8 +76,8 @@ export class YjsPersistenceExtension implements Extension {
     if (!ctx?.ownerId || !ctx?.noteId) return;
     const state = Y.encodeStateAsUpdate(document);
     if (state.byteLength > MAX_YJS_BYTES) {
-      // Not written, so what is stored stays the last state that fitted, and
-      // nobody stays connected to a document that only grows in memory.
+      // Not written. Thus, the stored state stays the last state that fitted,
+      // and nobody stays connected to a document that only grows in memory.
       logger.warn("Y.Doc state is over the limit; not stored", {
         noteId: ctx.noteId,
         bytes: state.byteLength,

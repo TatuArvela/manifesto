@@ -23,7 +23,9 @@ export const selectMode = signal(false);
 export const selectedNotes = signal<Set<string>>(new Set());
 export const editingNoteId = signal<string | null>(null);
 export const showSettings = signal(false);
-/** The settings modal's pages; the account ones exist only when signed in. */
+/**
+ * The pages of the settings modal. The account pages exist only when signed in.
+ */
 export type SettingsTab =
   | "account"
   | "signIn"
@@ -37,7 +39,7 @@ export type SettingsTab =
   | "features"
   | "data"
   | "about";
-/** The page the settings modal shows, kept between openings. */
+/** The page that the settings modal shows, kept between openings. */
 export const settingsTab = signal<SettingsTab>("appearance");
 
 export function openSettings(tab?: SettingsTab) {
@@ -49,17 +51,20 @@ export const showWelcome = signal(false);
 export const showShortcuts = signal(false);
 /** Asks `NoteInput` to open a new note, as the `c` shortcut does. */
 export const newNoteRequested = signal(false);
-/** The query the notes are filtered by; trails `searchInput` while typing. */
+/**
+ * The query that filters the notes. It follows `searchInput` while the user
+ * types.
+ */
 export const searchQuery = signal("");
-/** What the search field shows, which changes on every keystroke. */
+/** What the search field shows, which changes on each keystroke. */
 export const searchInput = signal("");
 export const searchTypes = signal<Set<SearchType>>(new Set());
 export const searchColors = signal<Set<NoteColor>>(new Set());
 export const searchLocations = signal<Set<SearchLocation>>(new Set(["active"]));
 
 /**
- * The view the user was on before entering `/search`. Used by the close button
- * in the search header to return them to where they came from.
+ * The view of the user before they went to `/search`. The close button in the
+ * search header uses it to return them to where they came from.
  */
 export const previousView = signal<AppView>("active");
 
@@ -85,18 +90,19 @@ export function toggleSearchLocation(location: SearchLocation) {
 }
 
 /**
- * How long typing must pause before the notes are filtered again. Filtering
- * scans every note's text and re-lays the whole grid, which on a big board
- * made each keystroke visibly lag behind the field.
+ * How long typing must pause before the notes are filtered again. A filter
+ * scans the text of each note and lays out the full grid again. On a big board,
+ * that made each keystroke visibly slower than the field.
  */
 export const SEARCH_DEBOUNCE_MS = 200;
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
 /**
- * Takes a keystroke in a search field. The field follows at once, the results
- * once typing pauses, except that emptying the field clears them at once:
- * there is nothing to wait for, and the board coming back should not lag.
+ * Takes a keystroke in a search field. The field follows immediately, and the
+ * results after typing pauses. But when the field becomes empty, the results
+ * clear immediately. There is nothing to wait for, and the board must come back
+ * without delay.
  */
 export function typeSearch(value: string) {
   searchInput.value = value;
@@ -120,9 +126,9 @@ export function clearSearchFilters() {
 }
 
 /**
- * Leave the search view: drop the filters and return the user to wherever
- * they came from. `previousView` can itself be "search" when search was the
- * entry point (a reload or deep link on /search), so fall back to "active".
+ * Leave the search view: drop the filters, and return the user to where they
+ * came from. `previousView` can itself be "search" when search was the entry
+ * point (a reload or a deep link on /search). Thus, use "active" then.
  */
 export function exitSearch() {
   clearSearchFilters();
@@ -130,17 +136,18 @@ export function exitSearch() {
     previousView.value === "search" ? "active" : previousView.value;
 }
 
-// Track `previousView` so the search close button can return to where the
-// user came from. Updates whenever the active view changes to a non-search view.
+// Track `previousView`, so that the search close button can return to where the
+// user came from. Updates each time the active view changes to a view that is
+// not search.
 effect(() => {
   const view = activeView.value;
   if (view !== "search") previousView.value = view;
 });
 
 /**
- * What the board last said to a screen reader that it shows no other way,
- * such as where a card moved to from the keyboard. `NoteGrid` keeps it in a
- * polite live region.
+ * What the board last told a screen reader that it shows in no other way, for
+ * example where a card moved from the keyboard. `NoteGrid` keeps it in a polite
+ * live region.
  */
 export const boardAnnouncement = signal("");
 
@@ -166,12 +173,15 @@ export function showSuccess(message: string) {
   showToast("success", message);
 }
 
-/** How long a success stays up, counted while the stack is not held. */
+/** How long a success stays, counted while the stack is not held. */
 export const SUCCESS_TOAST_MS = 5000;
-/** The most toasts on screen at once; the oldest goes when another comes. */
+/**
+ * The maximum number of toasts on the screen at the same time. The oldest goes
+ * when a new one comes.
+ */
 export const MAX_TOASTS = 5;
 
-/** Successes whose time ran out while the stack was held. */
+/** Successes whose time ended while the stack was held. */
 const expired = new Set<number>();
 let held = false;
 
@@ -183,10 +193,10 @@ function expireLater(id: number) {
 }
 
 /**
- * An error stays until it is dismissed: it is what someone has to act on,
- * and one that left after five seconds was gone before a slow reader, or a
- * screen reader still speaking, had finished with it. A success leaves by
- * itself, but not while the stack is held (`holdToasts`).
+ * An error stays until a person dismisses it. A person must act on it. An error
+ * that went after five seconds was gone before a slow reader, or a screen
+ * reader that still spoke, had finished with it. A success goes by itself, but
+ * not while the stack is held (`holdToasts`).
  */
 function showToast(type: ToastType, message: string) {
   const id = nextToastId++;
@@ -195,9 +205,9 @@ function showToast(type: ToastType, message: string) {
 }
 
 /**
- * Held while the pointer or keyboard focus is on the stack, so a toast does
- * not leave from under the person reading or dismissing it. Those whose time
- * ran out meanwhile get a fresh one on release.
+ * Held while the pointer or the keyboard focus is on the stack. Thus, a toast
+ * does not go away under the person who reads or dismisses it. Those whose time
+ * ended in the meantime get a new time on release.
  */
 export function holdToasts(hold: boolean) {
   held = hold;

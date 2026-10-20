@@ -54,11 +54,11 @@ describe("state actions", () => {
   });
 
   it("createNote does not duplicate a note already added by a WS echo", async () => {
-    // In server mode the backend can broadcast note:created (which upserts into
-    // the list) before our own create() resolves. Simulate that echo landing
-    // first, then let createNote's optimistic insert run.
+    // In server mode, the backend can broadcast note:created (which upserts
+    // into the list) before our own create() resolves. Simulate that echo
+    // first, then let the optimistic insert of createNote run.
     const note = await createNoteOrFail({ title: "Echoed" });
-    notes.value = upsertById(notes.value, note); // second, racing insert
+    notes.value = upsertById(notes.value, note); // second insert, in a race
     expect(notes.value.filter((n) => n.id === note.id)).toHaveLength(1);
     expect(notes.value).toHaveLength(1);
   });
@@ -87,7 +87,7 @@ describe("state actions", () => {
 
   it("updateNote takes the change back when the write fails", async () => {
     await createNoteOrFail({ title: "Original" });
-    // A note storage has never heard of: the write cannot land.
+    // A note that storage does not know: the write cannot arrive.
     notes.value = [{ ...defined(notes.value[0]), id: "does-not-exist" }];
     const shown = updateNote("does-not-exist", { title: "Updated" });
     expect(notes.value[0]?.title).toBe("Updated");
@@ -105,7 +105,7 @@ describe("state actions", () => {
   it("receiveNote keeps a write the server has not answered yet", async () => {
     const note = await createNoteOrFail({ title: "Original" });
     const saved = updateNote(note.id, { pinned: true });
-    // Another device renames the note while our pin is still in the air.
+    // A different device renames the note while our pin is still in progress.
     receiveNote({
       ...defined(notes.value[0]),
       pinned: false,
@@ -118,9 +118,9 @@ describe("state actions", () => {
   });
 
   it("updateNote reports a nonexistent note rather than rejecting", async () => {
-    // The contract at the top of actions.ts: an action tells the user and
-    // resolves. Rejecting instead left every JSX handler (none of which can
-    // hold a `catch`) raising an unhandled rejection the user never saw.
+    // The contract at the top of actions.ts: an action tells the user, and
+    // resolves. When it rejected, each JSX handler (none of which can have a
+    // `catch`) caused an unhandled rejection that the user never saw.
     await expect(updateNote("fake", { title: "X" })).resolves.toBe(false);
     expect(toasts.value.at(-1)?.message).toBe(t("error.saveFailed"));
   });
@@ -145,8 +145,8 @@ describe("state actions", () => {
     try {
       const note = await createNoteOrFail({ title: "Toss me" });
       const done = trashNote(note.id);
-      // Still in the grid, but flagged: this is the window the card spends
-      // playing `.note-leaving`.
+      // Still in the grid, but with a flag. This is the time in which the card
+      // plays `.note-leaving`.
       expect(leavingNotes.value.get(note.id)).toBe("discard");
       expect(sortedNotes.value.map((n) => n.id)).toContain(note.id);
       await done;
@@ -176,7 +176,7 @@ describe("state actions", () => {
     animations.value = true;
     try {
       const note = await createNoteOrFail({ title: "Stubborn" });
-      // Gone from storage underneath the signal, so the update fails.
+      // Removed from storage under the signal. Thus, the update fails.
       localStorage.clear();
       await expect(trashNote(note.id)).resolves.toBe(false);
       expect(leavingNotes.value.size).toBe(0);
@@ -209,7 +209,8 @@ describe("state actions", () => {
       await trashNote(trashed.id);
       activeView.value = "trash";
       const restoring = restoreNote(trashed.id);
-      // Smoothed out of the bin, where the archive's is the plain swell.
+      // Smoothed out of the bin. The animation of the archive is the plain
+      // swell.
       expect(leavingNotes.value.get(trashed.id)).toBe("undelete");
       await restoring;
 
@@ -227,8 +228,8 @@ describe("state actions", () => {
   });
 
   it("does not animate a card that the change leaves in the view", async () => {
-    // A search across every location still shows the note once it is
-    // archived, so playing the exit would blink it out and back.
+    // A search across all locations still shows the note after it is archived.
+    // Thus, an exit animation would make it disappear and come back.
     const previous = animations.value;
     animations.value = true;
     try {
@@ -316,10 +317,10 @@ describe("state actions", () => {
   });
 
   // A note that documents checklist syntax inside a code fence. The preview
-  // renders the fenced lines as code (no boxes), so anything that offers or
-  // performs a checklist action has to see them the same way. When it did
-  // not, "Delete checked items" cut lines out of the middle of the block and
-  // left the fence unterminated.
+  // renders the fenced lines as code (no boxes). Thus, all code that offers or
+  // does a checklist action must see them in the same way. When it did not,
+  // "Delete checked items" cut lines out of the middle of the block, and left
+  // the fence open.
   const FENCED = [
     "- [x] Real item",
     "",
@@ -361,8 +362,9 @@ describe("state actions", () => {
   });
 
   it("deleteCheckedItems does not sweep descendants across a fence", async () => {
-    // The subtree sweep walks forward by indent. An indented line inside a
-    // fence is not the item's child, and taking it deletes the fence's body.
+    // The subtree sweep moves forward by indent. An indented line inside a
+    // fence is not a child of the item. If the sweep took it, it would delete
+    // the body of the fence.
     const note = await createNoteOrFail({
       content: ["- [x] Parent", "```", "  indented code", "```"].join("\n"),
     });
@@ -594,12 +596,12 @@ describe("expireTrash", () => {
 });
 
 describe("the storage quota message", () => {
-  // Storage reports a refused write and says nothing about it; this is where
-  // the user-facing half of that lives, so this is where it is tested.
+  // Storage reports a refused write, and says nothing about it. The half for
+  // the user is here. Thus, the test is here.
   //
-  // The throttle below is module state in `failures.ts`, so each test takes a
-  // fresh stretch of the clock rather than reusing `Date.now()` and being
-  // silenced by whatever the test before it reported.
+  // The throttle below is module state in `failures.ts`. Thus, each test takes
+  // a new period of the clock. If it used `Date.now()` again, the report of the
+  // test before it would silence it.
   let clock = Date.now();
   const nextMinute = () => {
     clock += 10 * 60 * 1000;
@@ -628,8 +630,8 @@ describe("the storage quota message", () => {
   });
 
   it("says it once a minute, not once per refused write", () => {
-    // One editor close writes the note and a version, so a full store refuses
-    // twice in a row and the user should still read one sentence.
+    // One close of the editor writes the note and a version. Thus, a full store
+    // refuses two times in sequence, and the user must still read one sentence.
     const at = nextMinute();
     quotaRefusedAt.value = at;
     quotaRefusedAt.value = at + 10;
@@ -721,12 +723,13 @@ describe("describing an image", () => {
     const described = notes.value.find((n) => n.id === created.id);
     expect(described?.imageAlts).toEqual(["", "A grey square"]);
 
-    // Removing the first image takes nothing of the second's description.
+    // The removal of the first image takes nothing of the description of the
+    // second.
     await updateNote(created.id, { images: [second] });
     expect(notes.value.find((n) => n.id === created.id)?.imageAlts).toEqual([
       "A grey square",
     ]);
-    // And removing the described one leaves no description behind.
+    // And the removal of the described image leaves no description.
     await updateNote(created.id, { images: [first] });
     expect(notes.value.find((n) => n.id === created.id)?.imageAlts).toEqual([]);
   });

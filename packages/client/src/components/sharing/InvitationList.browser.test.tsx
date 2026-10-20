@@ -16,7 +16,8 @@ const invitation: Invitation = {
   },
   title: "Groceries",
   content: "**Buy** these:\n\n- [ ] Milk\n- [x] Bread",
-  // The owner's colour is their own, so an invitation is drawn without one.
+  // The color of the owner belongs to the owner. Thus, an invitation is drawn
+  // without one.
   color: NoteColor.Default,
   font: NoteFont.Serif,
   waiting: false,

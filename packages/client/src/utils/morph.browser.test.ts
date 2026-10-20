@@ -13,7 +13,7 @@ function makePanel(): HTMLElement {
 
 const card = { left: 16, top: 200, width: 164, height: 120 };
 
-/** What each keyframe of the panel's animations moves. */
+/** What each keyframe of the animations of the panel moves. */
 const animated = (el: HTMLElement) =>
   el
     .getAnimations()
@@ -40,7 +40,7 @@ describe("morphClip", () => {
 });
 
 describe("on a phone", () => {
-  // Scaling the whole screen onto a card squashed the note's text.
+  // A scale of the full screen onto a card squashed the text of the note.
   it("uncovers the editor rather than scaling it, both ways", async () => {
     await page.viewport(375, 700);
     const el = makePanel();

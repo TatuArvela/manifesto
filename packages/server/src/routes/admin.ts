@@ -50,9 +50,9 @@ interface AdminDeps {
   revocations: SessionRevocations;
   noteEvents: NoteEvents;
   teamShares: TeamShares;
-  /** What the update check last found. */
+  /** What the update check found last. */
   updateStatus?: (() => UpdateStatus | null) | undefined;
-  /** The server's mailer and how it has gone; null without `SMTP_URL`. */
+  /** The mailer of the server and its status. Null without `SMTP_URL`. */
   mail?: (Mailer & { status(): MailStatus }) | null | undefined;
 }
 
@@ -64,8 +64,8 @@ function toAdminUser(user: UserSummary): AdminUser {
     avatarColor: user.avatarColor,
     email: user.email,
     isAdmin: user.isAdmin,
-    // The stored value is `oidc:<issuer>`; which issuer is not the admin
-    // screen's business, and the wire type is the provider name.
+    // The stored value is `oidc:<issuer>`. The admin screen does not need the
+    // issuer, and the wire type is the provider name.
     provider: user.provider === "local" ? "local" : "oidc",
     mustChangePassword: user.mustChangePassword,
     noteCount: user.noteCount,
@@ -84,20 +84,22 @@ function refuseGuarded(result: AdminGuardedResult): void {
 /**
  * `/api/v1/admin`: account management for admins.
  *
- * Whether the caller is an admin is read from storage on every request
- * (`middleware/protect.ts`, from `auth: "admin"`) rather than carried in the
- * session, so revoking admin takes effect on the next
- * request and not whenever the session happens to end.
+ * The server reads from storage on each request whether the caller is an admin
+ * (`middleware/protect.ts`, from `auth: "admin"`). The session does not contain
+ * it. Thus, a removal of admin rights applies on the next request, not when the
+ * session ends.
  *
- * An admin manages other people's accounts, never their own: removing your own
- * admin, deleting yourself or resetting your own password from here is
- * refused. Each is a way to lock yourself out mid-task, and each has a safer
- * route (another admin, or Change password).
+ * An admin manages the accounts of other people, never their own. The server
+ * refuses a removal of your own admin rights, a deletion of yourself, or a
+ * reset of your own password from here. Each of these locks you out during your
+ * work, and each has a safer route (a different admin, or Change password).
  */
 export function createAdminRoutes(deps: AdminDeps) {
   const admin = new Hono<{ Variables: { auth: AuthContext } }>();
-  /** Where local accounts can sign in, and so an admin can create one or
-   * give one a password. */
+  /**
+   * Where local accounts can sign in. Thus, an admin can create one, or give
+   * one a password.
+   */
   function requireLocalProvider(): void {
     if (!signsInLocally(deps.cfg)) {
       throw new HttpError(404, "Accounts are managed by the identity provider");
@@ -153,7 +155,7 @@ export function createAdminRoutes(deps: AdminDeps) {
           createdAt: nowIso(),
         }));
       } catch (err) {
-        // Lost a race with a sign-up of the same name after the check above.
+        // A sign-up with the same name came first, after the check above.
         if (err instanceof UsernameTakenError) {
           throw new HttpError(409, "Username is already taken");
         }
@@ -184,14 +186,15 @@ export function createAdminRoutes(deps: AdminDeps) {
       const id = c.req.param("id") as string;
       refuseSelf(c, id);
       const { isAdmin, email } = c.req.valid("json");
-      // The address first: it is the change that can be refused for a reason
-      // the admin can fix, and a refusal should leave the rights untouched.
+      // The address first. It is the change that the server can refuse for a
+      // reason that the admin can correct. A refusal must keep the rights
+      // unchanged.
       if (email !== undefined) {
         const result = await deps.storage.users.setEmail(id, email);
         if (result === "not-found") throw new HttpError(404, "User not found");
         if (result === "email-taken") throw emailTaken();
-        // A sign-in or reset link already sent went to the address this
-        // replaces.
+        // A sign-in or reset link that was already sent went to the address
+        // that this replaces.
         await deps.storage.signInLinks.deleteByUser(id);
         await deps.storage.passwordResets.deleteByUser(id);
         logger.info("Admin changed an email address", {
@@ -236,11 +239,12 @@ export function createAdminRoutes(deps: AdminDeps) {
       await hashPassword(temporaryPassword, deps.cfg),
       true,
     );
-    // A reset is often because someone else has the password, so whoever is
-    // signed in with it now is signed out, sockets included. It is also how
-    // someone who lost their authenticator and their recovery key gets back
-    // in, so two-factor goes too, passkeys included; they can add them again.
-    // It restores the sign-in and no key: the notes stay locked without one.
+    // A reset is frequently necessary because a different person has the
+    // password. Thus, the person who is signed in with it now is signed out,
+    // with the sockets. A reset is also the way back in for a person who lost
+    // their authenticator and their recovery key. Thus, two-factor goes too,
+    // with the passkeys. The person can add them again. It restores the
+    // sign-in, and no key. Without a key, the notes stay locked.
     await endUserSessions(deps.storage, deps.revocations, id);
     await deps.storage.twoFactor.disable(id);
     await deps.storage.passkeys.deleteByUser(id);
@@ -276,7 +280,7 @@ export function createAdminRoutes(deps: AdminDeps) {
     return c.body(null, 204);
   });
 
-  /** Whether a newer release is out, for the account menu to mention. */
+  /** If a newer release is available, for the account menu. */
   admin.get("/update", (c) => {
     const body: AdminUpdateResponse = {
       version: VERSION,
@@ -285,8 +289,10 @@ export function createAdminRoutes(deps: AdminDeps) {
     return c.json(body);
   });
 
-  /** What the server holds, per account and in total, and how its
-   * background jobs last ran. */
+  /**
+   * What the server contains, for each account and in total, and the last runs
+   * of its background jobs.
+   */
   admin.get("/overview", async (c) => {
     const stats = await deps.storage.maintenance.stats();
     const users = new Map(
@@ -320,7 +326,7 @@ export function createAdminRoutes(deps: AdminDeps) {
     return c.json(body);
   });
 
-  /** The audit log, a page at a time; see `auditPage`. */
+  /** The audit log, one page at a time. See `auditPage`. */
   admin.get("/audit", async (c) => {
     const body: AuditLogResponse = await auditPage(deps.storage, {
       limit: c.req.query("limit"),

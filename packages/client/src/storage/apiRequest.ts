@@ -2,12 +2,13 @@ import type { ErrorResponse } from "@manifesto/shared";
 import { storageConnection } from "./index.ts";
 
 /**
- * Signed-in requests to the server's `/api/v1`, for the account-level modules
- * (admin, sharing, tokens, webhooks, two-factor) that are not note storage.
- * A 401 answer ends the session through the connection's `onUnauthorized`.
+ * Signed-in requests to the `/api/v1` of the server, for the account-level
+ * modules (admin, sharing, tokens, webhooks, two-factor) that are not note
+ * storage. A 401 answer ends the session through the `onUnauthorized` of the
+ * connection.
  */
 
-/** A request the server refused, or one that could not be made. */
+/** A request that the server refused, or that the code could not make. */
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -18,8 +19,8 @@ export class ApiError extends Error {
 }
 
 /**
- * The server's answer, whatever its status; null when there is no session to
- * send it with or it never arrived. Never rejects.
+ * The answer of the server, whatever its status. Null when there is no session
+ * with which to send it, or when it never arrived. Never rejects.
  */
 export async function apiFetch(
   method: string,
@@ -28,7 +29,7 @@ export async function apiFetch(
   headers?: Record<string, string>,
 ): Promise<Response | null> {
   const { serverUrl, token, onUnauthorized } = storageConnection.value;
-  // `=== null`, not falsiness: a same-origin deployment's base is "".
+  // `=== null`, not falsiness: the base of a same-origin deployment is "".
   if (serverUrl === null || !token) return null;
   try {
     const res = await fetch(`${serverUrl}/api/v1${path}`, {
@@ -66,7 +67,7 @@ export async function apiJson<T>(
     try {
       code = ((await res.json()) as Partial<ErrorResponse>).code;
     } catch {
-      // not JSON; the status says enough
+      // not JSON; the status tells sufficient
     }
     throw new ApiError(res.status, code);
   }

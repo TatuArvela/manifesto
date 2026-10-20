@@ -16,10 +16,10 @@ import { showError } from "#/state/ui.ts";
 import { RoleSelect, selectClass } from "./ShareMembers.tsx";
 
 /**
- * The teams a note is shared with, for its owner: offered only their own
- * teams, and shown nothing at all when they are in none. Sharing with a team
- * invites each member, and later members as they join. With teams off on
- * the server, only the shares already made, to take them off.
+ * The teams with which a note is shared, for its owner. The owner sees only
+ * their own teams, and sees nothing when they are in none. A share with a team
+ * invites each member, and later members when they join. With teams off on the
+ * server, only the existing shares show, so that the owner can remove them.
  */
 export function TeamShares({ note }: { note: Note }) {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -47,7 +47,7 @@ export function TeamShares({ note }: { note: Note }) {
   const offered = teams.filter((team) =>
     shares.every((share) => share.teamId !== team.id),
   );
-  // An owner who has left a team still sees the note's share with it, or
+  // An owner who left a team still sees the share of the note with it. If not,
   // nothing would let them end it.
   if (teams.length === 0 && shares.length === 0) return null;
 

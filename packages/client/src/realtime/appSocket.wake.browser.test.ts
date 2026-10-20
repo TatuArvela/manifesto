@@ -2,15 +2,16 @@ import { signal } from "@preact/signals";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * An app resumed from the background comes back to a socket the browser closed
- * while the page was frozen, and to a backoff that the retries it managed in
- * between may have grown to half a minute. Waiting that out leaves the notes
- * list stale, and the banner up, long after the app is on screen, so being
- * shown again is a reason to dial straight away.
+ * An app that resumes from the background comes back to a socket that the
+ * browser closed while the page was frozen, and to a backoff that its retries
+ * in the meantime possibly made as long as half a minute. A wait for it leaves
+ * the notes list stale, and the banner open, long after the app is on the
+ * screen. Thus, when the app shows again, it connects immediately.
  *
- * The socket and the modules around it are faked; what is real is the wiring
- * `startAppSocket` puts on `document` and the guard that keeps a live socket
- * from being replaced. A real DOM is the point here, hence the browser project.
+ * The socket and the modules around it are fakes. The real parts are the
+ * connections that `startAppSocket` puts on `document`, and the guard that
+ * prevents the replacement of a live socket. A real DOM is the purpose here.
+ * Thus, this is in the browser project.
  */
 const authToken = signal<string | null>(null);
 const editingNoteId = signal<string | null>(null);
@@ -51,8 +52,11 @@ vi.mock("#/state/unsentNotes.ts", () => ({ sendUnsent: async () => {} }));
 
 const dialled: FakeSocket[] = [];
 
-/** Just enough of a WebSocket for `appSocket` to drive, plus the two things a
- * test needs to do to it: answer, and die the way a frozen page's socket does. */
+/**
+ * Only sufficient parts of a WebSocket for `appSocket` to control, and the two
+ * things that a test must do to it: answer, and die as the socket of a frozen
+ * page does.
+ */
 class FakeSocket {
   static readonly CONNECTING = 0;
   static readonly OPEN = 1;
@@ -84,7 +88,7 @@ class FakeSocket {
     this.onmessage?.({ data: JSON.stringify(event) });
   }
 
-  /** The close the browser hands us for a socket it tore down. */
+  /** The close that the browser gives us for a socket that it closed. */
   die(code = 1006) {
     this.readyState = FakeSocket.CLOSED;
     this.onclose?.({ code });
@@ -99,9 +103,11 @@ startAppSocket();
 
 let tokens = 0;
 
-/** A signed-in session on an open socket, whatever the last test left behind.
- * Each test gets its own token, since a signal ignores a write of what it
- * already holds and it is the change that tears the old socket down. */
+/**
+ * A signed-in session on an open socket, whatever the last test left. Each test
+ * gets its own token, because a signal ignores a write of the value that it
+ * already has, and the change closes the old socket.
+ */
 function signedIn(): FakeSocket {
   authToken.value = null;
   dialled.length = 0;
@@ -117,8 +123,8 @@ function becomeVisible() {
 }
 
 beforeEach(() => {
-  // The tests below read `document.visibilityState`, which a test page has no
-  // way to set. It is visible; the assertions say so if that ever changes.
+  // The tests below read `document.visibilityState`, which a test page cannot
+  // set. It is visible. The assertions show if that ever changes.
   expect(document.visibilityState).toBe("visible");
 });
 
@@ -127,7 +133,7 @@ describe("coming back to the foreground", () => {
     const socket = signedIn();
     socket.die();
     expect(connectionStatus.value).toBe("closed");
-    // The backoff is seconds away, so nothing has been dialled yet.
+    // The backoff is seconds away. Thus, nothing connected yet.
     expect(dialled).toHaveLength(1);
 
     becomeVisible();
@@ -164,9 +170,9 @@ describe("coming back to the foreground", () => {
   });
 
   it("dials for a socket the browser closed without telling us", () => {
-    // A resume can deliver the visibility change before the queued close
-    // event. The socket is dead either way, and the close that follows must
-    // not be able to pull us back onto the backoff.
+    // A resume can deliver the visibility change before the queued close event.
+    // The socket is dead in both cases, and the close that follows must not be
+    // able to put us back on the backoff.
     const socket = signedIn();
     socket.readyState = FakeSocket.CLOSED;
 
@@ -198,9 +204,9 @@ describe("an outage that outlasts the banner's wait", () => {
   });
 
   it("keeps to the backoff and catches up when it gets back", () => {
-    // The banner's outage timer used to re-run the token effect, which dialled
-    // again every 4s and forgot the socket had been open, so the reconnect
-    // skipped the fetch of what changed meanwhile.
+    // Before, the outage timer of the banner ran the token effect again. It
+    // connected again each 4s, and forgot that the socket had been open. Thus,
+    // the reconnect skipped the fetch of what changed in the meantime.
     const socket = signedIn();
     syncNotes.mockClear();
     socket.die();
@@ -214,7 +220,7 @@ describe("an outage that outlasts the banner's wait", () => {
 });
 
 describe("a socket that dies without a close", () => {
-  // The limit is two and a half heartbeats; past it by a beat is past it.
+  // The limit is two and a half heartbeats. One beat past it is past it.
   const SILENT_FOR = 30_000 * 3.5;
 
   beforeEach(() => {
@@ -229,7 +235,7 @@ describe("a socket that dies without a close", () => {
     const socket = signedIn();
     socket.receive({ type: "heartbeat" });
 
-    // The browser never reports a close; the silence is what decides.
+    // The browser never reports a close. The silence decides.
     vi.advanceTimersByTime(SILENT_FOR);
     expect(socket.readyState).toBe(FakeSocket.CLOSED);
     expect(dialled).toHaveLength(2);
@@ -256,7 +262,7 @@ describe("a socket that dies without a close", () => {
   it("is redialled at once on resume after a freeze no timer saw", () => {
     const socket = signedIn();
     socket.receive({ type: "heartbeat" });
-    // A frozen page runs no timers, so only the clock moves.
+    // A frozen page runs no timers. Thus, only the clock moves.
     vi.setSystemTime(Date.now() + 60 * 60_000);
 
     becomeVisible();

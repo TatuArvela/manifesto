@@ -10,10 +10,10 @@ import { type Random, SEEDS, seeded } from "#/test/testRandom.ts";
 import { mergeNoteUpdate } from "./mergeNote.ts";
 
 /**
- * Two writers change the same note from the same starting point. The server
- * takes the first as sent; the second loses the `If-Match` race and is merged
- * onto the first's result (`mergeNoteUpdate`), as `updateNote` does on a 412.
- * Whichever gets there first, the note must end up the same.
+ * Two writers change the same note from the same start. The server takes the
+ * first as sent. The second loses the `If-Match` race, and is merged onto the
+ * result of the first (`mergeNoteUpdate`), as `updateNote` does on a 412.
+ * Whichever arrives first, the note must end the same.
  */
 
 function makeNote(overrides: Partial<Note> = {}): Note {
@@ -38,7 +38,7 @@ function makeNote(overrides: Partial<Note> = {}): Note {
   };
 }
 
-/** Small, so that two writers often add or remove the same item. */
+/** Small. Thus, two writers frequently add or remove the same item. */
 const POOL = ["a", "b", "c", "d", "e", "f"];
 
 /** A list as a writer would leave it: some of `base` removed, some added. */
@@ -50,7 +50,7 @@ function edit(random: Random, base: string[]): string[] {
   return [...kept, ...added];
 }
 
-/** The note after `first` is applied as sent and `second` merged onto it. */
+/** The note after `first` applies as sent and `second` merges onto it. */
 function race(base: Note, first: NoteUpdate, second: NoteUpdate): Note {
   const afterFirst = { ...base, ...first };
   return { ...afterFirst, ...mergeNoteUpdate(base, second, afterFirst) };
@@ -74,7 +74,7 @@ describe("mergeNoteUpdate, over generated pairs of writers", () => {
         const ba = race(base, b, a)[field];
         const context = { seed, base: base[field], a, b, ab, ba };
 
-        // Both writers' additions, less both writers' removals.
+        // The additions of both writers, without the removals of both writers.
         const removed = base[field].filter(
           (x) => !aList.includes(x) || !bList.includes(x),
         );
@@ -101,7 +101,8 @@ describe("mergeNoteUpdate, over generated pairs of writers", () => {
         linkPreviews: random.subset(POOL).map((url) => preview(url)),
       });
       const baseUrls = base.linkPreviews.map((p) => p.url);
-      // Each writer adds and removes previews, and retitles some it keeps.
+      // Each writer adds and removes previews, and gives a new title to some
+      // that it keeps.
       const writer = (name: string) => ({
         linkPreviews: edit(random, baseUrls).map((url) =>
           baseUrls.includes(url) && random.chance(0.3)
@@ -118,7 +119,7 @@ describe("mergeNoteUpdate, over generated pairs of writers", () => {
       const urls = (list: LinkPreview[]) => sorted(list.map((p) => p.url));
       expect(urls(ab), context).toEqual(urls(ba));
 
-      // A retitle survives when the other writer kept that preview as it was.
+      // A new title stays when the other writer kept that preview as it was.
       for (const [mine, theirs] of [
         [a, b],
         [b, a],

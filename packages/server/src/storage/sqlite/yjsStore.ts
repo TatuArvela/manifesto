@@ -10,9 +10,9 @@ export function createSqliteYjsStore(db: SqliteDB): YjsStore {
     `SELECT yjs_state FROM notes
      WHERE id = ? AND user_id = ?`,
   );
-  // Intentionally does NOT touch `updated_at`: REST optimistic concurrency
-  // tracks that field and Yjs writes shouldn't invalidate concurrent
-  // `If-Match` tokens held by REST clients.
+  // Does NOT change `updated_at`, on purpose. REST optimistic concurrency
+  // tracks that field, and Yjs writes must not make the `If-Match` tokens of
+  // REST clients invalid.
   const storeStmt = db.prepare(
     `UPDATE notes
        SET yjs_state = @state,

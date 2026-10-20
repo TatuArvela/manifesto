@@ -15,10 +15,10 @@ import {
 } from "./claimed.ts";
 
 /**
- * What both drivers must do for sharing notes between accounts, run against
- * each, for the same reason `adminContract.ts` exists: these are rules about
- * who sees what, and a driver that gets one wrong should fail under its own
- * name rather than in whichever route happens to notice.
+ * What both drivers must do for the share of notes between accounts, run
+ * against each one, for the same reason as `adminContract.ts`. These are rules
+ * about who sees what. A driver that does one incorrectly must fail under its
+ * own name, not in the route that notices it first.
  */
 
 const T0 = "2026-04-01T00:00:00.000Z";
@@ -120,8 +120,8 @@ export function describeSharingContract(
             displayName: "Olivia",
             avatarColor: "#123456",
           },
-          // Sealed, as the note is; the colour is the owner's own and is
-          // not part of what is offered. Nobody has wrapped the key yet.
+          // Sealed, as the note is. The color belongs to the owner, and is not
+          // part of the offer. Nobody wrapped the key yet.
           title: ciphertext("Groceries"),
           content: ciphertext("- [ ] Milk"),
           font: ciphertext(NoteFont.Default),
@@ -145,7 +145,8 @@ export function describeSharingContract(
         signature: "sig",
       };
       await share("alice", "edit", false);
-      // Until someone wraps it for her, everyone on the note sees her wait.
+      // Until a person wraps it for her, all persons on the note see that she
+      // waits.
       const waiting = await storage.notes.getById("n1", "owner");
       expect(waiting?.sharing?.members).toMatchObject([
         { id: "alice", waitingForKey: true },
@@ -158,7 +159,7 @@ export function describeSharingContract(
       const told = await storage.notes.getById("n1", "owner");
       expect(told?.sharing?.members[0]?.waitingForKey).toBeUndefined();
 
-      // Not hers to keep before she has accepted.
+      // She cannot keep it before she accepted.
       expect(await storage.shares.holdKey("n1", "alice", heldKey)).toBe(false);
       expect(await storage.shares.accept("n1", "alice", T2, heldKey)).toBe(
         true,
@@ -188,8 +189,8 @@ export function describeSharingContract(
       await share("alice", "edit");
 
       const seen = await storage.notes.getById("n1", "alice");
-      // The colour and the tags are each person's own, under their own key,
-      // so a recipient starts with neither.
+      // The color and the tags belong to each person, under their own key.
+      // Thus, a recipient starts with neither.
       expect(seen && opened(seen)).toMatchObject({
         title: "Groceries",
         color: NoteColor.Default,
@@ -212,7 +213,7 @@ export function describeSharingContract(
       expect(
         (await storage.notes.listByUser("alice", PAGE)).notes.map((n) => n.id),
       ).toEqual(["n1"]);
-      // Accepting twice is not a thing.
+      // A second acceptance does not exist.
       expect(await storage.shares.accept("n1", "alice", T3, heldKey)).toBe(
         false,
       );
@@ -232,7 +233,7 @@ export function describeSharingContract(
       });
       const alices = await storage.notes.getById("n1", "alice");
       expect(alices?.sharing?.members.map((m) => m.id)).toEqual(["alice"]);
-      // A note nobody was invited to carries no `sharing` at all.
+      // A note to which nobody was invited has no `sharing`.
       await storage.notes.insert({
         id: "n2",
         userId: "owner",
@@ -275,7 +276,7 @@ export function describeSharingContract(
         pinned: true,
         color: NoteColor.Yellow,
         position: 5,
-        // One concurrency token for everyone.
+        // One concurrency token for all persons.
         updatedAt: T3,
       });
     });
@@ -299,7 +300,7 @@ export function describeSharingContract(
           T3,
         ),
       ).rejects.toBeInstanceOf(NoteAccessError);
-      // Nothing half-written: not the content, not the pin sent with it.
+      // Nothing half written: not the content, and not the pin sent with it.
       await expect(
         storage.notes.update(
           "n1",
@@ -332,7 +333,7 @@ export function describeSharingContract(
         T3,
       );
       expect(trashed).toMatchObject({ trashed: true, trashedAt: T3 });
-      // Still hers, in her trash, and nobody else's business.
+      // Still hers, in her trash, and it does not concern other persons.
       expect(
         (await storage.notes.listByUser("alice", PAGE)).notes[0],
       ).toMatchObject({ id: "n1", trashed: true });
@@ -386,7 +387,7 @@ export function describeSharingContract(
       expect(expired).toMatchObject([{ noteId: "n1", userId: "alice" }]);
       expect(await storage.notes.getById("n1", "alice")).toBeNull();
       expect(await storage.notes.getById("n1", "bob")).not.toBeNull();
-      // Whoever left still holds the note's key, as after a removal.
+      // The person who left still has the key of the note, as after a removal.
       expect((await storage.notes.getById("n1", "owner"))?.rekeyDue).toBe(true);
     });
 

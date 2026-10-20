@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
-/* The stylesheet in the order it cascades: each partial in styles/ is inlined
-   here in turn, so a rule later in the list still wins a tie with an earlier
-   one. Add to the partial a rule belongs to, not to the end of this list. */
+/*
+ * The stylesheet in the order of the cascade. Each partial in styles/ is
+ * inlined here in sequence. Thus, a rule later in the list still wins a tie
+ * with an earlier rule. Add a rule to the partial to which it belongs, not to
+ * the end of this list.
+ */
 @import "./styles/setup.css";
 @import "./styles/dark-shade.css";
 @import "./styles/light-shade.css";
@@ -13,9 +16,11 @@
 @import "./styles/editor.css";
 @import "./styles/task-list.css";
 
-/* The sheet with an account's keys (`KeySheet.tsx`): while one is on screen,
-   printing the page prints the sheet and nothing around it. Visibility
-   rather than display, since the sheet sits deep inside what is hidden. */
+/*
+ * The sheet with the keys of an account (`KeySheet.tsx`). While one is on the
+ * screen, a print of the page prints the sheet and nothing around it.
+ * Visibility, not display, because the sheet is deep inside the hidden content.
+ */
 @media print {
   body.key-sheet-open * {
     visibility: hidden;

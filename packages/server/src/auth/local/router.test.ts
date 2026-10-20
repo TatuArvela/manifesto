@@ -10,9 +10,8 @@ import {
 } from "#/test/setup.ts";
 import { MAX_LOGIN_FAILURES } from "./loginAttempts.ts";
 
-// Spied, not replaced: these tests ask how many argon2 operations a request
-// spent, which is the whole of what separates a known username from an
-// unknown one.
+// Spied, not replaced. These tests ask how many argon2 operations a request
+// used. Only that tells a known username from an unknown one.
 vi.mock("#/lib/password.ts", async () => {
   const actual =
     await vi.importActual<typeof import("#/lib/password.ts")>(
@@ -226,7 +225,7 @@ describe("local auth router", () => {
         currentPassword: "not-it-at-all",
         newPassword: "new-password-2",
       });
-      // Not 401, which a client reads as a dead session.
+      // Not 401, because a client reads that as a dead session.
       expect(res.status).toBe(403);
       expect(await res.json()).toEqual({
         error: "Current password is incorrect",
@@ -286,8 +285,9 @@ describe("local auth router", () => {
     it("verifies against a decoy when the username is nobody's", async () => {
       vi.mocked(verifyPassword).mockClear();
       expect((await login("ghost")).status).toBe(401);
-      // Without this the miss returns in about a millisecond while a hit
-      // pays a ~50 ms verify, and the gap reports which accounts exist.
+      // Without this, a miss returns in approximately one millisecond, and a
+      // hit uses a verify of approximately 50 ms. The difference tells which
+      // accounts exist.
       expect(verifyPassword).toHaveBeenCalledTimes(1);
     });
 
@@ -312,8 +312,8 @@ describe("local auth router", () => {
       await login("ghost-one");
       await login("ghost-two");
       expect(hashPassword).toHaveBeenCalledTimes(1);
-      // From the server's own parameters, so it tracks an ARGON2_* override
-      // instead of freezing a cost of its own.
+      // From the own parameters of the server. Thus, it follows an ARGON2_*
+      // override, and does not use a fixed cost of its own.
       expect(hashPassword).toHaveBeenCalledWith(expect.any(String), rig.cfg);
     });
   });
@@ -329,10 +329,10 @@ describe("local auth router", () => {
       await proxied.close();
     });
 
-    // Every attempt comes from a /64 of its own, so the per-IP throttle never
-    // sees the same client twice and only the per-account count can stop it.
-    // That is the attacker this counter is for: the per-IP budget is renewed
-    // by moving, and `admin` is a name every local-auth server has.
+    // Each attempt comes from its own /64. Thus, the throttle for each IP never
+    // sees the same client two times, and only the count for each account can
+    // stop it. That is the attacker for whom this counter exists. A move renews
+    // the budget for each IP, and each local-auth server has the name `admin`.
     function attempt(username: string, password: string, n: number) {
       return proxied.request("/api/v1/auth/login", {
         method: "POST",
@@ -352,13 +352,13 @@ describe("local auth router", () => {
       const locked = await attempt("alice", "wrong-password", 900);
       expect(locked.status).toBe(429);
       expect(locked.headers.get("Retry-After")).toMatch(/^\d+$/);
-      // The lock is on the account, so the right password waits as well.
+      // The lock is on the account. Thus, the correct password also waits.
       expect((await attempt("alice", "password-1234", 901)).status).toBe(429);
     });
 
     it("locks a username nobody holds on the same budget", async () => {
-      // Otherwise the lock itself would answer what the 401 will not: an
-      // account that can be locked is an account that exists.
+      // If not, the lock itself would answer what the 401 does not: an account
+      // that can be locked is an account that exists.
       for (let i = 0; i < MAX_LOGIN_FAILURES; i++) {
         expect((await attempt("ghost", "wrong-password", i)).status).toBe(401);
       }
@@ -396,8 +396,8 @@ describe("local auth router", () => {
       for (let i = 0; i < MAX_LOGIN_FAILURES; i++) {
         expect((await change("wrong-password", i)).status).toBe(403);
       }
-      // A stolen session that moves between addresses stops here, and the
-      // right password waits as it does at sign-in.
+      // A stolen session that moves between addresses stops here. The correct
+      // password waits, as at sign-in.
       const locked = await change("password-1234", 900);
       expect(locked.status).toBe(429);
       expect(locked.headers.get("Retry-After")).toMatch(/^\d+$/);
@@ -410,8 +410,8 @@ describe("local auth router", () => {
         expect((await attempt("alice", "wrong-password", i)).status).toBe(401);
       }
       expect((await attempt("alice", "password-1234", 900)).status).toBe(200);
-      // The budget starts over, so these two are the first and second of a
-      // fresh ten rather than the tenth and a refusal.
+      // The budget starts again. Thus, these two are the first and second of a
+      // new ten, not the tenth and a refusal.
       expect((await attempt("alice", "wrong-password", 901)).status).toBe(401);
       expect((await attempt("alice", "wrong-password", 902)).status).toBe(401);
     });

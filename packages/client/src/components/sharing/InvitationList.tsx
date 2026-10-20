@@ -13,12 +13,12 @@ import {
 } from "#/state/sharing.ts";
 
 /**
- * Notes other people have offered, above the Notes view's grid. Nothing
- * reaches a user's notes until they say yes, so the offer has to be somewhere
- * they will see it without going looking.
+ * Notes that other people offered, above the grid of the Notes view. Nothing
+ * goes into the notes of a user until they agree. Thus, the offer must be in a
+ * place where they see it without a search.
  */
 export function InvitationList() {
-  // Only ever filled in connected mode, so open mode shows nothing here.
+  // Only filled in connected mode. Thus, open mode shows nothing here.
   const list = invitations.value;
   if (list.length === 0) return null;
   return (
@@ -55,7 +55,8 @@ function InvitationCard({ invitation }: { invitation: Invitation }) {
 
   const answer = async (act: (noteId: string) => Promise<boolean>) => {
     setBusy(true);
-    // A card that worked is gone from the list, and nothing here outlives it.
+    // A card that worked is gone from the list, and nothing here stays after
+    // it.
     await act(invitation.noteId);
     setBusy(false);
   };

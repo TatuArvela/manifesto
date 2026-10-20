@@ -10,27 +10,30 @@ import { activeView, newNoteRequested } from "#/state/ui.ts";
 import { LocalStorageAdapter } from "#/storage/index.ts";
 import { NoteInput } from "./NoteInput.tsx";
 
-// The composer keeps its draft on the device, which outlives a test: one
-// left behind would open in the next.
+// The composer keeps its draft on the device, which stays after a test. A draft
+// that a test left would open in the next test.
 beforeEach(() => clearDraft());
 afterEach(() => clearDraft());
 
 /**
- * `noteQuips` was persisted and never read: the setting saved, survived a
- * reload and changed nothing, because the composer's stack always drew from
- * the rotation. `cta.plain` sat in both catalogues with no caller.
+ * `noteQuips` was saved and never read. The setting saved and stayed after a
+ * reload, but changed nothing, because the stack of the composer always took
+ * lines from the rotation. `cta.plain` was in both catalogues with no caller.
  */
 
 let host: HTMLDivElement;
 
 /**
- * How long opening the composer may take. The first open in a file fetches
- * the editor's chunk, which on a CI runner has taken from 0.8 s to past the
- * 1 s `waitFor` allows by default.
+ * How long the composer can take to open. The first open in a file gets the
+ * chunk of the editor. On a CI runner, that took from 0.8 s to more than the 1
+ * s that `waitFor` permits by default.
  */
 const OPENING = { timeout: 3000 };
 
-/** The two sheets of the stack: the top one and the one showing behind it. */
+/**
+ * The two sheets of the stack: the top sheet, and the sheet that shows behind
+ * it.
+ */
 function stackLines(): string[] {
   return [...host.querySelectorAll(".note-stack > div > div > div")].map(
     (el) => el.textContent?.trim() ?? "",
@@ -105,8 +108,8 @@ describe("NoteInput with an empty draft", () => {
   }
 
   it("adds an empty note when Done is pressed", async () => {
-    // Done is an explicit request for a note; an empty one used to be
-    // discarded as silently as a pad opened by accident.
+    // Done is an explicit request for a note. Before, the code discarded an
+    // empty note as silently as a pad opened accidentally.
     const done = await openEmptyDraft();
     done.click();
     await vi.waitFor(() => expect(notes.value).toHaveLength(1));
@@ -165,7 +168,7 @@ describe("NoteInput keeps its draft", () => {
       expect((await loadDraft())?.title).toBe("Half a thought");
     });
 
-    // As a reload would: the composer is gone without being closed.
+    // As a reload would: the composer is gone without a close.
     render(null, host);
     render(<NoteInput />, host);
     await open();
@@ -190,9 +193,9 @@ describe("NoteInput keeps its draft", () => {
 });
 
 describe("NoteInput focus on a phone", () => {
-  // Chromium has no soft keyboard, so these follow focus instead. iOS keeps the
-  // keyboard up only while focus goes from one text field to another, and
-  // raises it for any text field focused inside a gesture.
+  // Chromium has no soft keyboard. Thus, these follow focus. iOS keeps the
+  // keyboard up only while focus goes from one text field to a different text
+  // field, and opens it for each text field that gets focus inside a gesture.
   beforeEach(() => {
     localStorage.clear();
     notes.value = [];
@@ -213,8 +216,9 @@ describe("NoteInput focus on a phone", () => {
     expect(document.activeElement?.closest(".ProseMirror")).toBeTruthy();
 
   it("hands focus from the tap straight to the editor", async () => {
-    // The focus trap moved focus onto the editor's first button while Milkdown
-    // was still building, which put the keyboard away before the editor asked.
+    // The focus trap moved focus onto the first button of the editor while
+    // Milkdown was still in its build. That closed the keyboard before the
+    // editor asked for it.
     const focused: Element[] = [];
     const record = (e: FocusEvent) => focused.push(e.target as Element);
     document.addEventListener("focusin", record);
@@ -231,7 +235,7 @@ describe("NoteInput focus on a phone", () => {
   });
 
   it("does not give focus back to the keyboard primer on close", async () => {
-    // It did, and that raised the keyboard as the editor went away.
+    // It did, and that opened the keyboard while the editor went away.
     host
       .querySelector<HTMLElement>(`button[aria-label="${t("nav.newNote")}"]`)
       ?.click();
@@ -360,8 +364,8 @@ describe("NoteInput width", () => {
 
   it("measures its column on arriving from a view where it rendered nothing", async () => {
     // `App` keeps the composer mounted in the archive view, where it renders
-    // nothing. Mounted there and then shown, it used to keep no width at all
-    // and stretch across every column.
+    // nothing. When it was mounted there and then shown, it kept no width, and
+    // stretched across all columns.
     activeView.value = "archived";
     render(<NoteInput />, host);
     expect(host.querySelector(".note-stack")).toBeNull();

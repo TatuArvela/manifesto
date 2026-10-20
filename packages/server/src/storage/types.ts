@@ -28,8 +28,9 @@ export * from "./repos/push.ts";
 export * from "./repos/sharing.ts";
 export * from "./repos/signIn.ts";
 export * from "./repos/tokens.ts";
-// The storage driver and the repositories it bundles. Each repository's
-// interface lives in `repos/`, re-exported here so callers import one module.
+// The storage driver and its repositories. The interface of each repository is
+// in `repos/`, and this file exports them again. Thus, callers import one
+// module.
 export * from "./repos/users.ts";
 export * from "./repos/webhooks.ts";
 
@@ -58,8 +59,8 @@ export interface StorageDriver {
   publicLinks: PublicLinksRepo;
   teams: TeamsRepo;
   /**
-   * A consistent copy of the whole database at `path`, taken while it keeps
-   * serving. SQLite only; Postgres has `pg_dump` and managed backups.
+   * A consistent copy of the full database at `path`, made while it continues
+   * to serve. Only SQLite. Postgres has `pg_dump` and managed backups.
    */
   backup?(path: string): Promise<void>;
   close(): Promise<void>;

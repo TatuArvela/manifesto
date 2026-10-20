@@ -5,24 +5,25 @@ import {
 } from "./markdown.ts";
 
 /**
- * A date on a checklist item: an `@2026-10-02` token in the item's own text.
- * The Markdown stays the only source of truth, so the token is found again
- * wherever the item is drawn (the card, the read-only views, the editor)
- * rather than stored anywhere. This file is the one definition they share.
+ * A date on a checklist item: an `@2026-10-02` token in the own text of the
+ * item. The Markdown stays the only source of truth. Thus, the code finds the
+ * token again wherever the item is drawn (the card, the read-only views, the
+ * editor), and does not store it. This file is the one definition that they
+ * share.
  */
 
-/** Every quantifier is bounded: this runs on each card render. */
+/** Each quantifier is bounded, because this runs on each card render. */
 const ITEM_DATE_RE = /(?:^|\s)@(\d{4})-(\d{2})-(\d{2})(?![\w-])/g;
 
 export interface ItemDate {
   /** `YYYY-MM-DD`, which also sorts as a date. */
   date: string;
-  /** Where the token, `@` included, sits in the text searched. */
+  /** Where the token, with the `@`, is in the searched text. */
   start: number;
   end: number;
 }
 
-/** A day that exists: `2026-02-30` is text, not a date. */
+/** A day that exists. `2026-02-30` is text, not a date. */
 function isCalendarDate(year: number, month: number, day: number): boolean {
   const d = new Date(Date.UTC(year, month - 1, day));
   return (
@@ -47,8 +48,8 @@ export function findItemDate(text: string): ItemDate | null {
 }
 
 /**
- * The date of a checklist item given its label as Markdown. A token inside
- * a code span is quoted text, as it is where the label is rendered.
+ * The date of a checklist item, from its label as Markdown. A token inside a
+ * code span is quoted text, as it is where the label is rendered.
  */
 export function labelDate(label: string): string | null {
   const found = findItemDate(label);

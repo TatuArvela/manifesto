@@ -7,11 +7,11 @@ import type {
 } from "@manifesto/shared";
 
 /**
- * The browser end of a passkey: the server's options arrive as JSON with
- * base64url where WebAuthn wants bytes, and the credential goes back the same
- * way. Written out rather than left to `PublicKeyCredential.toJSON()` and
- * `parseCreationOptionsFromJSON()`, which not every browser that has passkeys
- * has yet.
+ * The browser end of a passkey. The options of the server arrive as JSON, with
+ * base64url where WebAuthn needs bytes, and the credential goes back in the
+ * same way. Written manually, not left to `PublicKeyCredential.toJSON()` and
+ * `parseCreationOptionsFromJSON()`, which not each browser with passkeys has
+ * yet.
  */
 
 export function base64urlToBytes(text: string): Uint8Array<ArrayBuffer> {
@@ -38,7 +38,7 @@ export function bytesToBase64url(
     .replace(/=+$/, "");
 }
 
-/** Whether this browser can use passkeys at all. */
+/** If this browser can use passkeys. */
 export function passkeysSupported(): boolean {
   return (
     typeof window !== "undefined" &&
@@ -78,8 +78,10 @@ export function requestOptionsFromJSON(
   } as PublicKeyCredentialRequestOptions;
 }
 
-/** Why a ceremony gave nothing back. `cancelled` covers a dismissed prompt
- * and a timeout alike, which browsers deliberately do not tell apart. */
+/**
+ * Why a ceremony gave nothing back. `cancelled` covers a dismissed prompt and
+ * also a timeout, which browsers intentionally do not tell apart.
+ */
 export type PasskeyFailure = "cancelled" | "exists" | "failed";
 
 function failureOf(err: unknown): PasskeyFailure {
@@ -87,13 +89,13 @@ function failureOf(err: unknown): PasskeyFailure {
     if (err.name === "NotAllowedError" || err.name === "AbortError") {
       return "cancelled";
     }
-    // One of `excludeCredentials` is on this device already.
+    // One of `excludeCredentials` is already on this device.
     if (err.name === "InvalidStateError") return "exists";
   }
   return "failed";
 }
 
-/** Makes a passkey with the server's options. */
+/** Makes a passkey with the options of the server. */
 export async function createPasskey(
   options: PasskeyCreationOptions,
 ): Promise<PasskeyRegistrationResponse | PasskeyFailure> {
@@ -123,7 +125,7 @@ export async function createPasskey(
   };
 }
 
-/** Signs the server's challenge with a passkey the user picks. */
+/** Signs the challenge of the server with a passkey that the user selects. */
 export async function getPasskey(
   options: PasskeyRequestOptions,
 ): Promise<PasskeyAuthenticationResponse | PasskeyFailure> {

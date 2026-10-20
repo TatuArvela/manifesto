@@ -16,65 +16,77 @@ paths:
 
 # Branding
 
-The product name is a deployment parameter, never a literal. `src/config.ts`
-exports `APP_NAME` (plus `APP_FILE_SLUG` for download filenames and
-`APP_LOGO` for the header mark), resolved from the `application-name` meta
-tag in `index.html` if present, else the build-time `__APP_NAME__` that
-`vite.config.ts` derives from `VITE_APP_NAME`. The meta-tag layer is what lets
-someone rebrand a prebuilt release zip without a toolchain, so keep new
-user-facing name usages going through `APP_NAME` rather than `__APP_NAME__`.
+## The product name
 
-Message catalogues use an `{appName}` placeholder, which `t()` fills in
-automatically, and a test fails if either catalogue hard-codes "Manifesto".
-A translation cannot know how another name declines, so every message is
-phrased to leave the placeholder uninflected: Finnish says "Tämä on {appName}",
-never "{appName}on". Reach for a rewording, not a special case, when a
-language wants to bend the name.
+The product name is a deployment parameter. It is never a literal. `src/config.ts` exports
+`APP_NAME`, `APP_FILE_SLUG` (for the names of downloaded files) and `APP_LOGO` (for the mark in the
+header). `APP_NAME` comes from the `application-name` meta tag in `index.html`, if that tag is
+present. If not, it comes from `__APP_NAME__`, which `vite.config.ts` makes from `VITE_APP_NAME` at
+build time. The meta tag lets a person rebrand a prebuilt release zip without a toolchain. Thus, all
+new uses of the name in the UI must go through `APP_NAME`, not `__APP_NAME__`.
 
-Branding has two halves. The app's own name and mark (`APP_NAME`, `APP_LOGO`) replace
-Manifesto's; the deployment's (`INSTANCE_NAME`, `INSTANCE_LOGO`, `ORG_NAME`, `ORG_LOGO`, all null unless set)
-sit beside the app's; only `HEADER_BRAND` swaps the instance into the top bar, and About
-names the app whatever it says. Every one is a meta tag in `index.html` over a
-build-time value (`__APP_NAME__`, `__BRANDING__`), and the logo variables are files the build
-publishes as `app-logo.<ext>`, `instance-logo.<ext>`, `org-logo.<ext>`, each with an optional
-`-dark` variant. A logo is a `Logo` (light, dark, `invertInDark`) and is drawn through
-`BrandLogo`, never a bare `<img>`: it picks the variant by the app's `.dark` class, and inverts
-only the app's logo, only when it has no dark variant.
+The message catalogues use an `{appName}` placeholder, and `t()` fills it automatically. A test
+fails if a catalogue contains "Manifesto" as a literal. A translation cannot know how a different
+name inflects. Thus, write each message so that the placeholder does not inflect. In Finnish, write
+"Tämä on {appName}", never "{appName}on". If a language must inflect the name, write the message
+again in a different way. Do not add a special case.
 
-Besides those, three more deployment parameters are read from `index.html`:
-`welcome-dialog`, `privacy-url` (`PRIVACY_URL`, the operator's privacy notice, linked from the
-sign-in screen and About) and `manifesto-server` (`resolveServerUrl`, feeding `SERVER_URL` /
-`isServerMode` in `state/account/auth.ts`). `privacy-url` becomes a link's `href`, so it goes through
-`resolvePrivacyUrl` (`utils/privacyUrl.ts`), which takes only an `http(s):` URL or a path on the
-site; a new parameter that ends up in an `href` needs the same. The last one is not branding and
-carries a trap the others do not. The server address and the CSP
-that permits reaching it live in the same file, and the build writes both
-together (`cspForServer` derives `connect-src` from `VITE_MANIFESTO_SERVER`)
-while a hand edit writes one and forgets the other. Forgetting it gives a login
-screen whose every request is blocked before it is sent, which says nothing about
-the cause, so `main.tsx` compares the two at boot and renders `ServerSetupError`
-instead of the app. `utils/serverCsp.ts` holds that comparison and is
-deliberately fail-open: no CSP meta tag, or none naming `connect-src` or
-`default-src`, means no judgement, because a false alarm would take down a
-deployment that works. The case that must keep passing it is a same-origin
-server, which the stock `connect-src 'self'` already covers, since CSP3 extends
-`'self'` to the `wss://` form of the page's own host; that is what makes a
-single-origin deployment a one-line edit with no policy change.
+## The two parts of branding
 
-A relative server value is supported and is the tidiest way to configure a
-single-origin deployment: `/` resolves to the **empty string**, which means this
-page's own origin and is not the same as null, which is open mode. So every
-guard on `SERVER_URL` (and on `storageConnection.serverUrl`) tests `=== null`
-and never falsiness; a falsy test sends a same-origin deployment down the
-open-mode branch. Account-level requests (admin, sharing, tokens, webhooks,
-two-factor) go through `storage/apiRequest.ts`, which holds that check once, so
-a new one should too rather than calling `fetch` itself. A relative base is
-right for `fetch` and useless to a `WebSocket`, so `resolveServerOrigin` spells
-it out from `window.location` once and `SERVER_ORIGIN` / `WS_ORIGIN` are what
-the sockets and the "your notes are on <host>" copy read.
+- The name and mark of the app (`APP_NAME`, `APP_LOGO`) replace the name and mark of Manifesto.
+- The name and mark of the deployment (`INSTANCE_NAME`, `INSTANCE_LOGO`, `ORG_NAME`, `ORG_LOGO`) are
+  shown in addition to those of the app. They are null unless you set them.
+- Only `HEADER_BRAND` puts the instance in the top bar. About always shows the name of the app.
 
-`VITE_APP_DESCRIPTION` fills `%APP_DESCRIPTION%` in `index.html` and the web
-manifest. `VITE_APP_ICONS_DIR` overlays replacement icons onto the output, which
-is why `logo.svg` lives in `public/` rather than `src/assets/`: brand marks
-must stay plain files at fixed paths. `manifesto:` localStorage keys and the
-`@manifesto/*` package names are internal and stay as they are.
+Each one is a meta tag in `index.html` over a build-time value (`__APP_NAME__`, `__BRANDING__`). The
+logo variables are files. The build publishes them as `app-logo.<ext>`, `instance-logo.<ext>` and
+`org-logo.<ext>`, each with an optional `-dark` variant. A logo is a `Logo` (light, dark,
+`invertInDark`). Draw it through `BrandLogo`, never with a bare `<img>`. `BrandLogo` selects the
+variant from the `.dark` class of the app. It inverts only the logo of the app, and only when that
+logo has no dark variant.
+
+## Other parameters in index.html
+
+The app reads three more deployment parameters from `index.html`:
+
+- `welcome-dialog`.
+- `privacy-url` (`PRIVACY_URL`): the privacy notice of the operator. The sign-in screen and About
+  link to it. The value becomes the `href` of a link. Thus, it goes through `resolvePrivacyUrl`
+  (`utils/privacyUrl.ts`), which accepts only an `http(s):` URL or a path on the site. A new
+  parameter that goes into an `href` needs the same check.
+- `manifesto-server` (`resolveServerUrl`). It gives `SERVER_URL` and `isServerMode` in
+  `state/account/auth.ts`. This one is not branding, and it has a risk that the others do not have.
+
+The server address and the CSP that permits a connection to it are in the same file. The build
+writes both together (`cspForServer` makes `connect-src` from `VITE_MANIFESTO_SERVER`). But a manual
+edit can change one and not the other. If that occurs, the login screen shows, but the browser
+blocks each request before it goes out. Nothing tells the cause. Thus, `main.tsx` compares the two
+values when it starts, and shows `ServerSetupError` in place of the app.
+
+`utils/serverCsp.ts` contains that comparison. It is fail-open on purpose. If there is no CSP meta
+tag, or the tag has no `connect-src` or `default-src`, it makes no decision. A false alarm stops a
+deployment that works. A same-origin server must always pass the check. The usual
+`connect-src 'self'` permits it, because CSP3 extends `'self'` to the `wss://` form of the host of
+the page. Thus, for a single-origin deployment you change only one line, and not the policy.
+
+## A relative server value
+
+You can use a relative server value. It is the easiest way to configure a single-origin deployment.
+`/` resolves to the **empty string**. The empty string means the origin of this page. It is not the
+same as null, which means open mode. Thus, each check on `SERVER_URL` (and on
+`storageConnection.serverUrl`) tests `=== null`, and never tests falsiness. A falsiness test sends a
+same-origin deployment into the open-mode branch.
+
+Account-level requests (admin, sharing, tokens, webhooks, two-factor) go through
+`storage/apiRequest.ts`, which does that check one time. Send new requests of this type through it
+too. Do not call `fetch` directly. A relative base is correct for `fetch`, but a `WebSocket` cannot
+use it. Thus, `resolveServerOrigin` makes the full origin from `window.location` one time. The
+sockets and the "your notes are on <host>" text read `SERVER_ORIGIN` and `WS_ORIGIN`.
+
+## Description and icons
+
+`VITE_APP_DESCRIPTION` fills `%APP_DESCRIPTION%` in `index.html` and in the web manifest.
+`VITE_APP_ICONS_DIR` puts replacement icons over the output. For this reason, `logo.svg` is in
+`public/` and not in `src/assets/`: brand marks must stay plain files at fixed paths. The
+`manifesto:` localStorage keys and the `@manifesto/*` package names are internal. Do not change
+them.

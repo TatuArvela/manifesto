@@ -1,9 +1,9 @@
 /**
- * The board's background picture, kept on this device only.
+ * The background picture of the board, kept only on this device.
  *
- * In IndexedDB rather than beside the preferences in `localStorage`: a photo
- * is megabytes even after `shrinkBoardImage`, and the few megabytes
- * `localStorage` has are where the notes themselves live in open mode.
+ * In IndexedDB, not next to the preferences in `localStorage`. A photo is
+ * megabytes also after `shrinkBoardImage`, and the few megabytes that
+ * `localStorage` has are where the notes themselves are in open mode.
  */
 
 const DB_NAME = "manifesto-board";
@@ -52,14 +52,14 @@ export async function deleteBoardImage(): Promise<void> {
   await run("readwrite", (store) => store.delete(KEY));
 }
 
-/** Longest edge kept, in pixels: sharp across a large desktop screen. */
+/** The longest edge kept, in pixels: sharp across a large desktop screen. */
 const MAX_EDGE = 2560;
 
 /**
- * Re-encodes a picked picture at no more than `MAX_EDGE` on its longest side,
- * or null if the browser cannot decode it. A phone photo is 4000px and several
- * megabytes, and all of that would be decoded again on every start to paint a
- * background mostly covered by notes.
+ * Encodes a selected picture again at no more than `MAX_EDGE` on its longest
+ * side, or null if the browser cannot decode it. A phone photo is 4000px and
+ * several megabytes. All of that would be decoded again on each start, to paint
+ * a background that notes mostly cover.
  */
 export async function shrinkBoardImage(file: Blob): Promise<Blob | null> {
   const url = URL.createObjectURL(file);
@@ -76,8 +76,8 @@ export async function shrinkBoardImage(file: Blob): Promise<Blob | null> {
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    // WebP where the browser can write it; one that cannot hands back PNG,
-    // which for a photo is several times the size, so JPEG instead.
+    // WebP where the browser can write it. A browser that cannot gives back
+    // PNG, which for a photo is several times the size. Thus, use JPEG then.
     const webp = await toBlob(canvas, "image/webp");
     if (webp?.type === "image/webp") return webp;
     return await toBlob(canvas, "image/jpeg");

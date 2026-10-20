@@ -7,20 +7,22 @@ import { clientAddress } from "#/middleware/rateLimit.ts";
 import type { StorageDriver } from "#/storage/types.ts";
 
 /**
- * The audit log: sign-ins and failed ones, changes to how an account is
- * secured, admin actions and share changes, each with who, whom and from
- * where. For managed deployments, where "who gave this person admin?" and
- * "was this account signed into from somewhere odd?" need an answer.
+ * The audit log: sign-ins and failed sign-ins, changes to the security of an
+ * account, admin actions and share changes, each with who, whom and from where.
+ * This is for managed deployments, where questions such as "who gave this
+ * person admin rights?" and "did a person sign in to this account from a
+ * strange place?" need an answer.
  *
- * Recording is fire-and-forget. An entry that cannot be written is logged
- * and the request it describes goes on: a full disk should not also lock
- * everyone out.
+ * The record does not wait for the result. If the server cannot write an entry,
+ * it logs this, and the request continues. A full disk must not also lock out
+ * all persons.
  */
 
 /**
- * The address of each request, set once by the middleware below. Keyed by
- * `c.req` and not `c.req.raw`: `bodyLimit` swaps the raw request for a new one
- * when there is a body, so every sign-in and admin action lost its address.
+ * The address of each request, set one time by the middleware below. The key is
+ * `c.req`, not `c.req.raw`. `bodyLimit` replaces the raw request with a new one
+ * when there is a body. When the key was the raw request, each sign-in and
+ * admin action lost its address.
  */
 const addresses = new WeakMap<object, string>();
 

@@ -22,7 +22,10 @@ function git(cwd: string, ...args: string[]): string {
   return execFileSync("git", args, { cwd, encoding: "utf-8" }).trim();
 }
 
-/** A repository shaped like ours, whose only commit is the release of `version`. */
+/**
+ * A repository with the same shape as ours, whose only commit is the release of
+ * `version`.
+ */
 function releasedRepo(version: string): string {
   const root = tempDir();
   git(root, "init", "-q", "-b", "main");

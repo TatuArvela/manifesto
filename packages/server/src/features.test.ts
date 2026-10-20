@@ -10,7 +10,7 @@ import {
 } from "./features.ts";
 import { TEST_CONFIG } from "./test/setup.ts";
 
-/** The same reading of a boolean `loadConfig` uses, over a given env. */
+/** The same boolean read as `loadConfig` uses, over a given env. */
 function parserFor(env: NodeJS.ProcessEnv) {
   return (name: string, fallback: boolean) => {
     const raw = env[name];

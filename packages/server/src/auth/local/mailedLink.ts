@@ -8,17 +8,19 @@ import { type MailLocale, mailLocale } from "#/mail/templates.ts";
 import { HttpError } from "#/middleware/error.ts";
 import type { MailedLinksRepo, StorageDriver, User } from "#/storage/types.ts";
 
-/** The least time between two links of one kind for one account, so the
- * address cannot be used to flood someone's inbox. */
+/**
+ * The minimum time between two links of one type for one account. Thus, nobody
+ * can use the address to fill the inbox of a person.
+ */
 const LINK_COOLDOWN_MS = 5 * 60 * 1000;
 
-/** What tells one kind of mailed link from the other. */
+/** What tells one type of mailed link from the other. */
 interface MailedLinkKind {
   links: MailedLinksRepo;
   /** The name in `APP_URL/#<fragment>=<token>`, which the client reads. */
   fragment: "reset" | "signin";
   minutes: number;
-  /** Whether the account may be sent one at all. */
+  /** If the account can get one. */
   eligible(user: User): boolean;
   mail(
     locale: MailLocale,
@@ -31,13 +33,13 @@ interface MailedLinkKind {
 }
 
 /**
- * The half that reset by mail and sign-in by mail share: asking for a link.
- * The route answers 204 at once and calls `send`, which does its work after
- * the answer, so neither the answer nor its timing says which addresses have
- * accounts. Whatever goes wrong there is logged, never thrown.
+ * The part that reset by mail and sign-in by mail share: the request for a
+ * link. The route answers 204 immediately, and calls `send`, which does its
+ * work after the answer. Thus, neither the answer nor its time tells which
+ * addresses have accounts. The code logs each problem there, and never throws.
  *
- * A link whose mail could not be sent is deleted: nobody holds it, and left
- * in place it would make the next five minutes of asking come to nothing.
+ * The code deletes a link whose mail could not go out. Nobody has it. If it
+ * stayed, each request in the next five minutes would give nothing.
  */
 export function mailedLinks(
   deps: { storage: StorageDriver; cfg: ServerConfig; mailer: Mailer | null },

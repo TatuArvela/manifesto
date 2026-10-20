@@ -9,13 +9,13 @@ import "#/styles.css";
 
 /**
  * `NoteGrid` and `AutoNotesView` each had their own masonry pass and their own
- * drag-and-drop, and the copies had drifted: the auto-notes grid never got the
- * touch path at all, so a plugin's notes could only be reordered with a mouse,
- * and its layout effect carried no dependency array, so every card in the view
- * was re-measured on every render.
+ * drag-and-drop, and the copies became different. The auto-notes grid never got
+ * the touch path. Thus, you could reorder the notes of a plugin only with a
+ * mouse. Its layout effect had no dependency array. Thus, each card in the view
+ * was measured again on each render.
  *
- * `matchMedia` decides which of the two drag paths `NoteCard` wires up, so it
- * is stubbed before the module is imported.
+ * `matchMedia` decides which of the two drag paths `NoteCard` connects. Thus,
+ * the test stubs it before it imports the module.
  */
 
 const hoverNone = { current: false };
@@ -67,8 +67,8 @@ let host: HTMLDivElement;
 
 beforeEach(() => {
   host = document.createElement("div");
-  // Real geometry: the cards have to have boxes for a drop position to be
-  // computed from one.
+  // Real geometry: the cards must have boxes, so that the code can calculate a
+  // drop position from one.
   host.style.width = "900px";
   document.body.appendChild(host);
   hoverNone.current = false;
@@ -85,8 +85,8 @@ afterEach(() => {
 });
 
 /**
- * The grid's own children: the wrappers, not the articles inside them. These
- * are the boxes the drop position is measured against.
+ * The own children of the grid: the wrappers, not the articles inside them. The
+ * code measures the drop position against these boxes.
  */
 function cards(): HTMLElement[] {
   return [...host.querySelectorAll<HTMLElement>(".note-draggable-wrapper")];
@@ -96,7 +96,7 @@ function card(i: number): HTMLElement {
   return defined(cards()[i], `card ${i}`);
 }
 
-/** Centre of a card, in client coordinates. */
+/** The center of a card, in client coordinates. */
 function centreOf(el: HTMLElement) {
   const rect = el.getBoundingClientRect();
   return {
@@ -105,7 +105,10 @@ function centreOf(el: HTMLElement) {
   };
 }
 
-/** A point in a card's trailing half: a drop *after* it, either way round. */
+/**
+ * A point in the trailing half of a card: a drop *after* it, in both
+ * directions.
+ */
 function afterEdgeOf(el: HTMLElement) {
   const rect = el.getBoundingClientRect();
   return {
@@ -115,9 +118,10 @@ function afterEdgeOf(el: HTMLElement) {
 }
 
 /**
- * A drop position is state, set while the pointer moves and read when it is
- * released, so each phase of a drag has to reach the next one through a
- * render, which in a browser it always does, phases being frames apart.
+ * A drop position is state. The code sets it while the pointer moves, and reads
+ * it at the release. Thus, each phase of a drag must reach the next phase
+ * through a render. In a browser it always does, because the phases are frames
+ * apart.
  */
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -127,7 +131,9 @@ const nextFrame = async () => {
   await tick();
 };
 
-/** The draggable element inside a wrapper: the card the handlers sit on. */
+/**
+ * The draggable element inside a wrapper: the card on which the handlers are.
+ */
 function articleIn(wrapper: HTMLElement): HTMLElement {
   const article = wrapper.querySelector("article");
   if (!article) throw new Error("no card in this wrapper");
@@ -153,8 +159,8 @@ async function mouseDrag(
   grid.dispatchEvent(
     new DragEvent("dragover", { bubbles: true, dataTransfer, ...to }),
   );
-  // A drop commits the order on screen, which a move reaches on the next
-  // frame; a browser's events are frames apart anyway.
+  // A drop commits the order on the screen, which a move reaches on the next
+  // frame. The events of a browser are frames apart anyway.
   await nextFrame();
   grid.dispatchEvent(
     new DragEvent("drop", { bubbles: true, dataTransfer, ...to }),
@@ -165,13 +171,16 @@ async function mouseDrag(
   await tick();
 }
 
-/** `useTouchGesture`'s default hold, plus enough for the timer to have run. */
+/**
+ * The default hold of `useTouchGesture`, plus sufficient time for the timer to
+ * run.
+ */
 const HOLD_MS = 500;
 
 /**
- * A finger on a card. `hold` is the whole gesture contract: a press that waits
- * picks the card up and can drag it, and a press that moves straight away is a
- * scroll and must leave the card alone.
+ * A finger on a card. `hold` is the full gesture contract. A press that waits
+ * picks up the card, and can drag it. A press that moves immediately is a
+ * scroll, and must not change the card.
  */
 async function touchDrag(
   wrapper: HTMLElement,
@@ -234,8 +243,8 @@ describe("ReorderableGrid", () => {
 
     await touchDrag(card(0), afterEdgeOf(card(2)), { hold: false });
 
-    // The swipe belonged to the page: the card was never picked up, so it was
-    // never dimmed on the way past and nothing was reordered behind it.
+    // The swipe belonged to the page. The card was never picked up. Thus, it
+    // never dimmed during the swipe, and nothing changed order behind it.
     expect(onReorder).not.toHaveBeenCalled();
     expect(articleIn(card(0)).classList.contains("note-dragging")).toBe(false);
     expect(document.body.classList.contains("note-drag-active")).toBe(false);
@@ -290,9 +299,9 @@ describe("ReorderableGrid", () => {
   });
 
   it("takes the place of the card it is dragged over, across a row", async () => {
-    // The grid is multi-column here: Charlie dropped on Bravo, beside it in
-    // the row, lands in Bravo's place, which is found by where the cards are
-    // drawn rather than guessed from the view mode.
+    // The grid has many columns here. Charlie dropped on Bravo, next to it in
+    // the row, goes to the position of Bravo. The code finds it from where the
+    // cards are drawn, and does not guess it from the view mode.
     const onReorder = vi.fn();
     render(
       <ReorderableGrid notes={three} reorderable onReorder={onReorder} />,
@@ -311,8 +320,8 @@ describe("ReorderableGrid", () => {
   });
 
   it("previews the new order while the drag is under way", async () => {
-    // The dragged card stands in the place it would drop into and the others
-    // make room, instead of a line marking the gap.
+    // The dragged card stays in the position where it would drop, and the other
+    // cards make space. No line marks the gap.
     render(
       <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
       host,
@@ -352,7 +361,7 @@ describe("ReorderableGrid", () => {
     expect(alpha?.getBoundingClientRect().left).toBeCloseTo(charlieWas.left, 0);
     expect(bravo?.getBoundingClientRect().left).toBeCloseTo(alphaWas.left, 0);
 
-    // Let go outside the grid: nothing moves, and the preview goes back.
+    // Released outside the grid: nothing moves, and the preview goes back.
     from.dispatchEvent(
       new DragEvent("dragend", { bubbles: true, dataTransfer }),
     );
@@ -383,7 +392,7 @@ describe("ReorderableGrid", () => {
     expect(ghost?.style.translate).toBe(
       `${to.clientX - picked.clientX}px ${to.clientY - picked.clientY}px`,
     );
-    // Still taking its space in the grid, just not drawn there.
+    // It still uses its space in the grid, but is not drawn there.
     expect(getComputedStyle(from).visibility).toBe("hidden");
     expect(from.getBoundingClientRect().height).toBeGreaterThan(0);
 
@@ -418,7 +427,7 @@ describe("ReorderableGrid", () => {
 
     from.dispatchEvent(new PointerEvent("pointerup", { ...opts, ...edge }));
     await tick();
-    // Let go, it stays where it was taken.
+    // When released, it stays where it was taken.
     const stopped = scroller.scrollTop;
     await nextFrame();
     await nextFrame();
@@ -428,8 +437,8 @@ describe("ReorderableGrid", () => {
   });
 
   it("does not flip back and forth under a pointer that has not moved", async () => {
-    // Cards move under a still pointer when the order changes, and the card
-    // now beneath it is not a new target until the pointer travels.
+    // Cards move under a pointer that does not move when the order changes. The
+    // card that is now under it is not a new target until the pointer moves.
     const onReorder = vi.fn();
     render(
       <ReorderableGrid notes={three} reorderable onReorder={onReorder} />,
@@ -470,11 +479,11 @@ describe("ReorderableGrid", () => {
   });
 
   it("re-spans a card that grows after it was first measured", async () => {
-    // A card's height is not settled when it is first measured: an image
-    // decodes after the frame that added it, and lazy attachments arrive a
-    // whole round trip later. A card left with the span it had while it was
-    // empty is drawn *through* by the card below it, which is what the note
-    // grid did with any note carrying a picture.
+    // The height of a card is not stable when the code first measures it. An
+    // image decodes after the frame that added it, and lazy attachments arrive
+    // a full round trip later. If a card keeps the span that it had while it
+    // was empty, the card below it draws *through* it. The note grid did that
+    // with each note that had a picture.
     render(
       <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
       host,
@@ -491,16 +500,17 @@ describe("ReorderableGrid", () => {
     await vi.waitFor(() => {
       expect(spanOf(0)).toBeGreaterThan(before + 300);
     });
-    // And the card below it moved down rather than being overlapped.
+    // Also, the card below it moved down, and did not overlap it.
     expect(card(0).getBoundingClientRect().bottom).toBeLessThanOrEqual(
       card(0).getBoundingClientRect().top + spanOf(0),
     );
   });
 
   it("spans a card by its layout box, not the box its animation draws", () => {
-    // A just-pinned card is measured on arrival, scaled up and tilted by its
-    // settle animation. Measured with the transform, a square card was given a
-    // span several percent taller than itself, which stayed as a gap under it.
+    // The code measures a just-pinned card when it arrives, while its settle
+    // animation scales it up and tilts it. When the measurement included the
+    // transform, a square card got a span several percent taller than itself,
+    // which stayed as a gap under it.
     noteSize.value = "square";
     try {
       render(
@@ -531,9 +541,9 @@ describe("ReorderableGrid", () => {
   });
 
   it("re-renders only the card a selection touches, and none for a drag", async () => {
-    // Every card used to read the board-wide signals itself, and was handed a
-    // fresh closure per render, so selecting one note re-rendered (and
-    // re-parsed the markdown of) every card on the board.
+    // Before, each card read the board-wide signals itself, and got a new
+    // closure on each render. Thus, a selection of one note rendered again (and
+    // parsed the markdown of) each card on the board.
     const rendered: string[] = [];
     const previous = options.diffed;
     options.diffed = (vnode) => {
@@ -572,8 +582,8 @@ describe("ReorderableGrid", () => {
           ...afterEdgeOf(card(2)),
         }),
       );
-      // The previewed order is put on the cards' styles, not their props, so
-      // a drag re-renders none of them.
+      // The previewed order goes on the styles of the cards, not on their
+      // props. Thus, a drag renders none of them again.
       await new Promise((resolve) => requestAnimationFrame(resolve));
       await tick();
       expect(rendered).toEqual([]);
@@ -587,16 +597,17 @@ describe("ReorderableGrid", () => {
   });
 
   it("re-spans only the card that grew, not its neighbours", async () => {
-    // Releasing and re-measuring every card for one card's change forced a
-    // layout of the whole board each time a picture decoded or an auto-save
-    // changed a note's height.
+    // When one card changed, the release and new measurement of all cards
+    // forced a layout of the full board each time a picture decoded, or an
+    // auto-save changed the height of a note.
     render(
       <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
       host,
     );
     const spanOf = (i: number) =>
       Number(/span (\d+)/.exec(card(i).style.gridRowEnd)?.[1] ?? 0);
-    // Let the observer's first delivery pass before watching for writes.
+    // Let the first delivery of the observer pass before the test watches for
+    // writes.
     await new Promise((resolve) => requestAnimationFrame(resolve));
     await tick();
     const touched = new Set<Node>();

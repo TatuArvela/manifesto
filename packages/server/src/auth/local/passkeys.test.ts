@@ -20,7 +20,9 @@ import {
 import { createSoftAuthenticator } from "#/test/softAuthenticator.ts";
 
 const PASSWORD = "test-pass-12";
-/** In `CORS_ORIGINS` of the test config, so a page there may use passkeys. */
+/**
+ * In `CORS_ORIGINS` of the test config. Thus, a page there can use passkeys.
+ */
 const ORIGIN = "http://localhost:5173";
 
 describe("passkeys", () => {
@@ -124,7 +126,7 @@ describe("passkeys", () => {
     ]);
     const answer = device.get(options as NonNullable<typeof options>);
     expect((await login({ passkey: answer })).status).toBe(200);
-    // Each challenge answers once.
+    // Each challenge answers one time.
     expect((await login({ passkey: answer })).status).toBe(401);
   });
 
@@ -189,7 +191,7 @@ describe("passkeys", () => {
     const stored = defined((await rig.storage.passkeys.listByUser(userId))[0]);
     expect(stored.counter).toBe(1);
     expect(stored.lastUsedAt).not.toBeNull();
-    // Replayed, its challenge is spent.
+    // When it is sent again, its challenge is already used.
     expect((await passkeyLogin(answer)).status).toBe(401);
   });
 
@@ -243,7 +245,7 @@ describe("passkeys", () => {
     expect(enabled.status).toBe(204);
     const { added } = await addPasskey();
 
-    // The authenticator goes; the passkey keeps two-factor on.
+    // The authenticator goes. The passkey keeps two-factor on.
     await call("POST", "/api/v1/auth/two-factor/disable", {
       password: PASSWORD,
     });
@@ -266,7 +268,8 @@ describe("passkeys", () => {
   });
 
   it("is taken away by an admin's password reset, with the rest of two-factor", async () => {
-    // Alice registered first, so she is the admin; Bob is the one reset.
+    // Alice registered first. Thus, she is the admin. Bob is the person who
+    // gets the reset.
     const bob = await registerTestUser(rig, "bob", PASSWORD);
     const started = await call(
       "POST",

@@ -48,7 +48,7 @@ describe("open mode's image store", () => {
     try {
       vi.setSystemTime(0);
       const ref = await putLocalImage(gifBlob());
-      // Two days on, attached to a draft that is not saved yet.
+      // Two days later, attached to a draft that is not saved yet.
       vi.setSystemTime(2 * 86_400_000);
       expect(await putLocalImage(gifBlob())).toBe(ref);
       expect(await sweepLocalImages(new Set(), 86_400_000)).toBe(0);

@@ -26,8 +26,10 @@ import {
 import { validatorHook } from "#/validation/zValidator.ts";
 
 export interface ShareRoutesDeps {
-  /** Sends the invitation by mail too, when the server has mail and the
-   * recipient an address. */
+  /**
+   * Also sends the invitation by mail, when the server has mail and the
+   * recipient has an address.
+   */
   mail?: { mailer: Mailer; appUrl: string } | null;
   storage: StorageDriver;
   noteEvents: NoteEvents;
@@ -37,20 +39,21 @@ export interface ShareRoutesDeps {
 type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
 
 /**
- * Invitation mails one account may send another in an hour. Sharing, removing
- * and sharing again mails each time, and the mail carries the sender's own
- * words (the note's title) from this server's address, so without a bound an
- * account is a way to flood or phish anyone it can name. The invitation
- * itself is always made; past this only its mail is left out.
+ * The number of invitation mails that one account can send to a different
+ * account in one hour. Each share, remove and new share sends a mail. The mail
+ * contains the words of the sender (the title of the note) from the address of
+ * this server. Without a limit, an account could fill the inbox of each person
+ * that it can name, or phish them. The server always makes the invitation.
+ * After this limit, it sends no mail for it.
  */
 export const INVITATION_MAILS_PER_HOUR = 5;
 
 /**
- * `/api/v1/notes/:id/shares`: who a note is shared with, managed by its owner.
+ * `/api/v1/notes/:id/shares`: with whom a note is shared, managed by its owner.
  *
  * Registered on the notes router, behind its authentication and rate limit.
- * Only the owner invites, changes a role or removes someone; anyone holding
- * an invitation or a share may remove themselves, which is how a recipient
+ * Only the owner invites, changes a role or removes a person. Each person who
+ * has an invitation or a share can remove themselves. That is how a recipient
  * leaves a note.
  */
 export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
@@ -88,8 +91,9 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
       if (note.trashed) {
         throw new HttpError(409, "A note in the trash cannot be shared");
       }
-      // An automatic note is rewritten by a plugin in its owner's browser, so
-      // nobody else could edit it and what they saw would be overwritten.
+      // A plugin writes an automatic note again in the browser of its owner.
+      // Thus, no other person could edit it, and the plugin would write over
+      // what they saw.
       if (note.readonly) {
         throw new HttpError(422, "Automatic notes cannot be shared");
       }
@@ -101,8 +105,8 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
       }
       const recipient = await storage.users.findById(recipientId);
       if (!recipient) throw new HttpError(404, "User not found");
-      // Signed by whoever sends it, or the recipient's client would refuse
-      // it anyway; and for the key the note is under now.
+      // Signed by the sender, because the client of the recipient refuses it
+      // otherwise. Also, for the current key of the note.
       if (
         key &&
         (key.signer !== userId || key.keyVersion !== note.keyVersion)
@@ -117,9 +121,10 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
         offeredKey: key ?? null,
       });
       if (created === "exists") {
-        // Someone who has the note through a team can be given it directly,
-        // which takes it out of the team's hands: removing the team share no
-        // longer removes them. A direct share already there is a conflict.
+        // A person who has the note through a team can get it directly. That
+        // takes it out of the control of the team: the removal of the team
+        // share does not remove them now. An existing direct share is a
+        // conflict.
         const existing = (await storage.shares.audience(noteId))?.shares.find(
           (share) => share.userId === recipientId,
         );
@@ -158,15 +163,17 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
       ) {
         const owner = await storage.users.findById(userId);
         const message = shareInvitationMail(
-          // The recipient's language, which their client reported; the
-          // sharer's would be the wrong one whenever the two differ.
+          // The language of the recipient, which their client reported. The
+          // language of the sender would be wrong each time the two are
+          // different.
           mailLocale(recipient.locale?.split("-")[0]),
           {
             owner: owner?.displayName || owner?.username || "",
             link: deps.mail.appUrl,
           },
         );
-        // Not awaited: the share is made whether or not the mail goes.
+        // Not awaited. The server makes the share whether the mail goes out or
+        // not.
         void deps.mail.mailer.send({ to: recipient.email, ...message });
       }
       await noteEvents.changed(noteId);
@@ -206,14 +213,14 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
   );
 
   /**
-   * Hands someone on the note its key, wrapped to their public key and
-   * signed by the caller. Anyone who holds the note may: a share to a team
-   * reaches members the owner's client never wrapped for, and whoever of the
-   * note's holders is online first does it. The recipient's client decides
-   * whether to trust it, by the signature and by whether it opens the note.
-   * Only someone still waiting is handed one: a key they hold, or one they
-   * were offered and have not taken yet, is replaced by the owner alone, or
-   * any holder could put a key of their own making in its place.
+   * Gives a person on the note its key, wrapped to their public key and signed
+   * by the caller. All persons who have the note can do this. A share to a team
+   * reaches members for whom the client of the owner did not wrap a key, and
+   * the first holder of the note who is online does it. The client of the
+   * recipient decides if it trusts the key, by the signature, and by whether
+   * the key opens the note. Only a person who still waits gets one. Only the
+   * owner can replace a key that they have, or an offer that they did not take
+   * yet. If not, each holder could put their own key in its place.
    */
   notes.put(
     "/:id/shares/:userId/key",
@@ -224,16 +231,16 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
       const recipientId = c.req.param("userId") as string;
       const key = c.req.valid("json");
       const note = await storage.notes.getById(noteId, userId);
-      // Only someone who holds the key can wrap it: the owner, or a
-      // recipient whose own copy is the one the note is under.
+      // Only a person who has the key can wrap it: the owner, or a recipient
+      // whose own copy is the current key of the note.
       if (!note || note.key === "") throw new HttpError(404, "Note not found");
       if (key.signer !== userId || key.keyVersion !== note.keyVersion) {
         throw new HttpError(422, "Not a key of this note from you");
       }
       const ownerId = note.sharing?.owner.id;
       if (roleOf(note) !== "owner" && ownerId !== undefined) {
-        // As the owner sees the note: an invitation is not among the
-        // members a recipient is shown.
+        // As the owner sees the note. The members that a recipient sees do not
+        // include invitations.
         const whole = await storage.notes.getById(noteId, ownerId);
         const member = whole?.sharing?.members.find(
           (m) => m.id === recipientId,
@@ -258,9 +265,9 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
   );
 
   /**
-   * The note key as the caller now keeps it, after the note's key was
-   * replaced: opened from what they were offered, wrapped under their own
-   * notes key. Their own to write, like the rest of their share.
+   * The note key as the caller keeps it now, after the key of the note was
+   * replaced: opened from their offer, and wrapped under their own notes key.
+   * They write it, as the other parts of their share.
    */
   notes.put(
     "/:id/held-key",
@@ -294,8 +301,8 @@ export function registerShareRoutes(notes: AuthedApp, deps: ShareRoutesDeps) {
       await noteEvents.invited(noteId, recipientId);
       return;
     }
-    // Still a reader, no longer a writer: the live document is what they
-    // have to be taken out of.
+    // Still a reader, but not a writer now. The code must take them out of the
+    // live document.
     if (role === "view") {
       accessChanges.announce({
         noteId,
@@ -344,9 +351,9 @@ export function createInvitationRoutes(deps: InvitationRoutesDeps) {
     return c.json(body);
   });
 
-  // Accepting keeps the note's key: the recipient's client opened what it
-  // was offered and sends it back wrapped under its own notes key. An
-  // invitation still waiting for a key cannot be accepted yet.
+  // Acceptance keeps the key of the note. The client of the recipient opened
+  // its offer, and sends it back wrapped under its own notes key. An invitation
+  // that still waits for a key cannot be accepted yet.
   invitations.post(
     "/:noteId/accept",
     zValidator("json", heldKeySchema, validatorHook),
@@ -364,10 +371,10 @@ export function createInvitationRoutes(deps: InvitationRoutesDeps) {
       }
       const note = await storage.notes.getById(noteId, userId);
       if (!note) throw new HttpError(404, "Invitation not found");
-      // The user's other tabs still show the invitation.
+      // The other tabs of the user still show the invitation.
       noteEvents.answered(noteId, userId);
       await noteEvents.changed(noteId);
-      // Whoever is looking at the note right now shows up for them at once.
+      // The persons who look at the note now show for them immediately.
       accessChanges.announce({ noteId, userIds: [userId], change: "gained" });
       const body: NoteResponse<SealedNote> = { note };
       return c.json(body);
@@ -377,8 +384,8 @@ export function createInvitationRoutes(deps: InvitationRoutesDeps) {
   invitations.post("/:noteId/decline", async (c) => {
     const { userId } = c.get("auth");
     const noteId = c.req.param("noteId") as string;
-    // Only an invitation: leaving a note already accepted is a DELETE on its
-    // share, and saying "decline" to one should not quietly do that.
+    // Only an invitation. To leave a note that is already accepted is a DELETE
+    // on its share. A "decline" of one must not silently do that.
     if (!(await storage.shares.getInvitation(noteId, userId))) {
       throw new HttpError(404, "Invitation not found");
     }

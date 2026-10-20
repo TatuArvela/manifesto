@@ -32,9 +32,9 @@ function isBoardColor(hue: string): hue is BoardColor {
 }
 
 /**
- * One theme as a tiny window: the page in the shade chosen for it, a bar
- * across the top and three notes. Drawn in fixed colours rather than `dark:`
- * ones, since the dark sample stays dark while the app is light.
+ * One theme as a small window: the page in the shade selected for it, a bar
+ * across the top, and three notes. Drawn in fixed colors, not `dark:` colors,
+ * because the dark sample stays dark while the app is light.
  */
 function ThemeWindow({ mode }: { mode: "light" | "dark" }) {
   const light = mode === "light";
@@ -61,7 +61,10 @@ function ThemeWindow({ mode }: { mode: "light" | "dark" }) {
   );
 }
 
-/** A theme's sample; the system one is light and dark split corner to corner. */
+/**
+ * The sample of a theme. The system sample is light and dark, split from corner
+ * to corner.
+ */
 function ThemeSample({ mode }: { mode: ThemeMode }) {
   return (
     <span
@@ -86,9 +89,9 @@ function ThemeSample({ mode }: { mode: ThemeMode }) {
 }
 
 /**
- * A shade's select, in the column of the theme it belongs to. Its name is
- * read out rather than shown, since the tile above says which theme it is,
- * and the column is a row of its own to a settings search.
+ * The select of a shade, in the column of its theme. Its name is read out, not
+ * shown, because the tile above tells which theme it is. For a settings search,
+ * the column is its own row.
  */
 function ShadeColumn({
   label,
@@ -111,14 +114,14 @@ function ShadeColumn({
 }
 
 /**
- * The theme as a sample of each, with the light and dark shades under the
- * light and dark samples, which draw in them. Either shade can be chosen
- * whichever theme is on, ready for when the other one is.
+ * The theme as a sample of each, with the light and dark shades under the light
+ * and dark samples, which use them. You can select either shade whatever the
+ * current theme, ready for when the other theme is on.
  */
 export function ThemePicker() {
   const lightHueOptions: SettingsOption<LightHue>[] = LIGHT_HUES.map((hue) => ({
     value: hue,
-    // The preset colours share their names with the note colours.
+    // The preset colors have the same names as the note colors.
     label: isBoardColor(hue)
       ? t(`color.${hue}`)
       : t(`settings.lightHue.${hue}`),

@@ -15,12 +15,12 @@ import {
 } from "@manifesto/shared";
 
 /**
- * What a public link is sealed with, apart from the `Sealer` that holds the
- * keys it needs (`Sealer.publish` and `Sealer.openLinkKey` hand them in).
- * Kept out of `sealing.ts`, which imports this and never the other way.
+ * What seals a public link, separate from the `Sealer` that has the keys that
+ * it needs (`Sealer.publish` and `Sealer.openLinkKey` give them). Kept out of
+ * `sealing.ts`, which imports this, and never the opposite.
  */
 
-/** What `publish` is sent: the link key and the fields of the request. */
+/** What `publish` gets: the link key and the fields of the request. */
 export interface SealedPublicLink {
   linkKey: string;
   fields: Pick<
@@ -30,15 +30,15 @@ export interface SealedPublicLink {
 }
 
 /**
- * What publishing a note takes: a new link key, which goes into the link's
- * address and nowhere else, and what the server is sent. A live link gets
- * the note key wrapped by the link key; a snapshot gets a copy of the note
- * as it is now, sealed under a key derived from the link key. Either way
- * the link key is also sealed for this account, so its owner can copy the
- * address again.
+ * What the publication of a note needs: a new link key, which goes into the
+ * address of the link and to no other place, and what the server gets. A live
+ * link gets the note key wrapped by the link key. A snapshot gets a copy of the
+ * note as it is now, sealed under a key derived from the link key. In both
+ * cases, the link key is also sealed for this account. Thus, its owner can copy
+ * the address again.
  *
- * `noteKey` is asked for only by a live link, and its bytes are wiped here
- * once wrapped.
+ * Only a live link asks for `noteKey`, and its bytes are wiped here after the
+ * wrap.
  */
 export async function sealPublicLink(
   account: AccountSealKeys,
@@ -104,8 +104,10 @@ export async function sealPublicLink(
   };
 }
 
-/** A link's key, from the copy sealed for its owner; null when it does
- * not open. */
+/**
+ * The key of a link, from the copy sealed for its owner. Null when it does not
+ * open.
+ */
 export async function openPublicLinkKey(
   account: AccountSealKeys,
   noteId: string,

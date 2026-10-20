@@ -42,23 +42,23 @@ import {
 } from "./passwordConfirmation.ts";
 
 /**
- * The account's keys on this device
+ * The keys of the account on this device
  * (`docs/specification/features/encryption.md`, "Unlocking").
  *
- * Signing in proves who someone is and opens nothing. A signed-in device is
- * `locked` until the secret key is entered, and an account that has never had
- * keys is at `setup`, where the browser makes them. `unlocked` is the only
- * state in which the app is shown.
+ * A sign-in proves who a person is, and opens nothing. A signed-in device is
+ * `locked` until the person enters the secret key. An account that never had
+ * keys is at `setup`, where the browser makes them. The app shows only in the
+ * `unlocked` state.
  *
- * Every action here resolves with what happened and never rejects.
+ * Each action here resolves with what occurred, and never rejects.
  */
 export type KeyState =
   /** Open mode, or nobody signed in: there is nothing to unlock. */
   | "none"
   | "checking"
-  /** No WebCrypto: the page was loaded over plain `http`. */
+  /** No WebCrypto: the page loaded over plain `http`. */
   | "unsupported"
-  /** The server could not be asked whether the account has keys. */
+  /** The client could not ask the server if the account has keys. */
   | "unavailable"
   | "setup"
   | "locked"
@@ -66,8 +66,10 @@ export type KeyState =
 
 export const keyState = signal<KeyState>("none");
 
-/** The two keys and where they belong, as the sheet to save or print shows
- * them. `secretKey` and `recoveryKey` are null on a sheet that shows one. */
+/**
+ * The two keys and where they belong, as the sheet to save or print shows them.
+ * `secretKey` and `recoveryKey` are null on a sheet that shows only one.
+ */
 export interface KeySheet {
   server: string;
   username: string;
@@ -75,13 +77,13 @@ export interface KeySheet {
   recoveryKey: string | null;
 }
 
-/** What this device holds while unlocked, in memory; IndexedDB has a copy. */
+/** What this device has in memory while unlocked. IndexedDB has a copy. */
 let held: Omit<DeviceKeys, "endsAt"> | null = null;
-/** What the server said the last time it was asked. */
+/** What the server said the last time that the client asked. */
 let served: AccountKeysResponse | null = null;
-/** Keys made for a set-up the user has not confirmed keeping yet. */
+/** Keys made for a set-up that the user did not yet confirm that they keep. */
 let pendingSetup: NewAccountKeys | null = null;
-/** A recovery under way: what was opened, until the new sheet is kept. */
+/** A recovery in progress: what was opened, until the new sheet is kept. */
 let pendingRecovery: {
   recovered: RecoveredKeys;
   verifier: string;
@@ -96,14 +98,16 @@ let pendingRenewal:
   | null = null;
 /** A secret key scanned into the address before the account was unlocked. */
 let scannedSecretKey: string | null = null;
-/** Raised whenever the state is decided, so an older check does not answer
- * over a newer one. */
+/**
+ * Increased each time the state is decided. Thus, an older check does not
+ * answer over a newer check.
+ */
 let generation = 0;
 
 /**
- * Changes what this device holds, and tells the storage layer, which seals
- * and opens with it. The same account key is handed over once: a new secret
- * key for it changes nothing storage has to know.
+ * Changes what this device has, and tells the storage layer, which seals and
+ * opens with it. The same account key goes across one time. A new secret key
+ * for it changes nothing that storage must know.
  */
 function setHeld(keys: Omit<DeviceKeys, "endsAt"> | null): void {
   held = keys;
@@ -126,7 +130,9 @@ function setHeld(keys: Omit<DeviceKeys, "endsAt"> | null): void {
   };
 }
 
-/** The account key, for whatever encrypts and decrypts; null while locked. */
+/**
+ * The account key, for the code that encrypts and decrypts. Null while locked.
+ */
 export function accountKey(): CryptoKey | null {
   return keyState.value === "unlocked" ? (held?.accountKey ?? null) : null;
 }
@@ -151,11 +157,11 @@ async function fetchKeys(): Promise<AccountKeysResponse | null> {
 }
 
 /**
- * Holds the keys in memory and on the device, shows the app, and tells the
- * other tabs when the device's copy was written: one the browser would not
- * keep is nothing for them to read. False, holding nothing, when the account
- * the keys are for is no longer signed in: every caller has awaited a
- * request first, and a device holds keys only while signed in.
+ * Keeps the keys in memory and on the device, shows the app, and tells the
+ * other tabs when the copy of the device was written. A copy that the browser
+ * would not keep is nothing for them to read. Returns false, with nothing held,
+ * when the account of the keys is not signed in now. Each caller awaited a
+ * request first, and a device has keys only while signed in.
  */
 async function hold(
   keys: Omit<DeviceKeys, "endsAt">,
@@ -171,8 +177,8 @@ async function hold(
   pendingRenewal = null;
   scannedSecretKey = null;
   keyState.value = "unlocked";
-  // Without the day the session ends, the device could not tell when to
-  // remove them by itself, so it keeps them in memory alone.
+  // Without the day on which the session ends, the device could not tell when
+  // to remove them by itself. Thus, it keeps them only in memory.
   if (endsAt !== null && (await saveDeviceKeys({ ...keys, endsAt }))) {
     announce();
   }
@@ -188,9 +194,9 @@ function forget(): void {
 }
 
 /**
- * Decides the state for whoever is signed in now: unlocked from what the
- * device holds, or else whatever the server says the account has. Runs when
- * the session changes, and again from the screens that offer a retry.
+ * Decides the state for the person who is signed in now: unlocked from what the
+ * device has, or else what the server says that the account has. Runs when the
+ * session changes, and again from the screens that offer a retry.
  */
 export async function checkAccountKeys(): Promise<void> {
   const run = ++generation;
@@ -198,7 +204,7 @@ export async function checkAccountKeys(): Promise<void> {
   if (!isServerMode || authToken.value === null || user === null) {
     forget();
     keyState.value = "none";
-    // Signing out removes the keys, and so does a session the server ended.
+    // A sign-out removes the keys. A session that the server ended also does.
     if (isServerMode) await clearDeviceKeys();
     return;
   }
@@ -215,8 +221,8 @@ export async function checkAccountKeys(): Promise<void> {
   const stored = await loadDeviceKeys();
   if (run !== generation) return;
   if (stored) {
-    // Kept only for the account they are, and only until the day its session
-    // would have run out: a device that was off never heard it end.
+    // Kept only for their account, and only until the day when its session
+    // would have ended. A device that was off never heard it end.
     if (stored.userId === user.id && Date.parse(stored.endsAt) > Date.now()) {
       setHeld(stored);
       keyState.value = "unlocked";
@@ -243,44 +249,46 @@ export async function checkAccountKeys(): Promise<void> {
 /** Who is signed in, and nothing else about them. */
 const signedInAs = computed(() => currentUser.value?.id ?? null);
 
-// The state follows the session: a sign-in asks for the key, and a sign-out
-// or a session the server ended (`clearAuthLocal`) removes it.
+// The state follows the session. A sign-in asks for the key. A sign-out, or a
+// session that the server ended (`clearAuthLocal`), removes it.
 effect(() => {
-  // Read so the effect runs again when either changes.
+  // Read, so that the effect runs again when either changes.
   void authToken.value;
   void signedInAs.value;
-  // Untracked, since the check reads `currentUser` whole: the same account
-  // under a new name or language is not a new session, and deciding again
-  // would throw away the keys of a set-up or a recovery whose sheet is
-  // already on the screen.
+  // Untracked, because the check reads all of `currentUser`. The same account
+  // under a new name or language is not a new session. A new decision would
+  // discard the keys of a set-up or a recovery whose sheet is already on the
+  // screen.
   untracked(() => void checkAccountKeys());
 });
 
-/** What a tab tells the others: the device's copy was written (`held`), or
- * the account's keys were removed and it starts again (`gone`). */
+/**
+ * What a tab tells the others: the copy of the device was written (`held`), or
+ * the keys of the account were removed and it starts again (`gone`).
+ */
 type Announcement = "held" | "gone";
 
 /**
- * Another tab wrote the device's copy of the keys. A tab that holds nothing
- * reads it rather than asking for the key twice. One that is unlocked keeps
- * what it holds while the copy is of the same account key: letting go of it
- * would fail whatever is being saved, take the app down under whoever is
- * typing, and bring it back with a `Sealer` that has forgotten every note
- * and image key it had opened. A new secret key for the same account key is
- * taken as it is, and a copy that cannot be read changes nothing.
+ * A different tab wrote the copy of the keys of the device. A tab that has
+ * nothing reads it, and does not ask for the key two times. A tab that is
+ * unlocked keeps what it has while the copy is of the same account key. If it
+ * released it, each save in progress would fail, the app would close for the
+ * person who types, and it would come back with a `Sealer` that forgot each
+ * note and image key that it had opened. The tab takes a new secret key for the
+ * same account key as it is. A copy that it cannot read changes nothing.
  */
 async function heardFromAnotherTab(said: unknown): Promise<void> {
   const mine = held;
   if (mine !== null && said !== "gone") {
     const stored = await loadDeviceKeys();
     if (held !== mine) {
-      // This tab changed what it holds meanwhile, and decides for itself.
+      // This tab changed what it has in the meantime, and decides for itself.
       await checkAccountKeys();
       return;
     }
-    // No copy to read: this browser keeps none (the keys are in memory
-    // alone), or the other tab's was not written. Nothing says the keys
-    // here stopped being the account's, which is what `gone` is for.
+    // No copy to read. This browser keeps none (the keys are only in memory),
+    // or the copy of the other tab was not written. Nothing says that the keys
+    // here are not the keys of the account now. `gone` is for that.
     if (stored === null) return;
     if (stored.userId === mine.userId && stored.version === mine.version) {
       setHeld({ ...mine, secretKey: stored.secretKey });
@@ -306,10 +314,10 @@ function announce(said: Announcement = "held"): void {
 }
 
 /**
- * Takes a secret key out of the address (`#key=SK-...`), where the QR code
- * Settings shows on a signed-in device puts it, and removes it from the
- * address bar and the history. It unlocks at once when the account is
- * waiting for it, and is kept in memory, never stored, until then.
+ * Takes a secret key out of the address (`#key=SK-...`), where the QR code that
+ * Settings shows on a signed-in device puts it, and removes it from the address
+ * bar and the history. It unlocks immediately when the account waits for it.
+ * Until then, it is kept in memory, and never stored.
  */
 export function takeSecretKeyFromAddress(): void {
   if (typeof window === "undefined") return;
@@ -326,7 +334,7 @@ export function takeSecretKeyFromAddress(): void {
   if (keyState.value === "locked") void unlock(key);
 }
 
-/** The address that carries `secretKey` to another device, as a QR code. */
+/** The address that carries `secretKey` to a different device, as a QR code. */
 export function secretKeyAddress(secretKey: string): string {
   if (typeof window === "undefined") return "";
   const app = new URL(import.meta.env.BASE_URL, window.location.origin);
@@ -334,9 +342,9 @@ export function secretKeyAddress(secretKey: string): string {
 }
 
 /**
- * Makes an account's first keys and answers the sheet to show. Nothing has
- * reached the server yet: that is `completeSetup`, once the user says they
- * kept the sheet. Null when the browser could not make them.
+ * Makes the first keys of an account, and answers the sheet to show. Nothing
+ * reached the server yet. That is `completeSetup`, after the user says that
+ * they kept the sheet. Null when the browser could not make them.
  */
 export async function prepareSetup(): Promise<KeySheet | null> {
   const user = currentUser.value;
@@ -349,8 +357,11 @@ export async function prepareSetup(): Promise<KeySheet | null> {
   return sheet(pendingSetup.secretKey, pendingSetup.recoveryKey);
 }
 
-/** Stores the keys `prepareSetup` made. `exists` means another device set
- * the account up meanwhile, and this one now asks for that device's key. */
+/**
+ * Stores the keys that `prepareSetup` made. `exists` means that a different
+ * device set up the account in the meantime, and this device now asks for the
+ * key of that device.
+ */
 export async function completeSetup(): Promise<"ok" | "exists" | "failed"> {
   const user = currentUser.value;
   const made = pendingSetup;
@@ -376,9 +387,9 @@ export async function completeSetup(): Promise<"ok" | "exists" | "failed"> {
 
 export type UnlockResult =
   | "ok"
-  /** Not shaped as a secret key at all. */
+  /** Not in the shape of a secret key. */
   | "invalid"
-  /** A secret key, and not this account's. */
+  /** A secret key, but not of this account. */
   | "wrong"
   | "failed";
 
@@ -396,7 +407,7 @@ export async function unlock(input: string): Promise<UnlockResult> {
     return "failed";
   }
   if (key === null) {
-    // A scanned key that does not open is not tried again by itself.
+    // A scanned key that does not open is not tried again automatically.
     scannedSecretKey = null;
     return "wrong";
   }
@@ -412,15 +423,17 @@ export type RecoveryResult =
   | {
       kind:
         | "invalid"
-        /** Not this account's recovery key. */
+        /** Not the recovery key of this account. */
         | "wrong"
-        /** Too many wrong ones; try again later. */
+        /** Too many wrong keys. Try again later. */
         | "throttled"
         | "failed";
     };
 
-/** Opens what the server handed over and makes the new keys; shared by both
- * ways of using the recovery key. */
+/**
+ * Opens what the server gave, and makes the new keys. Both ways to use the
+ * recovery key share it.
+ */
 async function openRecovery(
   recoveryKey: string,
   verifier: string,
@@ -433,7 +446,8 @@ async function openRecovery(
   } catch {
     return { kind: "failed" };
   }
-  // The server took the key and its wrap does not open: not a key to trust.
+  // The server accepted the key, and its wrap does not open. Do not trust the
+  // key.
   if (recovered === null) return { kind: "failed" };
   pendingRecovery = { recovered, verifier, opened, username };
   return {
@@ -461,9 +475,9 @@ async function verifierFor(input: string): Promise<{
 }
 
 /**
- * The first step of using the recovery key while signed in, for someone who
- * has lost the secret key: checks it with the server and answers a sheet with
- * a new secret key and a new recovery key. Nothing is replaced until
+ * The first step to use the recovery key while signed in, for a person who lost
+ * the secret key. It checks the key with the server, and answers a sheet with a
+ * new secret key and a new recovery key. Nothing is replaced until
  * `completeRecovery`.
  */
 export async function beginRecovery(input: string): Promise<RecoveryResult> {
@@ -484,7 +498,7 @@ export async function beginRecovery(input: string): Promise<RecoveryResult> {
   return openRecovery(parsed.recoveryKey, parsed.verifier, opened, null);
 }
 
-/** The same with nobody signed in, by username: the recovery then signs in. */
+/** The same with nobody signed in, by username. The recovery then signs in. */
 export async function beginRecoverySignIn(
   username: string,
   input: string,
@@ -508,9 +522,10 @@ export async function beginRecoverySignIn(
 }
 
 /**
- * The second step: puts the new keys in place of the ones the recovery used,
- * and unlocks this device with them. With nobody signed in it takes the new
- * password and signs in. `used` means the recovery key was spent meanwhile.
+ * The second step. It puts the new keys in place of the keys that the recovery
+ * used, and unlocks this device with them. With nobody signed in, it takes the
+ * new password and signs in. `used` means that the recovery key was used in the
+ * meantime.
  */
 export async function completeRecovery(
   newPassword?: string,
@@ -543,8 +558,8 @@ export async function completeRecovery(
   });
   if (answer.kind === "used" || answer.kind === "wrong") return "used";
   if (answer.kind !== "ok") return "failed";
-  // Held before the session is taken up, so the check that follows the
-  // sign-in finds the account unlocked and asks for nothing.
+  // Held before the session starts. Thus, the check that follows the sign-in
+  // finds the account unlocked, and asks for nothing.
   generation++;
   setHeld(keys);
   pendingRecovery = null;
@@ -554,7 +569,7 @@ export async function completeRecovery(
   return (await hold(keys, now?.sessionEndsAt ?? null)) ? "ok" : "failed";
 }
 
-/** Drops a set-up or a recovery that was not finished. */
+/** Drops a set-up or a recovery that is not complete. */
 export function abandonRecovery(): void {
   pendingRecovery = null;
 }
@@ -574,9 +589,9 @@ async function refusalOf(
 const withPassword = (password: string) => (password ? { password } : {});
 
 /**
- * The secret key this device holds, after the server has checked the
- * password (or, for an account without one, a recent sign-in): what Settings
- * shows to bring another device in.
+ * The secret key that this device has, after the server checked the password
+ * (or, for an account without one, a recent sign-in). Settings shows it to
+ * bring in a different device.
  */
 export async function revealSecretKey(
   password: string,
@@ -592,8 +607,10 @@ export async function revealSecretKey(
   return { kind: "ok", secretKey };
 }
 
-/** The wrap the server holds now, which the secret key here has to open
- * before anything can be wrapped anew. */
+/**
+ * The wrap that the server has now. The secret key here must open it before the
+ * code can wrap anything again.
+ */
 async function currentKeys(): Promise<AccountKeys | null> {
   const answer = await fetchKeys();
   if (answer) served = answer;
@@ -601,9 +618,9 @@ async function currentKeys(): Promise<AccountKeys | null> {
 }
 
 /**
- * Makes a new secret key in place of the one this device holds, once the
- * server has checked the password, and answers it to show. Nothing is
- * replaced until `completeRenewal`, after the user says they kept it.
+ * Makes a new secret key in place of the key that this device has, after the
+ * server checked the password, and answers it to show. Nothing is replaced
+ * until `completeRenewal`, after the user says that they kept it.
  */
 export async function prepareSecretKey(
   password: string,
@@ -653,9 +670,9 @@ async function prepareRenewal<T>(
 }
 
 /**
- * Puts the key `prepareSecretKey` or `prepareRecoveryKey` made in place of
- * the old one. A new secret key signs out every other device, and this one
- * goes on with it.
+ * Puts the key that `prepareSecretKey` or `prepareRecoveryKey` made in place of
+ * the old key. A new secret key signs out each other device, and this device
+ * continues with it.
  */
 export async function completeRenewal(
   password: string,
@@ -677,9 +694,8 @@ export async function completeRenewal(
     ...withPassword(password),
     wrappedBySecret: pending.wrappedBySecret,
   });
-  // A request whose answer was lost may still have been made: the wrap the
-  // server holds says, and this device has to go on with the key that
-  // opens it.
+  // A request whose answer was lost can still have occurred. The wrap that the
+  // server has tells, and this device must continue with the key that opens it.
   const made =
     res?.ok ||
     (!res &&
@@ -693,12 +709,12 @@ export async function completeRenewal(
   return { kind: "ok" };
 }
 
-/** Drops a new key whose sheet was not kept; the old one goes on working. */
+/** Drops a new key whose sheet was not kept. The old key continues to work. */
 export function abandonRenewal(): void {
   pendingRenewal = null;
 }
 
-/** A sheet for one new key, to save beside or in place of the old one. */
+/** A sheet for one new key, to save next to the old key or in its place. */
 export function sheetFor(key: {
   secretKey?: string;
   recoveryKey?: string;
@@ -707,9 +723,9 @@ export function sheetFor(key: {
 }
 
 /**
- * Starts the account again, for someone who has lost the secret key on every
- * device and the recovery key too: its keys are removed, and the next thing
- * shown is the set-up of new ones.
+ * Starts the account again, for a person who lost the secret key on each device
+ * and also the recovery key. Its keys are removed, and the next screen is the
+ * set-up of new keys.
  */
 export async function startAgain(password: string): Promise<Confirmed<object>> {
   const res = await apiFetch("DELETE", "/auth/keys", withPassword(password));

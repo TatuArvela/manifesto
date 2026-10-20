@@ -14,27 +14,32 @@ import {
 import { type ImageKey, isImageKey } from "./imageSeal.ts";
 
 /**
- * A note's lists as a note may hold them, from whatever was opened. What is
- * opened was written by some client and checked by no server, so every
- * value is held to the limits the server once held it to, and one that
- * fails is left out.
+ * The lists of a note, as a note can contain them, from the opened data. A
+ * client wrote the opened data, and no server checked it. Thus, the code checks
+ * each value against the limits that the server used before, and removes a
+ * value that fails.
  */
 
-/** One image as a sealed note names it: the attachment, what opens it, and
- * what it shows in words, when someone has said. */
+/**
+ * One image as a sealed note names it: the attachment, what opens it, and its
+ * description, when a person gave one.
+ */
 export interface ImageEntry extends ImageKey {
   id: string;
   alt?: string;
 }
 
 /**
- * What opens each image a note holds, by its `attachment:` reference. A note
- * in the app holds references alone; their keys are kept beside it, handed
- * to whatever seals the note and taken from whatever opens it.
+ * What opens each image of a note, by its `attachment:` reference. In the app,
+ * a note contains only references. Their keys are kept next to it. The code
+ * that seals the note gets them, and the code that opens it gives them.
  */
 export type ImageKeys = ReadonlyMap<string, ImageKey>;
 
-/** The reference an entry names, when the entry is whole; else null. */
+/**
+ * The reference that an entry names, when the entry is complete. Otherwise
+ * null.
+ */
 function entryRef(item: unknown): [string, ImageKey] | null {
   if (!isImageKey(item)) return null;
   const { id, key, type } = item as ImageEntry;
@@ -52,22 +57,22 @@ function isHttpUrl(value: unknown): value is string {
 }
 
 /**
- * Link previews as a note may hold them, from anything: each card checked
- * as the server checked one, a card that fails left out, and an image that
- * is not an attachment dropped from its card.
+ * Link previews as a note can contain them, from any input. The code checks
+ * each card as the server did, removes a card that fails, and removes an image
+ * that is not an attachment from its card.
  *
- * The card shows `domain` as where the link goes, so it is always the URL's
- * own host, whatever was sealed: a writer could otherwise have a card name
- * one site and open another, on a shared note or a public link, and the
- * server cannot look inside to put it right.
+ * The card shows `domain` as the target of the link. Thus, it is always the
+ * host of the URL, whatever was sealed. If not, a writer could make a card that
+ * names one site and opens a different site, on a shared note or a public link.
+ * The server cannot look inside to correct it.
  */
 export function checkedLinkPreviews(
   raw: unknown,
   found?: Map<string, ImageKey>,
 ): LinkPreview[] {
   if (!Array.isArray(raw)) return [];
-  // In a sealed note a thumbnail is an entry with its key; in the app, and
-  // in what is about to be sealed, it is the reference alone.
+  // In a sealed note, a thumbnail is an entry with its key. In the app, and in
+  // data that will be sealed, it is only the reference.
   const imageOf = (value: unknown): string | undefined => {
     if (typeof value === "string") {
       return isAttachmentRef(value) ? value : undefined;
@@ -109,10 +114,11 @@ export function checkedLinkPreviews(
 }
 
 /**
- * A note's images as references, from the sealed list's JSON. An entry
- * without a key and a type this app takes is left out, since it could not be
- * opened. Each one's key goes into `found`, and its description, "" for none
- * or one past `MAX_IMAGE_ALT_LENGTH`, into `alts` in step with the answer.
+ * The images of a note as references, from the JSON of the sealed list. The
+ * code removes an entry without a key and a type that this app accepts, because
+ * it could not open it. The key of each image goes into `found`. Its
+ * description goes into `alts`, aligned with the answer: "" for none, or for
+ * one longer than `MAX_IMAGE_ALT_LENGTH`.
  */
 export function checkedImages(
   raw: unknown,
@@ -135,7 +141,7 @@ export function checkedImages(
   return out;
 }
 
-/** Tags as a note may hold them, from anything. */
+/** Tags as a note can contain them, from any input. */
 export function checkedTags(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   const out: string[] = [];

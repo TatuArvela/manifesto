@@ -1,6 +1,6 @@
 import type { Note } from "#/note.ts";
 
-/** The note events a webhook can be sent. */
+/** The note events that a webhook can get. */
 export const WEBHOOK_EVENTS = [
   "note.created",
   "note.updated",
@@ -8,18 +8,18 @@ export const WEBHOOK_EVENTS = [
 ] as const;
 export type WebhookEventName = (typeof WEBHOOK_EVENTS)[number];
 
-/** A webhook as listed: never its signing secret, shown once at creation. */
+/** A webhook as listed. Never its signing secret, which shows one time. */
 export interface Webhook {
   id: string;
   url: string;
   events: WebhookEventName[];
   active: boolean;
   createdAt: string;
-  /** The last delivery: when, and the status it got or why it failed. */
+  /** The last delivery: when, and its status or the reason of its failure. */
   lastDeliveryAt: string | null;
   lastStatus: number | null;
   lastError: string | null;
-  /** Failures in a row; enough of them switches the webhook off. */
+  /** Failures in sequence. Too many of them switch the webhook off. */
   failureCount: number;
 }
 
@@ -29,21 +29,21 @@ export interface WebhooksResponse {
 
 export interface WebhookCreateRequest {
   url: string;
-  /** Every event when left out. */
+  /** All events when not given. */
   events?: WebhookEventName[];
 }
 
 export interface WebhookCreatedResponse {
   webhook: Webhook;
-  /** Signs every delivery (`X-Manifesto-Signature`). Shown this once. */
+  /** Signs each delivery (`X-Manifesto-Signature`). Shown this one time. */
   secret: string;
 }
 
 /**
- * What a delivery says of a note: the fields the server reads, as the
- * webhook's owner has them. A webhook fires on a change made in the app,
- * when no key is on the server, so it carries no title, text or tags; a
- * receiver that needs them reads the note with an API token.
+ * What a delivery tells about a note: the fields that the server reads, as the
+ * owner of the webhook has them. A webhook fires on a change in the app, when
+ * the server has no key. Thus, it contains no title, text or tags. A receiver
+ * that needs them reads the note with an API token.
  */
 export type WebhookNote = Pick<
   Note,
@@ -61,7 +61,7 @@ export type WebhookNote = Pick<
   | "sharing"
 >;
 
-/** The body of every webhook delivery. A deletion carries only the id. */
+/** The body of each webhook delivery. A deletion contains only the id. */
 export type WebhookPayload =
   | {
       event: "note.created" | "note.updated";

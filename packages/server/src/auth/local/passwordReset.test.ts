@@ -151,7 +151,7 @@ describe("password reset by mail", () => {
     const { token: session } = (await signedIn.json()) as { token: string };
     const ask = async () => {
       mailer.sent.length = 0;
-      // Past the cooldown between two links for one account.
+      // After the cooldown between two links for one account.
       const alice = await storage.users.findByUsername("alice");
       await storage.passwordResets.deleteByUser(alice?.id ?? "");
       await post("/api/v1/auth/password-reset", { email: "alice@example.com" });
@@ -239,7 +239,7 @@ describe("password reset by mail", () => {
       to: "alice@example.com",
       subject: "olivia shared a note with you",
     });
-    // The note's title is sealed, so the mail cannot name it.
+    // The title of the note is sealed. Thus, the mail cannot name it.
     expect(mailer.sent.at(-1)?.text).not.toContain("Trip plan");
     expect(mailer.sent.at(-1)?.text).not.toContain("e1.");
   });

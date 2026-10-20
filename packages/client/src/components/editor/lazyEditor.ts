@@ -4,19 +4,19 @@ import { useEffect, useRef } from "preact/hooks";
 type EditorChunk = typeof import("./editorChunk.ts");
 
 /**
- * The editor, fetched apart from the board: it is the largest thing in the
- * app, and the board shows every card without it. `App` asks for it once the
- * board is up, so by the time a note is opened it is almost always here.
- * One copy for every card and the new-note sheet, so that the first to fetch
- * it makes it ready for all of them.
+ * The editor, loaded separately from the board. It is the largest part of the
+ * app, and the board shows each card without it. `App` asks for it after the
+ * board shows. Thus, when a note opens, it is almost always here. There is one
+ * copy for all cards and the new-note sheet. Thus, the first that loads it
+ * makes it ready for all of them.
  */
 const editorChunk = signal<EditorChunk | null>(null);
 
 let loading: Promise<boolean> | null = null;
 
 /**
- * Fetches the editor if it is not here yet. Resolves false when the fetch
- * failed, and the next call tries again.
+ * Loads the editor if it is not here yet. Resolves false when the load failed.
+ * The next call tries again.
  */
 export function loadEditor(): Promise<boolean> {
   if (editorChunk.value) return Promise.resolve(true);
@@ -34,12 +34,12 @@ export function loadEditor(): Promise<boolean> {
 }
 
 /**
- * The editor, or null while it is still on its way. Asks for it while
- * `wanted`, and calls `onFail` if it cannot be had, so that what asked can
- * stand down rather than wait for an editor that is not coming.
+ * The editor, or null while it is still on its way. It asks for it while
+ * `wanted`, and calls `onFail` if it cannot load. Thus, the code that asked can
+ * stop, and does not wait for an editor that will not come.
  *
- * A panel that grows out of a card measures itself with the editor inside,
- * so whatever opens one holds it back until this is not null.
+ * A panel that grows out of a card measures itself with the editor inside.
+ * Thus, the code that opens one waits until this is not null.
  */
 export function useEditor(
   wanted: boolean,

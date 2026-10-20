@@ -7,9 +7,9 @@ interface CountRow {
 }
 
 /**
- * Assembles the overview from the same five aggregates in either driver: the
- * user ids, notes per owner, attachments and their bytes per owner, and the
- * three plain counts. Counts come back as strings from Postgres.
+ * Makes the overview from the same five aggregates in both drivers: the user
+ * ids, the notes for each owner, the attachments and their bytes for each
+ * owner, and the three plain counts. Postgres returns counts as strings.
  */
 export function composeStats(
   userIds: string[],

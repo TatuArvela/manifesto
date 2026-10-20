@@ -22,8 +22,10 @@
     position-area: bottom;
     justify-self: anchor-center;
     margin-block: 4px;
-    /* Flip above the trigger near the bottom edge, and slide along the inline
-       axis rather than overflowing at the left or right edge. */
+    /*
+     * Flip above the trigger near the bottom edge, and slide along the inline
+     * axis. Do not overflow at the left or right edge.
+     */
     position-try-fallbacks:
       flip-block,
       flip-inline,
@@ -37,14 +39,17 @@
   color: var(--color-neutral-900);
 }
 
-/* Dropdown panel: rendered in the top layer via Popover API, anchor-positioned
-   to its trigger so it is never clipped by ancestor `overflow: hidden`. We hide
-   closed panels via `:not([data-open="true"])` (and not while `data-leaving`
-   says the exit is still playing) so the panelClass utilities
-   (display, padding, border) can take effect when open, since a plain
-   `display: block` default would override `flex` in panelClass. `data-open` is
-   mirrored from the component's `open` prop as a guard against browsers where
-   the UA `[popover]:not(:popover-open)` hide rule doesn't apply. */
+/*
+ * The dropdown panel: rendered in the top layer through the Popover API,
+ * anchor-positioned to its trigger. Thus, an ancestor with `overflow: hidden`
+ * never clips it. We hide closed panels through `:not([data-open="true"])` (and
+ * not while `data-leaving` says that the exit still plays). Thus, the
+ * panelClass utilities (display, padding, border) can apply when open, because
+ * a plain default of `display: block` would override `flex` in panelClass.
+ * `data-open` is copied from the `open` prop of the component, as a guard
+ * against browsers where the UA hide rule `[popover]:not(:popover-open)` does
+ * not apply.
+ */
 .dropdown-panel {
   inset: auto;
   margin: 0;
@@ -53,26 +58,28 @@
   display: none;
 }
 
-/* Opening and closing, in one transition rather than two keyframe animations,
-   because a menu re-opened while it is still fading out has to reverse from
-   where it stands instead of starting over.
-
-   The component keeps a closing panel in the top layer until the exit has
-   played (DROPDOWN_EXIT_MS in Dropdown.tsx) and only then hides the popover,
-   so the exit does not depend on transitioning `overlay` or `display`, which
-   only Chromium can. `@starting-style` supplies the other end of the entry,
-   which a panel that was `display: none` a moment ago has no previous value
-   for.
-
-   The panel slides from the side its trigger is on, so it reads as coming out
-   of the button rather than drifting in. Only a translation, never a scale: the
-   browsers without anchor positioning place the panel from a measured
-   `getBoundingClientRect`, and a scaled box measures smaller than it lands.
-
-   Closing retraces the opening: the same path, the same duration and the
-   same curves, so it moves from its first frame. The opening's curves played
-   backwards were tried, and held the panel almost still until it vanished,
-   which read as no animation at all. */
+/*
+ * Open and close, in one transition, not two keyframe animations. A menu that
+ * opens again while it still fades out must reverse from its current position,
+ * and not start again.
+ *
+ * The component keeps a closing panel in the top layer until the exit played
+ * (DROPDOWN_EXIT_MS in Dropdown.tsx), and only then hides the popover. Thus,
+ * the exit does not need a transition of `overlay` or `display`, which only
+ * Chromium can do. `@starting-style` gives the other end of the entry, for
+ * which a panel that was `display: none` a moment ago has no previous value.
+ *
+ * The panel slides from the side of its trigger. Thus, it looks like it comes
+ * out of the button, and does not drift in. Only a translation, never a scale.
+ * The browsers without anchor positioning place the panel from a measured
+ * `getBoundingClientRect`, and a scaled box measures smaller than its final
+ * size.
+ *
+ * The close follows the open in reverse: the same path, the same duration and
+ * the same curves. Thus, it moves from its first frame. The curves of the open
+ * played backward were tried. They kept the panel almost still until it
+ * disappeared, which looked like no animation.
+ */
 .dropdown-panel {
   --dd-slide: -0.25rem;
   opacity: 0;
@@ -101,13 +108,15 @@
   }
 }
 
-/* The card popovers (colour picker, kebab menu, reminder and tag panels) are
-   mounted while open, so the entry is a keyframe animation rather than the
-   dropdown's transition. It waits for `data-placed`, which the component sets
-   once it has measured where the panel goes: animating before that would play
-   the whole thing in the top-left corner, where the panel sits until it is
-   placed. The exit retraces the entry on the same curve while `usePresence`
-   holds the panel on screen; its duration is CARD_POPOVER_EXIT_MS. */
+/*
+ * The card popovers (color picker, kebab menu, reminder and tag panels) are
+ * mounted while open. Thus, the entry is a keyframe animation, not the
+ * transition of the dropdown. It waits for `data-placed`, which the component
+ * sets after it measured where the panel goes. An animation before that would
+ * play fully in the top-left corner, where the panel is until it is placed. The
+ * exit follows the entry in reverse on the same curve, while `usePresence`
+ * keeps the panel on the screen. Its duration is CARD_POPOVER_EXIT_MS.
+ */
 .card-popover[data-placed="true"] {
   animation: dropdown-in 140ms cubic-bezier(0.32, 0.72, 0, 1);
 }
@@ -134,25 +143,29 @@
   }
 }
 
-/* The UA stylesheet gives every `[popover]` `color: CanvasText`, and a
-   declaration beats inheritance, so a panel that doesn't name a text colour
-   renders black, unreadable on the dark panel background in dark mode. Put
-   the default back to inheriting from the page. Layered in `base` so a panel
-   that *does* name one still wins: the header's menus have to, because they
-   are declared inside white-on-blue text. */
+/*
+ * The UA stylesheet gives each `[popover]` `color: CanvasText`, and a
+ * declaration wins over inheritance. Thus, a panel that does not name a text
+ * color renders black, which you cannot read on the dark panel background in
+ * dark mode. Make the default inherit from the page again. In the `base` layer.
+ * Thus, a panel that *does* name one still wins. The menus of the header must,
+ * because they are declared inside white-on-blue text.
+ */
 @layer base {
   .dropdown-panel {
     color: inherit;
   }
 }
 
-/* Tailwind's `border` is `border-style: var(--tw-border-style)`, and its
-   `shadow-*` a `box-shadow` of five `--tw-*` variables, which take their
-   defaults from `@property` rules alone in any browser new enough. Safari on
-   iOS leaves those defaults off the panel itself (the rows inside it get
-   them), so the panel lost its border and shadow there and the menu ran into
-   the note under it. The defaults are restated here, in `base` so a panel
-   that sets one of them (`ring-*`, `border-dashed`) still wins. */
+/*
+ * The `border` of Tailwind is `border-style: var(--tw-border-style)`, and its
+ * `shadow-*` is a `box-shadow` of five `--tw-*` variables, which take their
+ * defaults only from `@property` rules in each sufficiently new browser. Safari
+ * on iOS does not apply those defaults to the panel itself (the rows inside it
+ * get them). Thus, the panel lost its border and shadow there, and the menu ran
+ * into the note under it. The defaults are stated here again, in `base`. Thus,
+ * a panel that sets one of them (`ring-*`, `border-dashed`) still wins.
+ */
 @layer base {
   .dropdown-panel {
     --tw-border-style: solid;
@@ -166,18 +179,24 @@
 
 @supports (position-area: block-end) {
   .dropdown-panel[popover] {
-    /* Margin on both block edges, not just the requested side: a panel that
-       flips keeps its gap from the trigger either way. */
+    /*
+     * Margin on both block edges, not only the requested side. Thus, a panel
+     * that flips keeps its gap from the trigger in both cases.
+     */
     margin-block: 0.25rem;
-    /* Flip to the opposite side of the trigger rather than running off the
-       viewport: a `bottom-end` menu near the foot of the window opens
-       upwards instead of being cut off. */
+    /*
+     * Flip to the opposite side of the trigger, and do not go off the viewport.
+     * A `bottom-end` menu near the bottom of the window opens upward, and is
+     * not cut off.
+     */
     position-try-fallbacks:
       flip-block,
       flip-inline,
       flip-block flip-inline;
-    /* Don't leave the panel floating over the page once its trigger has been
-       scrolled out of sight. */
+    /*
+     * Do not leave the panel over the page after its trigger scrolled out of
+     * sight.
+     */
     position-visibility: anchors-visible;
   }
   .dropdown-panel[popover][data-placement="bottom-start"] {
@@ -192,11 +211,13 @@
   .dropdown-panel[popover][data-placement="top-end"] {
     position-area: block-start span-inline-start;
   }
-  /* Beside the trigger, centred on it, as a toolbar continues a row (the
-     formatting toolbar's floating bar). Where there is no room after it,
-     above the trigger running back to its left, then below. Where none of
-     those fits on one line (a narrow window), beside the trigger again, wrapped to
-     the room there: a percentage width is of the area it is placed in. */
+  /*
+   * Next to the trigger, centered on it, as a toolbar continues a row (the
+   * floating bar of the formatting toolbar). Where there is no space after it,
+   * above the trigger, going back to its left, then below. Where none of those
+   * fits on one line (a narrow window), next to the trigger again, wrapped to
+   * the space there. A percentage width is of the area in which it is placed.
+   */
   .dropdown-panel[popover][data-placement="inline-end"] {
     position-area: inline-end;
     align-self: anchor-center;
@@ -225,8 +246,10 @@
   margin: 0 0.25rem;
 }
 
-/* Without anchor positioning the panel is placed by script (see Dropdown.tsx),
-   which writes `left`/`top` directly. */
+/*
+ * Without anchor positioning, a script places the panel (see Dropdown.tsx). It
+ * writes `left`/`top` directly.
+ */
 @supports not (position-area: block-end) {
   .dropdown-panel[popover] {
     position: fixed;
@@ -235,12 +258,14 @@
   }
 }
 
-/* A menu's submenu (`NoteMenu`) opens in place of its rows: they slide in
-   from the side they came from, from the right going in and from the left
-   coming back, so the step reads as a move deeper and back out rather than
-   the panel's text changing under the pointer. Only a translation and a fade,
-   as above, and none on the menu as it first opens, which has the panel's own
-   entry. */
+/*
+ * The submenu of a menu (`NoteMenu`) opens in place of its rows. They slide in
+ * from the side from which they came: from the right on the way in, and from
+ * the left on the way back. Thus, the step looks like a move deeper and back
+ * out, and not like a change of the text of the panel under the pointer. Only a
+ * translation and a fade, as above. None on the menu when it first opens,
+ * because that has the own entry of the panel.
+ */
 .menu-level[data-enter="forward"] {
   animation: menu-level-forward 180ms cubic-bezier(0.32, 0.72, 0, 1);
 }
@@ -263,11 +288,13 @@
   }
 }
 
-/* Beside the menu instead (a pointer that can hover): the submenu comes out
-   of the panel's edge, on the side `MenuFlyout` chose, and laps 10px over
-   it, so the two read as one stack rather than two menus side by side. The
-   box it is placed in stops inside the panel's 1px border, hence 9px. Keep
-   `FLYOUT_OVERLAP` in NoteMenu.tsx the same. */
+/*
+ * Next to the menu in place of that (a pointer that can hover). The submenu
+ * comes out of the edge of the panel, on the side that `MenuFlyout` selected,
+ * and goes 10px over it. Thus, the two look like one stack, not two menus next
+ * to each other. The box in which it is placed stops inside the 1px border of
+ * the panel. Thus, 9px. Keep `FLYOUT_OVERLAP` in NoteMenu.tsx the same.
+ */
 .menu-flyout[data-side="right"] {
   left: calc(100% - 9px);
   animation: menu-flyout-right 140ms cubic-bezier(0.32, 0.72, 0, 1);
@@ -292,9 +319,11 @@
   }
 }
 
-/* The UA stylesheet gives a `[popover]` `overflow: auto`, which would cut a
-   flyout off at the edge of the `Dropdown` it stands out of. Only while one
-   is open, so a tall panel of anything else still scrolls. */
+/*
+ * The UA stylesheet gives a `[popover]` `overflow: auto`, which would cut a
+ * flyout off at the edge of the `Dropdown` out of which it comes. Only while
+ * one is open. Thus, a tall panel of any other content still scrolls.
+ */
 .dropdown-panel:has(.menu-flyout) {
   overflow: visible;
 }

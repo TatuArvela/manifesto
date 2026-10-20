@@ -1,6 +1,6 @@
 import type { Note } from "@manifesto/shared";
 
-// Saving one note as a file: Markdown for other tools, JSON for this one.
+// The save of one note as a file: Markdown for other tools, JSON for this one.
 
 function sanitizeFilename(name: string): string {
   const cleaned = name
@@ -13,7 +13,7 @@ function sanitizeFilename(name: string): string {
   return cleaned || "note";
 }
 
-/** Hands `content` to the browser as a file to save. */
+/** Gives `content` to the browser as a file to save. */
 export function downloadFile(content: string, filename: string, mime: string) {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);

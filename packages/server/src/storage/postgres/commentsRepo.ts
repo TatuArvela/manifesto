@@ -25,8 +25,8 @@ export function createPostgresCommentsRepo(pool: PgPool): CommentsRepo {
       return row ? rowToComment(row) : null;
     },
     async create(comment, limit) {
-      // The note's row is the lock: a second comment for the same note waits
-      // here, and counts only once the first is in.
+      // The row of the note is the lock. A second comment for the same note
+      // waits here, and counts only after the first is in.
       const client = await pool.connect();
       try {
         await client.query("BEGIN");

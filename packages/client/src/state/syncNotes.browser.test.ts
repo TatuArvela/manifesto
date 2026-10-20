@@ -9,9 +9,9 @@ import { storageConnection } from "#/storage/index.ts";
 import { loadNotes, notes, receiveNote, syncNotes } from "./notesStore.ts";
 
 /**
- * Catching up after a reconnect: what changed since the last read, and the
- * ids that say what was taken away. The server is faked at `fetch`, which is
- * where the store meets it.
+ * The catch-up after a reconnect: what changed since the last read, and the ids
+ * that tell what was removed. The fake server is at `fetch`, where the store
+ * meets it.
  */
 
 const SERVER = "https://notes.example.com";
@@ -90,7 +90,7 @@ describe("syncNotes", () => {
       "c",
       "edited",
     ]);
-    // A note the sync did not mention is left exactly as it was held.
+    // A note that the sync did not mention stays exactly as it was held.
     expect(notes.value.find((n) => n.id === "b")).toBe(unchanged);
 
     fetchMock.mockResolvedValueOnce(
@@ -108,7 +108,7 @@ describe("syncNotes", () => {
   });
 
   it("keeps a note that arrived while the sync was on its way", async () => {
-    // Created on the server after it read the ids, so they cannot name it.
+    // Created on the server after it read the ids. Thus, they cannot name it.
     await loaded([note("a")]);
     fetchMock.mockImplementationOnce(async () => {
       receiveNote(note("fresh"));

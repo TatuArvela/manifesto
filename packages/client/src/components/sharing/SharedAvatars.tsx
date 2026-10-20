@@ -5,7 +5,7 @@ import { formatList, t } from "#/i18n/index.ts";
 import { currentUser } from "#/state/account/auth.ts";
 import { shareDialog } from "#/state/sharing.ts";
 
-/** How many faces a card shows before the rest become a count. */
+/** How many faces a card shows before the others become a count. */
 const SHOWN = 3;
 
 interface Person {
@@ -14,10 +14,10 @@ interface Person {
 }
 
 /**
- * The other people on a shared note and a sentence naming them: whoever
- * shared it with you, or whoever you shared it with. People still deciding on
- * an invitation are only named to the owner, who is the only one told about
- * them. Null when there is nobody else to show.
+ * The other people on a shared note, and a sentence that names them: the person
+ * who shared it with you, or the persons with whom you shared it. The app names
+ * people who did not decide on an invitation yet only to the owner, who is the
+ * only person who learns about them. Null when there is nobody else to show.
  */
 function sharedPeople(note: Note): { others: Person[]; label: string } | null {
   const sharing = note.sharing;
@@ -55,7 +55,7 @@ function sharedPeople(note: Note): { others: Person[]; label: string } | null {
   return { others, label };
 }
 
-/** The faces themselves, faded for anyone who has not accepted yet. */
+/** The faces themselves, faded for each person who did not accept yet. */
 function AvatarStack({ others }: { others: Person[] }) {
   const shown = others.slice(0, SHOWN);
   return (
@@ -98,15 +98,16 @@ export function SharedAvatars({ note }: { note: Note }) {
 }
 
 /**
- * The same people in an open note, where there is room to name them. It opens
- * the share dialog, as the menu's "Share with people" or "People" row does.
+ * The same people in an open note, where there is space to name them. It opens
+ * the share dialog, as the "Share with people" or "People" row of the menu
+ * does.
  */
 export function SharedPeople({
   note,
   label,
 }: {
   note: Note;
-  /** Said instead of the names, where the view has more to say. */
+  /** Said in place of the names, where the view has more to say. */
   label?: string;
 }) {
   const people = sharedPeople(note);

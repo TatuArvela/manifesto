@@ -19,12 +19,12 @@ import { activeView, editingNoteId } from "#/state/ui.ts";
 import { NoteCard } from "./NoteCard.tsx";
 
 /**
- * Two things meet in this component: `editingNoteId` is the only thing that
- * decides whether the modal is up, and the modal is the layer Escape has to
- * find its way through. Both are tested here against the real editor, because
- * both used to fail on the way *out*: a card whose signal was cleared by
- * something else stayed on screen, and a press meant for the colour picker
- * closed the whole editor.
+ * Two things meet in this component. `editingNoteId` is the only thing that
+ * decides if the modal is open, and the modal is the layer through which Escape
+ * must find its way. These tests check both against the real editor, because
+ * both failed on the way *out*. A card whose signal a different part cleared
+ * stayed on the screen, and a press for the color picker closed the full
+ * editor.
  */
 
 const NOTE_ID = "01JQZK8V0000000000000CARD";
@@ -55,12 +55,14 @@ let host: HTMLDivElement;
 
 const show = (note: Note) => render(<NoteCard note={note} />, host);
 
-/** The editor's modal is portalled to the body, so look for it there. */
+/**
+ * The modal of the editor is portalled to the body. Thus, look for it there.
+ */
 const modalIsUp = () => document.querySelector(".milkdown-editor") !== null;
 
 /**
- * The card behind the modal carries its own colour and menu buttons with the
- * same labels, so every lookup is scoped to the editor that is on top of it.
+ * The card behind the modal has its own color and menu buttons with the same
+ * labels. Thus, each lookup is limited to the editor on top of it.
  */
 function editorRoot(): HTMLElement {
   const root = document.querySelector(".milkdown-editor")?.closest("article");
@@ -69,10 +71,10 @@ function editorRoot(): HTMLElement {
 }
 
 /**
- * A real key press, not a synthesised one: the browser dismisses a
- * `popover="auto"` as the *default action* of a trusted Escape, and a
- * dispatched event skips that entirely, which is exactly the half of this
- * behaviour that is not ours.
+ * A real key press, not a synthetic one. The browser dismisses a
+ * `popover="auto"` as the *default action* of a trusted Escape. A dispatched
+ * event skips that fully, and that is exactly the half of this behavior that is
+ * not ours.
  */
 const pressEscape = () => userEvent.keyboard("{Escape}");
 
@@ -94,13 +96,15 @@ function clickByText(text: string) {
 
 const MODAL_CLOSE_MS = 150;
 
-/** Waits past the close animation the card runs before it drops the modal. */
+/**
+ * Waits past the close animation that the card runs before it drops the modal.
+ */
 const settle = () =>
   new Promise((resolve) => setTimeout(resolve, MODAL_CLOSE_MS + 50));
 
-// The app fetches the editor as soon as the board is up (`MainApp`), well
-// before a note is usually opened. Fetched here the same way, or the first
-// test to open one also waits out the whole chunk loading.
+// The app gets the editor immediately after the board shows (`MainApp`),
+// usually long before a note opens. The test gets it here in the same way. If
+// not, the first test that opens a note also waits for the full chunk to load.
 beforeAll(() => loadEditor());
 
 beforeEach(() => {
@@ -117,9 +121,9 @@ afterEach(async () => {
   host.remove();
   notes.value = [];
   localStorage.clear();
-  // Milkdown's listener plugin serializes on a 200ms debounce and its
-  // serializers read the editor view out of the context as they run, so let it
-  // drain rather than firing against a destroyed editor.
+  // The listener plugin of Milkdown serializes after a 200ms debounce, and its
+  // serializers read the editor view out of the context while they run. Thus,
+  // let it complete, so that it does not fire against a destroyed editor.
   await new Promise((resolve) => setTimeout(resolve, 250));
   expect(escapeStackDepth()).toBe(0);
 });
@@ -141,9 +145,9 @@ async function openEditor(note: Note) {
 
 describe("NoteCard editing modal", () => {
   it("grows the editor out of the card, and keeps it growing", async () => {
-    // The effect that opens the modal runs again as the modal comes up, and
-    // once cancelled the grow it had just started: the editor appeared in
-    // place with no animation at all.
+    // The effect that opens the modal runs again when the modal opens. Before,
+    // that cancelled the grow that it just started: the editor showed in place
+    // with no animation.
     const previous = animations.value;
     animations.value = true;
     try {
@@ -170,9 +174,10 @@ describe("NoteCard editing modal", () => {
 
   it("takes the modal down when editing moves to another note", async () => {
     // A reminder banner, a notification, or a `note:updated` can point
-    // `editingNoteId` somewhere else without ever calling this card's close
-    // handler. The effect had no `else`, so this card's modal stayed up over a
-    // note nothing was editing, with a second modal opening behind it.
+    // `editingNoteId` to a different note without a call to the close handler
+    // of this card. The effect had no `else`. Thus, the modal of this card
+    // stayed open over a note that nothing edited, with a second modal that
+    // opened behind it.
     const note = makeNote(NOTE_ID, "Shopping");
     await openEditor(note);
 
@@ -185,8 +190,9 @@ describe("NoteCard editing modal", () => {
   });
 
   it("closes the modal when the note is archived from the editor", async () => {
-    // Archiving moves the note out of the view it was opened from, so leaving
-    // the editor up strands it over a grid the note is no longer in.
+    // Archive moves the note out of the view from which it opened. Thus, if the
+    // editor stayed open, it would be over a grid that does not contain the
+    // note now.
     const note = makeNote(NOTE_ID, "Shopping");
     await openEditor(note);
 
@@ -206,8 +212,9 @@ describe("NoteCard editing modal", () => {
   });
 
   it("gives Escape to the colour picker, not to the editor under it", async () => {
-    // The reported bug: both the picker's own dismissal and the editor's
-    // document listener fired on one press, so the note closed too.
+    // The reported bug: the own dismissal of the picker and the document
+    // listener of the editor both fired on one press. Thus, the note also
+    // closed.
     const note = makeNote(NOTE_ID, "Shopping");
     await openEditor(note);
 
@@ -227,8 +234,8 @@ describe("NoteCard editing modal", () => {
   });
 
   it("opens the note from the keyboard", async () => {
-    // Cards were mouse-only: no tab stop, and an Enter handler on an element
-    // nothing could focus.
+    // Before, cards were only for the mouse: no tab stop, and an Enter handler
+    // on an element that nothing could focus.
     const note = makeNote(NOTE_ID, "Shopping");
     storeNote(note);
     show(note);
@@ -247,8 +254,8 @@ describe("NoteCard editing modal", () => {
   });
 
   it("is an article around its controls, not a button hiding them", () => {
-    // A button's children are presentational, so a card that was one hid
-    // its pin, colour and menu buttons from a screen reader.
+    // The children of a button are presentational. Thus, a card that was a
+    // button hid its pin, color and menu buttons from a screen reader.
     const note = makeNote(NOTE_ID, "Shopping");
     storeNote(note);
     show(note);
@@ -293,15 +300,15 @@ describe("NoteCard editing modal", () => {
 
     const dialog = document.querySelector('[role="dialog"]');
     expect(dialog).toBeTruthy();
-    // Click the title field first: a real key press goes to the page, which
-    // test files share, so this is what makes the presses below land in this
-    // document rather than another file's frame. The title is chosen because
-    // clicking it does nothing but focus it.
+    // Click the title field first. A real key press goes to the page, which the
+    // test files share. Thus, this makes the presses below go to this document,
+    // not to the frame of a different file. The test uses the title because a
+    // click on it only focuses it.
     await userEvent.click(
       dialog?.querySelector('input[type="text"]') as HTMLElement,
     );
-    // Tab from anywhere in the dialog must never walk out into the grid, where
-    // the cards are focusable and still open notes.
+    // A Tab from anywhere in the dialog must never go out into the grid, where
+    // the cards can get focus and still open notes.
     for (let i = 0; i < 40; i++) await userEvent.keyboard("{Tab}");
     expect(dialog?.contains(document.activeElement)).toBe(true);
 
@@ -349,7 +356,7 @@ describe("the card's bell", () => {
 describe("a card's popovers from the keyboard", () => {
   it("takes focus to the current colour and gives it back on Escape", async () => {
     // The panel is portalled to the end of the page, and nothing moved focus
-    // into it: Tab from its button went on to the next card.
+    // into it. Tab from its button went to the next card.
     const note = makeNote(NOTE_ID, "Card");
     storeNote(note);
     show(note);

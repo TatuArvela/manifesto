@@ -1,6 +1,6 @@
 /**
- * A user's initial on their avatar colour. Decorative: whatever it sits in
- * carries the name as text or as a label.
+ * The initial of a user on their avatar color. Decorative: the element that
+ * contains it gives the name as text or as a label.
  */
 export function Avatar({
   name,
@@ -9,7 +9,7 @@ export function Avatar({
 }: {
   name: string;
   color: string;
-  /** Size and type scale, e.g. `w-7 h-7 text-xs`. */
+  /** The size and the type scale, for example `w-7 h-7 text-xs`. */
   class?: string;
 }) {
   return (

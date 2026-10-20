@@ -1,12 +1,12 @@
 /**
  * YAML frontmatter as Markdown note apps write it (Obsidian, SilverBullet,
- * Nextcloud Notes, Jekyll-style exports). Only the flat subset those apps use
- * is read: `key: value`, `key: [a, b]` and a `key:` followed by `- item`
- * lines. Anything richer is not frontmatter this importer understands, and
- * the block is then left in the body rather than half-read.
+ * Nextcloud Notes, Jekyll-style exports). Only the flat subset that those apps
+ * use is read: `key: value`, `key: [a, b]` and a `key:` followed by `- item`
+ * lines. More complex content is not frontmatter that this importer
+ * understands. Then the block stays in the body, and is not read halfway.
  *
- * A note that merely opens with a horizontal rule must survive untouched, so
- * the block only counts when every line between the fences has that shape.
+ * A note that only starts with a horizontal rule must stay unchanged. Thus, the
+ * block counts only when each line between the fences has that shape.
  */
 
 export type FrontmatterValue = string | string[];
@@ -20,10 +20,10 @@ const KEY_LINE = /^([A-Za-z_][\w-]*):(?:\s+(.*))?$/;
 const ITEM_LINE = /^\s+-\s+(.*)$/;
 
 /**
- * A YAML scalar's quotes, undone as YAML reads them: a double-quoted string
- * takes backslash escapes (our own export writes it with `JSON.stringify`),
- * and a single-quoted one doubles its quote. An escape JSON cannot read is
- * kept as written rather than refused.
+ * The quotes of a YAML scalar, undone as YAML reads them. A double-quoted
+ * string takes backslash escapes (our own export writes it with
+ * `JSON.stringify`), and a single-quoted string doubles its quote. An escape
+ * that JSON cannot read is kept as written, not refused.
  */
 function unquote(value: string): string {
   const v = value.trim();
@@ -33,7 +33,8 @@ function unquote(value: string): string {
       const parsed: unknown = JSON.parse(v);
       if (typeof parsed === "string") return parsed;
     } catch {
-      // Not JSON-shaped (a YAML-only escape): fall back to the bare text.
+      // Not in the shape of JSON (an escape that only YAML has): use the bare
+      // text.
     }
     return v.slice(1, -1);
   }

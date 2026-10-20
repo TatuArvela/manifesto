@@ -2,17 +2,17 @@ import { base64urlToBytes, bytesToBase64url, wipe } from "./bytes.ts";
 import { associatedData, sealBytes, sealingKey, unsealBytes } from "./seal.ts";
 
 /**
- * A note's images, sealed (`docs/specification/features/encryption.md`,
- * "Images"). An image is encrypted before it is uploaded and the server
- * stores bytes it cannot read. Its key comes from the uploader's account key
- * and the image's own bytes, and it is found by an HMAC of the bytes, so the
- * same image attached twice by one account is one stored thing whose address
- * says nothing to anyone without the key. The key then travels in the note:
- * the sealed list of images holds each one's id, key and type, which is how
- * everyone on a shared note opens them.
+ * The images of a note, sealed (`docs/specification/features/encryption.md`,
+ * "Images"). An image is encrypted before the upload, and the server stores
+ * bytes that it cannot read. Its key comes from the account key of the uploader
+ * and the bytes of the image. The server finds it by an HMAC of the bytes.
+ * Thus, if one account attaches the same image two times, it is one stored
+ * item, and its address tells nothing to a person without the key. The key then
+ * goes in the note. The sealed list of images contains the id, key and type of
+ * each image. Thus, all persons on a shared note can open them.
  */
 
-/** The image types a note may hold. */
+/** The image types that a note can contain. */
 export const IMAGE_MEDIA_TYPES = [
   "image/png",
   "image/jpeg",
@@ -26,21 +26,23 @@ export type ImageMediaType = (typeof IMAGE_MEDIA_TYPES)[number];
 /** How much longer a sealed image is than the image: a nonce and a tag. */
 export const SEALED_IMAGE_OVERHEAD = 28;
 
-/** A sealed image's address as text: 32 bytes of HMAC as base64url. */
+/** The address of a sealed image as text: 32 bytes of HMAC as base64url. */
 export const IMAGE_ADDRESS_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
-/** What opens one image: its key as base64url, and what kind of image the
- * uploader said it is. Both ride in the note, sealed. */
+/**
+ * What opens one image: its key as base64url, and the image type that the
+ * uploader gave. Both go in the note, sealed.
+ */
 export interface ImageKey {
   key: string;
   type: ImageMediaType;
 }
 
-/** An account's two keys for images, derived from its account key. */
+/** The two image keys of an account, derived from its account key. */
 export interface ImageKeySource {
-  /** Makes an image's key from its bytes. */
+  /** Makes the key of an image from its bytes. */
   derive: CryptoKey;
-  /** Makes the address an image is stored and found under. */
+  /** Makes the address under which the server stores and finds an image. */
   address: CryptoKey;
 }
 
@@ -50,7 +52,7 @@ export function isImageMediaType(value: unknown): value is ImageMediaType {
   return typeof value === "string" && types.has(value);
 }
 
-/** Whether `value` is an image's key and type as a note may hold them. */
+/** If `value` is the key and type of an image, as a note can contain them. */
 export function isImageKey(value: unknown): value is ImageKey {
   if (typeof value !== "object" || value === null) return false;
   const { key, type } = value as Partial<ImageKey>;
@@ -62,10 +64,10 @@ export function isImageKey(value: unknown): value is ImageKey {
 }
 
 /**
- * The image type a file's leading bytes say it is, or null. The server no
- * longer reads an image, so this is checked by the client that opens one,
- * against the type the note names: a file cannot arrive as an image and be
- * something else.
+ * The image type that the first bytes of a file show, or null. The server does
+ * not read images now. Thus, the client that opens an image checks this against
+ * the type that the note names. A file cannot arrive as an image and be
+ * something different.
  */
 export function sniffImageType(bytes: Uint8Array): ImageMediaType | null {
   const at = (offset: number, ...values: number[]) =>
@@ -81,9 +83,9 @@ export function sniffImageType(bytes: Uint8Array): ImageMediaType | null {
 }
 
 /**
- * Whether an ISO BMFF `ftyp` box names AVIF, as its major brand or among the
- * compatible ones: an encoder may lead with the generic `mif1` or `miaf` and
- * list `avif` after it. The box's own size bounds the scan.
+ * If an ISO BMFF `ftyp` box names AVIF, as its major brand or among the
+ * compatible brands. An encoder can start with the generic `mif1` or `miaf`,
+ * and list `avif` after it. The size of the box limits the scan.
  */
 function isAvifBrand(
   bytes: Uint8Array,
@@ -98,7 +100,7 @@ function isAvifBrand(
   const isAvif = (offset: number) =>
     ascii(offset, "avif") || ascii(offset, "avis");
   if (isAvif(8)) return true;
-  // Offset 12 is the minor version; the compatible brands follow it.
+  // Offset 12 is the minor version. The compatible brands follow it.
   for (let offset = 16; offset + 4 <= end; offset += 4) {
     if (isAvif(offset)) return true;
   }
@@ -112,23 +114,25 @@ async function hmac(
   return new Uint8Array(await crypto.subtle.sign("HMAC", key, bytes));
 }
 
-/** Every image is sealed bound to the same words: its key is its own, made
- * from its bytes, so there is no other value it could be moved onto. */
+/**
+ * Each image is sealed and bound to the same words. Its key is its own, made
+ * from its bytes. Thus, there is no other value onto which it could be moved.
+ */
 const IMAGE_DATA = associatedData({ id: "", field: "image", version: 1 });
 
-/** An image ready to upload. */
+/** An image ready for upload. */
 export interface SealedImage {
   /** What the server stores. */
   bytes: Uint8Array<ArrayBuffer>;
   /** What the server finds it by, for this account. */
   address: string;
-  /** What the note keeps to open it with. */
+  /** What the note keeps to open it. */
   key: ImageKey;
 }
 
 /**
- * Seals an image for upload. Null when the bytes are not one of the image
- * types a note may hold, whatever they were handed over as.
+ * Seals an image for upload. Null when the bytes are not one of the image types
+ * that a note can contain, whatever their stated type.
  */
 export async function sealImage(
   source: ImageKeySource,
@@ -149,10 +153,10 @@ export async function sealImage(
 }
 
 /**
- * Seals an image under a new random key, for whoever cannot make one from
- * the account key: the server, sealing what a token uploads. The image is
- * then stored once for each upload, since nothing ties its key to its bytes.
- * Null when the bytes are not an image a note may hold.
+ * Seals an image under a new random key, for a caller that cannot make one from
+ * the account key: the server, when it seals the upload of a token. The server
+ * then stores the image one time for each upload, because nothing ties its key
+ * to its bytes. Null when the bytes are not an image that a note can contain.
  */
 export async function sealImageAtRandom(
   image: Uint8Array<ArrayBuffer>,
@@ -172,9 +176,9 @@ export async function sealImageAtRandom(
 }
 
 /**
- * Opens a sealed image with the key its note holds. Null when it does not
- * open, or when what comes out is not the kind of image the note said: the
- * type was written by whoever attached it, and nothing checked it since.
+ * Opens a sealed image with the key that its note has. Null when it does not
+ * open, or when the result is not the image type that the note gave. The person
+ * who attached it wrote the type, and nothing checked it after that.
  */
 export async function openImage(
   key: ImageKey,

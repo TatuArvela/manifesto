@@ -12,7 +12,7 @@ describe("DELETE /api/v1/auth/me", () => {
   let admin: { token: string; userId: string };
   let bob: { token: string; userId: string };
 
-  /** Audit writes are fire-and-forget; one turn lets them land. */
+  /** Audit writes do not wait. One turn lets them complete. */
   const settle = () => new Promise((r) => setTimeout(r, 20));
 
   beforeEach(async () => {

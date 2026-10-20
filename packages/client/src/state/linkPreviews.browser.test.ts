@@ -24,8 +24,10 @@ function tinyPng(): string {
   return canvas.toDataURL("image/png");
 }
 
-/** What a connected-mode server answers, seen through the adapter. Open mode
- * is the same adapter with this left alone. */
+/**
+ * What a connected-mode server answers, seen through the adapter. Open mode is
+ * the same adapter without this.
+ */
 function serverAnswers(
   answer: (url: string) => LinkPreview | null | Promise<LinkPreview | null>,
 ) {
@@ -93,7 +95,7 @@ describe("addLinkPreviews", () => {
     const [preview] = defined(notes.value[0]).linkPreviews;
     expect(preview?.title).toBe("Title of https://a.test/1");
     expect(preview?.description).toBe("About it");
-    // Stored like an attachment, so a note carries only a reference.
+    // Stored as an attachment is. Thus, a note carries only a reference.
     expect(isStoredImageRef(preview?.image ?? "")).toBe(true);
     expect(isStoredImageRef(preview?.favicon ?? "")).toBe(true);
     const adapter = new LocalStorageAdapter();
@@ -122,7 +124,8 @@ describe("addLinkPreviews", () => {
       makeStubPreview("https://none.test"),
       makeStubPreview("https://broken.test"),
     ]);
-    // A preview that could not be had is not an error the user needs to see.
+    // A preview that the code could not get is not an error that the user needs
+    // to see.
     expect(toasts.value).toEqual([]);
   });
 

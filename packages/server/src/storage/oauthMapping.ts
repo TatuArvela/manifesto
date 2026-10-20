@@ -30,8 +30,10 @@ export const OAUTH_CLIENT_COLUMNS =
 export const OAUTH_CODE_COLUMNS =
   "code_hash, client_id, client_name, user_id, redirect_uri, code_challenge, scopes, grant_expires_at, expires_at, wrapped_keys";
 
-/** The addresses a row names; an unreadable list names none, so nothing can
- * be redirected to through it. */
+/**
+ * The addresses that a row names. An unreadable list names none. Thus, nothing
+ * can redirect through it.
+ */
 function parseUris(text: string): string[] {
   let parsed: unknown;
   try {

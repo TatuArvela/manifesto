@@ -34,7 +34,7 @@ const KIND_LABELS: Record<ApiTokenKind, MessageKey> = {
   calendar: "tokens.kindCalendar",
 };
 
-/** Choices for how long a new token lasts; null does not expire. */
+/** The choices for the life of a new token. Null does not expire. */
 const EXPIRY_DAYS = [30, 90, 365, null] as const;
 
 const SCOPE_LABELS = {
@@ -45,21 +45,21 @@ const SCOPE_LABELS = {
   "account:write": "tokens.scopeAccountWrite",
 } as const satisfies Record<ApiTokenScope, MessageKey>;
 
-/** Everything a script's token can be given, or only what reads. */
+/** All that the token of a script can get, or only what reads. */
 const READ_ONLY: readonly ApiTokenScope[] = ["notes:read", "account:read"];
 type Access = "full" | "read" | "custom";
 
 const sameScopes = (a: readonly ApiTokenScope[], b: readonly ApiTokenScope[]) =>
   a.length === b.length && a.every((scope) => b.includes(scope));
 
-/** What a new token may reach, from the form's choices. */
+/** What a new token can reach, from the choices of the form. */
 function scopesFor(
   kind: ApiTokenKind,
   readOnly: boolean,
   access: Access,
   custom: readonly ApiTokenScope[],
 ): readonly ApiTokenScope[] {
-  // A calendar token reaches its feed and no scope; the server keeps none.
+  // A calendar token reaches its feed and no scope. The server keeps none.
   if (kind === "calendar") return ["notes:read"];
   if (kind === "mcp")
     return readOnly ? ["notes:read"] : ["notes:read", "notes:write"];
@@ -72,7 +72,7 @@ const copy = async (text: string) => {
     await navigator.clipboard.writeText(text);
     showSuccess(t("tokens.copied"));
   } catch {
-    // The field is selectable; copying by hand still works.
+    // You can select the field. A manual copy still works.
   }
 };
 
@@ -80,7 +80,7 @@ const mcpUrl = () => `${SERVER_ORIGIN ?? ""}/api/v1/mcp`;
 const calendarUrl = (token: string) =>
   `${SERVER_ORIGIN ?? ""}/api/v1/calendar/${token}.ics`;
 
-/** How the list names what a token may reach. */
+/** How the list names what a token can reach. */
 function accessLabel(token: ApiToken): string {
   if (token.kind === "calendar") return t("tokens.calendarBadge");
   if (token.kind === "mcp") {
@@ -96,22 +96,22 @@ function accessLabel(token: ApiToken): string {
 }
 
 /**
- * Personal API tokens: long-lived keys for scripts, shortcuts and bots, so
- * they need no password. A new token's secret is shown once, here, and never
- * again; the list names each by its first characters and when it was last
- * used, so a forgotten one can be found and revoked.
+ * Personal API tokens: long-lived keys for scripts, shortcuts and bots. Thus,
+ * they need no password. The secret of a new token shows one time, here, and
+ * never again. The list names each token by its first characters and its last
+ * use. Thus, you can find and revoke a forgotten token.
  *
- * A token for an AI assistant is another kind (`mfm_`): it works only at the
- * server's MCP endpoint, so the tab hands over the command that connects an
- * assistant along with the secret.
+ * A token for an AI assistant is a different type (`mfm_`). It works only at
+ * the MCP endpoint of the server. Thus, the tab gives the command that connects
+ * an assistant, together with the secret.
  */
 export function ApiTokensSettings() {
   const [tokens, setTokens] = useState<ApiToken[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [name, setName] = useState("");
   const [expiry, setExpiry] = useState<number | null>(90);
-  // Only the kinds the server's features allow; the page itself stays for
-  // the tokens already made, which can always be revoked.
+  // Only the types that the features of the server permit. The page itself
+  // stays for the existing tokens, which you can always revoke.
   const kinds = offeredTokenKinds();
   const [kind, setKind] = useState<ApiTokenKind>(kinds[0] ?? "api");
   const [readOnly, setReadOnly] = useState(false);
@@ -123,7 +123,7 @@ export function ApiTokensSettings() {
   const [password, setPassword] = useState("");
   const [refusal, setRefusal] = useState<ConfirmationRefusal | null>(null);
   const [busy, setBusy] = useState(false);
-  // The form opens on a press, so the page leads with the tokens there are.
+  // The form opens on a press. Thus, the page starts with the existing tokens.
   const [adding, setAdding] = useState(false);
 
   const reload = useCallback(async () => {
@@ -390,7 +390,10 @@ export function ApiTokensSettings() {
   );
 }
 
-/** A value to copy, selected whole when focused, with a button to copy it. */
+/**
+ * A value to copy. It is fully selected when it has focus, with a button to
+ * copy it.
+ */
 function CopyField({
   value,
   label,
@@ -400,7 +403,7 @@ function CopyField({
   value: string;
   label: string;
   copyLabel: string;
-  /** Lines to show, for a value long enough to wrap. */
+  /** The number of lines to show, for a value that is long enough to wrap. */
   rows?: number;
 }) {
   const select = (e: Event) =>
@@ -439,9 +442,9 @@ function CopyField({
 }
 
 /**
- * The secret of the token just made, shown this once, and what to do with
- * it: the calendar's address for a calendar token, the command that connects
- * an assistant for an MCP one.
+ * The secret of the token just made, shown this one time, and what to do with
+ * it: the address of the calendar for a calendar token, the command that
+ * connects an assistant for an MCP token.
  */
 function NewToken({ secret, kind }: { secret: string; kind: ApiTokenKind }) {
   const command = `claude mcp add --transport http ${APP_FILE_SLUG} ${mcpUrl()} --header "Authorization: Bearer ${secret}"`;
@@ -487,7 +490,7 @@ function NewToken({ secret, kind }: { secret: string; kind: ApiTokenKind }) {
   );
 }
 
-/** The account's tokens, each with when it was last used and its revoke. */
+/** The tokens of the account, each with its last use and its revoke. */
 function TokenList({
   tokens,
   failed,

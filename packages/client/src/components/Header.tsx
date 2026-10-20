@@ -22,19 +22,19 @@ import {
 import { Tooltip } from "./Tooltip.tsx";
 
 /**
- * The header's icon buttons, in the same grey as the navigation beside them:
- * the sidebar on desktop, the icon bar under the header on phones. They used
- * to inherit the page's text colour, which made them the darkest thing on the
- * screen next to lighter icons doing the same job.
+ * The icon buttons of the header, in the same grey as the navigation next to
+ * them: the sidebar on desktop, the icon bar under the header on phones.
+ * Before, they used the text color of the page. That made them the darkest
+ * items on the screen, next to lighter icons that do the same job.
  */
 const headerIconBtnClass =
   "p-2 rounded-lg text-neutral-600 md:text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800";
 
 /**
- * The header, with the selection bar laid over it while notes are selected.
- * Over it rather than instead of it, so the bar can fade out onto the header
- * underneath when select mode ends; swapping one for the other in a frame made
- * leaving select mode the one abrupt change on the board.
+ * The header, with the selection bar over it while notes are selected. Over it,
+ * not in its place. Thus, the bar can fade out onto the header under it when
+ * select mode ends. When one replaced the other in one frame, the end of select
+ * mode was the only sudden change on the board.
  */
 export function Header() {
   const selecting = selectMode.value;
@@ -57,8 +57,8 @@ export function Header() {
 }
 
 function MainHeader({ covered }: { covered: boolean }) {
-  // An admin hears about a new release on the gear, since it is the settings'
-  // About page that links to it.
+  // An admin learns about a new release on the gear, because the About page of
+  // the settings links to it.
   const updateAvailable =
     currentUser.value?.isAdmin === true && availableUpdate.value !== null;
 
@@ -88,8 +88,8 @@ function MainHeader({ covered }: { covered: boolean }) {
   return (
     <header
       class="relative shadow-md flex items-center border-b border-neutral-200 dark:border-neutral-700 px-2 sm:px-4 min-h-14 pt-[env(safe-area-inset-top)] shrink-0 bg-white dark:bg-neutral-900"
-      // Out of reach under the selection bar: its controls would otherwise
-      // still take Tab presses and clicks through the gaps between buttons.
+      // Out of reach under the selection bar. If not, its controls would still
+      // take Tab presses and clicks through the gaps between buttons.
       inert={covered}
     >
       {/* Left: logo + title. Logo shows only on the active (main) view,
@@ -102,8 +102,8 @@ function MainHeader({ covered }: { covered: boolean }) {
         {activeView.value === "active" && HEADER_BRAND.logo && (
           <BrandLogo
             logo={HEADER_BRAND.logo}
-            // The app's mark is square; an instance's logo may be a wordmark,
-            // so it keeps its own shape up to a limit.
+            // The mark of the app is square. The logo of an instance can be a
+            // wordmark. Thus, it keeps its own shape, up to a limit.
             class={`h-6 shrink-0 ${HEADER_BRAND.isInstance ? "w-auto max-w-24 object-contain" : "w-6"}`}
           />
         )}

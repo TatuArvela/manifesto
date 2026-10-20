@@ -187,7 +187,7 @@ describe("teams as share targets", () => {
     await shareWithTeam(note.id, team, "edit");
     expect((await invitationsOf(bob))[0]?.role).toBe("view");
 
-    // Alice had it through the team, and is then given it directly.
+    // Alice had it through the team, and then gets it directly.
     const direct = await call(
       owner,
       "POST",
@@ -262,7 +262,7 @@ describe("teams as share targets", () => {
       name: "Studio",
       memberIds: [bob.userId],
     });
-    // Nothing changes, so nothing is recorded.
+    // Nothing changes. Thus, nothing is recorded.
     await call(admin, "PUT", `/api/v1/admin/teams/${team}`, {
       name: "Studio",
       memberIds: [bob.userId],
@@ -321,13 +321,15 @@ describe("teams as share targets", () => {
     expect(await canRead(alice, note.id)).toBe(false);
   });
 
-  // Removing a team is several steps, and each of these lands between two.
+  // The removal of a team has several steps, and each of these occurs between
+  // two of them.
   describe("while a team is being removed", () => {
     it("takes back a share that reached a member after its notes were gone through", async () => {
       const team = await makeTeam("Design", [owner, alice]);
       const note = await createNote();
-      // As a share to the team leaves it when it lands after the removal has
-      // listed the team's notes: the member's row, with nothing behind it.
+      // As a share to the team leaves it when it occurs after the removal
+      // listed the notes of the team: the row of the member, with nothing
+      // behind it.
       await rig.storage.shares.create({
         noteId: note.id,
         userId: alice.userId,
@@ -350,8 +352,8 @@ describe("teams as share targets", () => {
       const accessChanges = createAccessChanges();
       const { storage } = rig;
       let removed = false;
-      // The team is removed, as the admin route removes it, the moment the
-      // first member has been invited.
+      // The team is removed, as the admin route removes it, at the moment when
+      // the first member got an invitation.
       const racing: StorageDriver = {
         ...storage,
         shares: {
@@ -425,7 +427,7 @@ describe("teams as share targets", () => {
       await shareWithTeam(note.id, eng?.id as string);
       expect((await invitationsOf(alice))[0]?.noteId).toBe(note.id);
 
-      // Out of the group at the provider: out of the team, and the note.
+      // Out of the group at the provider: out of the team, and out of the note.
       await syncOidcTeams(rig.storage, teamShares, alice.userId, ["ops"]);
       expect(await invitationsOf(alice)).toEqual([]);
       expect(

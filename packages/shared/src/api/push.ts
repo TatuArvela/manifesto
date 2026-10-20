@@ -1,15 +1,15 @@
-/** How many browsers one account can have subscribed for push at once. */
+/** The maximum number of browsers that one account can subscribe for push. */
 export const MAX_PUSH_SUBSCRIPTIONS_PER_USER = 10;
 
-/** `GET /api/v1/push/key`: the key a browser subscribes with. */
+/** `GET /api/v1/push/key`: the key with which a browser subscribes. */
 export interface PushKeyResponse {
-  /** The server's push public key, base64url: `applicationServerKey`. */
+  /** The push public key of the server, base64url: `applicationServerKey`. */
   publicKey: string;
 }
 
 /**
- * `POST /api/v1/push/subscriptions`: a browser's subscription, as
- * `PushSubscription.toJSON()` gives it. `DELETE` takes the `endpoint` alone.
+ * `POST /api/v1/push/subscriptions`: the subscription of a browser, as
+ * `PushSubscription.toJSON()` gives it. `DELETE` takes only the `endpoint`.
  */
 export interface PushSubscribeRequest {
   endpoint: string;
@@ -22,11 +22,11 @@ export interface PushUnsubscribeRequest {
 }
 
 /**
- * What a push carries, encrypted to the browser: a reminder that came due
- * with no open client to fire it. The service worker shows it, and moves its
- * own copy of the reminder to `next` so it does not fire it a second time.
+ * What a push contains, encrypted to the browser: a reminder that became due
+ * when no open client fired it. The service worker shows it, and moves its own
+ * copy of the reminder to `next`. Thus, it does not fire it a second time.
  */
-/** The sealed half of a reminder push; see `ReminderPush`. */
+/** The sealed half of a reminder push. See `ReminderPush`. */
 export interface SealedReminder {
   keyVersion: number;
   key: string;
@@ -37,18 +37,22 @@ export interface SealedReminder {
 export interface ReminderPush {
   type: "reminder";
   noteId: string;
-  /** What to show when the device has no key to open `sealed` with: the
-   * app's words for a reminder, and nothing of the note. */
+  /**
+   * What to show when the device has no key to open `sealed`: the words of the
+   * app for a reminder, and no data of the note.
+   */
   title: string;
   body: string;
   /**
-   * What the reminder is about, which only a device holding the account's
-   * keys can read: the note's sealed title and excerpt, and the note key as
-   * its reader keeps it, wrapped under their notes key. Absent when the
-   * reader's copy of the key is behind the note's.
+   * What the reminder is about. Only a device that has the keys of the account
+   * can read it: the sealed title and excerpt of the note, and the note key as
+   * its reader keeps it, wrapped under their notes key. Absent when the copy of
+   * the key of the reader is behind that of the note.
    */
   sealed?: SealedReminder;
-  /** Where the reminder goes from here; null for one that does not repeat. */
+  /**
+   * The next time of the reminder. Null for a reminder that does not repeat.
+   */
   next: { time: string; day?: number } | null;
   firedAt: string;
 }

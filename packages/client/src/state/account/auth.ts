@@ -29,10 +29,12 @@ export interface CurrentUser {
   avatarColor: string;
   email: string | null;
   isAdmin: boolean;
-  /** Signs in with a password here; absent when the server did not say. */
+  /** Signs in with a password here. Absent when the server did not tell. */
   hasPassword?: boolean;
-  /** The language the server holds for this account, for mail sent to it;
-   * absent from a server that does not keep one. */
+  /**
+   * The language that the server keeps for this account, for the mail that it
+   * sends to it. Absent from a server that does not keep one.
+   */
   locale?: string | null;
 }
 
@@ -49,35 +51,40 @@ const rawServer =
     : undefined;
 
 /**
- * The server, from the `manifesto-server` meta tag or the build-time value.
- * See {@link resolveServerUrl} for why a bundle gets a say at all.
+ * The server, from the `manifesto-server` meta tag or the build-time value. See
+ * {@link resolveServerUrl} for why a bundle can set it.
  *
- * This is a `fetch` base and may be relative, including the empty string that
- * `/` resolves to. So every guard here tests `=== null` and never falsiness:
- * the empty string is a server on this page's own origin, and treating it as
- * "no server" sends a single-origin deployment's every request down the
- * open-mode branch.
+ * This is a `fetch` base, and can be relative, also the empty string to which
+ * `/` resolves. Thus, each guard here tests `=== null`, and never falsiness.
+ * The empty string is a server on the own origin of this page. If the code
+ * treated it as "no server", each request of a single-origin deployment would
+ * go down the open-mode branch.
  */
 export const SERVER_URL: string | null = resolveServerUrl(
   typeof rawServer === "string" ? rawServer : undefined,
 );
 
-/** The same server spelled absolutely, for the callers that cannot use a
- * relative base. See {@link resolveServerOrigin}. */
+/**
+ * The same server as an absolute address, for the callers that cannot use a
+ * relative base. See {@link resolveServerOrigin}.
+ */
 export const SERVER_ORIGIN: string | null = resolveServerOrigin(SERVER_URL);
 
-/** The `ws(s)://` origin both sockets dial, or null when there is none. */
+/**
+ * The `ws(s)://` origin to which both sockets connect, or null when there is
+ * none.
+ */
 export const WS_ORIGIN: string | null =
   SERVER_ORIGIN === null ? null : SERVER_ORIGIN.replace(/^http/, "ws");
 
 export const isServerMode = SERVER_URL !== null;
 
 /**
- * The user out of a persisted or cross-tab payload, or null. `isAdmin` and
- * `email` may be missing: a session saved before they existed is still a good
- * session, and signing everyone out on upgrade to learn what `/me` will supply
- * would be a poor trade. Missing reads as not an admin, with no address, until
- * then.
+ * The user from a persisted or cross-tab payload, or null. `isAdmin` and
+ * `email` can be missing. A session saved before they existed is still a good
+ * session. A sign-out of all persons on upgrade, only to learn what `/me` will
+ * give, would cost too much. Until then, a missing value reads as not an admin,
+ * with no address.
  */
 function toCurrentUser(value: unknown): CurrentUser | null {
   if (!value || typeof value !== "object") return null;
@@ -115,7 +122,7 @@ function loadPersisted(): PersistedAuth | null {
       return { token: parsed.token, user };
     }
   } catch {
-    // ignore corrupt payloads
+    // Ignore corrupt payloads.
   }
   return null;
 }
@@ -144,10 +151,10 @@ effect(() => {
   }, 50);
 });
 
-// Cross-tab sync: when another tab logs in, logs out, or has its session
-// invalidated, mirror that change here so the user sees a consistent view
-// across tabs. Without this, Tab B keeps issuing requests with a revoked
-// token until the next 401 round-trip.
+// Cross-tab sync. When a different tab logs in, logs out, or its session
+// becomes invalid, make the same change here. Thus, the user sees the same view
+// across tabs. Without this, Tab B continues to send requests with a revoked
+// token until the next 401 round trip.
 if (typeof window !== "undefined") {
   window.addEventListener("storage", (event) => {
     if (event.key !== STORAGE_KEY) return;
@@ -164,15 +171,15 @@ if (typeof window !== "undefined") {
         currentUser.value = user;
       }
     } catch {
-      // ignore corrupt payloads from other tabs
+      // Ignore corrupt payloads from other tabs.
     }
   });
 }
 
 /**
- * A sign-in or registration the server refused. It carries the status, not
- * just the server's `error`, because that text is English and written for a
- * log: the login screen says what went wrong in the catalogue's words.
+ * A sign-in or registration that the server refused. It carries the status, not
+ * only the `error` of the server, because that text is English and written for
+ * a log. The login screen tells what went wrong in the words of the catalogue.
  */
 export class AuthRequestError extends Error {
   constructor(
@@ -186,9 +193,9 @@ export class AuthRequestError extends Error {
 }
 
 /**
- * The password was right but is a temporary one, and signing in has to set a
- * new one. Thrown rather than returned so `LoginScreen`'s single catch can
- * tell it apart from a failure.
+ * The password was correct, but it is a temporary password, and the sign-in
+ * must set a new one. Thrown, not returned. Thus, the single catch of
+ * `LoginScreen` can tell it from a failure.
  */
 export class PasswordChangeRequiredError extends AuthRequestError {
   constructor(message: string) {
@@ -198,11 +205,11 @@ export class PasswordChangeRequiredError extends AuthRequestError {
 }
 
 /**
- * The password was right and the account has two-factor sign-in on: the same
- * request has to be sent again with a code, or with a passkey's answer to
- * `passkey`, the challenge this sign-in was given (null when the account has
- * no passkey for this address). A server from before passkeys says neither,
- * and has only codes.
+ * The password was correct, and the account has two-factor sign-in on. The same
+ * request must go again with a code, or with the answer of a passkey to
+ * `passkey`, the challenge that this sign-in got (null when the account has no
+ * passkey for this address). A server from before passkeys tells neither, and
+ * has only codes.
  */
 export class TwoFactorRequiredError extends AuthRequestError {
   constructor(
@@ -215,7 +222,7 @@ export class TwoFactorRequiredError extends AuthRequestError {
   }
 }
 
-/** Throws for a refused auth request, keeping its status. */
+/** Throws for a refused auth request, and keeps its status. */
 async function throwForResponse(res: Response): Promise<never> {
   let message = `Request failed (${res.status})`;
   let code: ErrorResponse["code"];
@@ -226,7 +233,7 @@ async function throwForResponse(res: Response): Promise<never> {
     code = data.code;
     twoFactor = data.twoFactor;
   } catch {
-    // non-JSON body, leave default
+    // A body that is not JSON. Keep the default.
   }
   if (code === "password_change_required") {
     throw new PasswordChangeRequiredError(message);
@@ -242,16 +249,16 @@ async function throwForResponse(res: Response): Promise<never> {
 }
 
 /**
- * What the login screen should say about a failed sign-in, registration or
- * first password change, by status. The server's own text never reaches the
- * screen, so every message comes from the catalogue.
+ * What the login screen must say about a failed sign-in, registration or first
+ * password change, by status. The own text of the server never reaches the
+ * screen. Thus, each message comes from the catalogue.
  */
 export function loginErrorKey(
   err: unknown,
   mode: "signIn" | "register" | "changePassword" | "twoFactor",
 ): MessageKey {
   if (!(err instanceof AuthRequestError)) {
-    // `fetch` rejects with a TypeError when the server cannot be reached.
+    // `fetch` rejects with a TypeError when it cannot reach the server.
     return err instanceof TypeError
       ? "login.serverUnavailable"
       : "login.errorGeneric";
@@ -270,8 +277,8 @@ export function loginErrorKey(
         ? "login.emailTaken"
         : "login.usernameTaken";
     case 422:
-      // The form checks lengths first, so on the change step this is the new
-      // password matching the temporary one.
+      // The form checks lengths first. Thus, on the change step, this is a new
+      // password that is the same as the temporary password.
       return mode === "changePassword"
         ? "login.samePassword"
         : "login.errorGeneric";
@@ -283,11 +290,11 @@ export function loginErrorKey(
 }
 
 /**
- * A request with no session of this tab's behind it, as the sign-in screens
- * make: `body` is sent as JSON in a POST, and `bearer` names a session the
- * server just handed over. `fetch` is allowed here and in `storage/`, so the
- * modules beside this one (`mailedLinks.ts`, `oidcSignIn.ts`) send through
- * it. Rejects as `fetch` does, and when no server is configured.
+ * A request with no session of this tab behind it, as the sign-in screens make.
+ * `body` goes as JSON in a POST, and `bearer` names a session that the server
+ * just gave. `fetch` is permitted here and in `storage/`. Thus, the modules
+ * next to this one (`mailedLinks.ts`, `oidcSignIn.ts`) send through it. Rejects
+ * as `fetch` does, and when no server is configured.
  */
 export async function requestWithoutSession(
   path: string,
@@ -303,8 +310,10 @@ export async function requestWithoutSession(
   });
 }
 
-/** Signs in or registers, throwing what the server refused as an
- * `AuthRequestError` (or one of its kinds). */
+/**
+ * Signs in or registers. Throws what the server refused as an
+ * `AuthRequestError` (or one of its kinds).
+ */
 export async function authRequest(
   path: string,
   body: unknown,
@@ -322,8 +331,8 @@ export async function authRequest(
 }
 
 /**
- * Sign in. `newPassword` is sent only to finish signing in with a temporary
- * password, after this has thrown `PasswordChangeRequiredError` once.
+ * Sign in. The code sends `newPassword` only to complete a sign-in with a
+ * temporary password, after this threw `PasswordChangeRequiredError` one time.
  */
 export async function login(
   username: string,
@@ -344,9 +353,9 @@ export async function login(
 }
 
 /**
- * Signs in with a passkey alone: a challenge from the server, the browser's
- * prompt, and the answer back. Resolves with what happened; `unknown` is a
- * passkey this server does not know or would not take.
+ * Signs in with only a passkey: a challenge from the server, the prompt of the
+ * browser, and the answer back. Resolves with what occurred. `unknown` is a
+ * passkey that this server does not know or would not accept.
  */
 export async function signInWithPasskey(): Promise<
   "ok" | "cancelled" | "unknown" | "failed"
@@ -384,9 +393,9 @@ export type ChangePasswordResult =
   | "failed";
 
 /**
- * Change the signed-in user's password. Every other session ends; this one
- * carries on. Resolves with what happened, for the form to say in its own
- * words rather than the server's.
+ * Change the password of the signed-in user. Each other session ends, and this
+ * session continues. Resolves with what occurred, so that the form can tell it
+ * in its own words, not in those of the server.
  */
 export async function changePassword(
   currentPassword: string,
@@ -406,8 +415,8 @@ export async function changePassword(
     if (res.ok) return "ok";
     if (res.status === 401) clearAuthLocal();
     if (res.status === 403) return "wrong-password";
-    // The form has already checked the length, so what is left to refuse is
-    // a new password that is the current one.
+    // The form already checked the length. Thus, the only remaining refusal is
+    // a new password that is the same as the current password.
     if (res.status === 422) return "same-password";
     return "failed";
   } catch {
@@ -416,10 +425,10 @@ export async function changePassword(
 }
 
 /**
- * Re-read the current user from the server. What was persisted at sign-in
- * goes stale when an admin grants or revokes admin, so the app asks again on
- * start. Resolves either way: a failure leaves the persisted user in place, and
- * a 401 signs out as it would anywhere else.
+ * Read the current user again from the server. The value kept at sign-in
+ * becomes stale when an admin gives or removes admin rights. Thus, the app asks
+ * again on start. Resolves in both cases. A failure keeps the persisted user,
+ * and a 401 signs out, as in all other places.
  */
 export async function refreshCurrentUser(): Promise<void> {
   const token = authToken.value;
@@ -434,10 +443,11 @@ export async function refreshCurrentUser(): Promise<void> {
     }
     if (!res.ok) return;
     const body = (await res.json()) as AuthMeResponse;
-    // A sign-out or another account in the meantime makes this answer stale.
+    // A sign-out or a different account in the meantime makes this answer
+    // stale.
     if (authToken.value === token) currentUser.value = body.user;
   } catch {
-    // offline: keep what we have
+    // Offline: keep what we have.
   }
 }
 
@@ -466,7 +476,7 @@ export async function logout(): Promise<void> {
       headers: { Authorization: `Bearer ${token}` },
     });
   } catch {
-    // best-effort revoke
+    // Try to revoke. A failure is acceptable.
   }
 }
 
@@ -478,8 +488,8 @@ export type UpdateEmailResult =
   | ConfirmationRefusal;
 
 /**
- * Set or clear (`null`) the signed-in user's email address. Resolves with what
- * happened, for the dialog to say in its own words.
+ * Set or clear (`null`) the email address of the signed-in user. Resolves with
+ * what occurred, so that the dialog can tell it in its own words.
  */
 export async function updateEmail(
   email: string | null,
@@ -517,8 +527,8 @@ export type DeleteAccountResult =
   | ConfirmationRefusal;
 
 /**
- * Ask the server to delete the signed-in account. Only the request: what the
- * device does after it is `deleteOwnAccount` (`signOut.ts`).
+ * Ask the server to delete the signed-in account. Only the request.
+ * `deleteOwnAccount` (`signOut.ts`) does what the device does after it.
  */
 export async function requestAccountDeletion(
   password: string,
@@ -544,14 +554,14 @@ export async function requestAccountDeletion(
   }
 }
 
-/** Drop local auth state without contacting the server (used on 401). */
+/** Drop the local auth state, and do not contact the server (used on 401). */
 export function clearAuthLocal(): void {
   authToken.value = null;
   currentUser.value = null;
 }
 
-// Which backend a note goes to follows the session, so this module tells the
-// storage layer rather than the storage layer reaching in here for the token.
+// The session decides to which backend a note goes. Thus, this module tells the
+// storage layer. The storage layer does not read the token from here.
 effect(() => {
   storageConnection.value = {
     serverUrl: SERVER_URL,
@@ -561,31 +571,31 @@ effect(() => {
 });
 
 /**
- * How this server signs people in, once something has asked. The account menu reads
- * it to decide whether there is a password to change, and the admin view
- * whether accounts can be created here or belong to an identity provider.
+ * How this server signs people in, after some code asked. The account menu
+ * reads it to decide if there is a password to change. The admin view reads it
+ * to decide if accounts can be created here or belong to an identity provider.
  */
 export const authProviderName = signal<AuthProviderName | null>(null);
 
 /**
- * How the share dialog finds people on this server: suggestions as you type,
- * or only a whole username or address. `exact` until the server says, which
- * is the server's own default and the one that shows nobody's address.
+ * How the share dialog finds people on this server: suggestions while you type,
+ * or only a full username or address. `exact` until the server tells. That is
+ * the own default of the server, and it shows the address of nobody.
  */
 export const userLookupMode = signal<UserLookupMode>("exact");
 
-/** Every way in this server offers; both kinds side by side is possible. */
+/** Each way in that this server offers. Both kinds together are possible. */
 export const authProviders = signal<AuthProviderName[]>([]);
 
-/** With both kinds on, whether the password form is folded behind a link. */
+/** With both kinds on, if the password form is behind a link. */
 export const passwordFormCollapsed = signal(false);
 
 /**
- * What the server offers, read once something needs it (the sign-in screen,
- * the admin view, the app's start), with the signals the rest of the client
- * reads set from it: which features are on goes to `serverFeatures`, and
- * the host's default preferences to `serverDefaultPrefs`. Null
- * when the server cannot be reached.
+ * What the server offers, read when some code needs it (the sign-in screen, the
+ * admin view, the start of the app). The signals that the remaining client
+ * reads are set from it. The features that are on go to `serverFeatures`, and
+ * the default preferences of the host to `serverDefaultPrefs`. Null when the
+ * client cannot reach the server.
  */
 export async function fetchCapabilities(): Promise<CapabilitiesResponse | null> {
   if (SERVER_URL === null) return null;
@@ -609,16 +619,16 @@ export async function fetchCapabilities(): Promise<CapabilitiesResponse | null> 
   }
 }
 
-/** How a step of signing in with the recovery key went. */
+/** The result of a step of the sign-in with the recovery key. */
 export type RecoveryAnswer<T> =
   | { kind: "ok"; body: T }
   | { kind: "wrong" | "throttled" | "used" | "failed" };
 
 /**
- * One of the two steps of signing in with the recovery key and the username
- * (`/api/v1/auth/recovery`, `/api/v1/auth/recovery/complete`), with nobody signed
- * in. `accountKeys.ts` does the work with the keys; the requests live here,
- * where the others without a session do. Never rejects.
+ * One of the two steps of a sign-in with the recovery key and the username
+ * (`/api/v1/auth/recovery`, `/api/v1/auth/recovery/complete`), with nobody
+ * signed in. `accountKeys.ts` does the work with the keys. The requests are
+ * here, with the other requests without a session. Never rejects.
  */
 export async function recoveryRequest<T>(
   step: "open" | "complete",
@@ -642,7 +652,7 @@ export async function recoveryRequest<T>(
   }
 }
 
-/** Takes up a session the server just issued. */
+/** Starts a session that the server just gave. */
 export function adoptSession(session: AuthSuccessResponse): void {
   authToken.value = session.token;
   currentUser.value = session.user;

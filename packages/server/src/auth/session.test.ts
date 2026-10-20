@@ -30,8 +30,8 @@ describe("session lifetime", () => {
   });
 
   /**
-   * A session minted `daysAgo` days ago and still live: its sliding expiry is
-   * a day out, which is what the next authenticated request pushes forward.
+   * A session made `daysAgo` days ago that is still live. Its sliding expiry is
+   * one day away, which the next authenticated request moves forward.
    */
   async function seedSession(daysAgo: number): Promise<string> {
     const token = "raw-token-for-tests";
@@ -50,22 +50,22 @@ describe("session lifetime", () => {
     const identity = await authenticateBySession(storage, CFG, token);
     expect(identity?.userId).toBe("u1");
     const after = await storage.sessions.findByToken(hashToken(token));
-    // A full inactivity window out, not the day it had left.
+    // A full inactivity window away, not the day that it had left.
     expect(
       after?.expiresAt.localeCompare(isoPlusDays(CFG.sessionTtlDays - 1)),
     ).toBe(1);
   });
 
   it("refuses a session past its absolute lifetime however recently it was used", async () => {
-    // Kept warm the whole time: its sliding expiry is still in the future.
+    // In use all the time: its sliding expiry is still in the future.
     const token = await seedSession(CFG.sessionAbsoluteTtlDays + 1);
     expect(await authenticateBySession(storage, CFG, token)).toBeNull();
-    // And the row is gone, not merely refused.
+    // Also, the row is gone. It is not only refused.
     expect(await storage.sessions.findByToken(hashToken(token))).toBeNull();
   });
 
   it("never slides an expiry past the absolute end", async () => {
-    // One day short of the cap, so a full sliding window would overshoot it.
+    // One day before the limit. Thus, a full sliding window would go past it.
     const token = await seedSession(CFG.sessionAbsoluteTtlDays - 1);
     await authenticateBySession(storage, CFG, token);
     const session = await storage.sessions.findByToken(hashToken(token));
@@ -74,7 +74,7 @@ describe("session lifetime", () => {
       new Date(session?.createdAt ?? ""),
     );
     expect(session?.expiresAt).toBe(absoluteEnd);
-    // Which is well inside what the inactivity timeout alone would have given.
+    // That is much less than the inactivity timeout alone would have given.
     expect(session?.expiresAt.localeCompare(isoPlusDays(2))).toBe(-1);
   });
 

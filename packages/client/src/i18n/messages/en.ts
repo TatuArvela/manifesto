@@ -72,7 +72,8 @@ export const en = {
   "selection.deletePermanently": "Delete permanently",
   "selection.deleteSelectedPermanently": "Delete selected permanently",
 
-  // Confirming a deletion (Settings > Confirm Deletions, and every bulk one)
+  // Confirmation of a deletion (Settings > Confirm Deletions, and each bulk
+  // deletion)
   "confirm.cancel": "Cancel",
   "confirm.trash.title": "Delete this note?",
   "confirm.trash.body": "It moves to Trash, where you can restore it.",
@@ -160,8 +161,8 @@ export const en = {
   "editor.retryUpload": "Try again",
   "editor.removeUpload": "Remove",
   "editor.imageTooLarge": "{name} is too large to attach (max {size})",
-  // Note menu: one kebab menu, shared by the card, the editor and the
-  // read-only view.
+  // The note menu: one kebab menu that the card, the editor and the read-only
+  // view share.
   "noteMenu.more": "More",
   "noteMenu.moreOptions": "More options",
   "noteMenu.tags": "Tags",
@@ -1035,7 +1036,7 @@ export const en = {
   "dropZone.imagesHint": "The pictures go on a new note",
   "dropZone.hint": "Markdown, JSON, Evernote, Joplin or HTML files",
 
-  // Deployment misconfiguration, shown instead of the app at startup
+  // A deployment configuration error, shown in place of the app at startup
   "setup.title": "{appName} cannot reach its server",
   "setup.cspBody":
     "This copy is set up to use the server at {server}, but the Content Security Policy in its index.html does not allow connections there, so the browser blocks every request before it is sent.",
@@ -1092,7 +1093,7 @@ export const en = {
   "reminder.dismiss": "Dismiss",
   "reminder.chip": "Reminder: {date}",
 
-  // Shared-note dialog, shown when the app opens on a #share=... link.
+  // The shared-note dialog, shown when the app opens on a #share=... link.
   "welcome.title": "This is {appName}",
   "welcome.intro":
     "Sticky notes for your thoughts, lists and reminders. Write in Markdown or use the formatting toolbar, and drag notes around to arrange them.",

@@ -5,9 +5,9 @@ import { tagColorOf } from "#/state/views.ts";
 const PLAIN = "bg-neutral-200/60 dark:bg-neutral-700/60";
 
 /**
- * The background of a tag's chip: its colour, its own or from a tag above it,
- * with an outline of the same hue, or `plain` for a tag with none. The outline
- * is what keeps the chip apart from a note of the tag's own colour.
+ * The background of the chip of a tag: its color, its own or from a tag above
+ * it, with an outline of the same hue, or `plain` for a tag with no color. The
+ * outline keeps the chip separate from a note of the own color of the tag.
  */
 export function tagTint(tag: string, plain = PLAIN): string {
   const color = tagColorOf(tag);
@@ -17,8 +17,8 @@ export function tagTint(tag: string, plain = PLAIN): string {
 }
 
 /**
- * A tag on a note, in the user's own colour for it. `children` follow the
- * name, which is where the editor puts its remove button.
+ * A tag on a note, in the own color of the user for it. `children` come after
+ * the name. The editor puts its remove button there.
  */
 export function TagChip({
   tag,

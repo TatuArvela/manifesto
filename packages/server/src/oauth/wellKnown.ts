@@ -7,9 +7,10 @@ import { GRANT_TYPES, MCP_OAUTH_SCOPES } from "./grants.ts";
 type WellKnownConfig = Pick<ServerConfig, "appUrl" | "trustProxy">;
 
 /**
- * `/.well-known/`: how an assistant that was given only `/api/v1/mcp` finds out
- * how to sign in there (RFC 9728, then RFC 8414). The consent page is the
- * client's, so the authorization endpoint is on its address, not this one.
+ * `/.well-known/`: how an assistant that got only `/api/v1/mcp` learns how to
+ * sign in there (RFC 9728, then RFC 8414). The consent page belongs to the
+ * client. Thus, the authorization endpoint is on its address, not on this
+ * address.
  */
 export function createWellKnownRoutes(cfg: WellKnownConfig) {
   const routes = new Hono();
@@ -43,8 +44,8 @@ export function createWellKnownRoutes(cfg: WellKnownConfig) {
 }
 
 /**
- * On `/api/v1/mcp`: a 401 says where the metadata is, which is how an assistant
- * given only the address learns it can sign in (RFC 9728, section 5.1).
+ * On `/api/v1/mcp`: a 401 tells where the metadata is. Thus, an assistant that
+ * got only the address learns that it can sign in (RFC 9728, section 5.1).
  */
 export function resourceMetadataChallenge(
   trustProxy: boolean,

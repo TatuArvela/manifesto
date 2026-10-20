@@ -7,21 +7,20 @@ import type {
   PluginNote,
 } from "./types.ts";
 
-// Why the sandbox is a frame from a real URL with the plugin in a worker
-// inside it is in `docs/specification/features/auto-notes.md` ("Execution
-// and Sandboxing"). The timeout below holds only while the plugin runs in
-// that worker. Whatever a plugin returns is validated here, in `results.ts`,
-// never in the frame: a plugin that subverted it would pass its own checks.
+// `docs/specification/features/auto-notes.md` ("Execution and Sandboxing")
+// tells why the sandbox is a frame from a real URL, with the plugin in a worker
+// inside it. The timeout below works only while the plugin runs in that worker.
+// The code validates the return value of a plugin here, in `results.ts`, never
+// in the frame. A plugin that took control of the frame would pass its own
+// checks.
 //
 // Flow:
-//   1. Host listens for `message`, then sets `iframe.src`. There is no `load`
-//      handshake: an opaque-origin frame tells us nothing useful on load, and
-//      the frame announces itself anyway in step 2.
-//   2. Iframe posts `sandbox-booted` to parent.
-//   3. Host posts `init` with the stdlib prelude string.
-//   4. Iframe evaluates the prelude, starts its worker, posts `init-ok`.
-//   5. Host's `ready` promise resolves.
-//   6. Per plugin invocation: host posts `run`, iframe posts `run-ok|run-err`.
+//   1. The host listens for `message`, then sets `iframe.src`. There is no `load` handshake: a frame with an opaque origin tells us nothing useful on load, and the frame announces itself anyway in step 2.
+//   2. The iframe sends `sandbox-booted` to the parent.
+//   3. The host sends `init` with the stdlib prelude string.
+//   4. The iframe evaluates the prelude, starts its worker, and sends `init-ok`.
+//   5. The `ready` promise of the host resolves.
+//   6. For each plugin call: the host sends `run`, and the iframe sends `run-ok|run-err`.
 
 interface RunRequest {
   type: "run";
@@ -37,7 +36,10 @@ interface RunRequest {
 interface RunOkResponse {
   type: "run-ok";
   id: number;
-  /** `JSON.stringify({ value })` of whatever the plugin's functions returned. */
+  /**
+   * `JSON.stringify({ value })` of the return values of the functions of the
+   * plugin.
+   */
   json: string;
 }
 
@@ -59,8 +61,10 @@ interface SandboxHandle {
   iframe: HTMLIFrameElement;
   ready: Promise<void>;
   pending: Map<number, (r: RunResponse) => void>;
-  /** Where plugins run in this frame, once it has said: a worker, or the
-   * frame's own thread where the engine refused one. */
+  /**
+   * Where plugins run in this frame, after it said so: a worker, or the own
+   * thread of the frame where the engine refused a worker.
+   */
   mode: "worker" | "frame" | null;
 }
 
@@ -74,7 +78,7 @@ function createSandbox(): SandboxHandle {
   iframe.setAttribute("aria-hidden", "true");
 
   const pending = new Map<number, (r: RunResponse) => void>();
-  // Assigned below; the listener only reads it once the frame has answered.
+  // Assigned below. The listener reads it only after the frame answered.
   let handle: SandboxHandle;
 
   const ready = new Promise<void>((resolve, reject) => {
@@ -145,21 +149,21 @@ function getSandbox(): SandboxHandle {
   return currentSandbox;
 }
 
-/** What a reading plugin fails with where plugins cannot run in a worker. */
+/** The failure of a plugin that reads, where plugins cannot run in a worker. */
 export const READS_NEED_WORKER =
   "This browser runs plugins without a worker, where one could send what it reads elsewhere, so reading notes is off here.";
 
-/** Run a plugin source string inside the sandbox and return its notes. */
+/** Run a plugin source string inside the sandbox, and return its notes. */
 export async function runPlugin(
   pluginSrc: string,
   ctx: PluginContextInput,
   timeoutMs = 2000,
 ): Promise<AutoNoteResult[]> {
   const reading = (ctx.notes?.length ?? 0) > 0;
-  // One worker serves every run, and a plugin can leave anything behind in
-  // it: a copy of what it read, or a patch that reads the next plugin's
-  // message. So a run handed notes gets a frame nothing has run in, and that
-  // frame is thrown away when the run ends.
+  // One worker serves all runs, and a plugin can leave anything in it: a copy
+  // of what it read, or a patch that reads the message of the next plugin.
+  // Thus, a run that gets notes gets a frame in which nothing ran. The code
+  // removes that frame when the run ends.
   if (reading) resetSandbox();
   const handle = getSandbox();
   try {
@@ -179,10 +183,11 @@ async function runIn(
   timeoutMs: number,
 ): Promise<AutoNoteResult[]> {
   await handle.ready;
-  // A plugin given notes must have no way to send them anywhere. In a worker
-  // it has none: the frame's CSP denies every connection and a worker cannot
-  // navigate. On the frame's own thread it can point the frame at any
-  // address, with what it read in the URL, so there it is given nothing.
+  // A plugin that gets notes must have no way to send them anywhere. In a
+  // worker, it has none: the CSP of the frame refuses all connections, and a
+  // worker cannot navigate. On the own thread of the frame, it can point the
+  // frame to any address, with what it read in the URL. Thus, there it gets
+  // nothing.
   if ((ctx.notes?.length ?? 0) > 0 && handle.mode !== "worker") {
     throw new Error(READS_NEED_WORKER);
   }
@@ -217,7 +222,7 @@ async function runIn(
     timer = setTimeout(() => {
       if (!handle.pending.has(id)) return;
       handle.pending.delete(id);
-      // Timeout → assume the sandbox is compromised; rebuild.
+      // Timeout → assume that the sandbox is compromised. Build it again.
       if (currentSandbox === handle) {
         destroySandbox(handle);
         currentSandbox = null;
@@ -228,7 +233,7 @@ async function runIn(
   });
 }
 
-/** Tear down the current sandbox, e.g. for tests or HMR cleanup. */
+/** Remove the current sandbox, for example for tests or HMR cleanup. */
 export function resetSandbox() {
   if (currentSandbox) {
     destroySandbox(currentSandbox);

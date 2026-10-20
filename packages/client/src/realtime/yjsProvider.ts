@@ -20,23 +20,23 @@ export interface NoteYDoc {
   awareness: Awareness | null;
   status: YjsConnectionStatus;
   /**
-   * True once the server's state has been merged into the local doc. Callers
-   * must not bind an editor before this: `ySyncPlugin` adopts whatever the
-   * shared fragment holds, so binding early shows an empty document and then
-   * writes that emptiness back as the note's content.
+   * True after the state of the server merged into the local doc. Callers must
+   * not bind an editor before this. `ySyncPlugin` adopts what the shared
+   * fragment contains. Thus, an early binding shows an empty document, and then
+   * writes that empty state back as the content of the note.
    */
   synced: boolean;
   /**
-   * The server refused this build's editor as older than its own. Editing the
-   * text any other way would write this build's reading of the note over
-   * content it may not understand, so the caller locks the text and asks for
-   * a reload.
+   * The server refused the editor of this build as older than its own. Any
+   * other edit of the text would write the reading of the note of this build
+   * over content that it possibly does not understand. Thus, the caller locks
+   * the text, and asks for a reload.
    */
   outdated: boolean;
   /**
-   * How many entries of the sealed document did not open on this device
-   * (another key, or damage). They are passed over, so the editor may be
-   * showing less than was written, and the caller says so.
+   * How many entries of the sealed document did not open on this device (a
+   * different key, or damage). The code skips them. Thus, the editor can show
+   * less than was written, and the caller tells this.
    */
   unreadable: number;
 }
@@ -55,26 +55,26 @@ function wsUrl(): string | null {
 }
 
 /**
- * Returns a Y.Doc bound to the given note id, with WebSocket sync to the
- * server and IndexedDB persistence for offline buffering. Returns
- * { ydoc: null } when not in server mode or unauthenticated; the caller
- * should fall back to plain (non-collaborative) editing.
+ * Returns a Y.Doc bound to the given note id, with WebSocket sync to the server
+ * and IndexedDB persistence for offline buffering. Returns { ydoc: null } when
+ * not in server mode or not authenticated. The caller must then use plain
+ * (non-collaborative) editing.
  *
- * The collaboration stack itself is fetched on demand (see `yjsSession`), so
- * the document appears one microtask-plus-a-network-fetch after the hook first
- * asks for it. `status` is `loading` for that window, and a chunk that fails to
- * arrive reports `disconnected` with no document, which lands the caller in
- * the same non-collaborative fallback as open mode rather than leaving an
- * editor waiting on a document that will never come.
+ * The collaboration stack itself loads on demand (see `yjsSession`). Thus, the
+ * document shows one microtask and one network fetch after the hook first asks
+ * for it. `status` is `loading` for that time. A chunk that does not arrive
+ * reports `disconnected` with no document. That puts the caller in the same
+ * non-collaborative fallback as open mode, and does not leave an editor that
+ * waits for a document that will never come.
  */
 export function useNoteYDoc(noteId: string | null): NoteYDoc {
   const [state, setState] = useState<NoteYDoc>(IDLE);
-  // Read the token via the value to make the dep array meaningful: token
-  // rotation (login swap, server-forced logout) tears down the provider and
-  // re-establishes the connection with the new credentials.
+  // Read the token through the value, so that the dependency array has a
+  // meaning. A token rotation (a login change, a logout that the server forces)
+  // closes the provider, and connects again with the new credentials.
   const token = authToken.value;
-  // A note whose key was replaced while it is open starts again under the
-  // new one: nothing more is written under a key someone removed holds.
+  // A note whose key was replaced while it is open starts again under the new
+  // key. Nothing more is written under a key that a removed person has.
   const keyVersion = noteId
     ? (sealer.value?.replaced.value.get(noteId) ?? 0)
     : 0;
@@ -92,14 +92,15 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
 
     setState({ ...IDLE, status: "loading" });
 
-    // Fetched alongside the session rather than when the editor asks for it:
-    // the editor asks the instant we report `synced`, and fetching then would
-    // leave the note body blank for a round trip. Fire and forget; the
-    // editor awaits the same memoized promise.
+    // Loaded together with the session, not when the editor asks for it. The
+    // editor asks at the moment when we report `synced`, and a fetch then would
+    // leave the body of the note blank for a round trip. The code does not wait
+    // for it. The editor awaits the same memoized promise.
     void loadYjsCollab().catch(() => {});
 
-    // The document is sealed with the note's key, so there is none to open
-    // without it: locked, or a note whose key has not reached this account.
+    // The document is sealed with the key of the note. Thus, without it there
+    // is nothing to open: locked, or a note whose key did not reach this
+    // account.
     const sealing = sealer.peek();
     const documentKey = sealing
       ? sealing.documentKey(noteId, sealedNote(noteId))
@@ -117,11 +118,10 @@ export function useNoteYDoc(noteId: string | null): NoteYDoc {
           user: user
             ? { id: user.id, name: user.displayName, color: user.avatarColor }
             : null,
-          // A session that was destroyed still speaks: its socket closes
-          // once the last edits are sealed, and `synced` waits on entries
-          // being opened. By then the state is the next session's, and
-          // marking that one synced would bind an editor to an empty
-          // document.
+          // A session that was destroyed still sends data. Its socket closes
+          // after the last edits are sealed, and `synced` waits for entries to
+          // open. By then, the state belongs to the next session, and a mark of
+          // that session as synced would bind an editor to an empty document.
           onStatus: (status) => {
             if (!cancelled) setState((prev) => ({ ...prev, status }));
           },

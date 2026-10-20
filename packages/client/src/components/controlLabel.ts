@@ -1,8 +1,8 @@
 import { createContext } from "preact";
 
 /**
- * The id of the label a control sits beside, given by a settings row. A
- * shared control names itself by it (`aria-labelledby`), so a screen reader
- * reads the setting's name with the control rather than as a heading apart.
+ * The id of the label next to a control, given by a settings row. A shared
+ * control names itself by it (`aria-labelledby`). Thus, a screen reader reads
+ * the name of the setting with the control, not as a separate heading.
  */
 export const ControlLabelId = createContext<string | undefined>(undefined);

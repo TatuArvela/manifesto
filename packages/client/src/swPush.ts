@@ -7,13 +7,14 @@ import {
   type SealedReminder,
 } from "@manifesto/shared";
 
-// What the service worker makes of a push message, kept apart from `sw.ts` so
-// it can be tested: that file runs Workbox as it loads.
+// What the service worker makes of a push message, kept separate from `sw.ts`
+// so that it can be tested. That file runs Workbox when it loads.
 
 /**
- * A push message's payload as a reminder, or null for anything else. The
- * message was encrypted to this browser by the server it is signed in to, but
- * the worker runs privileged, so every field is checked before it is used.
+ * The payload of a push message as a reminder, or null for all other data. The
+ * server to which this browser is signed in encrypted the message to it. But
+ * the worker runs with privileges. Thus, the code checks each field before it
+ * uses it.
  */
 export function readReminderPush(payload: unknown): ReminderPush | null {
   if (!payload || typeof payload !== "object") return null;
@@ -61,8 +62,10 @@ export function readReminderPush(payload: unknown): ReminderPush | null {
   };
 }
 
-/** The sealed half of a reminder, or null for anything not shaped as one:
- * the message is then shown as a device without a key shows it. */
+/**
+ * The sealed half of a reminder, or null for all data that does not have its
+ * shape. The message then shows as a device without a key shows it.
+ */
 function readSealed(value: unknown): SealedReminder | null {
   if (!value || typeof value !== "object") return null;
   const sealed = value as Record<string, unknown>;
@@ -80,20 +83,20 @@ function readSealed(value: unknown): SealedReminder | null {
   };
 }
 
-/** The account key a signed-in device holds, as far as a push needs it. */
+/** The account key that a signed-in device has, as much as a push needs it. */
 export interface PushKeys {
   userId: string;
   version: number;
   accountKey: CryptoKey;
-  /** ISO time after which the keys are not to be used. */
+  /** The ISO time after which the keys must not be used. */
   endsAt: string;
 }
 
 /**
- * What the notification says. A device that holds the account's keys opens
- * the note's title and the first of its text, and words them as the app does
- * when it fires a reminder itself (`reminderScheduler.ts`). A device without
- * keys (signed out, or the session run out), or a message that does not
+ * What the notification says. A device that has the keys of the account opens
+ * the title of the note and the start of its text, and words them as the app
+ * does when it fires a reminder itself (`reminderScheduler.ts`). A device
+ * without keys (signed out, or the session ended), or a message that does not
  * open, shows what the server sent: that there is a reminder, and no more.
  */
 export async function wordedPush(
@@ -118,8 +121,8 @@ export async function wordedPush(
       ...(sealed.excerpt !== "" && { excerpt: sealed.excerpt }),
     });
     return {
-      // An untitled note keeps the name the server gave it, which is the
-      // app's own for one, in the account's language.
+      // An untitled note keeps the name that the server gave it, which is the
+      // own name of the app for one, in the language of the account.
       title: opened.title.trim() || push.title,
       body: opened.excerpt.replace(/\s+/g, " ").trim().slice(0, 140),
     };
@@ -128,7 +131,7 @@ export async function wordedPush(
   }
 }
 
-/** The worker's own copy of a reminder, as far as a push changes it. */
+/** The own copy of a reminder of the worker, as much as a push changes it. */
 interface Fired {
   time: string;
   day?: number;
@@ -136,10 +139,10 @@ interface Fired {
 }
 
 /**
- * The worker's copy of a reminder after the server fired it: moved to where
- * the server moved it, or marked fired when it does not repeat. Without this
- * the worker, which keeps its own list for when no page is open, would fire
- * the same occurrence again on its next look.
+ * The copy of a reminder of the worker after the server fired it: moved to
+ * where the server moved it, or marked fired when it does not repeat. Without
+ * this, the worker, which keeps its own list for when no page is open, would
+ * fire the same occurrence again on its next look.
  */
 export function afterPush<T extends Fired>(held: T, push: ReminderPush): T {
   if (push.next === null) return { ...held, lastFiredAt: push.firedAt };

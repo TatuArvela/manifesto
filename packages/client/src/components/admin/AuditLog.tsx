@@ -10,7 +10,7 @@ import { loadAuditLog } from "#/state/admin.ts";
 
 function nameOf(user: ShareUser | null): string {
   if (!user) return t("audit.nobody");
-  // An account deleted since keeps its entries, but not its name.
+  // An account that was deleted after that keeps its entries, but not its name.
   return user.username || t("audit.deletedAccount");
 }
 
@@ -21,9 +21,9 @@ function detailLine(detail: Record<string, string>): string {
 }
 
 /**
- * The audit log, newest first, a page at a time. Who did what to whom, from
- * where, as the server recorded it. The admin view's Activity section shows
- * the whole log; Settings shows a user their own lines through `load`.
+ * The audit log, newest first, one page at a time. Who did what to whom, from
+ * where, as the server recorded it. The Activity section of the admin view
+ * shows the full log. Settings shows a user their own lines through `load`.
  */
 export function AuditLog({
   load: fetchPage = loadAuditLog,

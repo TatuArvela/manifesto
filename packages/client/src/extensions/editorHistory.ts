@@ -8,11 +8,12 @@ import {
 } from "@milkdown/kit/prose/state";
 
 /**
- * The undo and redo an editor answers to. A solo editor keeps Milkdown's
- * `history` (ProseMirror's own); a collaborative one has `yUndoPlugin` in its
- * place, which undoes only this session's changes and has no keymap of its
- * own. Both are plain commands, so called without `dispatch` they say whether
- * there is anything to undo, which is what the toolbar disables its buttons on.
+ * The undo and redo to which an editor answers. A solo editor keeps the
+ * `history` of Milkdown (that of ProseMirror). A collaborative editor has
+ * `yUndoPlugin` in its place, which undoes only the changes of this session,
+ * and has no keymap of its own. Both are plain commands. Thus, when called
+ * without `dispatch`, they tell if there is anything to undo. The toolbar
+ * disables its buttons from that.
  */
 export interface EditorHistory {
   undo: Command;
@@ -24,20 +25,21 @@ const editorHistoryKey = new PluginKey<EditorHistory>("editorHistory");
 const proseHistory: EditorHistory = { undo, redo };
 
 /**
- * The history this editor state was built with: the collaborative one when
- * `editorHistoryPlugins` are installed, ProseMirror's otherwise. Asking the
- * state, rather than whoever built the editor, keeps the toolbar from driving
- * a history plugin that is not there (it then reports nothing to undo, and
- * the buttons stay disabled for good).
+ * The history with which this editor state was built: the collaborative history
+ * when `editorHistoryPlugins` are installed, otherwise that of ProseMirror. The
+ * code asks the state, not the code that built the editor. Thus, the toolbar
+ * does not control a history plugin that is not there (it then reports nothing
+ * to undo, and the buttons stay disabled forever).
  */
 export function editorHistory(state: EditorState): EditorHistory {
   return editorHistoryKey.getState(state) ?? proseHistory;
 }
 
 /**
- * Installs a history that replaces Milkdown's `history` plugin: binds the
- * same keys it does, answers the browser's own undo (the Edit menu, a shake on
- * iOS) as it does, and makes the commands reachable through `editorHistory`.
+ * Installs a history that replaces the `history` plugin of Milkdown. It binds
+ * the same keys, answers the own undo of the browser (the Edit menu, a shake on
+ * iOS) in the same way, and makes the commands available through
+ * `editorHistory`.
  */
 export function editorHistoryPlugins(history: EditorHistory): Plugin[] {
   return [

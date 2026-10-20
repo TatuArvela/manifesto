@@ -1,8 +1,9 @@
 import { DEFAULT_LOCALE, type Locale, SUPPORTED_LOCALES } from "./locales.ts";
 
 /**
- * Pick the first supported locale from the browser's language preferences.
- * Accepts region-tagged variants (e.g. `fi-FI`) by matching on the base tag.
+ * Select the first supported locale from the language preferences of the
+ * browser. Accepts variants with a region tag (for example `fi-FI`), by a match
+ * on the base tag.
  */
 export function detectBrowserLocale(candidates?: readonly string[]): Locale {
   const langs =

@@ -19,9 +19,9 @@ const conflict = (description: string) => ({
 });
 
 /**
- * The keys an account's notes are encrypted with, wrapped in the browser.
- * Session-only: a key is never a token's to fetch or replace. What checks a
- * password or the recovery key draws on `sign-in`, like a sign-in.
+ * The keys with which the notes of an account are encrypted, wrapped in the
+ * browser. Session-only: a token can never get or replace a key. The operations
+ * that check a password or the recovery key use `sign-in`, as a sign-in does.
  */
 export const KEY_OPERATIONS: Operation[] = [
   {

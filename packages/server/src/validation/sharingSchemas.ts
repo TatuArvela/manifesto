@@ -12,15 +12,15 @@ import {
 import { z } from "zod";
 import { publicKey, sealed, wrappedKey } from "./fields.ts";
 
-// Request bodies of sharing: shares and invitations, the keys handed with
+// The request bodies of sharing: shares and invitations, the keys that go with
 // them, teams, and public links.
 
 const shareRoleSchema = z.enum(SHARE_ROLES);
 
 /**
- * A note key wrapped to someone's public key and signed: shapes only, since
- * the server can open none of it. The recipient's client checks the
- * signature against the key it remembers for the signer.
+ * A note key wrapped to the public key of a person and signed: only shapes,
+ * because the server can open none of it. The client of the recipient checks
+ * the signature against the key that it remembers for the signer.
  */
 export const offeredKeySchema = z.object({
   keyVersion: z.number().int().min(1),
@@ -40,11 +40,16 @@ export const shareCreateSchema = z.object({
   key: offeredKeySchema.exactOptional(),
 });
 
-/** `PUT /api/v1/auth/keys/seen/:userId`: someone's public keys as this account
- * remembers them, sealed under its own key. */
+/**
+ * `PUT /api/v1/auth/keys/seen/:userId`: the public keys of a person as this
+ * account remembers them, sealed under its own key.
+ */
 export const seenKeySchema = z.object({ sealed: sealed(1024) });
 
-/** `POST /api/v1/invitations/:noteId/accept` and `PUT /api/v1/notes/:id/held-key`. */
+/**
+ * `POST /api/v1/invitations/:noteId/accept` and `PUT
+ * /api/v1/notes/:id/held-key`.
+ */
 export const heldKeySchema = z.object({
   key: wrappedKey,
   keyVersion: z.number().int().min(1),
@@ -89,11 +94,11 @@ export const publicLinkCreateSchema = z
       .min(1)
       .max(MAX_PUBLIC_LINK_VIEWS)
       .exactOptional(),
-    // The link key, sealed for the owner; the server never holds the key.
+    // The link key, sealed for the owner. The server never has the key.
     sealedLinkKey: sealed(MAX_WRAPPED_KEY_LENGTH),
     // A live link: the note key, wrapped by the link key.
     wrappedKey: wrappedKey.exactOptional(),
-    // A snapshot link: the note as it is, sealed for the link.
+    // A snapshot link: the current note, sealed for the link.
     snapshot: z
       .object({
         title: sealed(SEALED_FIELD_MAX.title),
@@ -104,7 +109,7 @@ export const publicLinkCreateSchema = z
         refs: z
           .array(z.string().regex(ATTACHMENT_REF_PATTERN))
           .max(MAX_IMAGES_PER_NOTE + MAX_LINK_PREVIEWS_PER_NOTE * 2),
-        // The format the copy's words are in, as a note's.
+        // The format of the words of the copy, as for a note.
         format: z.number().int().min(1).max(1_000_000).exactOptional(),
       })
       .exactOptional(),

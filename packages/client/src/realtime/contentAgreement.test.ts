@@ -40,7 +40,8 @@ describe("contentAgreement", () => {
   });
 
   it("keeps a row no newer than the last save that landed", () => {
-    // Offline typing: the saves failed, so the row is the last one that did.
+    // Offline typing: the saves failed. Thus, the row is the last save that
+    // worked.
     expect(
       recorded().isOutside(
         { content: "Something unclaimed", updatedAt: EARLIER },
@@ -59,7 +60,8 @@ describe("contentAgreement", () => {
   });
 
   it("judges nothing outside for a document with no records", () => {
-    // Every document from before the records: the document wins, as it did.
+    // Each document from before the records: the document wins, as it did
+    // before.
     expect(
       sharedAgreement(new Y.Doc(), null).isOutside(
         { content: "Milk, eggs, oat milk", updatedAt: LATER },

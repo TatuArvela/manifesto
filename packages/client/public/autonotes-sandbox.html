@@ -2,10 +2,10 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <!-- `worker-src blob:` is what lets plugins run off this frame's thread;
-         everything else stays denied. A blob worker inherits this policy, so
-         `unsafe-eval` reaches the worker too, which is where it is needed,
-         since a plugin is evaluated with `new Function`. -->
+    <!-- `worker-src blob:` lets plugins run off the thread of this frame. All
+         other sources stay refused. A blob worker inherits this policy. Thus,
+         `unsafe-eval` also reaches the worker, where it is necessary, because a
+         plugin is evaluated with `new Function`. -->
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; worker-src blob:; connect-src 'none'"
@@ -16,13 +16,13 @@
     <script>
       (function () {
         // ---------------------------------------------------------------
-        // Plugin evaluation. Stringified into the worker where one can be
-        // created, and called directly in this frame where it cannot (see
-        // `startWorker`), so there is one copy of it either way.
+        // Plugin evaluation. Stringified into the worker where the frame can
+        // create one, and called directly in this frame where it cannot (see
+        // `startWorker`). Thus, there is one copy of it in both cases.
         //
-        // Nothing here validates the plugin's return value: a sandbox that a
-        // plugin has subverted would validate whatever it liked. The host
-        // does that, on the far side of `postMessage`.
+        // Nothing here validates the return value of the plugin. A sandbox
+        // that a plugin took control of would accept any value. The host
+        // validates it, on the other side of `postMessage`.
         // ---------------------------------------------------------------
         function pluginRealm() {
           function bindLocale(raw, locale, approxLabels) {
@@ -48,12 +48,12 @@
           }
 
           /**
-           * Returns one entry per exported plugin function, exactly as the
+           * Returns one entry for each exported plugin function, exactly as the
            * function returned it. The host flattens and validates.
            */
           return function run(msg, stdlibRaw) {
             const stdlib = bindLocale(stdlibRaw, msg.locale, msg.approxLabels);
-            // The notes the user allowed this plugin to read, frozen: a
+            // The notes that the user permitted this plugin to read, frozen: a
             // snapshot to look at, with nothing behind it to write to.
             const notes = (msg.notes || []).map(function (note) {
               return Object.freeze(
@@ -92,19 +92,19 @@
           };
         }
 
-        // The worker's message loop. Also stringified into the worker.
+        // The message loop of the worker. Also stringified into the worker.
         function workerMain() {
-          // `__stdlibRaw` and `__run` are defined by the two sources
-          // concatenated ahead of this one.
+          // The two sources joined before this one define `__stdlibRaw` and
+          // `__run`.
           self.onmessage = function (event) {
             const msg = event.data;
             if (!msg || msg.type !== "run") return;
             try {
-              // JSON rather than a structured clone: a plugin can return
-              // functions, getters or cycles, and a DataCloneError thrown
-              // inside postMessage would be reported as a sandbox fault
-              // rather than as the plugin's own mistake. Wrapped in an
-              // object so `undefined` still stringifies to something.
+              // JSON, not a structured clone. A plugin can return functions,
+              // getters or cycles, and a DataCloneError thrown inside
+              // postMessage would be reported as a fault of the sandbox, not as
+              // the own error of the plugin. Wrapped in an object. Thus,
+              // `undefined` still stringifies to something.
               const json = JSON.stringify({ value: __run(msg, __stdlibRaw) });
               self.postMessage({ type: "run-ok", id: msg.id, json: json });
             } catch (err) {
@@ -132,11 +132,11 @@
         const run = pluginRealm();
 
         /**
-         * Starts the worker, or reports that it couldn't. Firefox and older
-         * engines refuse a worker in a frame with an opaque origin, in which
-         * case plugins run on this frame's thread as they used to, and the host
-         * timeout is then only as good as the plugin's willingness to yield,
-         * which is why the host says so out loud.
+         * Starts the worker, or reports that it could not. Firefox and older
+         * engines refuse a worker in a frame with an opaque origin. Then
+         * plugins run on the thread of this frame, as they did before. The host
+         * timeout then works only if the plugin yields. That is why the host
+         * tells it clearly.
          */
         function startWorker(onReady, onFail) {
           try {
@@ -159,7 +159,8 @@
                 onReady();
                 return;
               }
-              // A run result: relay it verbatim. The host correlates by id.
+              // A run result: relay it without change. The host matches it by
+              // id.
               toParent(msg);
             };
             w.onerror = function (event) {
@@ -167,8 +168,9 @@
                 onFail("worker failed to start: " + String(event.message));
                 return;
               }
-              // A worker-level error has no request id, and the host's
-              // timeout is the backstop for a run that never answers.
+              // An error at the level of the worker has no request id. The
+              // timeout of the host is the backstop for a run that never
+              // answers.
               toParent({ type: "worker-error", error: String(event.message) });
             };
             worker = w;
@@ -234,8 +236,8 @@
         }
 
         window.addEventListener("message", function (event) {
-          // Only honor messages from our parent window. Without this, any
-          // window holding a reference to this sandbox could drive it.
+          // Accept only messages from our parent window. Without this, each
+          // window with a reference to this sandbox could control it.
           if (event.source !== window.parent) return;
           const msg = event.data;
           if (!msg || typeof msg !== "object") return;
@@ -248,8 +250,9 @@
           }
         });
 
-        // Signal readiness to host via a pre-arranged message. Host waits for
-        // iframe `load` and then for this, before sending `init`.
+        // Tell the host that the sandbox is ready, through a message that both
+        // sides know. The host waits for the iframe `load` and then for this,
+        // before it sends `init`.
         if (window.parent && window.parent !== window) {
           toParent({ type: "sandbox-booted" });
         }

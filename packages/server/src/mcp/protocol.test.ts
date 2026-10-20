@@ -68,7 +68,7 @@ describe("handleMessage", () => {
         ctx(),
       ),
     ).toBeNull();
-    // A response has no method: this server never asked anything.
+    // A response has no method. This server never asked anything.
     expect(
       await handleMessage({ jsonrpc: "2.0", id: 7, result: {} }, ctx()),
     ).toBeNull();
@@ -127,7 +127,7 @@ describe("handleMessage", () => {
     }
     const { result } = await init(PROTOCOL_VERSIONS[0]);
     expect(result.serverInfo).toEqual({ name: "manifesto", version: "9.9.9" });
-    // Stateless: tools only, and a list that never changes under the client.
+    // Stateless: only tools, and a list that never changes for the client.
     expect(result.capabilities).toEqual({ tools: { listChanged: false } });
   });
 
@@ -150,7 +150,7 @@ describe("handleMessage", () => {
         openWorldHint: false,
       },
     });
-    // Not the scope or the function: nothing of the server's own.
+    // Not the scope or the function: nothing of the server itself.
     expect(response.result.tools[0]).not.toHaveProperty("scope");
   });
 

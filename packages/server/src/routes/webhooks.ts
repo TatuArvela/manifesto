@@ -31,9 +31,9 @@ interface WebhookDeps {
 export const MAX_WEBHOOKS_PER_USER = 10;
 
 /**
- * `/api/v1/webhooks`: where a user's note events are posted. Session-only like
- * API tokens: a webhook sends every note its owner holds to a URL, which is
- * not something a token handed to a script should be able to set up.
+ * `/api/v1/webhooks`: where the server sends the note events of a user.
+ * Session-only, as for API tokens. A webhook sends each note of its owner to a
+ * URL. A token that a script has must not be able to set that up.
  */
 export function createWebhookRoutes(deps: WebhookDeps) {
   const routes = new Hono<{ Variables: { auth: AuthContext } }>();
@@ -59,7 +59,7 @@ export function createWebhookRoutes(deps: WebhookDeps) {
     async (c) => {
       const { userId } = c.get("auth");
       const { url, events, password } = c.req.valid("json");
-      // Every note from now on goes wherever this points.
+      // From now, each note goes to this address.
       await requireConfirmation(deps, c.get("auth"), password);
       const existing = await deps.storage.webhooks.listByUser(userId);
       if (existing.length >= MAX_WEBHOOKS_PER_USER) {
@@ -93,7 +93,10 @@ export function createWebhookRoutes(deps: WebhookDeps) {
     },
   );
 
-  /** Turns one on again after failures switched it off, or off by hand. */
+  /**
+   * Turns one on again after failures switched it off, or turns it off
+   * manually.
+   */
   routes.put(
     "/:id",
     zValidator("json", webhookUpdateSchema, validatorHook),
@@ -124,7 +127,7 @@ export function createWebhookRoutes(deps: WebhookDeps) {
     return c.body(null, 204);
   });
 
-  /** Sends a `ping` now and answers with what came back. */
+  /** Sends a `ping` now, and answers with the response. */
   routes.post("/:id/test", async (c) => {
     const { userId } = c.get("auth");
     const webhook = await owned(c.req.param("id"), userId);

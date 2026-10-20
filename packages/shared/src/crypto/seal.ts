@@ -2,19 +2,19 @@ import { CIPHERTEXT_PREFIX } from "#/api/keys.ts";
 import { base64urlToBytes, bytesToBase64url, fromUtf8, utf8 } from "./bytes.ts";
 
 /**
- * The one way anything is encrypted: AES-256-GCM, a random 96-bit nonce for
- * every value, and associated data that says where the value belongs, so a
- * ciphertext moved to another row, field, account or key version does not
- * open. Keys for each job come out of HKDF-SHA-256. Every primitive is
- * WebCrypto, which a browser has only on `https` pages and `localhost`, and
- * which the server uses for the requests a token makes.
+ * The only method of encryption: AES-256-GCM, a random 96-bit nonce for each
+ * value, and associated data that tells where the value belongs. Thus, a
+ * ciphertext moved to a different row, field, account or key version does not
+ * open. The keys for each job come from HKDF-SHA-256. Each primitive is
+ * WebCrypto. A browser has it only on `https` pages and `localhost`. The server
+ * uses it for the requests of a token.
  */
 
 const NONCE_BYTES = 12;
 const TAG_BYTES = 16;
 const KEY_BITS = 256;
 
-/** How long the ciphertext of `plainBytes` bytes is, as text. */
+/** The length of the ciphertext of `plainBytes` bytes, as text. */
 export function sealedLength(plainBytes: number): number {
   return (
     CIPHERTEXT_PREFIX.length +
@@ -22,15 +22,15 @@ export function sealedLength(plainBytes: number): number {
   );
 }
 
-/** Whether this page can encrypt at all: not over plain `http`. */
+/** If this page can encrypt: not over plain `http`. */
 export function cryptoAvailable(): boolean {
   return typeof crypto !== "undefined" && crypto.subtle !== undefined;
 }
 
 /**
- * What a ciphertext is bound to: the id of its row, the name of its field,
- * the version of the key it is under and, for what is one person's own, the
- * account. Joined with a character none of them contains.
+ * What a ciphertext is bound to: the id of its row, the name of its field, the
+ * version of its key and, for data of one person, the account. They are joined
+ * with a character that none of them contains.
  */
 export function associatedData(parts: {
   id: string;
@@ -46,8 +46,8 @@ export function associatedData(parts: {
 }
 
 /**
- * Encrypts `plaintext` under `key`, bound to `data`, as bytes: the nonce,
- * the ciphertext and its tag. For what is stored as bytes, an image.
+ * Encrypts `plaintext` under `key`, bound to `data`, as bytes: the nonce, the
+ * ciphertext and its tag. For data stored as bytes, an image.
  */
 export async function sealBytes(
   key: CryptoKey,
@@ -68,7 +68,7 @@ export async function sealBytes(
   return out;
 }
 
-/** Decrypts what `sealBytes` made; null for anything that does not open. */
+/** Decrypts what `sealBytes` made. Null for all data that does not open. */
 export async function unsealBytes(
   key: CryptoKey,
   sealed: Uint8Array<ArrayBuffer>,
@@ -104,9 +104,9 @@ export async function seal(
 }
 
 /**
- * Decrypts what `seal` made. Null for the wrong key, the wrong `data`, or
- * anything that is not a ciphertext: all of them are "this does not open",
- * and none is worth telling apart to whoever is trying.
+ * Decrypts what `seal` made. Null for the wrong key, the wrong `data`, or data
+ * that is not a ciphertext. All of them mean "this does not open". It is not
+ * useful to tell them apart to a person who tries.
  */
 export async function unseal(
   key: CryptoKey,
@@ -125,8 +125,10 @@ export async function unseal(
   return unsealBytes(key, bytes, data);
 }
 
-/** `unseal` read as UTF-8 text; null for nothing given, or for what does not
- * open or is not text. */
+/**
+ * `unseal`, read as UTF-8 text. Null if nothing was given, or for data that
+ * does not open or is not text.
+ */
 export async function unsealText(
   key: CryptoKey,
   sealed: string | null | undefined,
@@ -138,8 +140,8 @@ export async function unsealText(
 }
 
 /**
- * Key material as something keys can be derived from and nothing can be read
- * out of: the page can use it, and a script that reaches it cannot export it.
+ * Key material from which keys can be derived, and from which nothing can be
+ * read. The page can use it. A script that reaches it cannot export it.
  */
 export function derivable(
   material: Uint8Array<ArrayBuffer>,
@@ -150,7 +152,7 @@ export function derivable(
   ]);
 }
 
-/** `purpose` names the job; every job gets a key of its own. */
+/** `purpose` names the job. Each job gets its own key. */
 function hkdf(purpose: string): HkdfParams {
   return {
     name: "HKDF",
@@ -160,7 +162,7 @@ function hkdf(purpose: string): HkdfParams {
   };
 }
 
-/** The AES-256-GCM key for `purpose`, which cannot be read out either. */
+/** The AES-256-GCM key for `purpose`, which also cannot be read out. */
 export function deriveKey(
   base: CryptoKey,
   purpose: string,
@@ -174,7 +176,7 @@ export function deriveKey(
   );
 }
 
-/** The HMAC-SHA-256 key for `purpose`, which cannot be read out either. */
+/** The HMAC-SHA-256 key for `purpose`, which also cannot be read out. */
 export function deriveMacKey(
   base: CryptoKey,
   purpose: string,
@@ -188,7 +190,7 @@ export function deriveMacKey(
   );
 }
 
-/** 256 bits for `purpose`, for a value that has to leave as bytes. */
+/** 256 bits for `purpose`, for a value that must go out as bytes. */
 export async function deriveBytes(
   base: CryptoKey,
   purpose: string,

@@ -5,18 +5,20 @@ import { plural, t } from "#/i18n/index.ts";
 import { type AppView, activeTag } from "#/state/ui.ts";
 
 /**
- * A board with nothing on it: a drawing of what the view holds when it holds
- * something (a stack of notes, a tidy archive box, an emptied bin) with a line
- * saying why it is empty and how something gets here. On a card of its own, so
- * it stays legible over a board picture or a busy texture, and not selectable:
- * it is a message, not content.
+ * A board with nothing on it: a drawing of the contents of the view when it has
+ * contents (a stack of notes, a tidy archive box, an empty bin), with a line
+ * that tells why it is empty and how something comes here. It is on its own
+ * card. Thus, it stays legible over a board picture or a busy texture. You
+ * cannot select it, because it is a message, not content.
  */
 export function EmptyBoard({
   view,
   hiddenByTag,
 }: {
   view: AppView;
-  /** Notes kept out of the Notes view by a hidden tag, which is not "none". */
+  /**
+   * Notes that a hidden tag keeps out of the Notes view. That is not "none".
+   */
   hiddenByTag: number;
 }) {
   const { Drawing, title, hint } = emptyStateFor(view, activeTag.value);
@@ -71,7 +73,7 @@ function emptyStateFor(
         hint: t("empty.reminders.hint"),
       };
     default:
-      // The notes, or one tag's notes, in the Notes or the Tags view.
+      // The notes, or the notes of one tag, in the Notes view or the Tags view.
       return tag
         ? {
             Drawing: TagDrawing,
@@ -91,9 +93,9 @@ function notesState() {
 }
 
 /**
- * The frame every drawing shares: line work in the text colour, and fills of
- * the same colour at low opacity, so each reads in either theme and on any
- * note colour without a palette of its own.
+ * The frame of all drawings: lines in the text color, and fills of the same
+ * color at low opacity. Thus, each one is legible in both themes and on all
+ * note colors, without its own palette.
  */
 function Drawing({ children }: { children: preact.ComponentChildren }) {
   return (
@@ -112,7 +114,7 @@ function Drawing({ children }: { children: preact.ComponentChildren }) {
   );
 }
 
-/** A small four-pointed sparkle centred on (x, y). */
+/** A small sparkle with four points, centered on (x, y). */
 function Sparkle({ x, y, size = 5 }: { x: number; y: number; size?: number }) {
   return (
     <path
@@ -122,7 +124,7 @@ function Sparkle({ x, y, size = 5 }: { x: number; y: number; size?: number }) {
   );
 }
 
-/** A pad of sticky notes, the top one blank, and a pencil beside it. */
+/** A pad of sticky notes, with the top note blank, and a pencil next to it. */
 function NotesDrawing() {
   return (
     <Drawing>
@@ -162,7 +164,7 @@ function NotesDrawing() {
   );
 }
 
-/** An archive box with its lid on, squared away. */
+/** An archive box with its lid on, tidy. */
 function ArchiveDrawing() {
   return (
     <Drawing>
@@ -188,7 +190,7 @@ function ArchiveDrawing() {
   );
 }
 
-/** A waste bin with nothing in it, its lid set straight. */
+/** A waste bin with nothing in it, with its lid straight. */
 function TrashDrawing() {
   return (
     <Drawing>
@@ -207,7 +209,7 @@ function TrashDrawing() {
   );
 }
 
-/** An alarm clock, quiet. */
+/** An alarm clock that is quiet. */
 function ReminderDrawing() {
   return (
     <Drawing>

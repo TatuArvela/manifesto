@@ -34,18 +34,20 @@ import type {
 } from "./StorageAdapter.ts";
 import { LockedError, type NoteSealing } from "./sealing.ts";
 
-/** Under the server's 1 MiB body limit, with room for the request's own
- * wrapping. */
+/**
+ * Under the 1 MiB body limit of the server, with space for the own wrapping of
+ * the request.
+ */
 const IMPORT_REQUEST_BYTES = 900 * 1024;
 
 const textEncoder = new TextEncoder();
 
 export interface RestApiAdapterOptions {
-  /** Invoked when the server returns 401, before the error is thrown. */
+  /** Called when the server returns 401, before the error is thrown. */
   onUnauthorized?: (() => void) | undefined;
   /**
-   * Seals what is sent and opens what arrives. Null while the account is
-   * locked, and then nothing that holds a note's words can be read or
+   * Seals what is sent, and opens what arrives. Null while the account is
+   * locked. Then nothing that contains the words of a note can be read or
    * written.
    */
   sealer?: NoteSealing | null | undefined;
@@ -60,7 +62,7 @@ async function refusalCode(res: Response): Promise<string | undefined> {
   }
 }
 
-/** The server's own message from an error body, or `fallback`. */
+/** The own message of the server from an error body, or `fallback`. */
 function errorMessage(data: Partial<ErrorResponse>, fallback: string): string {
   return typeof data.error === "string" && data.error.length > 0
     ? data.error
@@ -68,9 +70,9 @@ function errorMessage(data: Partial<ErrorResponse>, fallback: string): string {
 }
 
 /**
- * Thrown when an update collides with a newer server-side version. The
- * caller can use `currentNote` to run a 3-way merge and retry with a
- * fresh `If-Match`.
+ * Thrown when an update collides with a newer version on the server. The caller
+ * can use `currentNote` to run a 3-way merge, and try again with a new
+ * `If-Match`.
  */
 export class NoteConflictError extends Error {
   constructor(public currentNote: Note) {
@@ -79,7 +81,7 @@ export class NoteConflictError extends Error {
   }
 }
 
-/** A request the server answered with a refusal: `status` says which. */
+/** A request that the server answered with a refusal. `status` tells which. */
 export class RequestError extends Error {
   constructor(
     readonly status: number,
@@ -90,7 +92,10 @@ export class RequestError extends Error {
   }
 }
 
-/** An image upload the server refused (`status`), or that never arrived (0). */
+/**
+ * An image upload that the server refused (`status`), or that never arrived
+ * (0).
+ */
 export class ImageUploadError extends Error {
   constructor(readonly status: number) {
     super(`Image upload failed (${status})`);
@@ -115,13 +120,13 @@ export class RestApiAdapter implements StorageAdapter {
     this.sealer = options.sealer ?? null;
   }
 
-  /** The account's sealing, or a refusal while it is locked. */
+  /** The sealing of the account, or a refusal while it is locked. */
   private sealing(): NoteSealing {
     if (!this.sealer) throw new LockedError();
     return this.sealer;
   }
 
-  /** A note as the server holds it, for a key this device has not opened. */
+  /** A note as the server keeps it, for a key that this device did not open. */
   private readonly sealedNote = (id: string) => async () => {
     const res = await fetch(`${this.baseUrl}/api/v1/notes/${id}`, {
       headers: this.headers(),
@@ -144,21 +149,20 @@ export class RestApiAdapter implements StorageAdapter {
     try {
       data = (await res.json()) as Partial<ErrorResponse>;
     } catch {
-      // body was not JSON; keep the fallback message
+      // The body was not JSON. Keep the fallback message.
     }
     if (data.code === "note_format_newer") throw new NewerNoteFormatError();
     throw new RequestError(res.status, errorMessage(data, fallback));
   }
 
   /**
-   * Every page of a listing, concatenated.
+   * All pages of a listing, joined.
    *
-   * The app keeps all of a user's notes in one signal (`filteredNotes`,
-   * `allTags` and the tag counts are computed over the whole list), so pages
-   * are a property of the wire, not of the model: they bound any single
-   * response without changing what the client holds. The notes come back
-   * without their attachments; `loadImages` fetches those for the one note
-   * that needs them.
+   * The app keeps all notes of a user in one signal (`filteredNotes`, `allTags`
+   * and the tag counts are computed over the full list). Thus, pages are a
+   * property of the wire, not of the model. They limit each single response,
+   * and do not change what the client has. The notes come back without their
+   * attachments. `loadImages` loads those for the one note that needs them.
    */
   private async drainPages(path: string, failure: string): Promise<Note[]> {
     const sealing = this.sealing();
@@ -172,10 +176,10 @@ export class RestApiAdapter implements StorageAdapter {
       if (!res.ok) await this.fail(res, failure);
       const data = (await res.json()) as NotesResponse<SealedNote>;
       notes.push(...(await sealing.openAll(data.notes)));
-      // A page that came back empty cannot be followed by a useful one.
+      // An empty page cannot have a useful page after it.
       if (data.notes.length === 0) break;
       const next = data.nextCursor ?? null;
-      // A server that kept handing back the same cursor would spin here.
+      // A server that continued to give back the same cursor would loop here.
       if (next !== null && next === cursor) throw new Error(failure);
       cursor = next;
     } while (cursor !== null);
@@ -192,11 +196,12 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   /**
-   * Every page of one sync. The checkpoint and the ids come on the last page,
-   * and the checkpoint is fixed by the server when the first was asked for.
+   * All pages of one sync. The checkpoint and the ids come on the last page,
+   * and the server sets the checkpoint when the client asks for the first page.
    *
-   * A server from before `/api/v1/sync` answers 404, which is read as keeping no
-   * record of change: the caller lists everything, as it did then.
+   * A server from before `/api/v1/sync` answers 404. The client reads that as a
+   * server that keeps no record of changes. The caller then lists all notes, as
+   * it did then.
    */
   async changesSince(since: string | null): Promise<NoteChanges | null> {
     const sealing = this.sealing();
@@ -224,15 +229,15 @@ export class RestApiAdapter implements StorageAdapter {
         if (since === null) sealing.markComplete();
         return { notes, ids: data.ids, checkpoint: data.checkpoint };
       }
-      // A cursor handed back unchanged would spin here, as in `drainPages`.
+      // A cursor given back without change would loop here, as in `drainPages`.
       if (data.nextCursor === cursor) throw new Error("Sync did not advance");
       cursor = data.nextCursor;
     }
   }
 
   /**
-   * The images of one note. A listing carries them now, so this is a read of
-   * the note for whoever still asks.
+   * The images of one note. A listing carries them now. Thus, this is a read of
+   * the note for a caller that still asks.
    */
   async loadImages(id: string): Promise<string[]> {
     const note = await this.get(id);
@@ -286,8 +291,10 @@ export class RestApiAdapter implements StorageAdapter {
     return sealed ? await sealing.open(sealed) : null;
   }
 
-  /** The note in an answer, opened; a note that will not open is a failed
-   * request, since the caller asked for it by writing it. */
+  /**
+   * The note in an answer, opened. A note that does not open is a failed
+   * request, because the caller asked for it when it wrote it.
+   */
   private async opened(res: Response, failure: string): Promise<Note> {
     const data = (await res.json()) as NoteResponse<SealedNote>;
     const note = await this.sealing().open(data.note);
@@ -296,9 +303,9 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   /**
-   * Seals one image, uploads it and resolves its `attachment:` reference.
-   * Through `XMLHttpRequest` rather than `fetch`, since only it reports how
-   * much of the body has gone.
+   * Seals one image, uploads it, and resolves its `attachment:` reference.
+   * Through `XMLHttpRequest`, not `fetch`, because only it reports how much of
+   * the body went.
    */
   async putImage(
     image: Blob,
@@ -323,7 +330,7 @@ export class RestApiAdapter implements StorageAdapter {
     },
   ): Promise<string> {
     return new Promise((resolve, reject) => {
-      // An `abort` listener never hears a signal that has already fired.
+      // An `abort` listener never gets a signal that already fired.
       if (options.signal?.aborted) {
         reject(new DOMException("Aborted", "AbortError"));
         return;
@@ -362,11 +369,11 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   /**
-   * Makes the images a note is about to name its owner's, and answers the
-   * reference to name for each. A note's attachments all belong to its
-   * owner, and a sealed note cannot have one rewritten under it, so an image
-   * held by someone else (an editor's own upload, one copied out of a shared
-   * note) is stored again for the owner first.
+   * Makes the images that a note will name belong to its owner, and answers the
+   * reference to name for each. All attachments of a note belong to its owner,
+   * and nobody can change one under a sealed note. Thus, an image that a
+   * different person has (the own upload of an editor, an image copied out of a
+   * shared note) is first stored again for the owner.
    */
   private async claim(
     refs: string[],
@@ -397,9 +404,10 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   /**
-   * Any image still inline, uploaded and replaced by its reference: a note
-   * write carries references only. The editor uploads as images are attached;
-   * this catches the rest (an import, something shared to the app).
+   * Each image that is still inline, uploaded and replaced by its reference. A
+   * note write carries only references. The editor uploads when images are
+   * attached. This catches the remaining images (an import, something shared to
+   * the app).
    */
   private async uploadInline(images: string[]): Promise<string[]> {
     const out: string[] = [];
@@ -414,8 +422,9 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   /**
-   * The same for link preview images. One that will not upload is dropped
-   * and the card kept, since the server refuses a preview image held inline.
+   * The same for link preview images. The code drops an image that does not
+   * upload and keeps the card, because the server refuses a preview image that
+   * is inline.
    */
   private async uploadInlinePreviews(
     previews: LinkPreview[],
@@ -431,9 +440,9 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   /**
-   * A note write with everything inline uploaded first, and every image it
-   * names made the owner's of note `noteId` (the writer's own, for a note
-   * not there yet).
+   * A note write, with all inline data uploaded first, and with each image that
+   * it names made the property of the owner of note `noteId` (the own images of
+   * the writer, for a note that does not exist yet).
    */
   private async withUploads<T extends NoteUpdate>(
     changes: T,
@@ -466,7 +475,7 @@ export class RestApiAdapter implements StorageAdapter {
 
   async create(note: NoteCreate, options: CreateOptions = {}): Promise<Note> {
     const sealing = this.sealing();
-    // The id is chosen on this side: everything sealed is bound to it.
+    // The id is selected on this side. All sealed data is bound to it.
     const sealed = await sealing.sealNew(
       options.id ?? ulid(),
       await this.withUploads(note),
@@ -505,12 +514,12 @@ export class RestApiAdapter implements StorageAdapter {
       });
     let res = await send();
     if (res.status === 409) {
-      // The note's key was replaced since this device last read it: sealed
-      // again under the one it has now, once. Read through `open`, which is
-      // what takes the key a recipient was offered; one who has none yet
-      // holds no key after it, and the write fails as it should. A newer
-      // app having saved the note is no reason to try again: reading it
-      // only marks it as one this build cannot show.
+      // The key of the note was replaced since this device last read it. It is
+      // sealed again under its current key, one time. Read through `open`,
+      // which takes the key that a recipient was offered. A recipient who has
+      // none yet has no key after it, and the write fails, as it must. When a
+      // newer app saved the note, that is not a reason to try again. A read of
+      // it only marks it as a note that this build cannot show.
       const newer = (await refusalCode(res.clone())) === "note_format_newer";
       const now = await this.sealedNote(id)();
       if (now) await sealing.open(now);
@@ -518,12 +527,12 @@ export class RestApiAdapter implements StorageAdapter {
       if (!newer) res = await send();
     }
     if (res.status === 412) {
-      // The body is read once, for the note and for the message alike.
+      // The body is read one time, for the note and also for the message.
       let data: Partial<NoteResponse<SealedNote> & ErrorResponse> = {};
       try {
         data = (await res.json()) as typeof data;
       } catch {
-        // not JSON: nothing to merge with, and no message
+        // not JSON: nothing with which to merge, and no message
       }
       const current = data.note ? await sealing.open(data.note) : null;
       if (current) throw new NoteConflictError(current);
@@ -543,8 +552,8 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   async deleteAll(): Promise<void> {
-    // The server deletes the notes this user owns; the ones shared with them
-    // are someone else's.
+    // The server deletes the notes that this user owns. The notes shared with
+    // them belong to other persons.
     const res = await fetch(`${this.baseUrl}/api/v1/notes`, {
       method: "DELETE",
       headers: this.headers(),
@@ -553,22 +562,26 @@ export class RestApiAdapter implements StorageAdapter {
   }
 
   /**
-   * Sends a backup in as few requests as the server's limits allow. Each note
-   * keeps its id and creation time, so the server updates the notes it
-   * already has and importing the same file twice changes nothing.
+   * Sends a backup in as few requests as the limits of the server permit. Each
+   * note keeps its id and creation time. Thus, the server updates the notes
+   * that it already has, and an import of the same file two times changes
+   * nothing.
    */
   async importAll(imported: Note[]): Promise<void> {
     const sealing = this.sealing();
-    // A note this account already holds is written over under the key it
-    // has, so every key has to be at hand before the first is sealed.
+    // A note that this account already has is written over under its current
+    // key. Thus, each key must be available before the first is sealed.
     if (!sealing.complete) await this.getAll();
     type Plain = Omit<Note, "updatedAt" | "imageCount" | "sharing">;
     const plain = new Map<string, Plain>();
     let chunk: SealedNoteImport[] = [];
     let chunkBytes = 0;
-    /** Ids the server said belong to someone else's note. */
+    /** Ids that the server said belong to the note of a different person. */
     const taken: string[] = [];
-    /** Ids of notes the server holds under another key than they came in. */
+    /**
+     * Ids of notes that the server has under a key different from the key with
+     * which they came.
+     */
     const stale: string[] = [];
     const send = async () => {
       if (chunk.length === 0) return;
@@ -586,10 +599,10 @@ export class RestApiAdapter implements StorageAdapter {
         taken.push(...(answer.taken ?? []));
         stale.push(...(answer.stale ?? []));
       } catch {
-        // No answer to read: nothing was said to be taken.
+        // No answer to read: the server said that nothing was taken.
       }
     };
-    /** Ids whose key this import made, rather than one the device held. */
+    /** Ids whose key this import made, not a key that the device had. */
     const madeHere = new Set<string>();
     const add = async (id: string, payload: Plain) => {
       const { id: _id, createdAt, ...fields } = payload;
@@ -620,19 +633,20 @@ export class RestApiAdapter implements StorageAdapter {
       await add(uploaded.id, uploaded);
     }
     await send();
-    // An id that is someone else's note: sealed again under an id of this
-    // device's making, since a sealed note cannot be given one by the server.
+    // An id that is the note of a different person. Sealed again under an id
+    // that this device makes, because the server cannot give a sealed note an
+    // id.
     const again = taken.splice(0);
     for (const id of again) {
-      // A key this import made for the id is no key of that note's; one the
-      // device held (a note shared with the account) still is.
+      // A key that this import made for the id is not a key of that note. A key
+      // that the device had (a note shared with the account) still is.
       if (madeHere.has(id)) sealing.forget(id);
       const payload = plain.get(id);
       if (payload) await add(ulid(), payload);
     }
     await send();
-    // A note whose key was replaced since this device read it: read again,
-    // which takes the key it has now, and sealed under that.
+    // A note whose key was replaced since this device read it. Read again,
+    // which takes its current key, and sealed under that.
     const behind = stale.splice(0);
     for (const id of behind) {
       const now = await this.sealedNote(id)();
@@ -643,8 +657,8 @@ export class RestApiAdapter implements StorageAdapter {
       if (payload) await add(id, payload);
     }
     await send();
-    // Still under another key: it was replaced again, or this device cannot
-    // hold the note's key. Said, not passed over.
+    // Still under a different key: it was replaced again, or this device cannot
+    // have the key of the note. The code tells this, and does not skip it.
     if (stale.length > 0) throw new Error("Failed to import notes");
   }
 
@@ -653,7 +667,7 @@ export class RestApiAdapter implements StorageAdapter {
       `${this.baseUrl}/api/v1/link-preview?url=${encodeURIComponent(url)}`,
       { headers: this.headers() },
     );
-    // Previews turned off on this server: the plain card is the answer.
+    // Previews are off on this server: the plain card is the answer.
     if (res.status === 404) return null;
     if (!res.ok) await this.fail(res, "Failed to fetch link preview");
     const data = (await res.json()) as LinkPreviewResponse;

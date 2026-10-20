@@ -17,36 +17,36 @@ import {
 import * as Y from "yjs";
 
 /**
- * A note's shared document, sealed
+ * The shared document of a note, sealed
  * (`docs/specification/features/encryption.md`, "Collaboration").
  *
- * There are two documents. The **inner** one is the note as the editor binds
- * to it, readable, and it never leaves the browser. The **outer** one is what
- * the server syncs, merges and stores: a list of entries, each an edit to the
- * inner document or a snapshot of all of it, sealed under a key derived from
- * the note key. The server relays and keeps ciphertext; the clients do the
- * merging, which Yjs does the same way wherever it runs.
+ * There are two documents. The **inner** document is the note as the editor
+ * binds to it, readable, and it never goes out of the browser. The **outer**
+ * document is what the server syncs, merges and stores: a list of entries, each
+ * an edit to the inner document or a snapshot of all of it, sealed under a key
+ * derived from the note key. The server relays and keeps ciphertext. The
+ * clients do the merge, which Yjs does in the same way in all places.
  *
- * Presence is bridged the same way: the editor's awareness is local, and
- * what crosses is each cursor sealed. The server still stamps every state
- * with the account it authenticated and still refuses a state for a client
- * id another connection holds, neither of which needs it to read anything.
+ * Presence uses the same bridge. The awareness of the editor is local, and each
+ * cursor goes across sealed. The server still adds the authenticated account to
+ * each state, and still refuses a state for a client id that a different
+ * connection has. For neither does it have to read anything.
  */
 
-/** The outer document's list of sealed entries. */
+/** The list of sealed entries of the outer document. */
 const LOG = "log";
 
 const EDIT = 0;
 const SNAPSHOT = 1;
-/** Kind, then the note key's version as four bytes. */
+/** The kind, then the version of the note key as four bytes. */
 const HEADER_BYTES = 5;
 
-/** How many edits gather before a client folds them into a snapshot. */
+/** How many edits collect before a client folds them into a snapshot. */
 export const COMPACT_AFTER = 200;
-/** How many snapshots are kept, so a faulty one can be passed over. */
+/** How many snapshots are kept. Thus, a client can skip a faulty one. */
 const SNAPSHOTS_KEPT = 3;
 
-/** Marks what this bridge wrote, so it does not answer itself. */
+/** Marks what this bridge wrote. Thus, it does not answer itself. */
 const FROM_OUTER = Symbol("from the sealed log");
 const TO_OUTER = Symbol("to the sealed log");
 
@@ -75,37 +75,43 @@ function versionOf(entry: Uint8Array): number {
 }
 
 export interface SealedDocument {
-  /** Resolves once every entry that has arrived is in the inner document. */
+  /** Resolves when each entry that arrived is in the inner document. */
   settled(): Promise<void>;
-  /** Folds the edits so far into a snapshot, if enough have gathered. */
+  /** Folds the edits so far into a snapshot, if sufficient edits collected. */
   compact(force?: boolean): Promise<void>;
-  /** Entries that arrived and did not open: another key, or damage. */
+  /** Entries that arrived and did not open: a different key, or damage. */
   unreadable(): number;
   /**
-   * Stops carrying anything new across. Resolves once the edits already
-   * made to the inner document are in the outer one, which whoever holds
-   * that has to wait for before it is closed: sealing takes a moment, and
-   * the last keystrokes before a note is closed are still on their way.
+   * Stops to carry new data across. Resolves when the edits already made to the
+   * inner document are in the outer document. The holder of the outer document
+   * must wait for that before it closes it. The seal takes a short time, and
+   * the last keystrokes before a note closes are still on their way.
    */
   destroy(): Promise<void>;
 }
 
 /**
- * Joins `inner` to `outer`: an edit made to `inner` is sealed and appended to
- * `outer`'s log, and an entry that arrives in the log is opened and applied
- * to `inner`. Both directions are queued, since sealing takes a moment and an
- * edit must not be applied on top of one still being opened; Yjs merges
- * updates in any order, so the queue is for `settled`, not for correctness.
+ * Joins `inner` to `outer`. An edit made to `inner` is sealed and appended to
+ * the log of `outer`. An entry that arrives in the log is opened and applied to
+ * `inner`. Both directions use a queue, because the seal takes a short time,
+ * and an edit must not apply on top of an edit that is still in its open. Yjs
+ * merges updates in any order. Thus, the queue is for `settled`, not for
+ * correctness.
  */
 export function joinSealedDocument(options: {
   noteId: string;
   key: NoteSealKey;
-  /** The keys the note was under before, by version: what they sealed is
-   * read, and nothing new is written under one. */
+  /**
+   * The previous keys of the note, by version. The code reads what they sealed,
+   * and writes nothing new under one.
+   */
   older?: ReadonlyMap<number, NoteSealKey> | undefined;
   inner: Y.Doc;
   outer: Y.Doc;
-  /** Told how many entries have not opened, each time another does not. */
+  /**
+   * Gets the number of entries that did not open, each time another one does
+   * not.
+   */
   onUnreadable?: ((count: number) => void) | undefined;
 }): SealedDocument {
   const { noteId, key, older, inner, outer, onUnreadable } = options;
@@ -119,9 +125,11 @@ export function joinSealedDocument(options: {
   let queue: Promise<void> = Promise.resolve();
   let unreadable = 0;
   let destroyed = false;
-  /** Whether this device holds the key an entry is under, and so has read
-   * it: one under a key it does not hold yet (a replacement it has not been
-   * handed) is in no snapshot it writes. */
+  /**
+   * If this device has the key of an entry, and thus read it. An entry under a
+   * key that it does not have yet (a replacement that it did not get) is in no
+   * snapshot that it writes.
+   */
   const readable = (entry: Uint8Array) => {
     if (entry.length <= HEADER_BYTES) return false;
     const version = versionOf(entry);
@@ -142,7 +150,8 @@ export function joinSealedDocument(options: {
     if (destroyed || entry.length <= HEADER_BYTES) return;
     const kind = kindOf(entry);
     const version = versionOf(entry);
-    // Under a key this device does not hold the document by: left alone.
+    // Under a key for which this device does not have the document: not
+    // changed.
     const under = version === key.version ? key : older?.get(version);
     const update =
       under && (kind === EDIT || kind === SNAPSHOT)
@@ -159,8 +168,8 @@ export function joinSealedDocument(options: {
     try {
       Y.applyUpdate(inner, update, FROM_OUTER);
     } catch (err) {
-      // What opened was not an update: a faulty writer, whose entry is
-      // passed over like one that did not open.
+      // What opened was not an update: a faulty writer. The code skips its
+      // entry, as an entry that did not open.
       passOver();
       console.warn("A sealed edit did not apply:", err);
     }
@@ -172,15 +181,15 @@ export function joinSealedDocument(options: {
       new Uint8Array(update),
       data(kind),
     );
-    // Written even after `destroy`, which waits for it: the edit was made
-    // while the document was open, and is nowhere else.
+    // Written also after `destroy`, which waits for it. The edit was made while
+    // the document was open, and is in no other place.
     outer.transact(() => {
       log.push([entryOf(kind, key.version, sealed)]);
     }, TO_OUTER);
   }
 
-  // What is already there (from this browser's offline copy), then what
-  // arrives.
+  // The data that is already there (from the offline copy of this browser),
+  // then the data that arrives.
   for (const entry of log.toArray()) enqueue(() => open(entry));
   const onLog = (event: Y.YArrayEvent<Uint8Array>, tx: Y.Transaction) => {
     if (tx.origin === TO_OUTER) return;
@@ -204,10 +213,10 @@ export function joinSealedDocument(options: {
     if (destroyed) return;
     const edits = log.toArray().filter((e) => kindOf(e) === EDIT).length;
     if (!force && edits < COMPACT_AFTER) return;
-    // Everything in the log has been applied (the queue is empty), so the
-    // inner document as it stands covers every entry this device can read.
-    // One under a key it does not hold is in none of its snapshots, and is
-    // never removed here: the device that holds that key compacts it.
+    // All of the log was applied (the queue is empty). Thus, the current inner
+    // document covers each entry that this device can read. An entry under a
+    // key that it does not have is in none of its snapshots, and is never
+    // removed here. The device that has that key compacts it.
     const sealed = await sealBytes(
       await key.edits(),
       new Uint8Array(Y.encodeStateAsUpdate(inner)),
@@ -216,15 +225,14 @@ export function joinSealedDocument(options: {
     if (destroyed) return;
     outer.transact(() => {
       const entries = log.toArray();
-      // Only the snapshots this device can read: another key's are the
-      // concern of whoever holds it.
+      // Only the snapshots that this device can read. The snapshots of a
+      // different key concern the holder of that key.
       const snapshots = entries.flatMap((entry, index) =>
         kindOf(entry) === SNAPSHOT && readable(entry) ? [index] : [],
       );
-      // The snapshot before this one: the edits it covers have waited for
-      // the snapshot after it, which is this one, and can go. The edits
-      // since stay, so that this snapshot can be passed over if it is
-      // faulty.
+      // The snapshot before this one. The edits that it covers waited for the
+      // snapshot after it, which is this one. Thus, they can go. The edits
+      // after it stay. Thus, a client can skip this snapshot if it is faulty.
       const previous = snapshots.at(-1) ?? -1;
       const stale = new Set<number>();
       entries.forEach((entry, index) => {
@@ -232,7 +240,8 @@ export function joinSealedDocument(options: {
           stale.add(index);
         }
       });
-      // With the new one, the last three this device can read are kept.
+      // With the new one, the code keeps the last three that this device can
+      // read.
       for (const index of snapshots.slice(0, 1 - SNAPSHOTS_KEPT)) {
         stale.add(index);
       }
@@ -245,7 +254,7 @@ export function joinSealedDocument(options: {
 
   return {
     settled: async () => {
-      // An entry that arrives while the queue drains joins it.
+      // An entry that arrives while the queue empties joins it.
       let seen: Promise<void>;
       do {
         seen = queue;
@@ -263,7 +272,7 @@ export function joinSealedDocument(options: {
   };
 }
 
-/** The label at a cursor: the account the server authenticated. */
+/** The label at a cursor: the account that the server authenticated. */
 interface Stamp {
   id?: unknown;
   name?: unknown;
@@ -271,10 +280,10 @@ interface Stamp {
 }
 
 /**
- * Joins the editor's awareness (`inner`) to the one that crosses the wire
- * (`outer`). This tab's cursor goes out sealed, as `{ sealed }`; a state that
- * arrives is opened and shown under the `user` the server stamped on it, and
- * whatever name was inside is ignored. Returns what stops it.
+ * Joins the awareness of the editor (`inner`) to the awareness that goes across
+ * the wire (`outer`). The cursor of this tab goes out sealed, as `{ sealed }`.
+ * A state that arrives is opened, and shown under the `user` that the server
+ * added to it. The code ignores the name inside. Returns what stops it.
  */
 export function joinSealedAwareness(options: {
   noteId: string;
@@ -288,10 +297,12 @@ export function joinSealedAwareness(options: {
     field: "document/presence",
     version: key.version,
   });
-  /** One awareness for each remote client, to make its updates with: an
-   * update is applied only with a clock later than the last. */
+  /**
+   * One awareness for each remote client, with which to make its updates. An
+   * update applies only with a clock later than the last.
+   */
   const remotes = new Map<number, { doc: Y.Doc; awareness: Awareness }>();
-  /** What each remote client's sealed state last opened to. */
+  /** The value to which the sealed state of each remote client last opened. */
   const opened = new Map<number, { sealed: string; state: object | null }>();
   let queue: Promise<void> = Promise.resolve();
   let stopped = false;
@@ -346,7 +357,7 @@ export function joinSealedAwareness(options: {
       remote = { doc, awareness: new AwarenessOf(doc) };
       remotes.set(clientId, remote);
     }
-    // The name and colour are the server's word, never the sender's.
+    // The name and color come from the server, never from the sender.
     remote.awareness.setLocalState({ ...held.state, user: state.user ?? {} });
     applyAwarenessUpdate(
       inner,
@@ -371,8 +382,9 @@ export function joinSealedAwareness(options: {
       if (clientId !== outer.clientID) enqueue(() => show(clientId));
     }
   };
-  // `update`, not `change`: a peer that has not moved still renews its
-  // state, and the editor's awareness drops one it has not heard of lately.
+  // `update`, not `change`. A peer that did not move still renews its state,
+  // and the awareness of the editor drops a state that it did not hear
+  // recently.
   outer.on("update", onOuter);
 
   const publish = () => {
@@ -389,7 +401,7 @@ export function joinSealedAwareness(options: {
         utf8(JSON.stringify(own)),
         data,
       );
-      // Stopped while sealing: the cursor has left, and is not put back.
+      // Stopped during the seal: the cursor left, and is not put back.
       if (stopped) return;
       outer.setLocalState({ sealed });
     });

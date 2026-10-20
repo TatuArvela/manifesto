@@ -106,15 +106,15 @@ describe("nextOccurrence", () => {
   });
 
   it("falls Feb 29 back to Feb 28 on yearly in a non-leap year", () => {
-    // 2024 is a leap year; 2025 is not.
+    // 2024 is a leap year, and 2025 is not.
     expect(nextOccurrence("2024-02-29T08:00:00", "yearly")).toBe(
       "2025-02-28T08:00:00",
     );
   });
 
   it("preserves local wall-clock hour across DST (daily)", () => {
-    // Covers any local zone where DST transitions fall inside the advance:
-    // since nextOccurrence uses local components, the hour stays stable.
+    // Covers each local zone where DST transitions occur inside the advance.
+    // nextOccurrence uses local components. Thus, the hour stays stable.
     const result = nextOccurrence("2026-03-07T08:00:00", "daily");
     expect(result).toMatch(/T08:00:00$/);
   });

@@ -19,10 +19,10 @@ import { validatorHook } from "#/validation/zValidator.ts";
 import type { LoginAttempts } from "./loginAttempts.ts";
 
 /**
- * Checks a typed second factor at sign-in: an authenticator code, each step
- * usable once. `secret` is null for an account whose second factor is
- * passkeys alone, which has nothing to type: whoever lost those signs in
- * with the recovery key (`auth/accountKeys.ts`). True if it passes.
+ * Checks a typed second factor at sign-in: an authenticator code. Each step can
+ * be used one time. `secret` is null for an account whose only second factor is
+ * passkeys. It has nothing to type. A person who lost those signs in with the
+ * recovery key (`auth/accountKeys.ts`). True if it passes.
  */
 export async function checkSecondFactor(
   storage: StorageDriver,
@@ -35,8 +35,7 @@ export async function checkSecondFactor(
   return storage.twoFactor.advanceStep(userId, step);
 }
 
-/** Whether the account has a second factor: an authenticator, a passkey, or
- * both. */
+/** If the account has a second factor: an authenticator, a passkey, or both. */
 export async function hasSecondFactor(
   storage: StorageDriver,
   userId: string,
@@ -47,8 +46,8 @@ export async function hasSecondFactor(
 }
 
 /**
- * `/api/v1/auth/two-factor`: turning TOTP on and off for a local account. Every
- * step is session-only, and the ones that weaken or replace it ask for the
+ * `/api/v1/auth/two-factor`: turns TOTP on and off for a local account. Each
+ * step is session-only. The steps that make it weaker or replace it ask for the
  * password again.
  */
 export function registerTwoFactorRoutes(

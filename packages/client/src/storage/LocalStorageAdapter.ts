@@ -38,9 +38,9 @@ import {
 const STORAGE_KEY = "manifesto:notes";
 
 /**
- * The format the notes and their versions are kept in (`noteFormat.ts` in
+ * The format in which the notes and their versions are kept (`noteFormat.ts` in
  * shared). Absent for a store from before formats were recorded, which is
- * format 1. Every write stamps it.
+ * format 1. Each write records it.
  */
 const FORMAT_KEY = "manifesto:notes:format";
 
@@ -50,10 +50,10 @@ function storedFormat(): number {
 }
 
 /**
- * The store's format, refused when a newer version of the app wrote it, so
- * that an old tab or a cached build neither shows notes it would misread nor
- * writes over them. Asked before every read and write, since another tab may
- * have moved the store on since the last.
+ * The format of the store, refused when a newer version of the app wrote it.
+ * Thus, an old tab or a cached build does not show notes that it would read
+ * incorrectly, and does not write over them. Asked before each read and write,
+ * because a different tab can have moved the store forward since the last.
  */
 function readableFormat(): number {
   const format = storedFormat();
@@ -61,10 +61,16 @@ function readableFormat(): number {
   return format;
 }
 
-/** An image no note refers to is kept this long, sparing a draft's. */
+/**
+ * An image to which no note refers is kept this long, so that the image of a
+ * draft stays.
+ */
 const LOCAL_IMAGE_GRACE_MS = 24 * 60 * 60 * 1000;
 
-/** Any image still inline, moved to IndexedDB and replaced by its reference. */
+/**
+ * Each image that is still inline, moved to IndexedDB and replaced by its
+ * reference.
+ */
 async function storeInline(images: string[]): Promise<string[]> {
   const out: string[] = [];
   for (const image of images) {
@@ -79,7 +85,7 @@ async function storeInline(images: string[]): Promise<string[]> {
 
 /**
  * The same for link preview images, which only an import brings here inline
- * (open mode never fetches a preview). One that cannot be stored stays
+ * (open mode never loads a preview). An image that cannot be stored stays
  * inline, where it still shows.
  */
 async function storeInlinePreviews(
@@ -92,26 +98,27 @@ async function storeInlinePreviews(
   );
 }
 
-/** Every image a note holds, its previews' included. */
+/** Each image that a note contains, also those of its previews. */
 function imagesOf(note: Note): string[] {
   return [...note.images, ...previewImages(note.linkPreviews)];
 }
 
-/** Whether a note still holds any image inline. */
+/** If a note still contains an image inline. */
 function holdsInline(note: Note): boolean {
   return imagesOf(note).some((i) => i.startsWith("data:"));
 }
 
 /**
- * The list as last read or written, with the exact string it was stored as.
+ * The list as last read or written, with the exact string as which it was
+ * stored.
  *
- * Every write goes through the whole list (read, change one note, write it
- * back), and images once lived inside it as data URLs, so parsing it again on each
- * auto-save put megabytes of `JSON.parse` on the main thread every half second
- * while the user typed. The key is still read every time, so a write from
- * another tab or a cleared store is noticed by the string no longer matching;
- * only the parse is skipped. The notes are shared, not copied: nothing changes
- * a note in place, every write replaces it.
+ * Each write goes through the full list (read, change one note, write it back).
+ * Images were inside it as data URLs before. Thus, a new parse on each
+ * auto-save put megabytes of `JSON.parse` on the main thread each half second
+ * while the user typed. The key is still read each time. Thus, the code sees a
+ * write from a different tab or a cleared store, because the string does not
+ * agree now. Only the parse is skipped. The notes are shared, not copied.
+ * Nothing changes a note in place, and each write replaces it.
  */
 let cached: { raw: string; notes: Note[] } | null = null;
 
@@ -119,7 +126,7 @@ function loadNotes(): Note[] {
   const format = readableFormat();
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return [];
-  // Only what is in the current format was ever kept.
+  // Only data in the current format was ever kept.
   if (cached && cached.raw === raw && format === currentNoteFormat()) {
     return cached.notes.slice();
   }
@@ -144,10 +151,10 @@ function loadNotes(): Note[] {
 }
 
 /**
- * The notes and every version kept beside them, brought from `from` up to
- * the current format and written back, once. The versions go first: the
- * format is stamped with the notes, and a store stamped before its versions
- * were moved would leave them in the old format for good.
+ * The notes and each version kept next to them, brought from `from` up to the
+ * current format and written back, one time. The versions go first. The format
+ * is recorded with the notes, and a store recorded before its versions moved
+ * would leave them in the old format permanently.
  */
 function upgradeStore(notes: Note[], from: number): Note[] {
   const upgraded = notes.map((note) => upgradeNoteWords(note, from));
@@ -156,14 +163,14 @@ function upgradeStore(notes: Note[], from: number): Note[] {
   return upgraded.slice();
 }
 
-/** Where a list that would not read is kept, one key for each time. */
+/** Where a list that does not read is kept, one key for each time. */
 const SET_ASIDE_PREFIX = `${STORAGE_KEY}:unreadable:`;
 
 /**
- * Moves a list that does not read out of the way, so the app starts empty
- * instead of writing the next note over it, and someone can still get the
- * words back by hand. Throws when storage will not take the copy: the list
- * then stays where it is, and the load fails rather than a save replacing it.
+ * Moves a list that does not read out of the way. Thus, the app starts empty,
+ * does not write the next note over it, and a person can still get the words
+ * back manually. Throws when storage does not accept the copy. The list then
+ * stays where it is, and the load fails. A save does not replace it.
  */
 function setAside(raw: string): void {
   const key = `${SET_ASIDE_PREFIX}${Date.now()}`;
@@ -173,7 +180,7 @@ function setAside(raw: string): void {
   console.error(`The stored notes did not read, and were moved to ${key}`);
 }
 
-/** Whether a list was set aside: its images are still its own. */
+/** If a list was set aside. Its images still belong to it. */
 function hasSetAside(): boolean {
   for (let i = 0; i < localStorage.length; i++) {
     if (localStorage.key(i)?.startsWith(SET_ASIDE_PREFIX)) return true;
@@ -190,9 +197,9 @@ function saveNotes(notes: Note[]): void {
     cached = { raw, notes: notes.slice() };
   } catch (err) {
     if (isQuotaError(err)) {
-      // Say so and carry on: the in-memory signal still reflects the change,
-      // so the session keeps working. What the user is told about it is
-      // decided in `actions.ts`.
+      // Tell it and continue. The signal in memory still shows the change.
+      // Thus, the session continues to work. `actions.ts` decides what the user
+      // is told about it.
       reportQuotaRefusal();
       return;
     }
@@ -200,7 +207,7 @@ function saveNotes(notes: Note[]): void {
   }
 }
 
-/** Whether this browser has ever saved notes in open mode. */
+/** If this browser ever saved notes in open mode. */
 export function hasStoredNotes(): boolean {
   try {
     return localStorage.getItem(STORAGE_KEY) !== null;
@@ -210,25 +217,25 @@ export function hasStoredNotes(): boolean {
 }
 
 /**
- * Calls `onChange` when another tab writes the notes key, with the list as it
- * now stands on disk.
+ * Calls `onChange` when a different tab writes the notes key, with the list as
+ * it is now on disk.
  *
- * Every tab holds the whole list in a signal and writes all of it back on any
- * edit, so without this the last tab to save wins: trash a note in one tab,
- * change anything at all in another, and the trashed note is back. The event
- * only fires in tabs other than the writer, so this cannot loop.
+ * Each tab has the full list in a signal, and writes all of it back on each
+ * edit. Thus, without this, the last tab that saves wins. Trash a note in one
+ * tab, change anything in a different tab, and the trashed note is back. The
+ * event only fires in tabs other than the writer. Thus, this cannot loop.
  */
 export function subscribeToExternalNotes(
   onChange: (notes: Note[]) => void,
 ): () => void {
   const handler = (event: StorageEvent) => {
     if (event.key !== null && event.key !== STORAGE_KEY) return;
-    // A null key means the whole store was cleared.
+    // A null key means that the full store was cleared.
     let next: Note[];
     try {
       next = loadNotes();
     } catch (err) {
-      // A newer tab moved the store on: this one keeps what it shows, and
+      // A newer tab moved the store forward. This tab keeps what it shows, and
       // its next write is refused with a reason.
       if (err instanceof NewerNoteFormatError) return;
       throw err;
@@ -240,16 +247,18 @@ export function subscribeToExternalNotes(
 }
 
 export class LocalStorageAdapter implements StorageAdapter {
-  /** Open mode keeps the plain link card: fetching a page would mean asking a
-   * third party, which the build's CSP deliberately does not allow. */
+  /**
+   * Open mode keeps the plain link card. To load a page, it would have to ask a
+   * third party, which the CSP of the build intentionally does not permit.
+   */
   async fetchLinkPreview(_url: string): Promise<LinkPreview | null> {
     return null;
   }
 
   /**
-   * Every note. Images a note still holds inline, from before they moved to
-   * IndexedDB, are moved there first, once; then images no note refers to
-   * any more are swept, after a day's grace.
+   * Each note. Images that a note still contains inline, from before they moved
+   * to IndexedDB, move there first, one time. Then the code sweeps images to
+   * which no note refers now, after one day.
    */
   async changesSince(): Promise<NoteChanges | null> {
     return null;
@@ -258,10 +267,10 @@ export class LocalStorageAdapter implements StorageAdapter {
   async getAll(): Promise<Note[]> {
     const notes = loadNotes();
     if (notes.some(holdsInline)) {
-      // A note whose images cannot be moved (IndexedDB unavailable or full, a
-      // URL that will not decode) keeps them inline, where they still show;
-      // the move is tried again on the next load. Failing here would leave an
-      // empty board for notes that loaded fine before.
+      // A note whose images cannot move (IndexedDB not available or full, a URL
+      // that does not decode) keeps them inline, where they still show. The
+      // code tries the move again on the next load. A failure here would leave
+      // an empty board for notes that loaded correctly before.
       const moved: Note[] = [];
       for (const note of notes) {
         try {
@@ -281,13 +290,13 @@ export class LocalStorageAdapter implements StorageAdapter {
       try {
         saveNotes(moved);
       } catch {
-        // The inline copies are still on disk; nothing is lost.
+        // The inline copies are still on disk. Nothing is lost.
       }
     }
     const current = loadNotes();
-    // A list set aside names images too, and nothing can say which.
+    // A list set aside also names images, and nothing can tell which.
     if (!hasSetAside()) {
-      // A kept draft names images no note does yet.
+      // A kept draft names images that no note names yet.
       void openModeImageRefs()
         .then((kept) =>
           sweepLocalImages(
@@ -334,8 +343,8 @@ export class LocalStorageAdapter implements StorageAdapter {
   }
 
   async update(id: string, changes: NoteUpdate): Promise<Note> {
-    // Stored before the list is read, so the read, change and write below
-    // stay one synchronous step no other write can come between.
+    // Stored before the list is read. Thus, the read, change and write below
+    // stay one synchronous step, and no other write can come between them.
     if (changes.images) {
       changes = { ...changes, images: await storeInline(changes.images) };
     }
@@ -388,7 +397,7 @@ export class LocalStorageAdapter implements StorageAdapter {
     saveNotes([...existingById.values()]);
   }
 
-  /** Already here: open mode never separates a note from its attachments. */
+  /** Already here. Open mode never separates a note from its attachments. */
   async loadImages(id: string): Promise<string[]> {
     return (await this.get(id))?.images ?? [];
   }
@@ -404,7 +413,7 @@ export class LocalStorageAdapter implements StorageAdapter {
     saveVersion(noteId, version.title, version.content, version.timestamp);
   }
 
-  /** Kept in IndexedDB; the note holds its `local:` reference. */
+  /** Kept in IndexedDB. The note has its `local:` reference. */
   async putImage(image: Blob): Promise<string> {
     return putLocalImage(image);
   }

@@ -1,60 +1,70 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file gives guidance to Claude Code (claude.ai/code) for work on the code in this repository.
 
 ## Rules
 
-Each is a short form of a rule whose reasoning lives in an area guide (see Area Guides below). They
-are here because breaking one fails silently, often from a file the guide is not scoped to.
+Each rule is a short form of a rule whose reasons are in an area guide (see Area Guides below). The
+rules are here because each one fails silently when you break it, frequently from a file that is not
+in the scope of the guide.
 
 - Never use `git stash` for any purpose.
-- No em dashes anywhere: docs, comments, UI strings, test names, commits, PRs (`pnpm lint` fails).
-- Check `docs/specification/non-goals.md` before proposing a feature.
-- A state action never rejects: it reports its own failure and returns `false` / `null`. A handler
+- Use no em dashes in any place: docs, comments, UI strings, test names, commits, PRs (`pnpm lint`
+  fails).
+- Read `docs/specification/non-goals.md` before you propose a feature.
+- A state action never rejects. It reports its own failure and returns `false` / `null`. A handler
   that does not await one marks it `void`. Group work goes through `asBatch`.
-- A note the server sends comes in through `receiveNote` / `receiveNoteList`, never an assignment.
-- Test `SERVER_URL` and `storageConnection.serverUrl` with `=== null`, never falsiness: `""` is a
+- A note that the server sends comes in through `receiveNote` / `receiveNoteList`, never through an
+  assignment.
+- Test `SERVER_URL` and `storageConnection.serverUrl` with `=== null`, never for falsiness. `""` is a
   same-origin server, not open mode. Account-level requests go through `storage/apiRequest.ts`.
-- The product name is `APP_NAME` (never a literal, never `__APP_NAME__`); catalogues use `{appName}`.
-- Call `t()` inside render bodies, never at module scope. New strings go in `en.ts` first.
-- Escape goes through `useEscapeStack`, single-key shortcuts through `useShortcut`; never bind your
-  own `keydown` for either.
-- A note image renders through `StoredImage`; anything that leaves the session inlines them.
-- Anything that renders an auto-note's content applies `drawnWithoutImages` / `withoutImages`
-  (`utils/stripImages.ts`): a plugin that read notes has no other way out than its cards.
-- A new `Note` field goes in `SHARED_NOTE_FIELDS` or `PERSONAL_NOTE_FIELDS`, and an array field
-  needs a case in `mergeNoteUpdate` (the default, client-wins, drops the other writer's items).
-- Changing a node or mark in the editor schema means raising `EDITOR_SCHEMA_VERSION`.
-- Changing what a note's words hold is a step appended to `NOTE_FORMAT_STEPS`, never an edit to a
-  released one, and a new place that keeps a note records its format beside it.
+- The product name is `APP_NAME` (never a literal, never `__APP_NAME__`). Catalogues use `{appName}`.
+- Call `t()` inside render bodies, never at module scope. Put new strings in `en.ts` first.
+- Escape goes through `useEscapeStack`, and single-key shortcuts through `useShortcut`. Never bind
+  your own `keydown` for either.
+- A note image renders through `StoredImage`. All data that goes out of the session inlines the
+  images.
+- All code that renders the content of an auto-note applies `drawnWithoutImages` / `withoutImages`
+  (`utils/stripImages.ts`). A plugin that read notes has no other output than its cards.
+- A new `Note` field goes in `SHARED_NOTE_FIELDS` or `PERSONAL_NOTE_FIELDS`. An array field needs a
+  case in `mergeNoteUpdate` (the default, client-wins, deletes the items of the other writer).
+- A change to a node or mark in the editor schema needs a higher `EDITOR_SCHEMA_VERSION`.
+- A change to what the words of a note contain is a step appended to `NOTE_FORMAT_STEPS`, never an
+  edit to a released step. A new place that keeps a note records its format with it.
 - A reminder moves only through `advanceReminder`, `snapReminderToFuture`, `reminderAt` or
-  `pickedReminder`, never by setting `time` alone.
-- A new server route is an entry in `OPERATIONS` with `auth`, `limits` and (if token-reachable)
-  `scope`; routers mount no auth or rate limit, and a switchable one declares `feature`.
-- Ending a user's sessions goes through `endUserSessions`; a note or invitation event through
-  `sharing/noteEvents.ts`; taking a note away from someone through `sharing/accessChanges.ts`.
-- A security-relevant action writes an `audit(...)` entry (action in `AUDIT_ACTIONS`, a message in
-  both catalogues); one a stolen session could abuse also calls `requireConfirmation`.
-- Server-side outbound requests to user-supplied addresses go through `safeFetch`, never `fetch`.
-- Encrypting goes through `seal` / `unseal` with `associatedData`; the account key stays a
-  `CryptoKey` that cannot be exported, and no key a person holds is sent to the server.
-- A value the server stores to read by itself (a secret, a reminder's time) goes through `atRest`
-  and its column into `AT_REST_COLUMNS`, or replacing the server key loses it.
-- A note's words cross to the server only through the `Sealer` (`storage/sealing.ts`), sealed; a
-  new field of them is added in `shared/src/crypto/noteSeal.ts` and the sealed schema together.
-- Quantifiers stay bounded in anything reachable from a card render.
-- Commit messages follow the `commit-message` skill, PR descriptions the `pr-description` skill.
-- When a change alters what an area guide says, update the guide in the same commit, and add a
-  new file the guide describes to its `paths:`, or the guide never loads for that file.
+  `pickedReminder`, never when you set only `time`.
+- A new server route is an entry in `OPERATIONS` with `auth`, `limits` and (if a token can reach it)
+  `scope`. Routers mount no auth or rate limit. A route that a host can switch off declares `feature`.
+- The end of the sessions of a user goes through `endUserSessions`. A note or invitation event goes
+  through `sharing/noteEvents.ts`. When you take a note away from a person, use
+  `sharing/accessChanges.ts`.
+- A security-relevant action writes an `audit(...)` entry (an action in `AUDIT_ACTIONS`, a message in
+  both catalogues). If a stolen session can abuse the action, it also calls `requireConfirmation`.
+- Server-side outbound requests to addresses that users supply go through `safeFetch`, never through
+  `fetch`.
+- Encryption goes through `seal` / `unseal` with `associatedData`. The account key stays a `CryptoKey`
+  that cannot be exported. No key that a person holds goes to the server.
+- A value that the server stores to read by itself (a secret, the time of a reminder) goes through
+  `atRest`, and its column goes into `AT_REST_COLUMNS`. If not, a replacement of the server key loses
+  it.
+- The words of a note go to the server only through the `Sealer` (`storage/sealing.ts`), sealed. Add a
+  new field of them in `shared/src/crypto/noteSeal.ts` and in the sealed schema together.
+- Quantifiers stay bounded in all code that a card render can reach.
+- Commit messages follow the `commit-message` skill. PR descriptions follow the `pr-description`
+  skill.
+- When a change makes the text of an area guide incorrect, update the guide in the same commit. When
+  you add a new file that a guide describes, add it to the `paths:` of the guide. If not, the guide
+  never loads for that file.
 
 ## Project Overview
 
-Manifesto is a free, open-source note-taking app with a sticky note interface. It's MIT licensed. The full spec lives in `docs/specification/`,
-and what it has decided against in `docs/specification/non-goals.md`: check there before proposing a feature.
+Manifesto is a free, open-source app for notes, with an interface of sticky notes. It has the MIT
+license. The full specification is in `docs/specification/`. What it decided not to do is in
+`docs/specification/non-goals.md`. Read that file before you propose a feature.
 
-Server env vars are documented in `docs/specification/server/deployment.md` and rebranding in
-`docs/specification/custom-instances.md`. Both are the source of truth, so configure from there
-rather than re-deriving from `src/config.ts`.
+`docs/specification/server/deployment.md` documents the server env vars, and
+`docs/specification/custom-instances.md` documents rebranding. Both are the source of truth. Thus,
+configure from them, and do not derive the values again from `src/config.ts`.
 
 ## Commands
 
@@ -68,60 +78,74 @@ pnpm typecheck        # TypeScript check all packages
 pnpm test             # Run all tests (Vitest)
 ```
 
-The client's browser project drives real Chromium, so a fresh clone needs the browser binary
-once: `pnpm --filter @manifesto/client exec playwright install --with-deps chromium`. CI gates
-on exactly `lint`, `typecheck`, `test`, then both builds, and a PR on its title and commit subjects
-(`scripts/check-titles.mjs`, which `pnpm install` also wires in as the `commit-msg` hook).
+The browser project of the client uses real Chromium. Thus, a new clone needs the browser binary one
+time: `pnpm --filter @manifesto/client exec playwright install --with-deps chromium`. CI gates on
+exactly `lint`, `typecheck`, `test`, and then both builds. For a PR, it also gates on its title and
+commit subjects (`scripts/check-titles.mjs`, which `pnpm install` also installs as the `commit-msg`
+hook).
 
-Run for a single package with `pnpm --filter @manifesto/<client|server|shared> <script>`.
+To run a script for one package: `pnpm --filter @manifesto/<client|server|shared> <script>`.
 
-Run a single test file: `pnpm --filter @manifesto/client exec vitest run src/path/to/file.test.ts`
+To run one test file: `pnpm --filter @manifesto/client exec vitest run src/path/to/file.test.ts`
 (the packages have no `vitest` script; `exec` reaches the binary). Add `--project node` or
-`--project browser` to run just one of the client's two test projects.
+`--project browser` to run only one of the two test projects of the client.
 
 ## Architecture
 
-pnpm monorepo with three packages, plus one build tool:
+A pnpm monorepo with three packages, and one build tool:
 
-- **`packages/shared`**: types *and runtime values*: `NoteColor` / `NoteFont` are real enums and
-  the image, page-size and recurrence limits are exported constants, so this package emits
-  JavaScript and is not erasable. It has no npm dependencies of its own. Because the client and
-  server resolve it through different export conditions, a value added here must be reachable
-  from the build, not just the types. Both vitest configs alias `@manifesto/shared` to
-  `../shared/src/index.ts`, so tests never exercise `dist`: only a real build plus run catches a
-  value that typechecks and is `undefined` at runtime.
-- **`packages/client`**: Preact + TypeScript SPA, built with Vite. Uses @preact/signals for state, Tailwind v4 (via `@tailwindcss/vite`, no config file) for styling, Vitest for tests.
-- **`packages/server`**: Node.js + TypeScript, Hono. Storage and authentication are pluggable behind `StorageDriver` and `AuthProvider` interfaces. Two storage drivers ship: SQLite (`better-sqlite3`, default) and Postgres (`pg`). Two auth providers ship: local (argon2 + sessions, default) and OIDC. The client also works standalone with localStorage in open mode, so the server is optional.
-- **`packages/build-version`**: build-time only, never shipped. Resolves the version a build
-  reports (Settings footer, `/api/v1/health`): `0.1.5` on the release commit, `0.1.5+14.bf5a6dd`
-  after it. It counts from the last commit to touch `.release-please-manifest.json`, not from the
-  tag, because the tag is created by the Release workflow while the Pages build of the same push
-  is already running. It needs full history, so a checkout that builds must set `fetch-depth: 0`;
-  a shallow one gets `0.1.5+<sha>` rather than a false release number. The Docker context has no
-  `.git`, so `image-publish.yml` resolves it outside and passes `MANIFESTO_VERSION` in.
+- **`packages/shared`**: types *and runtime values*. `NoteColor` / `NoteFont` are real enums, and the
+  limits for images, page size and recurrence are exported constants. Thus, this package emits
+  JavaScript, and is not erasable. It has no npm dependencies of its own.
+  - The client and the server resolve it through different export conditions. Thus, the build must
+    reach a value that you add here, not only the types.
+  - Both vitest configs alias `@manifesto/shared` to `../shared/src/index.ts`. Thus, tests never use
+    `dist`. Only a real build and run finds a value that typechecks but is `undefined` at runtime.
+- **`packages/client`**: a Preact and TypeScript SPA, built with Vite. It uses @preact/signals for
+  state, Tailwind v4 (through `@tailwindcss/vite`, no config file) for styles, and Vitest for tests.
+- **`packages/server`**: Node.js and TypeScript, Hono. Storage and authentication are pluggable behind
+  the `StorageDriver` and `AuthProvider` interfaces. There are two storage drivers: SQLite
+  (`better-sqlite3`, default) and Postgres (`pg`). There are two auth providers: local (argon2 and
+  sessions, default) and OIDC. The client also works alone with localStorage in open mode. Thus, the
+  server is optional.
+- **`packages/build-version`**: only for the build, never shipped. It calculates the version that a
+  build reports (the Settings footer, `/api/v1/health`): `0.1.5` on the release commit,
+  `0.1.5+14.bf5a6dd` after it.
+  - It counts from the last commit that changed `.release-please-manifest.json`, not from the tag. The
+    Release workflow makes the tag while the Pages build of the same push already runs.
+  - It needs the full history. Thus, a checkout that builds must set `fetch-depth: 0`. A shallow
+    checkout gets `0.1.5+<sha>`, not a false release number.
+  - The Docker context has no `.git`. Thus, `image-publish.yml` calculates it outside, and sends
+    `MANIFESTO_VERSION` in.
 
 ### Key Design Decisions
 
-- **Local-first**: Client works fully offline using localStorage (open mode). Server connection is opt-in.
-- **Managed mode**: Organizations can deploy as server-only (no local storage, auth required).
-- **Storage adapters**: Client abstracts data access behind `StorageAdapter` interface: `LocalStorageAdapter` (default) or `RestApiAdapter` (server-connected). Factory in `storage/index.ts`.
-- **ULIDs** for note IDs (not UUIDs): lexicographically sortable, timestamp-prefixed.
-- **NoteColor** uses named enums (not hex) so themes can map colors differently for light/dark mode.
+- **Local-first**: the client works fully offline with localStorage (open mode). The connection to a
+  server is optional.
+- **Managed mode**: organizations can deploy it as server-only (no local storage, authentication
+  required).
+- **Storage adapters**: the client uses the `StorageAdapter` interface for data access:
+  `LocalStorageAdapter` (default) or `RestApiAdapter` (connected to a server). The factory is in
+  `storage/index.ts`.
+- **ULIDs** for note IDs (not UUIDs): they sort lexicographically, and start with a timestamp.
+- **NoteColor** uses named enums (not hex). Thus, themes can give colors differently in light mode and
+  dark mode.
 
 ### Area Guides
 
-The reasoning behind each area lives in `.claude/rules/`, one file per area. Each is scoped with
-`paths:` frontmatter and loads on its own the first time a matching file is read, so opening the
-code is enough. Read one by hand when planning a change before touching its files.
+The reasons for each area are in `.claude/rules/`, one file for each area. Each file has a scope in
+its `paths:` frontmatter. It loads automatically the first time that you read a matching file. Thus,
+to open the code is sufficient. When you plan a change, read the guide manually before you change its
+files.
 
 | Guide | Covers |
 | - | - |
 | `client-state.md` | `notesStore`, actions, pending writes, prefs, auth signals |
 | `branding.md` | `APP_NAME`, logos, deployment meta tags, server URL and CSP |
 | `i18n.md` | catalogues, `t()`, plurals |
-| `routing.md` | paths, the router, Back closing sheets |
+| `routing.md` | paths, the router, Back that closes sheets |
 | `version-history.md` | versions in both modes |
-| `note-format.md` | the format of a note's words, upgrading on read, refusing a newer one |
+| `note-format.md` | the format of the words of a note, upgrade on read, refusal of a newer format |
 | `editor.md` | Milkdown, the collaborative binding, lazy Yjs, schema version |
 | `auto-notes.md` | the plugin sandbox |
 | `realtime.md` | both sockets, resume, heartbeat, `If-Match` merge |
@@ -140,74 +164,85 @@ code is enough. Read one by hand when planning a change before touching its file
 
 ## Testing
 
-- Vitest. The client's suite is split into two projects by filename: `*.browser.test.ts` runs in a
-  real headless Chromium via Playwright, everything else runs in Node. A test takes the `.browser`
-  name when it needs a DOM (real CSS, `localStorage`, history, an iframe, DOMPurify), which is what
-  keeps the pure majority (parsers, mergers, schedulers, formatters) fast. The server's suite is
-  Node-only.
-- Test files are colocated with source (e.g., `actions.browser.test.ts` next to `actions.ts`)
-- Helpers that only tests import live in `src/test/` in both packages, and the storage contract
-  suites in `server/src/storage/contracts/`, which is what keeps all three out of the server build.
-- Tests use real `localStorage`; clear in `beforeEach`/`afterEach`
-- Signal state is set directly in tests (e.g., `notes.value = []`)
-- A module that a test mocks with a factory calling `importOriginal` must not sit in an import cycle
-  (`state/account/auth.ts` is mocked so). The original then imports the mocked module back while its
-  factory is still running, and the browser project hangs with no error at all, only files that never
-  report.
+- Vitest. The suite of the client has two projects, selected by filename. `*.browser.test.ts` runs in
+  a real headless Chromium through Playwright. All other files run in Node. A test gets the
+  `.browser` name when it needs a DOM (real CSS, `localStorage`, history, an iframe, DOMPurify). This
+  keeps the pure majority (parsers, mergers, schedulers, formatters) fast. The suite of the server
+  runs only in Node.
+- Test files are next to their source (for example, `actions.browser.test.ts` next to `actions.ts`).
+- Helpers that only tests import are in `src/test/` in both packages. The storage contract suites are
+  in `server/src/storage/contracts/`. This keeps all three out of the server build.
+- Tests use real `localStorage`. Clear it in `beforeEach`/`afterEach`.
+- Tests set signal state directly (for example, `notes.value = []`).
+- A module that a test mocks with a factory that calls `importOriginal` must not be in an import cycle
+  (`state/account/auth.ts` is mocked in this way). If it is, the original imports the mocked module
+  back while its factory still runs. The browser project then stops with no error. Only files that
+  never report show the problem.
 
 ## Code Style
 
-- Biome for linting and formatting (not ESLint/Prettier)
-- Import direction between source folders is a lint rule: the `overrides` in `biome.json` give each
-  folder a `noRestrictedImports` list of the folders it may not import, with the reason as the
-  message. Client, bottom up: `utils/`; then `storage/` and `autoNotes/`; `state/` (whose
-  `prefs.ts` alone `i18n/` may read), `realtime/`, `extensions/`; `hooks/`; `components/`. Server:
-  `lib/` knows nothing of notes or accounts, `storage/` imports only `lib/`, and only `app.ts`
-  imports `routes/`. Tests are exempt. A new folder needs a line in the list of its layer, or nothing
-  keeps it in place. The patterns match specifiers as written, not resolved paths, which is why an
-  import that leaves its folder goes through `#/` (each package's `imports` map onto its own
-  `src/`) and `biome-plugins/noParentImports.grit` refuses a `../` one; a `./` import stays inside
-  its folder. In server and shared the map sends `#/` to `dist/` unless the `manifesto-source`
-  condition is set, which `tsconfig.base.json`, both Vite configs and `pnpm dev` set and a built
-  server run with plain `node` does not.
-- An import names the file as it is (`./RestApiAdapter.ts`, `#/components/Note.tsx`), which
-  `useImportExtensions` holds. `rewriteRelativeImportExtensions` turns a `./` one into `.js` in what
-  `tsc` emits, and it leaves `#/` alone, so server and shared map `#/*.ts` onto `dist/*.js`. The
-  client, which Vite bundles, turns the rewrite off, since `tsc` refuses `#/x.ts` under it.
-- TypeScript strict mode in all packages
-- `type: "module"` (ESM) throughout
-- No em dashes (—) anywhere: docs, comments, UI strings, test names, commit messages and PR
-  descriptions. Use whichever punctuation fits the sentence: a colon, a semicolon, a comma,
+- Biome for linting and formatting (not ESLint/Prettier).
+- The import direction between source folders is a lint rule.
+  - The `overrides` in `biome.json` give each folder a `noRestrictedImports` list of the folders that
+    it must not import, with the reason as the message.
+  - Client, from the bottom up: `utils/`; then `storage/` and `autoNotes/`; `state/` (`i18n/` can
+    read only its `prefs.ts`), `realtime/`, `extensions/`; `hooks/`; `components/`.
+  - Server: `lib/` knows nothing about notes or accounts, `storage/` imports only `lib/`, and only
+    `app.ts` imports `routes/`.
+  - Tests are exempt. A new folder needs a line in the list of its layer. If not, nothing keeps it in
+    its place.
+  - The patterns match specifiers as they are written, not resolved paths. Thus, an import that goes
+    out of its folder goes through `#/` (the `imports` of each package map onto its own `src/`).
+    `biome-plugins/noParentImports.grit` refuses a `../` import. A `./` import stays inside its
+    folder.
+  - In server and shared, the map sends `#/` to `dist/` unless the `manifesto-source` condition is
+    set. `tsconfig.base.json`, both Vite configs and `pnpm dev` set it. A built server that runs with
+    plain `node` does not.
+- An import names the file as it is (`./RestApiAdapter.ts`, `#/components/Note.tsx`).
+  `useImportExtensions` enforces this. `rewriteRelativeImportExtensions` changes a `./` import into
+  `.js` in the output of `tsc`, and does not change `#/`. Thus, server and shared map `#/*.ts` onto
+  `dist/*.js`. The client, which Vite bundles, turns the rewrite off, because `tsc` refuses `#/x.ts`
+  with it.
+- TypeScript strict mode in all packages.
+- `type: "module"` (ESM) in all packages.
+- No em dashes (—) in any place: docs, comments, UI strings, test names, commit messages and PR
+  descriptions. Use the punctuation that is correct for the sentence: a colon, a semicolon, a comma,
   parentheses, or a full stop. A term followed by its definition in a list is `**Term**: text`.
-  `pnpm lint` fails on one (`lint:dashes`), and on any Biome warning, not only errors.
-- A source file stops at 1000 lines (`noExcessiveLinesPerFile`; the catalogues and tests are
-  exempt). Split along a seam rather than raising the limit.
-- Several rules in this file are lint errors rather than prose, with their exceptions listed as
-  overrides in `biome.json`: `fetch` in the client only in `storage/`, `state/account/auth.ts`,
-  `state/publicLinks.ts` and `autoNotes/registry.ts`; `process.env` only in `config.ts` and
-  `lib/logger.ts` (so `configDocs.test.ts` can hold `deployment.md` to every variable read);
-  `console` only `error` and `warn`; no default exports outside `*.config.ts`; nothing but tests
-  imports `src/test/`. `biome-plugins/` holds the two rules Biome has no built-in for:
-  `endUserSessions.grit` and `noteEvents.grit`.
+  `pnpm lint` fails on an em dash (`lint:dashes`), and on all Biome warnings, not only errors.
+- A source file has a maximum of 1000 lines (`noExcessiveLinesPerFile`; the catalogues and tests are
+  exempt). Split it along a seam. Do not make the limit higher.
+- Some rules in this file are lint errors, not only text. `biome.json` lists their exceptions as
+  overrides:
+  - `fetch` in the client only in `storage/`, `state/account/auth.ts`, `state/publicLinks.ts` and
+    `autoNotes/registry.ts`.
+  - `process.env` only in `config.ts` and `lib/logger.ts`. Thus, `configDocs.test.ts` can check that
+    `deployment.md` names each variable that the server reads.
+  - `console` only `error` and `warn`.
+  - No default exports outside `*.config.ts`.
+  - Only tests import `src/test/`.
+  - `biome-plugins/` contains the two rules for which Biome has no built-in rule:
+    `endUserSessions.grit` and `noteEvents.grit`.
 - `tsconfig.base.json` adds `verbatimModuleSyntax`, `noImplicitOverride`, `noImplicitReturns`,
   `noFallthroughCasesInSwitch`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess` and
-  `noUncheckedSideEffectImports` to strict mode. The server builds from
-  `tsconfig.build.json`, which leaves out tests, `storage/contracts/` and `src/test/`, so none of
-  them ship in the image.
-- `exactOptionalPropertyTypes` keeps "absent" and "present but `undefined`" apart. The wire types
-  in `@manifesto/shared` stay `?: T`, since JSON cannot carry an `undefined`, so a request schema
-  uses zod's `.exactOptional()` (and `exactPartial` in `validation/fields.ts`), never `.optional()`
-  or `.partial()`, which `validation/wireTypes.ts` would refuse. An internal option or a prop that
-  callers pass through from somewhere optional is declared `?: T | undefined`.
-- `noUncheckedIndexedAccess` types every `list[i]` and regex group as possibly `undefined`, and
-  there are no `!` assertions to wave that away. Destructure with a default
-  (`const [first = ""] = s.split(",")`), iterate with `entries()`, or read `.at(-1)` and test the
-  result. In a test, `list[0]?.field` inside an `expect` is fine, but not with a negative matcher
-  (`not.toBeNull()` passes on `undefined`) or where the value is passed on; there use `defined()`
-  from `src/test/defined.ts`, which fails the test instead.
-- `useExhaustiveDependencies` is on for the client's hooks, with unnecessary dependencies not
-  reported: a signal read into a local (`const x = sig.value`) looks constant to Biome, but is
-  exactly what an effect has to re-run on. A function an effect calls is made stable with
-  `useCallback`, or read from a ref when its identity must not re-run the effect.
-- `noFloatingPromises` (nursery) is on. Actions never reject, so a handler that does not await one
+  `noUncheckedSideEffectImports` to strict mode. The server builds from `tsconfig.build.json`, which
+  excludes tests, `storage/contracts/` and `src/test/`. Thus, none of them are in the image.
+- `exactOptionalPropertyTypes` keeps "absent" and "present but `undefined`" separate.
+  - The wire types in `@manifesto/shared` stay `?: T`, because JSON cannot contain an `undefined`.
+  - Thus, a request schema uses `.exactOptional()` of zod (and `exactPartial` in
+    `validation/fields.ts`), never `.optional()` or `.partial()`. `validation/wireTypes.ts` refuses
+    those.
+  - Declare an internal option, or a prop that callers send through from an optional source, as
+    `?: T | undefined`.
+- `noUncheckedIndexedAccess` types each `list[i]` and each regex group as possibly `undefined`. There
+  are no `!` assertions to remove that.
+  - Destructure with a default (`const [first = ""] = s.split(",")`), iterate with `entries()`, or
+    read `.at(-1)` and test the result.
+  - In a test, `list[0]?.field` inside an `expect` is acceptable. But do not use it with a negative
+    matcher (`not.toBeNull()` passes on `undefined`), or where the value goes to other code. There,
+    use `defined()` from `src/test/defined.ts`, which makes the test fail.
+- `useExhaustiveDependencies` is on for the hooks of the client. It does not report unnecessary
+  dependencies. A signal read into a local (`const x = sig.value`) looks constant to Biome, but an
+  effect must run again on exactly that value. Make a function that an effect calls stable with
+  `useCallback`, or read it from a ref when its identity must not run the effect again.
+- `noFloatingPromises` (nursery) is on. Actions never reject. Thus, a handler that does not await one
   marks it `void`.

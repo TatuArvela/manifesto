@@ -1,22 +1,25 @@
 /**
- * The mark a tab leaves when it sends the browser to single sign-on, so the
- * session that comes back in the address (`#token=`) is taken only by a tab
- * that asked for one.
+ * The mark that a tab leaves when it sends the browser to single sign-on. Thus,
+ * only a tab that asked for a session takes the session that comes back in the
+ * address (`#token=`).
  *
- * The server ties its callback to the browser that began the flow, with a
- * cookie. The last hop is the client's: the token arrives in a fragment, and
- * a fragment can be written by anyone into a link. Taken on sight, a link
- * carrying an attacker's own session would sign whoever opened it in to the
- * attacker's account, where everything they then wrote would be the
- * attacker's to read. Nothing but this origin's own pages can leave the mark.
+ * The server binds its callback to the browser that started the flow, with a
+ * cookie. The last step belongs to the client. The token arrives in a fragment,
+ * and any person can write a fragment into a link. If the client took it
+ * immediately, a link that carries the own session of an attacker would sign
+ * the person who opened it in to the account of the attacker. The attacker
+ * could then read all that the person wrote. Only the own pages of this origin
+ * can leave the mark.
  *
- * In `sessionStorage`, which follows the tab to the identity provider and
- * back and is no other tab's; spent by the first return, and stale once the
- * server's own flow would be.
+ * In `sessionStorage`, which follows the tab to the identity provider and back,
+ * and belongs to no other tab. The first return uses it. It becomes stale when
+ * the own flow of the server does.
  */
 const FLOW_KEY = "manifesto:oidcFlow";
 
-/** A little over the ten minutes the server holds a flow open. */
+/**
+ * A little more than the ten minutes for which the server keeps a flow open.
+ */
 export const OIDC_FLOW_MS = 15 * 60 * 1000;
 
 type FlowStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
@@ -29,7 +32,7 @@ function tabStorage(): FlowStorage | null {
   }
 }
 
-/** Called as the browser leaves for single sign-on. */
+/** Called when the browser goes to single sign-on. */
 export function markOidcFlow(
   storage: FlowStorage | null = tabStorage(),
   now: number = Date.now(),
@@ -37,12 +40,12 @@ export function markOidcFlow(
   try {
     storage?.setItem(FLOW_KEY, String(now));
   } catch {
-    // Without storage the sign-in that returns is not taken, and the login
-    // screen is there to try again.
+    // Without storage, the client does not take the sign-in that comes back,
+    // and the login screen is there to try again.
   }
 }
 
-/** Whether this tab began a sign-in that is still open. Spends the mark. */
+/** If this tab started a sign-in that is still open. Uses the mark. */
 export function takeOidcFlow(
   storage: FlowStorage | null = tabStorage(),
   now: number = Date.now(),

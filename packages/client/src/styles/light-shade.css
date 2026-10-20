@@ -1,25 +1,30 @@
-/* The light theme's tinted page and neutral ramp, and the swatches that show it. */
+/*
+ * The tinted page and neutral ramp of the light theme, and the swatches that
+ * show it.
+ */
 
-/* --- Light shade --------------------------------------------------------
-
-   The light theme's counterpart of dark-shade.css. The light theme is drawn
-   mostly on white (`bg-white`, the board's own page), so a tint of the
-   neutral ramp alone would hardly show: `--color-white` is redefined with
-   it. That is safe because the dark theme is the only one that uses white as
-   anything but a surface, and these rules are scoped to the light theme. The
-   few white glyphs on coloured buttons take the same faint cast, which does
-   not read at that lightness.
-
-   `--light-tint-c` / `--light-tint-h` are the cast, in the hue of one of the
-   board's preset colours. Chroma tapers off towards the dark end, which is
-   the light theme's text, for the reason the dark ramp tapers towards its
-   light end. `--light-dim` takes the surfaces down from full white, which can
-   carry no colour at all, just far enough to make room for the cast. The 500
-   step goes down with them: it is the app's secondary text, at 4.7:1 on
-   white, and a dimmed page alone took it under 4.5:1 (`colors.test.ts`).
-
-   The `[data-light-hue]` rules are not scoped to `html`, so the settings
-   swatches can set the attribute on themselves to sample a shade. */
+/*
+ * --- Light shade --------------------------------------------------------
+ *
+ * The equivalent of dark-shade.css for the light theme. The light theme is
+ * drawn mostly on white (`bg-white`, the own page of the board). Thus, a tint
+ * of only the neutral ramp would almost not show, and `--color-white` gets a
+ * new definition with it. That is safe, because only the dark theme uses white
+ * as anything other than a surface, and these rules are scoped to the light
+ * theme. The few white glyphs on colored buttons get the same faint hue, which
+ * you cannot see at that lightness.
+ *
+ * `--light-tint-c` / `--light-tint-h` are the hue, in the hue of one of the
+ * preset colors of the board. Chroma decreases toward the dark end, which is
+ * the text of the light theme, for the reason that the dark ramp decreases
+ * toward its light end. `--light-dim` makes the surfaces less than full white,
+ * which can carry no color, only sufficiently to make space for the hue. The
+ * 500 step goes down with them. It is the secondary text of the app, at 4.7:1
+ * on white, and a dimmed page alone put it under 4.5:1 (`colors.test.ts`).
+ *
+ * The `[data-light-hue]` rules are not scoped to `html`. Thus, the settings
+ * swatches can set the attribute on themselves to show a sample of a shade.
+ */
 :root {
   --light-tint-c: 0;
   --light-tint-h: 0;
@@ -44,7 +49,10 @@
   --light-dim: 2.5%;
 }
 
-/* Yellow needs more chroma than the rest to read as a colour this light. */
+/*
+ * Yellow needs more chroma than the other colors to look like a color at this
+ * lightness.
+ */
 [data-light-hue="yellow"] {
   --light-tint-c: 0.045;
   --light-tint-h: 100;
@@ -122,8 +130,10 @@ html:not(.dark) {
   );
 }
 
-/* A literal sample, like the dark swatch: the white the page and the top bar
-   are drawn on. The ring around it is what sets White apart from the panel. */
+/*
+ * A literal sample, as the dark swatch is: the white on which the page and the
+ * top bar are drawn. The ring around it makes White different from the panel.
+ */
 .light-hue-swatch {
   background-color: oklch(
     calc(100% - var(--light-dim)) var(--light-tint-c) var(--light-tint-h)

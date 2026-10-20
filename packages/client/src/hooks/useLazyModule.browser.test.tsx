@@ -39,7 +39,7 @@ describe("useLazyModule", () => {
     expect(load).not.toHaveBeenCalled();
 
     render(<Probe load={load} wanted onFail={onFail} />, host);
-    // A function, kept as itself rather than called as a state updater.
+    // A function, kept as itself, not called as a state updater.
     await vi.waitFor(() => expect(latest).toBe(component));
 
     render(<Probe load={load} wanted={false} onFail={onFail} />, host);

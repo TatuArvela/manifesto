@@ -16,7 +16,10 @@ const p = (text: string) =>
 const quote = (...content: ProseNode[]) =>
   schema.node("blockquote", null, content);
 
-/** The document's top-level shape: `>` per quote level before each text. */
+/**
+ * The top-level shape of the document: one `>` for each quote level before each
+ * text.
+ */
 function shape(doc: ProseNode): string[] {
   const lines: string[] = [];
   const walk = (node: ProseNode, depth: number) => {

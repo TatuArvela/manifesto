@@ -11,7 +11,10 @@ export function exitSelectMode() {
   selectedNotes.value = new Set();
 }
 
-/** Selects every note on screen, or deselects them if all already are. */
+/**
+ * Selects each note on the screen, or deselects them if all are already
+ * selected.
+ */
 export function selectAllVisible() {
   const ids = sortedNotes.value.filter((n) => !n.readonly).map((n) => n.id);
   const current = selectedNotes.value;

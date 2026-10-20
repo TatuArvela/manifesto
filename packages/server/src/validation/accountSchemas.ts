@@ -7,9 +7,9 @@ import {
   wrappedKey,
 } from "./fields.ts";
 
-// Request bodies of the account: signing in and up, passwords, passkeys and
-// two-factor, the account's keys and their recovery, preferences, push
-// subscriptions, and the admin's edits of accounts.
+// The request bodies of the account: sign-in and sign-up, passwords, passkeys
+// and two-factor, the keys of the account and their recovery, preferences, push
+// subscriptions, and the edits of accounts by an admin.
 
 const usernameSchema = z
   .string()
@@ -23,9 +23,9 @@ const passwordSchema = z
   .max(256, "Password is too long");
 
 /**
- * An email address, checked only for its shape: something, an `@`, something.
- * A mail server is the judge of whether it is deliverable; this only refuses
- * what cannot be an address at all.
+ * An email address, checked only for its shape: something, an `@`, something. A
+ * mail server decides if it is deliverable. This only refuses what cannot be an
+ * address.
  */
 export const emailSchema = z
   .string()
@@ -48,21 +48,23 @@ export const authMeUpdateSchema = z.object({
   password: confirmationPassword,
 });
 
-/** Deleting one's own account: only the confirmation. */
+/** The deletion of your own account: only the confirmation. */
 export const authMeDeleteSchema = z.object({
   password: confirmationPassword,
 });
 
-/** A language tag such as `fi` or `en-GB`; mail falls back to English for one
- * it has no text in. */
+/**
+ * A language tag such as `fi` or `en-GB`. Mail uses English for a language for
+ * which it has no text.
+ */
 export const authLocaleSchema = z.object({
   locale: z.string().regex(/^[a-z]{2,3}(-[A-Za-z0-9]{1,8}){0,3}$/),
 });
 
 /**
- * A patch of an account's preferences: up to 100 keys, each set to a value
- * sealed under the account's personal key, or to `null` to remove it. How
- * large the whole may grow is checked when it is merged.
+ * A patch of the preferences of an account: up to 100 keys, each set to a value
+ * sealed under the personal key of the account, or to `null` to remove it. The
+ * merge checks the maximum size of the result.
  */
 export const accountPrefsUpdateSchema = z.object({
   prefs: z
@@ -79,8 +81,11 @@ const base64url = (max: number) =>
     .max(max)
     .regex(/^[A-Za-z0-9_-]*$/);
 
-/** The browser's answer to a passkey sign-in, as `PublicKeyCredential.toJSON()`
- * gives it. What it proves is `@simplewebauthn/server`'s to check. */
+/**
+ * The answer of the browser to a passkey sign-in, as
+ * `PublicKeyCredential.toJSON()` gives it. `@simplewebauthn/server` checks what
+ * it proves.
+ */
 export const passkeyAuthenticationSchema = z.object({
   id: base64url(1024),
   rawId: base64url(1024),
@@ -95,7 +100,7 @@ export const passkeyAuthenticationSchema = z.object({
   clientExtensionResults: z.record(z.string(), z.unknown()),
 });
 
-/** The browser's answer to making a passkey. */
+/** The answer of the browser when it makes a passkey. */
 export const passkeyRegistrationSchema = z.object({
   id: base64url(1024),
   rawId: base64url(1024),
@@ -113,7 +118,7 @@ export const loginSchema = authCredentialsSchema.extend({
   newPassword: passwordSchema.exactOptional(),
   /** An authenticator code, when two-factor is on. */
   otp: z.string().trim().min(1).max(32).exactOptional(),
-  /** Or a passkey's answer to the challenge the first attempt was given. */
+  /** Or the answer of a passkey to the challenge of the first attempt. */
   passkey: passkeyAuthenticationSchema.exactOptional(),
 });
 
@@ -128,8 +133,10 @@ export const passkeyLoginSchema = z.object({
   response: passkeyAuthenticationSchema,
 });
 
-/** Re-entering the password guards the two-factor switches: a session left
- * open on a shared computer must not be enough to turn it off. */
+/**
+ * The two-factor switches ask for the password again. A session that stays open
+ * on a shared computer must not be sufficient to turn it off.
+ */
 export const twoFactorPasswordSchema = z.object({
   password: z.string().max(256),
 });
@@ -196,8 +203,8 @@ export const recoverySignInCompleteSchema = recoveryCompleteSchema.extend({
 });
 
 export const passwordChangeSchema = z.object({
-  // Only compared with the stored hash, so it is held to the length cap and
-  // not to today's rules, which an older password may predate.
+  // Only compared with the stored hash. Thus, it has only the length limit, not
+  // the current rules, which can be newer than an older password.
   currentPassword: z.string().min(1).max(256),
   newPassword: passwordSchema,
 });
@@ -217,9 +224,9 @@ export const adminUpdateUserSchema = z
   });
 
 /**
- * `POST /api/v1/push/subscriptions`: what `PushSubscription.toJSON()` gives. The
- * endpoint is the browser's push service, always over TLS; where it may point
- * is checked when a message is sent, against the resolved address.
+ * `POST /api/v1/push/subscriptions`: what `PushSubscription.toJSON()` gives.
+ * The endpoint is the push service of the browser, always over TLS. The send of
+ * a message checks where it can point, against the resolved address.
  */
 export const pushSubscribeSchema = z.object({
   endpoint: z
@@ -238,20 +245,27 @@ export const pushUnsubscribeSchema = z.object({
   endpoint: z.string().min(1).max(2048),
 });
 
-/** `POST /api/v1/auth/password-reset`. `locale` picks the mail's language. */
+/**
+ * `POST /api/v1/auth/password-reset`. `locale` selects the language of the
+ * mail.
+ */
 export const passwordResetRequestSchema = z.object({
   email: emailSchema,
   locale: z.string().max(10).exactOptional(),
 });
 
-/** `POST /api/v1/auth/sign-in-link`. `locale` picks the mail's language. */
+/**
+ * `POST /api/v1/auth/sign-in-link`. `locale` selects the language of the mail.
+ */
 export const signInLinkRequestSchema = z.object({
   email: emailSchema,
   locale: z.string().max(10).exactOptional(),
 });
 
-/** `POST /api/v1/auth/sign-in-link/confirm`: the link's token, and on a second
- * attempt the second factor the first one was asked for. */
+/**
+ * `POST /api/v1/auth/sign-in-link/confirm`: the token of the link and, on a
+ * second attempt, the second factor for which the first attempt was asked.
+ */
 export const signInLinkConfirmSchema = z.object({
   token: z.string().min(1).max(200),
   otp: z.string().trim().min(1).max(32).exactOptional(),

@@ -2,10 +2,10 @@ import { htmlToMarkdown } from "./htmlToMarkdown.ts";
 import { checkImportSize, type Importer, importedNote } from "./importer.ts";
 
 /**
- * A web page or an exported note as HTML: one note, titled by the page's
- * `<title>` or its first heading, its body as Markdown. This is also the way
- * in for Apple Notes, which has no export of its own; the tools that export
- * it write HTML (or Markdown, which imports as it is).
+ * A web page or an exported note as HTML: one note, with the `<title>` of the
+ * page or its first heading as the title, and its body as Markdown. This is
+ * also the way in for Apple Notes, which has no export of its own. The tools
+ * that export it write HTML (or Markdown, which imports as it is).
  */
 export const htmlImporter: Importer = {
   format: "HTML",

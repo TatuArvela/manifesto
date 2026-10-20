@@ -6,7 +6,7 @@ describe("namesMcp", () => {
     for (const resource of [
       "https://notes.example/api/v1/mcp",
       "https://notes.example/api/v1/mcp/",
-      // What an assistant connected before still asks for on a refresh.
+      // What an assistant that connected before still asks for on a refresh.
       "https://notes.example/api/mcp",
     ]) {
       expect(namesMcp(resource), resource).toBe(true);

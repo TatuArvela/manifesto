@@ -6,8 +6,8 @@ import { createSqliteStorage } from "./sqlite/driver.ts";
 import type { StorageDriver } from "./types.ts";
 
 export async function createStorage(cfg: ServerConfig): Promise<StorageDriver> {
-  // Before a driver reads or writes a row: what the server stores for
-  // itself goes under its key.
+  // Before a driver reads or writes a row: what the server stores for itself
+  // goes under its key.
   useAtRest(createAtRest(loadServerKeys(cfg)));
   switch (cfg.storageDriver) {
     case "sqlite":

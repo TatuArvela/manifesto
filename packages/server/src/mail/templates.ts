@@ -1,7 +1,7 @@
 /**
- * The mail this server sends, in the languages the client speaks. The server
- * has no catalogue of its own, so the few messages it writes live here, and
- * the client says which language it wants when it asks for one to be sent.
+ * The mail that this server sends, in the languages of the client. The server
+ * has no catalogue of its own. Thus, its few messages are here. The client
+ * tells which language it wants when it asks for a send.
  */
 
 export const MAIL_LOCALES = ["en", "fi"] as const;
@@ -86,8 +86,8 @@ export function signInLinkMail(
 }
 
 /**
- * The mail says who shared a note and not which: its title is sealed, and
- * the server that writes this mail has no key.
+ * The mail tells who shared a note, but not which note. Its title is sealed,
+ * and the server that writes this mail has no key.
  */
 export function shareInvitationMail(
   locale: MailLocale,
@@ -117,7 +117,7 @@ export function shareInvitationMail(
   };
 }
 
-/** What an admin sends themselves from the setup checks. */
+/** What an admin sends to themselves from the setup checks. */
 export function testMail(locale: MailLocale, { link }: { link: string }) {
   if (locale === "fi") {
     return {

@@ -51,7 +51,7 @@ export function createSqlitePublicLinksRepo(db: SqliteDB): PublicLinksRepo {
       return row ? rowToPublicLink(row) : null;
     },
     async delete(token, noteId) {
-      // A live link gave whoever had it the note's key.
+      // A live link gave the key of the note to the persons who had it.
       liveGoneStmt.run(noteId, token, noteId);
       return deleteStmt.run(token, noteId).changes > 0;
     },

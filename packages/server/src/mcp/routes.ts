@@ -12,38 +12,38 @@ import {
 import { MCP_TOOLS, type RestCall } from "./tools.ts";
 
 interface McpDeps {
-  /** The origins a browser may call from (`CORS_ORIGINS`). */
+  /** The origins from which a browser can call (`CORS_ORIGINS`). */
   corsOrigins: string[];
   serverVersion: string;
-  /** Runs a request through the whole app, as `app.fetch` does. */
+  /** Runs a request through the full app, as `app.fetch` does. */
   forward: (request: Request, env: object) => Response | Promise<Response>;
 }
 
 /**
- * The most messages one batch may hold. A batch is answered in one request,
- * so the rate limit on the endpoint counts it once however long it is, and
- * the messages that reach no route (`ping`, `tools/list`, an unknown method)
- * are counted nowhere else.
+ * The maximum number of messages in one batch. One request answers a batch.
+ * Thus, the rate limit on the endpoint counts it one time, whatever its length.
+ * The messages that reach no route (`ping`, `tools/list`, an unknown method)
+ * are counted in no other place.
  */
 export const MAX_BATCH = 50;
 
 /**
- * `/api/v1/mcp`: the MCP endpoint, as the protocol's "Streamable HTTP"
- * transport in its stateless form. A client POSTs one JSON-RPC message (or,
- * under protocol 2025-03-26, a batch) and gets the answer as JSON: 200 for a
- * request, 202 for what needs no answer. Nothing streams, so a GET for a
- * server-sent stream and a DELETE of a session are 405, which the protocol
- * says is how a server declines them.
+ * `/api/v1/mcp`: the MCP endpoint, as the "Streamable HTTP" transport of the
+ * protocol, in its stateless form. A client POSTs one JSON-RPC message (or,
+ * with protocol 2025-03-26, a batch), and gets the answer as JSON: 200 for a
+ * request, 202 for a message that needs no answer. Nothing streams. Thus, a GET
+ * for a server-sent stream and a DELETE of a session get 405. The protocol says
+ * that a server declines them in this way.
  *
- * Only an MCP token opens it (`mfm_`, minted in Settings), and the tools run
- * as REST requests through the same app with that token (see `tools.ts`).
+ * Only an MCP token opens it (`mfm_`, made in Settings). The tools run as REST
+ * requests through the same app, with that token (see `tools.ts`).
  */
 export function createMcpRoutes(deps: McpDeps) {
   const routes = new Hono<{ Variables: { auth: AuthContext } }>();
 
-  // The protocol asks a server to check Origin, against DNS rebinding: a page
-  // on another site must not reach a server on the user's network through
-  // their browser. An assistant is not a browser and sends none.
+  // The protocol asks a server to check Origin, against DNS rebinding. A page
+  // on a different site must not reach a server on the network of the user
+  // through their browser. An assistant is not a browser, and sends no Origin.
   const checkOrigin: MiddlewareHandler = async (c, next) => {
     const origin = c.req.header("Origin");
     if (origin && !deps.corsOrigins.includes(origin)) {
@@ -75,7 +75,7 @@ export function createMcpRoutes(deps: McpDeps) {
         415,
       );
     }
-    // Only sent after `initialize`; absent means the client did not say.
+    // Sent only after `initialize`. Absent means that the client did not say.
     const version = c.req.header("MCP-Protocol-Version");
     if (version && !PROTOCOL_VERSIONS.some((v) => v === version)) {
       return reply(
@@ -107,7 +107,8 @@ export function createMcpRoutes(deps: McpDeps) {
       if (options.ifMatch !== undefined) {
         headers.set("If-Match", options.ifMatch);
       }
-      // So the rate limit and any audit line see the assistant's address.
+      // Thus, the rate limit and each audit line see the address of the
+      // assistant.
       if (forwardedFor) headers.set("X-Forwarded-For", forwardedFor);
       const res = await deps.forward(
         new Request(new URL(path, c.req.url), {

@@ -85,16 +85,16 @@ describe("sandbox", () => {
   });
 
   it("times out a plugin that never returns, and rebuilds", async () => {
-    // The plugin this exists for. Before plugins ran on their own thread
-    // this test could not be written: the loop occupied the thread the host
-    // timer needed, so the tab hung instead of timing out, and the test had
-    // to fake a non-responsive plugin by throwing an object whose `.message`
-    // getter threw.
+    // The reason for this test. Before plugins ran on their own thread, nobody
+    // could write this test. The loop used the thread that the host timer
+    // needed. Thus, the tab stopped, and did not time out. The test had to fake
+    // a plugin that does not answer, with an object whose `.message` getter
+    // threw.
     const spinSrc = `_default = () => { while (true) {} };`;
     await expect(runPlugin(spinSrc, CTX, 300)).rejects.toThrow(/timed out/);
 
-    // A fresh invocation should still work: the sandbox was rebuilt, and
-    // tearing down the frame took its spinning worker with it.
+    // A new call must still work. The sandbox was built again, and the removal
+    // of the frame also removed its spinning worker.
     const okSrc = `_default = () => ({ title: "ok", content: "still here" });`;
     const notes = await runPlugin(okSrc, CTX);
     expect(notes[0]?.title).toBe("ok");
@@ -109,14 +109,14 @@ describe("sandbox", () => {
     } finally {
       clearInterval(ticker);
     }
-    // A blocked main thread would have starved the interval entirely; the
-    // timeout itself is the other half of the same evidence.
+    // A blocked main thread would have stopped the interval fully. The timeout
+    // itself is the other half of the same proof.
     expect(ticks.length).toBeGreaterThan(3);
   }, 10_000);
 
   it("drops a colour the plugin invented", async () => {
-    // The host validates, so `noteColorMap[color]` can't be handed a string
-    // it has no entry for, which threw while a card rendered.
+    // The host validates. Thus, `noteColorMap[color]` cannot get a string for
+    // which it has no entry, which threw while a card rendered.
     const src = `
       _default = () => ({ title: "t", content: "c", color: "hotpink" });
     `;
@@ -125,9 +125,9 @@ describe("sandbox", () => {
   });
 
   it("keeps a note whose sibling fields are not serializable", async () => {
-    // JSON on the wire rather than a structured clone: a function-valued
-    // field would make `postMessage` throw a DataCloneError, which would
-    // surface as a sandbox fault rather than as the plugin's own doing.
+    // JSON on the wire, not a structured clone. A field with a function value
+    // would make `postMessage` throw a DataCloneError. That would show as a
+    // fault of the sandbox, not as the action of the plugin.
     const src = `
       _default = () => ({ title: "t", content: "c", render: () => 1 });
     `;
@@ -147,8 +147,8 @@ describe("sandbox", () => {
   });
 
   it("gives a plugin no window to reach the host through", async () => {
-    // A worker has no `window` at all, and the frame that owns it has an
-    // opaque origin, so the fallback path throws SecurityError here instead.
+    // A worker has no `window`, and the frame that owns it has an opaque
+    // origin. Thus, the fallback path throws SecurityError here.
     const src = `
       _default = () => {
         const title = window.parent.document.title;
@@ -159,8 +159,8 @@ describe("sandbox", () => {
   });
 
   it("has no access to host localStorage", async () => {
-    // Unavailable in a worker; and denied to an opaque origin on the
-    // fallback path, where `setItem` throws SecurityError.
+    // Not available in a worker. On the fallback path, an opaque origin does
+    // not get it, and `setItem` throws SecurityError.
     const src = `
       _default = () => {
         localStorage.setItem("pwned", "yes");
@@ -244,13 +244,13 @@ describe("sandbox", () => {
         "**Shopping**\n- milk\n\n**Untitled**\n- call the plumber",
       );
 
-      // Not yet allowed: it says what to do instead of showing nothing.
+      // Not permitted yet. It tells what to do, and does not show nothing.
       const [asking] = await runPlugin(openTasksExample, CTX);
       expect(asking?.content).toContain("Allow");
     });
 
     it("leaves a plugin holding notes no way to send them out", async () => {
-      // The frame's policy denies every connection, and a worker inherits it.
+      // The policy of the frame refuses all connections, and a worker gets it.
       const src = `
         _default = (ctx) => {
           const tried = [];
@@ -268,8 +268,8 @@ describe("sandbox", () => {
         };
       `;
       const [out] = await runPlugin(src, reading);
-      // No document to make an image or a form with, and a worker's location
-      // is read-only: assigning to it goes nowhere.
+      // No document in which to make an image or a form. The location of a
+      // worker is read-only. An assignment to it goes nowhere.
       expect(out?.title).toContain("undefined");
       const again = await runPlugin(
         `_default = () => ({ title: "still here", content: "" });`,

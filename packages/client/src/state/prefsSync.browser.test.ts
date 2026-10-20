@@ -18,7 +18,9 @@ function json(body: unknown): Response {
   });
 }
 
-/** Answers like the server: a GET gives the stored copy, a PATCH merges. */
+/**
+ * Answers as the server does: a GET gives the stored copy, and a PATCH merges.
+ */
 function serve(delayGet?: Promise<void>) {
   fetchMock.mockImplementation(async (url, init) => {
     expect(String(url)).toBe(`${SERVER}/api/v1/auth/me/prefs`);
@@ -90,9 +92,9 @@ describe("preferences that follow the account", () => {
     serve();
     signIn();
     await vi.waitFor(() => expect(theme.value).toBe("dark"));
-    // The account's own value wins over the default.
+    // The own value of the account wins over the default.
     expect(hiddenTags.value).toEqual(["private"]);
-    // A device's own preference is never the account's to set.
+    // The account never sets a preference that belongs to a device.
     expect(stickyTopBar.value).toBe(true);
     await vi.waitFor(() => expect(patches).toHaveLength(1), { timeout: 2000 });
     expect(sent()).toMatchObject({ theme: "dark" });
@@ -142,7 +144,8 @@ describe("preferences that follow the account", () => {
       timeout: 2000,
     });
     patches = [];
-    // Readable, as this project's stand-in for sealing hands them through.
+    // Readable, because the replacement for the seal in this project lets them
+    // through.
     await receiveAccountPrefs({
       theme: "dark",
       hiddenTags: ["home"],
@@ -175,8 +178,9 @@ describe("preferences that follow the account", () => {
     });
     patches = [];
     theme.value = "dark";
-    // The other tab saved on adopting an echo from before this change, so
-    // its copy has the theme as it was; its own sticky bar is still taken.
+    // The other tab saved when it adopted an echo from before this change.
+    // Thus, its copy has the theme as it was. Its own sticky bar is still
+    // taken.
     const value = JSON.stringify({ theme: "system", stickyTopBar: false });
     localStorage.setItem("manifesto:prefs", value);
     window.dispatchEvent(

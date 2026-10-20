@@ -20,15 +20,16 @@ import {
 import { validatorHook } from "#/validation/zValidator.ts";
 
 /**
- * `/api/v1/push`: a browser subscribing to this account's reminders as push
- * messages. Session-only, like everything that decides where an account's
- * notes are sent: a subscription receives the title and first words of every
- * note whose reminder comes due.
+ * `/api/v1/push`: a browser that subscribes to the reminders of this account as
+ * push messages. Session-only, as all actions that decide where the notes of an
+ * account go: a subscription gets the title and the first words of each note
+ * whose reminder becomes due.
  *
- * The browser asks for the server's key, subscribes with it at its own push
- * service, and hands the subscription over. One is a browser profile; signing
- * out there, or the push service reporting it gone, removes it, and so does
- * the end of the session it was made in, however that comes about.
+ * The browser asks for the key of the server, subscribes with it at its own
+ * push service, and gives the subscription to the server. One subscription is
+ * one browser profile. A sign-out there, or a report from the push service that
+ * it is gone, removes it. The end of the session in which it was made also
+ * removes it, whatever the cause.
  */
 export function createPushRoutes(deps: {
   storage: StorageDriver;
@@ -51,15 +52,15 @@ export function createPushRoutes(deps: {
       if (!isUsableTarget(keys)) {
         throw new HttpError(422, "keys: Not a push subscription's keys");
       }
-      // A browser renews its subscription at every start. Only one the
-      // account did not hold is somewhere new for its reminders to go.
+      // A browser renews its subscription at each start. Only a subscription
+      // that the account did not have is a new place for its reminders.
       const known = (await storage.pushSubscriptions.listByUser(userId)).some(
         (held) => held.endpoint === endpoint,
       );
       await storage.pushSubscriptions.save({
         id: newId(),
         userId,
-        // Bound to this session, so it ends when the session does.
+        // Bound to this session. Thus, it ends when the session ends.
         sessionToken: hashToken(token),
         endpoint,
         p256dh: keys.p256dh,
@@ -71,13 +72,13 @@ export function createPushRoutes(deps: {
         audit(storage, c, {
           action: "push.subscribed",
           actorId: userId,
-          // The push service, not the endpoint: its path is what lets a
-          // sender reach the browser.
+          // The push service, not the endpoint. Its path lets a sender reach
+          // the browser.
           detail: { service: new URL(endpoint).host },
         });
       }
-      // The newest are kept: a browser that subscribed long ago and was
-      // never heard of again is the one to let go.
+      // The newest are kept. A browser that subscribed long ago and was never
+      // heard from again is the one to remove.
       const held = await storage.pushSubscriptions.listByUser(userId);
       for (const old of held.slice(
         0,

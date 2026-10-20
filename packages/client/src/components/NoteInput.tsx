@@ -63,11 +63,12 @@ const ctaKeys: MessageKey[] = [
 ];
 
 /**
- * How long the sheet takes to come off the pad. The editor waits for all of
- * it and then grows out of the sheet, so this is also the delay before typing.
+ * How long the sheet takes to come off the pad. The editor waits for all of it,
+ * and then grows out of the sheet. Thus, this is also the delay before you can
+ * type.
  */
 const LIFT_MS = 280;
-/** Editor fade-out. */
+/** The fade-out of the editor. */
 const CLOSE_MS = 150;
 function randomCta(exclude?: string): string {
   const all = ctaKeys.map((k) => t(k));
@@ -76,16 +77,16 @@ function randomCta(exclude?: string): string {
 }
 
 /**
- * The lines on the pad's top sheet and the one behind it. `cycle` moves the
- * next line up and draws a new one behind it.
+ * The lines on the top sheet of the pad and on the sheet behind it. `cycle`
+ * moves the next line up, and draws a new line behind it.
  */
 function useQuips(): { top: string; next: string; cycle: () => void } {
   const [top, setTop] = useState(() => randomCta());
   const [next, setNext] = useState(() => randomCta(top));
-  // The quips are drawn from the rotation only while the preference is on;
-  // with it off both sheets read the same plain line, so nothing rotates.
-  // Read at render rather than at pick time, so the toggle takes effect on the
-  // stack that is already on screen.
+  // The quips come from the rotation only while the preference is on. When it
+  // is off, both sheets show the same plain line, and nothing rotates. The code
+  // reads it at render, not when it selects a line. Thus, the toggle applies to
+  // the stack that is already on the screen.
   const plain = noteQuips.value ? null : t("cta.plain");
   return {
     top: plain ?? top,
@@ -98,8 +99,9 @@ function useQuips(): { top: string; next: string; cycle: () => void } {
 }
 
 /**
- * Downloads the unsaved composer contents as a note's JSON. The file carries
- * the image bytes, not references only this browser or server can read.
+ * Downloads the unsaved contents of the composer as the JSON of a note. The
+ * file contains the image bytes, not references that only this browser or
+ * server can read.
  */
 async function downloadDraftAsJson(draft: ComposerDraft): Promise<void> {
   const inlined = await inlineImages(draft.images);
@@ -140,20 +142,21 @@ export function NoteInput() {
   const topSheetRef = useRef<HTMLDivElement>(null);
   const fabRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  // What the editor grows out of, measured as it is asked to open and used
-  // once the panel is laid out. `opaque` for the peeled sheet, which is gone
-  // the moment the editor takes over from it.
+  // The element out of which the editor grows, measured when the request to
+  // open comes, and used after the layout of the panel. `opaque` for the peeled
+  // sheet, which is gone when the editor takes its place.
   const morphFromRef = useRef<{ rect: RectLike; opaque: boolean } | null>(null);
   const [morphing, setMorphing] = useState(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  // Whether the kept draft has been read since the editor opened. Until it
-  // has, what the editor holds is not written over it: an editor that has
-  // only just opened is empty, and would clear the draft it is about to show.
+  // If the kept draft was read since the editor opened. Until then, the content
+  // of the editor is not written over it. An editor that just opened is empty,
+  // and would clear the draft that it must show.
   const [draftRead, setDraftRead] = useState(false);
-  // Which opening a draft that arrives belongs to.
+  // The opening to which a draft that arrives belongs.
   const openingRef = useRef(0);
-  // Raised as a kept draft is put in, to build the editor again around it:
-  // the editor takes its text when it is built and follows only itself after.
+  // Increased when a kept draft goes in, to build the editor again around it.
+  // The editor takes its text when it is built, and follows only itself after
+  // that.
   const [filled, setFilled] = useState(0);
 
   const after = (ms: number, fn: () => void) => {
@@ -168,8 +171,9 @@ export function NoteInput() {
     [],
   );
 
-  // The sheet waits for the editor, since it grows out of the pad with the
-  // editor inside; `expanded` is that it was asked for, `open` that it is up.
+  // The sheet waits for the editor, because it grows out of the pad with the
+  // editor inside. `expanded` means that it was asked for. `open` means that it
+  // is up.
   const editor = useEditor(expanded, () => {
     focusCatcherRef.current?.blur();
     reset();
@@ -181,7 +185,8 @@ export function NoteInput() {
 
   const modalRef = useFocusTrap<HTMLDivElement>(open && !closing);
 
-  // Layout, not effect, so the panel's first frame is already over its source.
+  // Layout, not effect. Thus, the first frame of the panel is already over its
+  // source.
   useLayoutEffect(() => {
     const from = morphFromRef.current;
     const panel = panelRef.current;
@@ -190,7 +195,7 @@ export function NoteInput() {
     morphIn(panel, from.rect, { opaque: from.opaque });
   }, [open]);
 
-  // Re-pick colors when the default note color setting changes
+  // Select the colors again when the setting of the default note color changes.
   const colorSetting = defaultNoteColor.value;
   useEffect(() => {
     const c = pickDefaultColor();
@@ -198,7 +203,7 @@ export function NoteInput() {
     setStackColor(c);
   }, [colorSetting, composer.update]);
 
-  // Re-pick font when the default note font setting changes
+  // Select the font again when the setting of the default note font changes.
   const fontSetting = defaultNoteFont.value;
   useEffect(() => {
     composer.update({ font: pickDefaultFont() });
@@ -220,9 +225,9 @@ export function NoteInput() {
   };
 
   /**
-   * Reads the kept draft into the editor as it opens. `incoming` is a note
-   * shared to the app, which takes the editor instead: a kept draft is then
-   * saved as a note of its own rather than written over.
+   * Reads the kept draft into the editor when it opens. `incoming` is a note
+   * shared to the app, which takes the editor in place of the draft. A kept
+   * draft is then saved as a separate note. It is not written over.
    */
   const readDraft = (incoming = false) => {
     const opening = ++openingRef.current;
@@ -234,7 +239,7 @@ export function NoteInput() {
     });
   };
 
-  /** Opens the editor over `rect`, growing out of it if it can be seen. */
+  /** Opens the editor over `rect`. It grows out of it if it is visible. */
   const expandFrom = (rect: RectLike | undefined, opaque: boolean) => {
     const from = isMorphSource(rect, viewportSize()) ? rect : null;
     morphFromRef.current = from ? { rect: from, opaque } : null;
@@ -243,21 +248,22 @@ export function NoteInput() {
   };
 
   /**
-   * Opens the editor for a new note. From the pad, the top sheet is pulled
-   * off first, and only once it is free does the editor grow out of it; from
-   * the phone's button, the editor grows out of the button.
+   * Opens the editor for a new note. From the pad, the top sheet comes off
+   * first, and only when it is free does the editor grow out of it. From the
+   * button of the phone, the editor grows out of the button.
    */
   const openModal = (source: "pad" | "button") => {
-    // iOS Safari only opens the soft keyboard when .focus() runs synchronously
-    // inside a user gesture. MilkdownEditor's autoFocus runs in a useEffect
-    // after editor.create() resolves, well after the gesture ends, too late
-    // for iOS. Pre-focus a hidden input now; iOS opens the keyboard, and the
-    // later focus transfer to the editor keeps it up. Through `holdFocus`, so
-    // the focus trap neither takes focus off it nor gives focus back to it.
+    // iOS Safari opens the soft keyboard only when .focus() runs synchronously
+    // inside a user gesture. The autoFocus of MilkdownEditor runs in a
+    // useEffect after editor.create() resolves, long after the gesture ends,
+    // which is too late for iOS. Thus, focus a hidden input now. iOS opens the
+    // keyboard, and the later move of focus to the editor keeps it open.
+    // Through `holdFocus`. Thus, the focus trap does not take focus off it, and
+    // does not give focus back to it.
     holdFocus(focusCatcherRef.current);
     setStackColor(pickDefaultColor());
     readDraft();
-    // With motion off there is nothing to wait for or grow out of.
+    // With motion off, there is nothing to wait for or grow out of.
     if (!animations.value) {
       setMorphing(false);
       setExpanded(true);
@@ -269,21 +275,21 @@ export function NoteInput() {
     }
     setLifting(true);
     after(LIFT_MS, () => {
-      // Measured while the sheet still holds its lifted pose, which is where
-      // the eye is; the same render that opens the editor hides the sheet.
+      // Measured while the sheet still has its lifted pose, where the eye is.
+      // The same render that opens the editor hides the sheet.
       expandFrom(topSheetRef.current?.getBoundingClientRect(), true);
       setLifting(false);
     });
   };
 
-  /** Fades the editor out and hands the pad back to the stack. */
+  /** Fades the editor out, and gives the pad back to the stack. */
   const finishClose = () => {
     setClosing(true);
-    // The sheet is revealed opaque, in the same tick the CTA cycles onto it.
-    // The sheet behind the peeled one has been showing that very CTA all along
-    // and sits in exactly the same place, so the top sheet taking over is
-    // invisible. Fading it in instead made the sheet behind it, which by then
-    // carries a different CTA, ghost through the transparent one.
+    // The sheet shows opaque, in the same tick in which the CTA cycles onto it.
+    // The sheet behind the peeled sheet already showed that same CTA, in
+    // exactly the same place. Thus, you cannot see the change to the top sheet.
+    // When the sheet faded in, the sheet behind it, which then had a different
+    // CTA, showed through the transparent sheet.
     quips.cycle();
     after(CLOSE_MS, () => {
       reset();
@@ -294,16 +300,17 @@ export function NoteInput() {
 
   /**
    * Saves the draft and closes. An empty draft becomes a note only when
-   * `keepEmpty` says the user pressed Done, which asks for one. Escape, the
-   * backdrop and the back arrow are also how someone who opened the pad by
-   * accident gets out again, and saving there would leave a blank note behind
-   * every time.
+   * `keepEmpty` says that the user pushed Done, which asks for one. Escape, the
+   * backdrop and the back arrow are also how a person who opened the pad
+   * accidentally gets out again. A save there would leave a blank note each
+   * time.
    */
   const closeModal = (keepEmpty = false) => {
-    // Snapshot at call time. The 150ms close animation creates a window where
-    // a final Milkdown markdownUpdated (fired on blur) can land after this,
-    // and reading the closure-captured state inside the timeout would drop
-    // that last edit. Save synchronously now, animate the unmount after.
+    // A snapshot at the time of the call. The 150ms close animation makes a
+    // window in which a final markdownUpdated of Milkdown (fired on blur) can
+    // arrive after this. If the code read the captured state inside the
+    // timeout, it would lose that last edit. Thus, save synchronously now, and
+    // animate the unmount after.
     const draft = composer.draft();
     const snap = {
       ...draft,
@@ -321,7 +328,8 @@ export function NoteInput() {
     } else {
       void drafts.takePending();
     }
-    // After the note is queued, which keeps it: nothing is between the two.
+    // After the note is in the queue, which keeps it. Nothing is between the
+    // two.
     openingRef.current++;
     void clearDraft();
     finishClose();
@@ -345,16 +353,17 @@ export function NoteInput() {
     });
     drafts.add(extractUrls(incoming.content));
     readDraft(true);
-    // No gesture to grow out of: the app has just been opened for this.
+    // No gesture to grow out of: the app just opened for this.
     setMorphing(false);
     setExpanded(true);
   };
-  // Read by the effects below at the moment a request arrives, so they need
-  // not run again whenever the handlers are rebuilt.
+  // The effects below read this when a request arrives. Thus, they do not have
+  // to run again each time the handlers are built again.
   const openersRef = useRef({ openNew, openShare });
   openersRef.current = { openNew, openShare };
 
-  // The draft is kept as it changes, so a page put away loses none of it.
+  // The draft is kept while it changes. Thus, a page that the system stops
+  // loses none of it.
   useEffect(() => {
     if (!expanded || closing || !draftRead) return;
     const draft: ComposerDraft = { ...composer.fields, linkPreviews };
@@ -362,12 +371,12 @@ export function NoteInput() {
     else saveDraft(draft);
   }, [expanded, closing, draftRead, composer.fields, linkPreviews]);
 
-  // Escape closes the editor, saving as clicking outside does. Anything
-  // opened from inside the editor registers later and takes the key first.
+  // Escape closes the editor, and saves, as a click outside does. All layers
+  // opened from inside the editor register later, and take the key first.
   useEscapeStack(expanded, () => closeModal());
 
-  // Something shared to the installed app from elsewhere opens here as a new
-  // note.
+  // Something that a different app shared to the installed app opens here as a
+  // new note.
   const share = incomingShare.value;
   useEffect(() => {
     if (!share || !isActiveView || expanded) return;
@@ -375,7 +384,7 @@ export function NoteInput() {
     openersRef.current.openShare(share);
   }, [share, isActiveView, expanded]);
 
-  // The `c` shortcut: a new note, from the pad where it shows, as a click on it
+  // The `c` shortcut: a new note from the pad where it shows, as a click on it
   // would open one.
   const newNote = newNoteRequested.value;
   useEffect(() => {
@@ -384,8 +393,8 @@ export function NoteInput() {
     if (!expanded) openersRef.current.openNew();
   }, [newNote, isActiveView, expanded]);
 
-  // Every hook is above this line: `App` keeps this mounted in views where it
-  // shows nothing, so the same hooks must run in those too.
+  // All hooks are above this line. `App` keeps this mounted in views where it
+  // shows nothing. Thus, the same hooks must also run in those views.
   if (!isActiveView) return null;
 
   const topNoteHidden = lifting || (open && !closing);
@@ -394,9 +403,9 @@ export function NoteInput() {
     : topNoteHidden
       ? "note-stack-top note-hidden"
       : "note-stack-top";
-  // While peeling, the sheet still shows the colour being edited; the pad
-  // underneath has already been re-picked. Everywhere else the sheet is the
-  // pad, so it must not wait for `reset()` to catch the new colour up.
+  // While it peels, the sheet still shows the color that you edit. The pad
+  // under it already has a new color. In all other cases, the sheet is the pad.
+  // Thus, it must not wait for `reset()` to get the new color.
   const topSheetColor = lifting ? color : stackColor;
 
   return (
@@ -505,8 +514,9 @@ export function NoteInput() {
 }
 
 /**
- * The pad of notes the composer opens from on a wide screen: the top sheet,
- * the one behind it showing the next line, and the stack's base.
+ * The pad of notes from which the composer opens on a wide screen: the top
+ * sheet, the sheet behind it that shows the next line, and the base of the
+ * stack.
  */
 function ComposerPad({
   isList,
@@ -530,8 +540,8 @@ function ComposerPad({
   onOpen: () => void;
 }) {
   return (
-    // Slides in and out as the Notes view comes and goes, rather than fading
-    // with the rest (hooks/useViewTransition.ts).
+    // Slides in and out when the Notes view comes and goes. It does not fade
+    // with the other content (hooks/useViewTransition.ts).
     <div
       data-view-slide="composer"
       class={

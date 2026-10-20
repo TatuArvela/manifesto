@@ -60,7 +60,8 @@ describe("updateStoredNote", () => {
       content: "Ours",
       updatedAt: "2026-04-01T00:01:00.000Z",
     };
-    // Someone else's write, broadcast while the reply's body is still read.
+    // The write of a different person, broadcast while the body of the reply is
+    // still in a read.
     const theirs = {
       ...note,
       content: "Theirs",

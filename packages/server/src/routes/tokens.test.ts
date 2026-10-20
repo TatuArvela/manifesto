@@ -143,7 +143,7 @@ describe("API tokens", () => {
     expect(
       (await call(secret, "PUT", "/api/v1/auth/me", { email: "a@b.c" })).status,
     ).toBe(403);
-    // Alice is the first account, and so an admin.
+    // Alice is the first account. Thus, she is an admin.
     expect((await call(secret, "GET", "/api/v1/admin/users")).status).toBe(403);
   });
 

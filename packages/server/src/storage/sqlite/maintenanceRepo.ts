@@ -18,8 +18,9 @@ interface ExpiredRow {
 }
 
 export function createSqliteMaintenanceRepo(db: SqliteDB): MaintenanceRepo {
-  // Atomic delete-and-return so a note un-trashed between SELECT and DELETE
-  // can't be hard-deleted out from under the user. Requires SQLite ≥ 3.35.
+  // An atomic delete-and-return. Thus, a note restored from the trash between
+  // the SELECT and the DELETE cannot be permanently deleted under the user.
+  // Requires SQLite ≥ 3.35.
   const cleanupStmt = db.prepare(
     `DELETE FROM notes
        WHERE trashed = 1
@@ -43,9 +44,9 @@ export function createSqliteMaintenanceRepo(db: SqliteDB): MaintenanceRepo {
   const rekeyDueStmt = db.prepare(
     `UPDATE notes SET rekey_due = 1 WHERE id = ?`,
   );
-  // An expired share leaves the note's members, as a removal does, and
-  // leaves the note due a new key as one does (`shares.delete`): whoever
-  // held the old one still does.
+  // An expired share leaves the members of the note, as a removal does. It also
+  // makes the note due a new key, as a removal does (`shares.delete`), because
+  // the person who had the old key still has it.
   const cleanupSharesTx = db.transaction((cutoffIso: string): ShareRow[] => {
     const rows = cleanupSharesStmt.all(cutoffIso) as ShareRow[];
     const at = membersChangedAt();
@@ -118,7 +119,7 @@ export function createSqliteMaintenanceRepo(db: SqliteDB): MaintenanceRepo {
         if (typeof stored !== "string") continue;
         const next = rewrite(stored);
         if (next === null) continue;
-        // Only while the row still holds what was read.
+        // Only while the row still contains what was read.
         written += update.run(
           next,
           ...keys.map((key) => row[key]),

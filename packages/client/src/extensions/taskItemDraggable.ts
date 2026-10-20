@@ -18,7 +18,7 @@ import {
   toggleSubtreeChecked,
 } from "./taskListStructure.ts";
 
-/** Gives each item's text an id its checkbox can be named by. */
+/** Gives the text of each item an id by which its checkbox can be named. */
 let nextItemId = 0;
 
 const createTaskItemView: NodeViewConstructor = (node, view, getPos) => {

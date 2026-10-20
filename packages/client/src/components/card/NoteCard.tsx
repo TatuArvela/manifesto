@@ -38,13 +38,13 @@ import { type CardPopoverKind, NoteCardPopovers } from "./NoteCardPopovers.tsx";
 import { NoteReadonlyView } from "./NoteReadonlyView.tsx";
 
 /**
- * One card on the board. Memoized, and it derives the three board-wide
- * signals it cares about (which note is being edited, which are selected,
- * which are leaving) down to its own answer before reading them. Reading the
- * signals themselves subscribed every card to every change: a click on one
- * card's select button re-rendered, and re-rendered the markdown of, all of
- * them. `ReorderableGrid` keeps the handlers it passes stable for the same
- * reason; a new closure per render would defeat the `memo`.
+ * One card on the board. It is memoized. It reduces the three board-wide
+ * signals that it needs (which note is edited, which are selected, which are
+ * leaving) to its own answer before it reads them. When it read the signals
+ * themselves, each card subscribed to each change. A click on the select button
+ * of one card rendered all of them again, and rendered their markdown again.
+ * `ReorderableGrid` keeps the handlers that it gives stable for the same
+ * reason. A new closure on each render would defeat the `memo`.
  */
 export const NoteCard = memo(function NoteCard({
   note,
@@ -64,8 +64,8 @@ export const NoteCard = memo(function NoteCard({
   onTouchDragEnd?: (e: PointerEvent, didDrag: boolean) => void;
 }) {
   const isEditing = useComputed(() => editingNoteId.value === note.id).value;
-  // A note this user may only read opens without the editor; any other waits
-  // for it, and stands down if it cannot be fetched.
+  // A note that this user can only read opens without the editor. All other
+  // notes wait for it, and stop if the editor cannot load.
   const needsEditor = !note.readonly && roleOf(note) !== "view";
   const editor = useEditor(isEditing && needsEditor, () => {
     if (editingNoteId.peek() === note.id) editingNoteId.value = null;
@@ -75,14 +75,14 @@ export const NoteCard = memo(function NoteCard({
   const leaving = useComputed(() => leavingNotes.value.get(note.id)).value;
   const isSelectMode = selectMode.value;
   const isSelected = useComputed(() => selectedNotes.value.has(note.id)).value;
-  // Read once at mount: this card was remounted into the other grid by a pin
-  // toggle, so it should settle in rather than appear from nowhere. Reading it
-  // during render would also re-trigger on unrelated re-renders in the window
-  // before the signal clears.
+  // Read one time at mount. A pin toggle mounted this card again into the other
+  // grid. Thus, it must settle in, not show from nowhere. A read during render
+  // would also start it again on unrelated renders in the time before the
+  // signal clears.
   const [pinSettling, setPinSettling] = useState(
     () => recentlyPinned.peek() === note.id,
   );
-  // The editor modal, which `editingNoteId` alone opens and closes.
+  // The editor modal, which only `editingNoteId` opens and closes.
   const {
     showModal,
     closing,
@@ -93,7 +93,8 @@ export const NoteCard = memo(function NoteCard({
     closeModal,
   } = useCardModal(open);
   const [openPopover, setOpenPopover] = useState<CardPopoverKind | null>(null);
-  // What is drawn: the open popover, or the one just closed while it fades.
+  // What is drawn: the open popover, or the popover that just closed while it
+  // fades.
   const { shown: shownPopover, leaving: popoverLeaving } = usePresence(
     openPopover,
     CARD_POPOVER_EXIT_MS,
@@ -106,8 +107,8 @@ export const NoteCard = memo(function NoteCard({
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const reminderChipRef = useRef<HTMLButtonElement>(null);
   const reminderBtnRef = useRef<HTMLButtonElement>(null);
-  // The reminder picker hangs from whichever opened it: the bell on the
-  // toolbar or the reminder's own chip on the card.
+  // The reminder picker opens from the element that opened it: the bell on the
+  // toolbar, or the own chip of the reminder on the card.
   const [reminderFromChip, setReminderFromChip] = useState(false);
   const toggleReminder = (fromChip: boolean) => {
     setReminderFromChip(fromChip);
@@ -119,8 +120,8 @@ export const NoteCard = memo(function NoteCard({
     ? { ...baseColors, bg: autoColors.bg, border: autoColors.border }
     : baseColors;
   const isTrashView = activeView.value === "trash";
-  // Shared with this user to read, not to write: it opens as the read-only
-  // view does for an automatic note, and its boxes cannot be ticked.
+  // Shared with this user to read, not to write. It opens as the read-only view
+  // does for an automatic note, and you cannot tick its boxes.
   const viewOnly = roleOf(note) === "view";
   const {
     ref: imagesRef,
@@ -137,8 +138,8 @@ export const NoteCard = memo(function NoteCard({
     !hasImages &&
     (!note.content.trim() ||
       contentIsOnlyPreviewUrls(note.content, note.linkPreviews));
-  // The card is a picture edge to edge, so its controls sit over that picture
-  // instead of over the note's own colour, at the top and at the bottom alike.
+  // The card is a picture from edge to edge. Thus, its controls are over that
+  // picture, not over the own color of the note, at the top and at the bottom.
   const overlayControls = isImageOnly || isLinkOnly;
 
   const handleClick = () => {
@@ -151,16 +152,16 @@ export const NoteCard = memo(function NoteCard({
     }
   };
 
-  // Whether pressing the card does anything. Deliberately not conditioned on
-  // `isEditing`: taking away the focused button blurs it, so a card that gave
-  // up its tab stop the moment its own editor opened would leave the editor's
-  // focus trap with nothing to hand focus back to on close. Reopening while
-  // already editing is `handleClick`'s guard, not this one's.
+  // If a press on the card does anything. It does not depend on `isEditing`, on
+  // purpose. When a focused button goes away, it loses focus. Thus, if a card
+  // gave up its tab stop when its own editor opened, the focus trap of the
+  // editor would have no element to give focus back to on close. The guard of
+  // `handleClick` prevents a second open during an edit, not this one.
   const cardActivates = isSelectMode || !isTrashView;
 
-  // Whether pressing the card opens the editor, rather than the read-only
-  // view or nothing. The card's picture, drawing and version history rows
-  // hand over to the editor, so they are offered only where there is one.
+  // If a press on the card opens the editor, not the read-only view or nothing.
+  // The picture, the drawing and the version history rows of the card go to the
+  // editor. Thus, they show only where there is one.
   const opensEditor = !isTrashView && !note.readonly && !viewOnly;
   const attachFromCard = (files: File[]) =>
     openNoteWith(note.id, { kind: "attach", files });
@@ -180,10 +181,10 @@ export const NoteCard = memo(function NoteCard({
   };
 
   const isTouch = useIsTouch();
-  // Whether a finger is holding this card: it has been pressed long enough to
-  // have lifted off the board, and is now either about to be dragged or about
-  // to be selected. The tilt is the only sign the press registered before the
-  // reader lets go, so it is not gated on the animations preference.
+  // If a finger holds this card: it was pressed long enough to lift off the
+  // board, and it is now about to be dragged or about to be selected. The tilt
+  // is the only sign that the press registered before the reader releases.
+  // Thus, it does not depend on the animations preference.
   const [held, setHeld] = useState(false);
   const { onPointerDown: touchPointerDown } = useTouchGesture({
     enabled: isTouch && !isTrashView && !isEditing,
@@ -223,9 +224,10 @@ export const NoteCard = memo(function NoteCard({
             "w-full max-w-sm mx-auto",
         )}
         data-leaving={leaving}
-        // A card with one of its menus open keeps the look of a hovered one.
-        // The menu's backdrop covers the card, so the pointer is no longer
-        // over it, and its buttons faded out from under the menu they opened.
+        // A card with one of its menus open keeps the look of a hovered card.
+        // The backdrop of the menu covers the card. Thus, the pointer is not
+        // over it now, and its buttons faded out under the menu that they
+        // opened.
         data-popover-open={openPopover !== null || undefined}
         data-note-id={note.id}
         onAnimationEnd={(e) => {
@@ -244,24 +246,25 @@ export const NoteCard = memo(function NoteCard({
           class={clsx(
             colors.bg,
             "note-surface",
-            // Selection is an outline, never a border-width or ring change:
-            // cards are auto-height and the masonry grid spans rows from the
-            // measured height, so growing the border by 1px reflows the whole
-            // column. Outlines are painted outside the border box and take no
-            // part in layout, so the card stays exactly where it was.
+            // The selection is an outline, never a change of border width or
+            // ring. Cards have an automatic height, and the masonry grid spans
+            // rows from the measured height. Thus, a border that grows by 1px
+            // changes the layout of the full column. Outlines are painted
+            // outside the border box, and are not part of the layout. Thus, the
+            // card stays exactly where it was.
             colors.border,
             !note.readonly && "border",
-            // The outline is always present at the same width and only its
-            // colour and offset change, so the ring can animate in (it draws
-            // from slightly outside the card and tightens onto it) under the
-            // `note-card-transition` below without ever affecting layout.
+            // The outline is always present at the same width, and only its
+            // color and offset change. Thus, the ring can animate in (it starts
+            // a little outside the card, and tightens onto it) under the
+            // `note-card-transition` below, and never affects the layout.
             "outline-2",
             isSelected
               ? "outline-blue-500 outline-offset-0"
               : "outline-transparent outline-offset-4",
-            // Everything else in 150ms, the colour in 300ms: a recoloured
-            // card fades into its new sheet, slowly enough to be seen, while
-            // the selection ring and shadow stay quick.
+            // All other changes in 150ms, the color in 300ms. A card with a new
+            // color fades into its new sheet, slowly enough to see, while the
+            // selection ring and the shadow stay quick.
             "note-card-transition relative select-none overflow-hidden flex flex-col",
             isImageOnly || isLinkOnly
               ? "p-0"
@@ -269,16 +272,16 @@ export const NoteCard = memo(function NoteCard({
                 ? "p-4 pb-2"
                 : "p-4",
             "shadow-sm group-hover:shadow-lg group-data-popover-open:shadow-lg",
-            // Gone while it morphs into the editor, since the editor is it;
-            // a ghost of it otherwise, to show where the note lives.
+            // Gone while it morphs into the editor, because the editor is the
+            // card. Otherwise, a ghost of it, to show where the note is.
             open && !closing && (morphing ? "opacity-0" : "opacity-20"),
             noteSize.value === "square" &&
               viewMode.value === "list" &&
               "w-full",
             draggable && "note-draggable",
             held && "note-held",
-            // A list's cards are as wide as the board, where a degree is a
-            // step at the edge, so only the grid's lean.
+            // The cards of a list have the full width of the board, where one
+            // degree is a step at the edge. Thus, only the grid leans.
             viewMode.value === "grid" && "note-tilt",
           )}
           style={{
@@ -298,8 +301,8 @@ export const NoteCard = memo(function NoteCard({
           onPointerUp={() => {
             if (!isTouch) document.body.classList.remove("note-drag-active");
           }}
-          // A long press is the card's own gesture on a touch screen. Android
-          // answers one on a link or picture with a menu, which takes the
+          // A long press is the own gesture of the card on a touch screen. On a
+          // link or a picture, Android answers one with a menu, which takes the
           // touch and cancels the hold under it.
           onContextMenu={isTouch ? (e) => e.preventDefault() : undefined}
           onDragStart={
@@ -417,8 +420,8 @@ export const NoteCard = memo(function NoteCard({
             // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss
             // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss
             <div
-              // In and out over the same time as the panel: the morph's
-              // when it morphs, the plain fade's otherwise.
+              // In and out over the same time as the panel: that of the morph
+              // when it morphs, and that of the plain fade otherwise.
               class={`fixed inset-0 bg-black/50 layer-backdrop max-sm:hidden transition-opacity ease-in ${morphing ? "duration-240" : "duration-100"} ${closing ? "opacity-0" : morphing ? "animate-[fade-in_240ms_ease-out]" : "animate-fade-in"}`}
               onClick={closeModal}
             />

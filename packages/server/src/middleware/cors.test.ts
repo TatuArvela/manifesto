@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { bootTestApp, type TestRig } from "#/test/setup.ts";
 
 /**
- * A client on its own origin (the deployment the docs describe) reaches the
- * API only through what the preflight allows, so every header a request
- * carries has to be listed, or the browser refuses the request before the
- * server sees it.
+ * A client on its own origin (the deployment that the docs describe) reaches
+ * the API only through what the preflight permits. Thus, the list must contain
+ * each header that a request has. If not, the browser refuses the request
+ * before the server sees it.
  */
 describe("CORS", () => {
   let rig: TestRig;

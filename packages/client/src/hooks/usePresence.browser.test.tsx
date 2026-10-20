@@ -10,7 +10,7 @@ function Probe({ value }: { value: string | null }) {
   return null;
 }
 
-/** Preact runs effects after paint; give it a frame and a tick. */
+/** Preact runs effects after paint. Give it one frame and one tick. */
 const flush = () =>
   new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve)));
 

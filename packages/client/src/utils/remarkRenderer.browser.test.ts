@@ -2,19 +2,19 @@ import { describe, expect, it } from "vitest";
 import { renderInlineMarkdown, renderMarkdown } from "./remarkRenderer.ts";
 
 /**
- * Note content is not trusted input: it arrives from shared links, imported
- * files and plugin output, and every caller hands the result straight to
- * `dangerouslySetInnerHTML`. These are the cases the allowlist exists for.
+ * Note content is not trusted input. It comes from shared links, imported files
+ * and plugin output, and each caller gives the result directly to
+ * `dangerouslySetInnerHTML`. The allowlist exists for these cases.
  */
 describe("renderMarkdown sanitizing", () => {
   it("drops script tags and their contents", () => {
     const html = renderMarkdown("hello <script>alert(1)</script> world");
     expect(html).not.toContain("<script");
-    // The body goes with it. Raw HTML reaches the sanitizer now, so DOMPurify
-    // treats this as the element it is rather than as the loose text that
-    // remark-rehype used to leave behind, and it removes a script whole.
-    // Nothing is lost: the note's markdown still says what the user typed;
-    // this is only what the preview draws.
+    // The body goes with it. Raw HTML reaches the sanitizer now. Thus,
+    // DOMPurify treats this as the element that it is, not as the loose text
+    // that remark-rehype left before, and it removes a script fully. Nothing is
+    // lost. The Markdown of the note still tells what the user typed. This is
+    // only what the preview draws.
     expect(html).not.toContain("alert(1)");
     expect(html).toContain("hello");
     expect(html).toContain("world");
@@ -84,9 +84,9 @@ describe("renderMarkdown raw HTML", () => {
   it.each(["u", "sub", "sup"])(
     "keeps <%s>, which the formatting toolbar writes",
     (tag) => {
-      // These sat in the allowlist looking permitted while `remark-rehype`
-      // dropped every raw HTML node before the sanitizer was ever asked, so
-      // underline and sub/superscript silently vanished from every preview.
+      // These were in the allowlist and looked permitted, while `remark-rehype`
+      // dropped each raw HTML node before the sanitizer got it. Thus, underline
+      // and sub/superscript silently disappeared from each preview.
       const html = renderMarkdown(`a <${tag}>b</${tag}> c`);
       expect(html).toContain(`<${tag}>b</${tag}>`);
     },
@@ -133,7 +133,8 @@ describe("renderInlineMarkdown", () => {
   });
 
   it("keeps block markup when the fragment really is a block", () => {
-    // Better ugly than swallowed: unwrapping here would drop list items.
+    // An ugly result is better than lost content. An unwrap here would drop
+    // list items.
     const html = renderInlineMarkdown("- one\n- two");
     expect(html).toContain("<li>one</li>");
   });

@@ -9,7 +9,7 @@ interface Member {
   content?: string;
   type?: string;
   prefix?: string;
-  /** Overrides the size field, to write a header that lies. */
+  /** Overrides the size field, to write a header with a false value. */
   size?: string;
 }
 
@@ -26,7 +26,7 @@ function header({ name, content = "", type = "0", prefix = "", size }: Member) {
   return block;
 }
 
-/** A tar in memory, ended by the two empty blocks a real one carries. */
+/** A tar in memory, ended by the two empty blocks that a real tar has. */
 function tar(members: Member[], { end = true } = {}): Uint8Array {
   const parts: Uint8Array[] = [];
   for (const member of members) {

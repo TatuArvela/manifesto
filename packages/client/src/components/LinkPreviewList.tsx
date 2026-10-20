@@ -93,7 +93,7 @@ function LinkPreviewRow({
         href={preview.url}
         target="_blank"
         rel="noopener noreferrer"
-        // As on the hero: the card is what a drag picks up.
+        // As on the hero: a drag picks up the card.
         draggable={false}
         class="block no-underline"
         onClick={(e) => e.stopPropagation()}

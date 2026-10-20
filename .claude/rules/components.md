@@ -6,81 +6,128 @@ paths:
 
 # Component Patterns
 
-- **NoteEditor** is fully prop-driven (title, content, color, font, callbacks). Parent components (`NoteCardEditor`, `NoteInput`) own the state.
-- **NoteCardEditor** wraps NoteEditor for editing existing notes and manages auto-save (500ms debounce) and version history. Undo/redo is delegated to Milkdown.
-- **Dropdown** is the generic popover pattern (used for color picker, font picker, kebab menu) with
-  `open`/`onClose`/`trigger`/`children` props. Its panel opens and closes on one CSS transition
-  rather than two animations, so a menu re-opened mid-fade reverses instead of starting over, and
-  `@starting-style` supplies the entry's other end. The popover is `manual`: the component
-  dismisses it (outside press, Escape) and hides it only once the exit has played, since a browser
-  that hides it at once takes it out of the top layer mid-fade and only Chromium can transition
-  `overlay`. `leaving` is derived in render, never set by an effect: one frame of neither open nor
-  leaving is `display: none`, which cancels the exit. Card popovers (`CardPopover`) are mounted
-  only while open and get their exit from `usePresence`. The slide is a
-  translation and never a scale, because the browsers without anchor positioning place the panel
-  from a measured `getBoundingClientRect` and a scaled box measures smaller than it lands.
-  `Dropdown` sets `aria-expanded` on its trigger's button itself, and hands focus back to it when
-  a panel closes with focus inside. A `CardPopover` is portalled to the end of the page, so it
-  moves focus in once placed (to the option marked `aria-pressed` / `aria-checked`, else the first
-  control) and back to its anchor on close; without that the keyboard never reached it. Mark the
-  current option in a picker with `aria-pressed`, which both a screen reader and this focus read.
-  A `persistent` dropdown (the formatting toolbar's floating bar) is a bar to work from: neither an
-  outside press nor another dropdown opening closes it, so a menu inside it (the table's) can open
-  without taking the bar down; only its trigger and Escape do.
-- **A note's menu** is one list, `noteMenuItems` in `card/noteMenuItems.tsx`, which every surface renders
-  through `NoteMenu`; a surface adds rows of its own (`before`) rather than a menu of its own.
-  Rarer rows go in a `submenu` item, which `arrangeMenu` drops when empty and replaces with its row
-  (under `fullLabel`) when that row is alone. A submenu opens beside the panel where the pointer can
-  hover (`MenuFlyout`, placed inside the panel's box because a `Dropdown` is in the top layer) and in
-  place of the rows on a touch screen; both take Escape before the panel does. A `Dropdown` keeps
-  `NoteMenu` mounted while closed, so pass it `open` or it reopens inside a submenu.
-- **Confirming a deletion** goes through the `confirmRequest` signal in `state/confirm.ts`, which
-  `ConfirmDialogHost` renders, one question at a time: a second question answers the first with
-  "no" rather than stacking, so the promise behind a replaced prompt always settles and no caller
-  is left half-done. `confirmDeletion` is the guard for a single note and respects the preference;
-  bulk deletions call `askConfirmation` directly, since they take many notes whatever it says.
-- **Escape** goes through `hooks/useEscapeStack.ts` and nowhere else; never bind a `keydown`
-  listener for it. One document listener hands a press to the layer that became active last, so a
-  new dismissable layer only has to call `useEscapeStack(active, close)`; binding your own brings
-  back the bug where one press closed the picker *and* the editor under it. Ordering is by
-  activation, not nesting (Preact runs a child's effects first), so a layer must not become active
-  in the same render as one it sits inside. A tooltip registers with `passThrough`: Escape hides it
-  and still reaches the layer below, so it never costs a second press. `Dropdown` closes its own panel rather than leaving it
-  to the Popover API, because Chromium skips the light-dismiss when focus is inside ProseMirror.
-- **Single-key shortcuts** go through `hooks/useShortcut.ts` and nowhere else, like Escape. The
-  dispatcher, not the binding, decides when a key is not a shortcut (typing, an `aria-modal` layer or
-  open popover, a modifier), so a new binding only calls `useShortcut(key, run)`. The board's keys and
-  the `?` sheet read one list, `BOARD_SHORTCUTS` in `hooks/useBoardShortcuts.ts`.
-- **Back** closes the newest `NoteSheet` through `hooks/useBackToClose.ts`: each sheet pushes a
-  same-address history entry and takes it off with `history.back()` when closed another way. An
-  `onBack` that keeps the layer open (the drawing pad, asking before a drawing is discarded) returns
-  `false`, and its entry is put back; without that the next Back pops the entry of the sheet below. The
-  entries are kept in `state/sheetHistory.ts`, and the router's own pushes wait for that back to land
-  (`afterHistorySettles`), or they would be what it goes back from.
-- **`editingNoteId`** is the only thing that decides whether a card's modal is up. Closing means
-  clearing the signal; `NoteCard`'s `useCardModal` plays the animation and takes the modal down.
-- **Text buttons** take their classes from `buttonClass(tone, size)` in `buttonClasses.ts`, never a
-  class string of their own, or the variants drift apart again (they had reached a dozen).
-- **On the board itself**, anything that is not a note (the empty board's message, the Auto-notes
-  introduction, the search filters, the admin view) sits on `boardCard` from `boardCard.ts`, so it
-  stays legible over a board picture or a busy texture and the four look alike.
-- **Tones on a note** come from `noteText` in `colors.ts` (`read`, `quiet`, `icon`), which
-  `colors.test.ts` measures against every note colour in every shade. `quiet` is as pale as text
-  on a note can go, so a dimmer look (ticked, past) is a line through or a position, never a paler
-  step or an `opacity-*`. `boardCard` and `boardLabel` (the board's section headings) are opaque
-  for the same reason: a translucent surface lets a dark board pull grey text under 4.5:1.
-- **Targets** are at least 24 by 24 px (WCAG 2.5.8). One drawn smaller keeps its look and reaches
-  the size unseen: an `after:absolute after:-inset-*` on a `relative` button, or for a checkbox a
-  `<label>` around it with padding and the same negative margin.
-- **Keyboard focus** is one ring for the whole app, `:focus-visible` in `styles/setup.css`. A
-  control that draws its own uses `outline-none` with a `ring`, which wins because the default sits
-  in the base layer; one that removes the outline and draws nothing leaves no focus to see.
-- **Layers over the board** are the `layer-*` utilities in `styles/setup.css`, never a bare
-  `z-[n]`. The confirmation and the toasts are the top two, because any sheet can raise either:
-  a confirmation numbered under a nested sheet was asked behind the dialog that asked it.
-- **Rarely opened parts** (Settings, the admin view, the share and public link dialogs, the
-  drawing pad) are fetched on first open through `hooks/useLazyModule.ts`, from a module-level
-  `import()` in `App.tsx`. The editor has a loader of its own; see `editor.md`. A static import of either
-  from anywhere the board reaches puts it back in the entry chunk, with nothing failing to say so;
-  check the build's chunk list after adding one. A fetch that fails closes what asked for it and
-  shows `error.viewUnavailable`, since an open tab can outlive a deploy's chunks.
+## Editors
+
+- **NoteEditor** gets all of its data from props (title, content, color, font, callbacks). The
+  parent components (`NoteCardEditor`, `NoteInput`) own the state.
+- **NoteCardEditor** wraps NoteEditor to edit existing notes. It controls the auto-save (500ms
+  debounce) and the version history. Milkdown does the undo and redo.
+
+## Dropdown
+
+**Dropdown** is the generic popover pattern (for the color picker, the font picker, the kebab menu).
+Its props are `open`, `onClose`, `trigger` and `children`.
+
+- Its panel opens and closes on one CSS transition, not two animations. Thus, if a menu opens again
+  during the fade, the transition reverses and does not start again. `@starting-style` gives the
+  other end of the entry.
+- The popover is `manual`. The component dismisses it (outside press, Escape), and hides it only
+  after the exit animation is complete. If the browser hides it immediately, it goes out of the top
+  layer during the fade, and only Chromium can transition `overlay`.
+- The render calculates `leaving`. An effect never sets it. One frame that is not open and not
+  leaving is `display: none`, and that cancels the exit.
+- Card popovers (`CardPopover`) mount only while they are open. They get their exit from
+  `usePresence`.
+- The slide is a translation, never a scale. The browsers without anchor positioning put the panel
+  at a position from a measured `getBoundingClientRect`, and a scaled box measures smaller than its
+  final size.
+- `Dropdown` sets `aria-expanded` on the button of its trigger. When a panel closes with focus
+  inside, it gives focus back to that button.
+- A `CardPopover` is portalled to the end of the page. Thus, it moves focus in after it is in
+  position (to the option marked `aria-pressed` / `aria-checked`, or to the first control). It moves
+  focus back to its anchor when it closes. Without this, the keyboard never reached it.
+- In a picker, mark the current option with `aria-pressed`. A screen reader and this focus both
+  read it.
+- A `persistent` dropdown (the floating bar of the formatting toolbar) is a bar to work from. An
+  outside press does not close it, and another dropdown that opens does not close it. Thus, a menu
+  inside it (the table menu) can open, and the bar stays. Only its trigger and Escape close it.
+
+## The note menu
+
+**A note's menu** is one list, `noteMenuItems` in `card/noteMenuItems.tsx`. All surfaces render it
+through `NoteMenu`. A surface adds its own rows (`before`). It does not make its own menu.
+
+- Rows that are not used frequently go in a `submenu` item. `arrangeMenu` removes an empty submenu.
+  When a submenu has only one row, `arrangeMenu` shows that row in its place (under `fullLabel`).
+- Where the pointer can hover, a submenu opens adjacent to the panel (`MenuFlyout`). It is inside the
+  box of the panel, because a `Dropdown` is in the top layer. On a touch screen, it opens in place of
+  the rows. In both cases, it gets Escape before the panel.
+- A `Dropdown` keeps `NoteMenu` mounted while it is closed. Thus, give it `open`. If you do not, it
+  opens again inside a submenu.
+
+## Confirmation
+
+**Confirming a deletion** goes through the `confirmRequest` signal in `state/confirm.ts`.
+`ConfirmDialogHost` shows it, one question at a time. A second question answers the first with "no".
+It does not stack. Thus, the promise of a replaced prompt always settles, and no caller stays
+incomplete. `confirmDeletion` is the guard for one note, and it obeys the preference. Bulk deletions
+call `askConfirmation` directly, because they apply to many notes whatever the preference is.
+
+## Escape
+
+**Escape** goes through `hooks/useEscapeStack.ts` only. Never bind a `keydown` listener for it.
+
+- One document listener gives a press to the layer that became active last. Thus, a new layer that
+  you can dismiss only calls `useEscapeStack(active, close)`.
+- If you bind your own listener, an old bug comes back: one press closed the picker *and* the
+  editor under it.
+- The order is by activation, not by nesting (Preact runs the effects of a child first). Thus, a
+  layer must not become active in the same render as the layer that contains it.
+- A tooltip registers with `passThrough`. Escape hides it, and also goes to the layer below. Thus,
+  the tooltip never needs a second press.
+- `Dropdown` closes its own panel. It does not let the Popover API do it, because Chromium does not
+  do the light-dismiss when focus is inside ProseMirror.
+
+## Shortcuts
+
+**Single-key shortcuts** go through `hooks/useShortcut.ts` only, as Escape does. The dispatcher, not
+the binding, decides when a key is not a shortcut (typing, an `aria-modal` layer, an open popover, a
+modifier). Thus, a new binding only calls `useShortcut(key, run)`. The board keys and the `?` sheet
+read one list, `BOARD_SHORTCUTS` in `hooks/useBoardShortcuts.ts`.
+
+## Back
+
+**Back** closes the newest `NoteSheet` through `hooks/useBackToClose.ts`.
+
+- Each sheet pushes a history entry with the same address. When a different action closes the
+  sheet, the sheet removes the entry with `history.back()`.
+- An `onBack` that keeps the layer open (the drawing pad asks before it discards a drawing) returns
+  `false`, and the entry is put back. Without this, the next Back removes the entry of the sheet
+  below.
+- `state/sheetHistory.ts` keeps the entries. The pushes of the router wait until that back is
+  complete (`afterHistorySettles`). If not, the back goes from the push of the router.
+
+## Other rules
+
+- **`editingNoteId`** is the only thing that decides if the modal of a card is open. To close it,
+  clear the signal. `useCardModal` of `NoteCard` plays the animation and removes the modal.
+- **Text buttons** get their classes from `buttonClass(tone, size)` in `buttonClasses.ts`. Never
+  write their own class string. If you do, the variants become different again (there were a dozen
+  of them).
+- **On the board itself**, all items that are not notes (the message of the empty board, the
+  Auto-notes introduction, the search filters, the admin view) are on `boardCard` from
+  `boardCard.ts`. Thus, they stay legible over a board picture or a busy texture, and the four look
+  the same.
+- **Tones on a note** come from `noteText` in `colors.ts` (`read`, `quiet`, `icon`). `colors.test.ts`
+  measures them against all note colors in all shades. `quiet` is the palest possible text on a note.
+  Thus, to make an item look less important (ticked, past), use a line through it or a position.
+  Never use a paler step or an `opacity-*`. `boardCard` and `boardLabel` (the section headings of
+  the board) are opaque for the same reason: on a translucent surface, a dark board makes grey text
+  go below 4.5:1.
+- **Targets** are 24 by 24 px or larger (WCAG 2.5.8). If a target looks smaller, it keeps its look
+  and gets the size invisibly. Use an `after:absolute after:-inset-*` on a `relative` button. For a
+  checkbox, put a `<label>` around it, with padding and the same negative margin.
+- **Keyboard focus** is one ring for the full app, `:focus-visible` in `styles/setup.css`. A control
+  that draws its own ring uses `outline-none` with a `ring`. That wins, because the default is in the
+  base layer. If a control removes the outline and draws nothing, there is no visible focus.
+- **Layers over the board** are the `layer-*` utilities in `styles/setup.css`. Never use a bare
+  `z-[n]`. The confirmation and the toasts are the top two, because each sheet can show either of
+  them. When a confirmation had a number below a nested sheet, it showed behind the dialog that
+  asked for it.
+- **Parts that open rarely** (Settings, the admin view, the share and public link dialogs, the
+  drawing pad) load when they open the first time, through `hooks/useLazyModule.ts`, from an
+  `import()` at module level in `App.tsx`. The editor has its own loader. See `editor.md`. If code
+  that the board reaches imports one of them statically, it goes back into the entry chunk, and
+  nothing fails to tell you. After you add one, check the chunk list of the build. If a fetch fails,
+  the app closes what asked for it and shows `error.viewUnavailable`. The reason is that an open tab
+  can stay open after a deploy removes its chunks.

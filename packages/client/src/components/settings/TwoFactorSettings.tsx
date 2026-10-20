@@ -32,10 +32,11 @@ const FAILURE_KEYS: Record<string, MessageKey> = {
 };
 
 /**
- * Two-factor sign-in for a local account: an authenticator app (password,
- * then the secret into the app, then a code to prove it took), passkeys, or
- * both, and the password asked again to remove either. Whoever loses every
- * factor signs in with the recovery key, which the account's keys page holds.
+ * Two-factor sign-in for a local account: an authenticator app (password, then
+ * the secret into the app, then a code to prove that it worked), passkeys, or
+ * both. The app asks for the password again to remove either. A person who
+ * loses all factors signs in with the recovery key, which the keys page of the
+ * account contains.
  */
 export function TwoFactorSettings() {
   const [step, setStep] = useState<Step>({ kind: "loading" });
@@ -120,7 +121,7 @@ export function TwoFactorSettings() {
     body = <p class="text-sm text-neutral-500">{t("twoFactor.loading")}</p>;
   } else if (step.kind === "status") {
     const { enabled } = step.status;
-    // A server from before passkeys has only the app, so on means the app.
+    // A server from before passkeys has only the app. Thus, on means the app.
     const authenticator = step.status.authenticator ?? enabled;
     body = (
       <div class="space-y-3">
@@ -138,8 +139,8 @@ export function TwoFactorSettings() {
               {t("twoFactor.turnOff")}
             </button>
           ) : (
-            // Off on the server, nobody can turn it on; an account that has
-            // it keeps the button above to turn it off.
+            // When it is off on the server, nobody can turn it on. An account
+            // that has it keeps the button above to turn it off.
             serverFeature("twoFactor") && (
               <button
                 type="button"

@@ -20,7 +20,7 @@ import { SettingsDialog } from "./SettingsDialog.tsx";
 
 let host: HTMLDivElement;
 
-/** The labels of the pages in the dialog's navigation. */
+/** The labels of the pages in the navigation of the dialog. */
 function pages(): string[] {
   const nav = host.querySelector(`nav[aria-label="${t("settings.title")}"]`);
   return [...(nav?.querySelectorAll("button") ?? [])].map(
@@ -28,7 +28,7 @@ function pages(): string[] {
   );
 }
 
-/** The section headings of the page the dialog shows. */
+/** The section headings of the page that the dialog shows. */
 function headings(): string[] {
   return [...host.querySelectorAll("h3")].map((h) => h.textContent ?? "");
 }
@@ -83,7 +83,7 @@ describe("SettingsDialog account pages", () => {
     await vi.waitFor(() => expect(pages()).toContain(t("activity.title")));
     expect(pages()).not.toContain(t("webhooks.title"));
     expect(pages()).not.toContain(t("tokens.title"));
-    // The keys are no feature: every account has them.
+    // The keys are not a feature: all accounts have them.
     expect(pages()).toContain(t("keys.title"));
     // The password still changes there, without a second factor to add.
     expect(pages()).toContain(t("signIn.title"));
@@ -108,7 +108,8 @@ describe("SettingsDialog account pages", () => {
   });
 
   it("keeps two-factor for an account that has one when both halves are off", async () => {
-    // Sign-in still asks for the factor, so the section that removes it stays.
+    // The sign-in still asks for the factor. Thus, the section that removes it
+    // stays.
     const fetchMock = vi.fn(
       async () =>
         new Response(JSON.stringify({ enabled: true, authenticator: true }), {

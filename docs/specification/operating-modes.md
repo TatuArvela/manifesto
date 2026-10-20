@@ -1,38 +1,51 @@
 # Operating Modes
 
-Manifesto runs in one of two modes, selected when the **client** is built. The mode determines where notes are stored, whether authentication is required, and which features are available.
+Manifesto runs in one of two modes. You select the mode when you build the **client**. The mode
+sets where the notes are stored, if authentication is necessary, and which features are available.
 
 | Mode          | Storage             | Login required | Multi-device | Multi-user | Offline      |
 |---------------|---------------------|----------------|--------------|------------|--------------|
 | **Open**      | Browser localStorage | No             | No           | No         | Always       |
-| **Connected** | Manifesto server     | Yes            | Yes          | Yes        | Read-only via service worker cache |
+| **Connected** | Manifesto server     | Yes            | Yes          | Yes        | Read-only through the service worker cache |
 
-There is no runtime toggle: a build is one mode or the other. To move data between modes, use [Export / Import](features/export-import.md). To run either mode under your own name and icons, see [Custom Instances](custom-instances.md).
+There is no runtime switch: a build has one mode. To move data between modes, use
+[Export / Import](features/export-import.md). To run a mode with your own name and icons, see
+[Custom Instances](custom-instances.md).
 
 ## Open Mode
 
-The default. The client is a standalone single-page application; there is no server to deploy or operate.
+This is the default. The client is a standalone single-page application. There is no server to
+deploy or operate.
 
-- All notes live in `localStorage` under the `manifesto:notes` key (JSON). Their images live in IndexedDB (`manifesto-images`), and a note refers to each as `local:<sha256>`; see [Attachments](features/attachments.md).
-- Version history lives in `localStorage`, one LZ-String compressed key per note (`manifesto:versions:<noteId>`).
-- Preferences live in `localStorage` under `manifesto:prefs`.
-- Sharing works via URL hash payloads, so any two open-mode users can share a note without a server.
-- The PWA service worker caches the app shell, so the site works fully offline once installed.
+- All notes are in `localStorage`, under the `manifesto:notes` key (JSON). Their images are in
+  IndexedDB (`manifesto-images`). A note refers to each image as `local:<sha256>`. See
+  [Attachments](features/attachments.md).
+- The version history is in `localStorage`, with one key for each note, compressed with LZ-String
+  (`manifesto:versions:<noteId>`).
+- The preferences are in `localStorage`, under `manifesto:prefs`.
+- Sharing works through URL hash payloads. Thus, two open-mode users can share a note without a
+  server.
+- The PWA service worker caches the app shell. Thus, after installation, the site works fully
+  offline.
 
 ### Available features
 
-Notes, checklists, tags, colors, pinning, archive, trash, search, reminders, version history, sharing, import/export, drag-and-drop reordering, full markdown editing.
+Notes, checklists, tags, colors, pinning, archive, trash, search, reminders, version history,
+sharing, import/export, reorder with drag-and-drop, full markdown editing.
 
 ### Not available
 
-Multi-device sync, multi-user accounts, sharing notes with other accounts, server-side search across devices, live collaborative editing, [link preview](features/link-previews.md) titles and images (cards show the URL and domain only), persistence beyond a single browser profile.
+Sync between devices, accounts for many users, sharing notes with other accounts, server-side search
+across devices, live collaborative editing, the titles and images of
+[link previews](features/link-previews.md) (cards show only the URL and the domain), and storage
+outside one browser profile.
 
 ### When to use
 
-- Personal note-taking on a single device.
+- Personal notes on one device.
 - Static-site deployments (GitHub Pages, Netlify, Cloudflare Pages, plain nginx).
-- Air-gapped or offline-first environments.
-- Trying Manifesto without committing to a server.
+- Air-gapped environments or offline-first environments.
+- To try Manifesto without a server.
 
 ### Build
 
@@ -42,40 +55,50 @@ pnpm --filter @manifesto/client build
 # Produces packages/client/dist/; host as a static site.
 ```
 
-`VITE_MANIFESTO_SERVER` must be unset (or empty) at build time. The Content Security Policy stays at `connect-src 'self'`.
+At build time, `VITE_MANIFESTO_SERVER` must not be set (or must be empty). The Content Security
+Policy stays at `connect-src 'self'`.
 
 ## Connected Mode
 
-The client is built with `VITE_MANIFESTO_SERVER=<url>` and talks to a Manifesto server for persistence, authentication, and real-time fan-out. The server is the source of truth.
+The client is built with `VITE_MANIFESTO_SERVER=<url>`. It connects to a Manifesto server for
+storage, authentication, and real-time distribution of events. The server is the source of truth.
 
-- Notes are stored server-side via the configured [storage driver](#storage-drivers).
-- Users authenticate via the configured [auth provider](#auth-providers); login is mandatory.
-- Writes go through the REST API; the server fans out `note:*` events over the `/api/v1/ws` WebSocket so other devices update live.
-- Per-note collaborative editing runs over a Hocuspocus + Yjs channel at `/api/v1/yjs`, which multiplexes every note over one socket by document name.
-- Tags and manual ordering are scoped per-user.
-- Most [preferences](features/preferences.md) follow the account; a few that suit one screen or one
-  browser stay on the device.
+- The server stores the notes through the configured [storage driver](#storage-drivers).
+- Users authenticate through the configured [auth provider](#auth-providers). Login is mandatory.
+- Writes go through the REST API. The server sends `note:*` events over the `/api/v1/ws` WebSocket.
+  Thus, other devices update immediately.
+- Collaborative editing of each note runs over a Hocuspocus and Yjs channel at `/api/v1/yjs`. This
+  channel sends all notes over one socket, by document name.
+- Each user has their own tags and manual order.
+- Most [preferences](features/preferences.md) go with the account. Some that apply to one screen or
+  one browser stay on the device.
 
 ### Available features
 
-Everything in open mode, **plus**: multi-device sync, multi-user isolation, [account administration](features/accounts.md), [sharing notes with other accounts](features/sharing-with-people.md), server-side search, live collaborative editing, presence (who is viewing/editing), and [link previews](features/link-previews.md) filled in with the page's title, description and image.
+All of the features of open mode, **and**: sync between devices, isolation between users,
+[account administration](features/accounts.md),
+[sharing notes with other accounts](features/sharing-with-people.md), server-side search, live
+collaborative editing, presence (who looks at or edits a note), and
+[link previews](features/link-previews.md) with the title, description and image of the page.
 
 ### Behavioural differences vs open mode
 
-- The client gates the entire UI behind `LoginScreen` until a session token is present.
-- Local-only fallbacks (e.g. `LocalStorageAdapter`) are not reachable; data never lives on the device beyond the auth token and PWA cache.
-- Reminders still fire from the client's `reminderScheduler`, since the user must have the tab open to be notified.
-- Version history remains client-local for now.
+- The client shows only `LoginScreen` until a session token is present.
+- The client cannot use the local-only fallbacks (for example `LocalStorageAdapter`). The device
+  keeps no data other than the auth token and the PWA cache.
+- Reminders still fire from the `reminderScheduler` of the client, because the user must have the
+  tab open to get a notification.
+- The version history stays local to the client for now.
 
 ### When to use
 
-- Multiple devices that need to stay in sync.
-- Teams that want collaborative editing or per-user note isolation.
-- Organizations that need to retain notes server-side (compliance, backups, central admin).
+- Many devices that must stay in sync.
+- Teams that need collaborative editing, or isolation of notes between users.
+- Organizations that must keep notes on a server (compliance, backups, central administration).
 
 ### Build & run
 
-Build the client with the server URL baked in, and run the server alongside it:
+Build the client with the server URL in it, and run the server with it:
 
 ```bash
 # Client
@@ -87,45 +110,63 @@ pnpm --filter @manifesto/server build
 pnpm --filter @manifesto/server start
 ```
 
-See [Client Deployment](client/deployment.md) and [Server Deployment](server/deployment.md) for hosting specifics.
+For the hosting details, see [Client Deployment](client/deployment.md) and
+[Server Deployment](server/deployment.md).
 
 ## Server Configuration
 
-In connected mode the server picks a **storage driver** and an **auth provider** independently. All four combinations are supported.
+In connected mode, the server selects a **storage driver** and an **auth provider** separately. All
+four combinations are supported.
 
 |                       | `AUTH_PROVIDER=local`             | `AUTH_PROVIDER=oidc`                            |
 |-----------------------|-----------------------------------|-------------------------------------------------|
-| `STORAGE_DRIVER=sqlite`   | Personal / small self-host        | Self-host with company SSO                      |
-| `STORAGE_DRIVER=postgres` | Self-host on managed Postgres     | Team / managed deployment with SSO + scale-out  |
+| `STORAGE_DRIVER=sqlite`   | Personal or small self-host        | Self-host with company SSO                      |
+| `STORAGE_DRIVER=postgres` | Self-host on managed Postgres     | Team or managed deployment with SSO and scale-out  |
 
 ### Storage drivers
 
-Both drivers expose the same `StorageDriver` interface and ship six repositories: `users`, `sessions`, `notes`, `shares`, `yjs`, `maintenance`. The choice is operational, not functional.
+Both drivers have the same `StorageDriver` interface and six repositories: `users`, `sessions`,
+`notes`, `shares`, `yjs`, `maintenance`. The choice is about operation, not about function.
 
-- **`sqlite`** *(default)*: `better-sqlite3`, single file at `${DATA_DIR}/manifesto.db`. Zero configuration. Back it up with SQLite's own `.backup`, never `cp`: the driver runs in WAL mode, so the `.db` file on its own is not the whole database. See [Backups](server/deployment.md#backups).
-- **`postgres`**: `pg` Pool against a `DATABASE_URL`. Required for any deployment that scales beyond a single app server, shares state with other services, or relies on managed-database backups.
+- **`sqlite`** *(default)*: `better-sqlite3`, one file at `${DATA_DIR}/manifesto.db`. It needs no
+  configuration. Make a backup with the `.backup` command of SQLite. Never use `cp`. The driver runs
+  in WAL mode. Thus, the `.db` file alone is not the full database. See
+  [Backups](server/deployment.md#backups).
+- **`postgres`**: a `pg` Pool, connected to a `DATABASE_URL`. It is necessary for a deployment that
+  has more than one app server, that shares state with other services, or that uses the backups of a
+  managed database.
 
-See [Server Overview](server/index.md#storage-drivers) for details.
+For more data, see [Server Overview](server/index.md#storage-drivers).
 
 ### Auth providers
 
-Both providers expose the same `AuthProvider` interface. Only the login step differs; once a session token is minted, every authenticated request is identical.
+Both providers have the same `AuthProvider` interface. Only the login step is different. After the
+server makes a session token, all authenticated requests are the same.
 
-- **`local`** *(default)*: username + argon2id password, sessions stored server-side. Mounts `POST /api/v1/auth/{register,login,logout}`.
-- **`oidc`**: OAuth 2.0 Authorization Code Flow with PKCE against any OpenID Connect IdP (Authentik, Keycloak, Google, Auth0, Okta, …). Mounts `GET /api/v1/auth/login` (302 to IdP), `GET /api/v1/auth/callback`, `POST /api/v1/auth/logout`. Users are JIT-provisioned by `(provider, sub)`.
+- **`local`** *(default)*: username and argon2id password. The server stores the sessions. It
+  mounts `POST /api/v1/auth/{register,login,logout}`.
+- **`oidc`**: OAuth 2.0 Authorization Code Flow with PKCE, against an OpenID Connect IdP (Authentik,
+  Keycloak, Google, Auth0, Okta, …). It mounts `GET /api/v1/auth/login` (302 to the IdP),
+  `GET /api/v1/auth/callback` and `POST /api/v1/auth/logout`. It makes users just in time, by
+  `(provider, sub)`.
 
-The client decides which login UI to render by reading the public `GET /api/v1/capabilities` on mount (`auth.providers`), so a single client build works against either provider.
+When the client mounts, it reads the public `GET /api/v1/capabilities` (`auth.providers`) to select
+the login UI. Thus, one client build works with both providers.
 
-See [Server Overview](server/index.md#authentication-providers) for details.
+For more data, see [Server Overview](server/index.md#authentication-providers).
 
 ## Migrating Between Modes
 
-There is no in-place upgrade. To move from one mode to another:
+You cannot upgrade in place. To move from one mode to the other:
 
-1. **Open → Connected**: Settings → Export to download the export zip, build (or visit) the connected client, log in, then Settings → Import.
-2. **Connected → Open**: Same flow in reverse: export from the connected client, switch to an open-mode build, import.
+1. **Open → Connected**: in Settings → Export, download the export zip. Build (or open) the
+   connected client, and log in. Then use Settings → Import.
+2. **Connected → Open**: do the same steps in the opposite direction. Export from the connected
+   client, change to an open-mode build, and import.
 
-Round-trips preserve every field in the [data model](data-model.md), including version history snapshots referenced via the local `manifesto:versions:<noteId>` keys. Export/import is documented in [Export / Import](features/export-import.md).
+A round trip keeps all fields of the [data model](data-model.md). This includes the version history
+snapshots in the local `manifesto:versions:<noteId>` keys. For export and import, see
+[Export / Import](features/export-import.md).
 
 ## Configuration Reference
 
@@ -133,16 +174,16 @@ Round-trips preserve every field in the [data model](data-model.md), including v
 
 | Variable                  | Mode           | Description                                           |
 |---------------------------|----------------|-------------------------------------------------------|
-| `VITE_MANIFESTO_SERVER`   | Connected only | Absolute URL of the Manifesto server. Unset → open mode. |
+| `VITE_MANIFESTO_SERVER`   | Connected only | The absolute URL of the Manifesto server. If not set, the mode is open mode. |
 
 ### Server (runtime)
 
-The full list lives in `packages/server/.env.example`. The mode-shaping subset:
+The full list is in `packages/server/.env.example`. These variables control the mode:
 
 | Variable          | Default     | Notes                                          |
 |-------------------|-------------|------------------------------------------------|
-| `STORAGE_DRIVER`  | `sqlite`    | `sqlite` or `postgres`. Validated at boot.     |
-| `AUTH_PROVIDER`   | `local`     | `local`, `oidc` or `both`. Validated at boot.  |
-| `DATABASE_URL`    | none        | Required when `STORAGE_DRIVER=postgres`.        |
-| `OIDC_*`          | none        | Required when `AUTH_PROVIDER=oidc` or `both`. See [Server Deployment](server/deployment.md#oidc-variables-when-auth_provideroidc). |
-| `CORS_ORIGINS`    | `http://localhost:5173` | Must include the deployed client origin in connected mode. |
+| `STORAGE_DRIVER`  | `sqlite`    | `sqlite` or `postgres`. The server validates it when it starts. |
+| `AUTH_PROVIDER`   | `local`     | `local`, `oidc` or `both`. The server validates it when it starts. |
+| `DATABASE_URL`    | none        | Necessary when `STORAGE_DRIVER=postgres`.        |
+| `OIDC_*`          | none        | Necessary when `AUTH_PROVIDER=oidc` or `both`. See [Server Deployment](server/deployment.md#oidc-variables-when-auth_provideroidc). |
+| `CORS_ORIGINS`    | `http://localhost:5173` | In connected mode, it must include the origin of the deployed client. |

@@ -2,16 +2,16 @@ import type { AccountPrefs, CapabilitiesResponse } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 
 /**
- * The preferences the connected server's host chose as its defaults
- * (`defaultPrefs` in `/api/v1/capabilities`, set by `fetchCapabilities`), with
- * whether someone was signed in when they arrived; null until the server has
- * said, and always in open mode. Kept apart from `prefs.ts`, which touches
- * the page as it loads, and from `auth.ts`, which tests mock, so that either
- * `fetchCapabilities` or `prefsSync.ts` can set it.
+ * The preferences that the host of the connected server selected as its
+ * defaults (`defaultPrefs` in `/api/v1/capabilities`, set by
+ * `fetchCapabilities`), and if a person was signed in when they arrived. Null
+ * until the server told, and always in open mode. Kept separate from
+ * `prefs.ts`, which changes the page when it loads, and from `auth.ts`, which
+ * tests mock. Thus, `fetchCapabilities` and `prefsSync.ts` can both set it.
  *
- * `prefs.ts` applies them at once on a browser with no preferences of its
- * own and nobody signed in; `prefsSync.ts` gives one to each key an account
- * has never stored.
+ * `prefs.ts` applies them immediately on a browser with no preferences of its
+ * own and nobody signed in. `prefsSync.ts` gives one to each key that an
+ * account never stored.
  */
 export const serverDefaultPrefs = signal<{
   prefs: AccountPrefs;

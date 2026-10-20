@@ -1,8 +1,8 @@
 /**
- * Scrolling a list while something is dragged along it. The browser does this
- * for a native drag; a pointer-driven one (a checklist item, a note under a
- * finger) holds the touch that would otherwise scroll, so it has to scroll
- * for itself, at the pace the marquee selection scrolls at.
+ * The scroll of a list while something is dragged along it. The browser does
+ * this for a native drag. A drag controlled by the pointer (a checklist item, a
+ * note under a finger) keeps the touch that would otherwise scroll. Thus, it
+ * must scroll by itself, at the speed of the marquee selection.
  */
 
 import { edgeScrollStep } from "./marquee.ts";
@@ -21,10 +21,10 @@ export function scrollParent(el: HTMLElement): HTMLElement {
 }
 
 /**
- * Scrolls `scroller` one frame's worth for a pointer at `y`. The visible part
- * of it is what counts, so an area taller than the window scrolls at the
- * window's edges. True if it moved, which is when whatever the drag is aiming
- * at has to be looked up again.
+ * Scrolls `scroller` by one frame for a pointer at `y`. Its visible part is
+ * what counts. Thus, an area taller than the window scrolls at the edges of the
+ * window. True if it moved. Then the code must look up again the target of the
+ * drag.
  */
 export function edgeScroll(scroller: HTMLElement, y: number): boolean {
   const box =

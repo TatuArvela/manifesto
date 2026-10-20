@@ -1,14 +1,18 @@
 import { markFencedLines } from "./markdown.ts";
 
-// What the rich editor's serializer writes, brought in line with what the
-// preview renders, so a note read out of the editor round-trips unchanged.
+// What the serializer of the rich editor writes, made the same as what the
+// preview renders. Thus, a note read out of the editor comes back without
+// change.
 
-/** prosemirror-markdown escapes `[` `]` per CommonMark; our content uses literal
- * brackets (e.g. "Post [ ] Maa"), so we unescape them on readout.
+/**
+ * prosemirror-markdown escapes `[` `]` as CommonMark says. Our content uses
+ * literal brackets (for example "Post [ ] Maa"). Thus, we remove the escapes on
+ * readout.
  *
- * Not inside a code block: there the backslash is content, and a note showing
- * how to escape a bracket had its own example silently corrected. Code spans
- * are left alone for the same reason. */
+ * Not inside a code block. There, the backslash is content, and a note that
+ * showed how to escape a bracket had its own example silently changed. Code
+ * spans are not changed for the same reason.
+ */
 function unescapeBrackets(md: string): string {
   const lines = md.split("\n");
   const fenced = markFencedLines(lines);
@@ -19,11 +23,13 @@ function unescapeBrackets(md: string): string {
 
 const LIST_LINE_RE = /^\s*(?:[-*+] |\d+[.)] )/;
 
-/** mdast's "spread" lists insert blank lines between items on stringify. Our
- * preview treats each blank line as a segment gap, which balloons a simple
- * checklist into disconnected blocks. Collapse blank lines that only sit
- * between two list items, never inside a fence, where a blank line between
- * two lines that happen to start with `-` is part of the code. */
+/**
+ * The "spread" lists of mdast insert blank lines between items on stringify.
+ * Our preview treats each blank line as a segment gap, which changes a simple
+ * checklist into separate blocks. Collapse blank lines that are only between
+ * two list items, never inside a fence. There, a blank line between two lines
+ * that start with `-` is part of the code.
+ */
 function collapseListSpread(md: string): string {
   const lines = md.split("\n");
   const fenced = markFencedLines(lines);
@@ -48,16 +54,17 @@ function collapseListSpread(md: string): string {
 }
 
 /**
- * The two post-processing passes above, in the order the editor's
- * `getMarkdown` needs them.
+ * The two post-processing passes above, in the order that the `getMarkdown` of
+ * the editor needs.
  */
 export function normalizeMarkdown(md: string): string {
   return collapseListSpread(unescapeBrackets(md));
 }
 
 /**
- * Replaces a textarea's text with a change made elsewhere, keeping the caret
- * on the same text: before the change it stays put, after it moves with it.
+ * Replaces the text of a textarea with a change made in a different place, and
+ * keeps the caret on the same text. If the change is after the caret, the caret
+ * does not move. If the change is before it, the caret moves with it.
  */
 export function replaceTextareaText(
   textarea: HTMLTextAreaElement | null,

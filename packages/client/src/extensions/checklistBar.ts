@@ -7,11 +7,11 @@ import { itemDateOf, setItemDate } from "./itemDates.ts";
 import { activeTaskItem } from "./taskListStructure.ts";
 
 /**
- * A bar over the checklist item the caret is in, as the table has one over
- * its table. It dates the item: the date button opens the browser's own date
- * picker, and the pick is written into the item as an `@2026-10-02` token
- * (see `itemDates.ts`), which stays plain text a keyboard can type, change
- * or delete as well.
+ * A bar over the checklist item that contains the caret, as the table has one
+ * over its table. It gives the item a date. The date button opens the own date
+ * picker of the browser, and the selection is written into the item as an
+ * `@2026-10-02` token (see `itemDates.ts`). The token stays plain text, which a
+ * keyboard can also type, change or delete.
  */
 
 const svg = (paths: string) =>

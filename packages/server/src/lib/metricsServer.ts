@@ -4,13 +4,13 @@ import { renderMetrics } from "./metrics.ts";
 import { safeEqual } from "./token.ts";
 
 /**
- * `/metrics` as a handler of its own, mounted on the main app or on the
- * separate `METRICS_PORT` listener.
+ * `/metrics` as its own handler, mounted on the main app or on the separate
+ * `METRICS_PORT` listener.
  *
- * On the main port it answers only with `METRICS_TOKEN`, since that port is
- * the public one. On its own port the port is the boundary (loopback by
- * default, or a Docker network), so the token is asked for only when set.
- * Anything refused is a plain 404, the same as a path that does not exist.
+ * On the main port, it answers only with `METRICS_TOKEN`, because that port is
+ * public. On its own port, the port is the boundary (loopback by default, or a
+ * Docker network). Thus, it asks for the token only when it is set. Each
+ * refusal is a plain 404, the same as for a path that does not exist.
  */
 export function metricsHandler(
   cfg: Pick<ServerConfig, "metricsToken">,
@@ -37,7 +37,7 @@ export function metricsHandler(
   };
 }
 
-/** The app `METRICS_PORT` serves: `/metrics` and nothing else. */
+/** The app that `METRICS_PORT` serves: only `/metrics`. */
 export function createMetricsApp(
   cfg: Pick<ServerConfig, "metricsToken">,
   version: string,

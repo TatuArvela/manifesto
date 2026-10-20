@@ -75,9 +75,9 @@ describe("foldIncoming", () => {
   });
 
   it("does not resurrect attachments the copy says are gone", () => {
-    // A rolled-back write hands back the note as it stood, which may have had
-    // no attachments at all. An empty `images` with a count to match is an
-    // answer, not a listing that left the bytes behind.
+    // A write that rolled back gives back the note as it was, which possibly
+    // had no attachments. An empty `images` with a count that agrees is an
+    // answer, not a listing that did not include the bytes.
     const held = makeNote({ images: ["data:image/png;base64,AAA"] });
     const withoutAny = makeNote({ images: [], imageCount: 0 });
     expect(foldIncoming(held, withoutAny).images).toEqual([]);

@@ -2,13 +2,13 @@ import { keymap } from "@milkdown/kit/prose/keymap";
 import type { Command, Plugin } from "@milkdown/kit/prose/state";
 import { isListNode } from "./taskListStructure.ts";
 
-// Delete and Backspace next to a list: remove an empty paragraph beside it
-// rather than letting the default join strip the first item of its list.
+// Delete and Backspace next to a list: remove an empty paragraph next to it. Do
+// not let the default join remove the first item from its list.
 
 /**
- * Delete: when the cursor sits in an empty paragraph immediately followed by
- * a list, remove the paragraph without merging it into the first list item
- * (which would strip the item's task/list-ness).
+ * Delete: when the cursor is in an empty paragraph immediately followed by a
+ * list, remove the paragraph. Do not merge it into the first list item (which
+ * would remove the task or list type of the item).
  */
 const deleteEmptyParagraphBeforeList: Command = (state, dispatch) => {
   const { $from, empty } = state.selection;
@@ -31,9 +31,9 @@ const deleteEmptyParagraphBeforeList: Command = (state, dispatch) => {
 };
 
 /**
- * Backspace: when the cursor is at the very start of the first item of a
- * list, and the list is preceded by an empty paragraph, remove that
- * paragraph instead of letting the default lift/join strip the list item.
+ * Backspace: when the cursor is at the very start of the first item of a list,
+ * and an empty paragraph is before the list, remove that paragraph. Do not let
+ * the default lift or join remove the list item.
  */
 const backspaceEmptyParagraphBeforeList: Command = (state, dispatch) => {
   const { $from, empty } = state.selection;

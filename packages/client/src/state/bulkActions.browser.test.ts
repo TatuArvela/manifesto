@@ -226,9 +226,9 @@ describe("bulk operations", () => {
     const n2 = await createNoteOrFail({ title: "B" });
     enterSelectMode(n1.id);
     toggleSelectNote(n2.id);
-    // Delete n1 before bulk operation runs
+    // Delete n1 before the bulk operation runs.
     await permanentlyDeleteNote(n1.id);
-    // Should not throw
+    // It must not throw.
     await bulkArchive();
     expect(notes.value).toHaveLength(1);
     expect(notes.value[0]?.archived).toBe(true);
@@ -335,7 +335,7 @@ describe("hidden tags", () => {
     setTagHidden("work", true);
 
     expect(titles()).toEqual(["Home"]);
-    // Only notes the Notes view would otherwise show count as hidden.
+    // Only notes that the Notes view would otherwise show count as hidden.
     expect(notesHiddenByTag.value).toBe(2);
 
     activeView.value = "tags";
@@ -352,10 +352,10 @@ describe("hidden tags", () => {
 
 describe("reorderNotes", () => {
   /**
-   * The whole manual order by title, hidden notes included. `sortedNotes`
-   * answers for the view on screen, which is exactly what these tests must
-   * not read: where an archived or trashed note sits on the same number line
-   * is the thing being checked.
+   * The full manual order by title, also the hidden notes. `sortedNotes`
+   * answers for the view on the screen, which is exactly what these tests must
+   * not read. The test checks the position of an archived or trashed note on
+   * the same number line.
    */
   const order = () =>
     [...notes.value]
@@ -378,7 +378,7 @@ describe("reorderNotes", () => {
     const n1 = await createNoteOrFail({ title: "A", position: 0 });
     const n2 = await createNoteOrFail({ title: "B", position: 1 });
     const n3 = await createNoteOrFail({ title: "C", position: 2 });
-    // Move A from index 0 to index 2
+    // Move A from index 0 to index 2.
     await reorderNotes([n1.id, n2.id, n3.id], 0, 2);
     const sorted = [...notes.value].sort((a, b) => a.position - b.position);
     expect(sorted.map((n) => n.title)).toEqual(["B", "C", "A"]);
@@ -388,7 +388,7 @@ describe("reorderNotes", () => {
     const n1 = await createNoteOrFail({ title: "A", position: 0 });
     const n2 = await createNoteOrFail({ title: "B", position: 1 });
     await reorderNotes([n1.id, n2.id], 0, 0);
-    // Positions unchanged
+    // The positions do not change.
     expect(notes.value.find((n) => n.id === n1.id)?.position).toBe(0);
     expect(notes.value.find((n) => n.id === n2.id)?.position).toBe(1);
   });
@@ -418,10 +418,10 @@ describe("reorderNotes", () => {
   });
 
   it("leaves a note that is not on screen where it was", async () => {
-    // The archived note sits between B and C on the same number line. A drag
-    // among the visible three used to renumber them to 1000, 2000, 3000,
-    // which put the archived note's old 25 ahead of all of them: restore it
-    // and it jumped to the top of the board.
+    // The archived note is between B and C on the same number line. Before, a
+    // drag among the three visible notes numbered them again to 1000, 2000,
+    // 3000. That put the old 25 of the archived note before all of them. When
+    // you restored it, it went to the top of the board.
     const a = await createNoteOrFail({ title: "A", position: 10 });
     const b = await createNoteOrFail({ title: "B", position: 20 });
     const c = await createNoteOrFail({ title: "C", position: 30 });
@@ -434,14 +434,15 @@ describe("reorderNotes", () => {
     const section = [a.id, b.id, c.id];
     await reorderNotes(section, 0, 1);
 
-    // A sits between B and the archived note, which has not moved at all.
+    // A is between B and the archived note, which did not move.
     expect(notes.value.find((n) => n.title === "Archived")?.position).toBe(25);
     expect(order()).toEqual(["B", "A", "Archived", "C"]);
   });
 
   it("spreads everything out again when a gap has no room left", async () => {
-    // Two adjacent doubles: there is no number between them to drop into, so
-    // the midpoint rounds back onto one of the two and the fallback runs.
+    // Two adjacent doubles. There is no number between them in which to drop.
+    // Thus, the midpoint rounds back onto one of the two, and the fallback
+    // runs.
     const a = await createNoteOrFail({ title: "A", position: 1 });
     const b = await createNoteOrFail({
       title: "B",
@@ -452,8 +453,8 @@ describe("reorderNotes", () => {
 
     await reorderNotes([a.id, b.id, c.id], 2, 1);
 
-    // Everything is spaced out again, the hidden note included, and C landed
-    // where it was dropped.
+    // All notes get new spacing, also the hidden note, and C went where it was
+    // dropped.
     expect(notes.value.map((n) => n.position).sort((x, y) => x - y)).toEqual([
       1000, 2000, 3000, 4000,
     ]);
@@ -461,8 +462,8 @@ describe("reorderNotes", () => {
   });
 
   it("orders two notes that share a position by id", async () => {
-    // Two devices can pick the same midpoint for the same gap. Whichever
-    // order the notes are held in, both devices must show the same board.
+    // Two devices can select the same midpoint for the same gap. In whichever
+    // order the notes are held, both devices must show the same board.
     const first = await createNoteOrFail({ title: "First", position: 100 });
     const second = await createNoteOrFail({ title: "Second", position: 100 });
     const [low, high] =
@@ -492,10 +493,10 @@ describe("failure reporting", () => {
   });
 
   /**
-   * Three notes in the signal that storage has never heard of, so every write
+   * Three notes in the signal that storage does not know. Thus, each write
    * against them fails. That is the shape of a real partial failure (a note
-   * deleted from another device, a row the server rejects) without having to
-   * reach into the adapter.
+   * deleted from a different device, a row that the server refuses), without
+   * access to the adapter.
    */
   function selectPhantomNotes(count: number): string[] {
     const ids = Array.from({ length: count }, (_, i) => `phantom-${i}`);
@@ -511,8 +512,8 @@ describe("failure reporting", () => {
   }
 
   it("raises one message for a whole failed bulk operation", async () => {
-    // Every failing note used to raise its own toast, so twenty selected notes
-    // meant twenty toasts stacked over the grid.
+    // Before, each failing note showed its own toast. Thus, twenty selected
+    // notes gave twenty toasts on top of each other over the grid.
     selectPhantomNotes(3);
 
     const ok = await bulkArchive();
@@ -559,9 +560,9 @@ describe("failure reporting", () => {
   });
 
   it("reports a lone failure after two groups overlapped", async () => {
-    // Two groups in flight at once, the first finishing first. Each counts
-    // its own failures, so neither can leave a finished group behind to
-    // swallow every failure that follows.
+    // Two groups in progress at the same time, and the first completes first.
+    // Each counts its own failures. Thus, neither can leave a completed group
+    // that takes each failure that follows.
     const phantom = defined(selectPhantomNotes(1)[0]);
     let releaseFirst = () => {};
     let releaseSecond = () => {};
@@ -582,7 +583,7 @@ describe("failure reporting", () => {
   });
 
   it("leaves select mode even when everything failed", async () => {
-    // Otherwise the toolbar stays up over a selection nothing can act on.
+    // If not, the toolbar stays open over a selection on which nothing can act.
     selectPhantomNotes(2);
 
     await bulkDelete();

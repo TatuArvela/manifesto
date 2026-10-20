@@ -18,15 +18,16 @@ const NAME = /^manifesto-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})\.db$/;
 const PARTIAL = /^manifesto-\d{8}-\d{6}\.db\.partial$/;
 
 /**
- * Free space to leave on the backup volume after a copy. A backup is a
- * convenience; the database it copies has to keep being able to write.
+ * The free space to leave on the backup volume after a copy. A backup is a
+ * convenience. The database that it copies must continue to be able to write.
  */
 export const BACKUP_FREE_RESERVE_BYTES = 256 * 1024 * 1024;
 
 /**
- * A run this soon after the last finished backup is skipped, as a fraction of
- * the interval: a restart (or a crash loop) does not copy the database again,
- * while a scheduled run whose timer fired a little early still goes ahead.
+ * The server skips a run that comes this soon after the last complete backup,
+ * as a fraction of the interval. Thus, a restart (or a crash loop) does not
+ * copy the database again. A scheduled run whose timer fired a little early
+ * still runs.
  */
 const RECENT_FRACTION = 0.9;
 
@@ -38,7 +39,7 @@ export function backupName(at: Date): string {
     .replaceAll(":", "")}.db`;
 }
 
-/** When a backup file was taken, from its name; null for any other file. */
+/** When a backup file was made, from its name. Null for all other files. */
 export function backupTime(name: string): number | null {
   const m = NAME.exec(name);
   if (!m) return null;
@@ -47,9 +48,9 @@ export function backupTime(name: string): number | null {
 }
 
 export interface BackupEnvironment {
-  /** Bytes free on the backup volume. */
+  /** The free bytes on the backup volume. */
   freeBytes: (dir: string) => Promise<number>;
-  /** Bytes the copy will take: the database file and its WAL. */
+  /** The bytes that the copy will use: the database file and its WAL. */
   databaseBytes: () => Promise<number>;
 }
 
@@ -58,14 +59,14 @@ export type BackupOutcome =
   | { kind: "skipped"; reason: "recent"; latest: string };
 
 /**
- * One scheduled run: clears copies a crash left half-written, skips when the
- * newest finished backup is recent, refuses when the volume lacks room for
- * the copy and the reserve, and otherwise takes a backup and deletes all but
- * the newest `keep`.
+ * One scheduled run. It clears copies that a crash left half written. It skips
+ * when the newest complete backup is recent. It refuses when the volume does
+ * not have space for the copy and the reserve. If not, it makes a backup, and
+ * deletes all but the newest `keep`.
  *
- * The copy is written under a temporary name and renamed when it is whole, so
- * a crash mid-copy never leaves something that looks like a backup; the next
- * run deletes what it left.
+ * The copy is written under a temporary name, and renamed when it is complete.
+ * Thus, a crash during the copy never leaves a file that looks like a backup.
+ * The next run deletes what it left.
  */
 export async function takeBackup(
   storage: StorageDriver,
@@ -75,9 +76,9 @@ export async function takeBackup(
 ): Promise<BackupOutcome> {
   if (!storage.backup) throw new Error("This storage driver takes no backups");
   const { dir, keep } = cfg;
-  // A backup is the whole database: every note, password hash and secret.
-  // The directory is made for the server's own user alone; one that is
-  // already there keeps the access its owner gave it.
+  // A backup is the full database: each note, password hash and secret. The
+  // code makes the directory only for the user of the server. A directory that
+  // already exists keeps the access that its owner gave it.
   await mkdir(dir, { recursive: true, mode: 0o700 });
 
   const files = await readdir(dir);
@@ -106,8 +107,9 @@ export async function takeBackup(
   const name = backupName(now);
   const partial = join(dir, `${name}.partial`);
   await storage.backup(partial);
-  // SQLite makes the copy readable to whoever the umask allows, usually
-  // everyone on the host. Narrowed before it takes a backup's name.
+  // SQLite makes the copy readable for all users that the umask permits,
+  // usually all users on the host. The code makes the access narrower before
+  // the copy gets the name of a backup.
   await chmod(partial, 0o600);
   await rename(partial, join(dir, name));
   const backups = [...finished, name].sort();
@@ -138,11 +140,11 @@ export function fileSystemEnvironment(dbPath: string): BackupEnvironment {
 }
 
 /**
- * `BACKUP_INTERVAL_HOURS`: a backup of the SQLite database every so often,
- * checked at startup too (and skipped then if the last one is recent),
- * keeping `BACKUP_KEEP`. A refused run fails the job, which the admin
- * overview and the metrics show. Under Postgres it says at boot that it will
- * not, and does nothing.
+ * `BACKUP_INTERVAL_HOURS`: a backup of the SQLite database at this interval. It
+ * is also checked at startup (and skipped then if the last backup is recent),
+ * and keeps `BACKUP_KEEP`. A refused run makes the job fail, which the admin
+ * overview and the metrics show. With Postgres, it tells at start that it does
+ * nothing, and does nothing.
  */
 export function startScheduledBackup(
   storage: StorageDriver,

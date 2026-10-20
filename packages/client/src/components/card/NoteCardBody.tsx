@@ -17,8 +17,8 @@ import { checklistProgress as showChecklistProgress } from "#/state/prefs.ts";
 import { checklistProgress } from "#/utils/markdown.ts";
 
 /**
- * How far along a note's checklists are, as a thin bar under the text. Drawn
- * from two items on: one item is either done or not, which its box says.
+ * How far the checklists of a note are, as a thin bar under the text. Drawn
+ * from two items. One item is either done or not, which its box shows.
  */
 function ChecklistProgress({ content }: { content: string }) {
   const { done, total } = checklistProgress(content);
@@ -48,7 +48,7 @@ function ChecklistProgress({ content }: { content: string }) {
 
 /**
  * What a card shows of its note: the pictures, then either a link hero (for a
- * note that is nothing but links) or the title, text, previews and chips.
+ * note that contains only links) or the title, text, previews and chips.
  */
 export function NoteCardBody({
   note,
@@ -74,7 +74,7 @@ export function NoteCardBody({
   isSquare: boolean;
   viewOnly: boolean;
   reminderChipRef: preact.RefObject<HTMLButtonElement | null>;
-  /** Whether the reminder picker is open, for the chip's `aria-expanded`. */
+  /** If the reminder picker is open, for the `aria-expanded` of the chip. */
   reminderOpen: boolean;
   onToggleReminder: () => void;
 }) {
@@ -111,9 +111,9 @@ export function NoteCardBody({
           }
         >
           {imagesLoading ? (
-            // Reserved rather than left empty: the masonry grid measures
-            // this card, and a picture arriving afterwards would reflow
-            // the column under the reader's hands.
+            // Reserved, not left empty. The masonry grid measures this card. A
+            // picture that arrives later would change the layout of the column
+            // under the hands of the reader.
             <div
               class={`w-full bg-black/5 dark:bg-white/5 animate-pulse ${isImageOnly && isSquare ? "h-full" : ""}`}
               style={
@@ -150,8 +150,8 @@ export function NoteCardBody({
             class={clsx(
               "overflow-hidden",
               contentClipped && "note-content-fade",
-              // With nothing to show, an image-only note's text block
-              // must not stretch too, or it takes half of a square card
+              // With nothing to show, the text block of a note with only images
+              // must not stretch too. If not, it takes half of a square card
               // from the images.
               isSquare && !isImageOnly ? "flex-1 min-h-0" : "max-h-80",
             )}

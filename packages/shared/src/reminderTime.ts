@@ -1,9 +1,9 @@
 import type { NoteReminder, ReminderRecurrence } from "./note.ts";
 
-// When a reminder is due and where it goes next. Pure, and in the shared
-// package because three things have to agree on it: the page's scheduler, the
-// service worker, and the server, which sends a push for a reminder no open
-// client has fired and then moves it on as a client would have.
+// When a reminder is due, and its next time. It is pure. It is in the shared
+// package because three parts must agree on it: the scheduler of the page, the
+// service worker, and the server. The server sends a push for a reminder that
+// no open client fired, and then moves it on as a client would.
 
 export function currentTimezone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -11,7 +11,7 @@ export function currentTimezone(): string {
 
 const LOCAL_ISO = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?)?$/;
 
-/** A local wall-clock time as its written parts, month zero-based. */
+/** A local wall-clock time as its written parts. The month starts at zero. */
 interface ClockParts {
   y: number;
   mo: number;
@@ -61,12 +61,13 @@ export function formatLocalISO(d: Date): string {
 }
 
 /**
- * A date at a wall-clock time, written as given. The date is normalised
- * through a `Date` at noon, which no daylight saving change reaches, and the
- * clock is kept even on a day it does not exist (02:30 when the clocks jump
- * from 02:00 to 03:00): `parseLocalISO` then lands that one fire just after
- * the gap, and the step after starts from the reminder's own hour again.
- * Read back from a `Date`, the hour came out as 03 and stayed there.
+ * A date at a wall-clock time, written as given. The code normalizes the date
+ * through a `Date` at noon, which no daylight saving change reaches. It keeps
+ * the clock also on a day where that time does not exist (02:30 when the clocks
+ * jump from 02:00 to 03:00). `parseLocalISO` then puts that one fire just after
+ * the gap, and the next step starts from the own hour of the reminder again.
+ * When the code read it back from a `Date`, the hour became 03 and stayed
+ * there.
  */
 function atClock(
   y: number,
@@ -82,10 +83,11 @@ function atClock(
 }
 
 /**
- * The occurrence after `time`. A monthly or yearly reminder lands on `day`
- * (the day it was set for, by default `time`'s own) or on the last day of a
- * month too short for it, and the next step starts from `day` again, never
- * from the clamped date: the 31st goes to 28 February and back to 31 March.
+ * The occurrence after `time`. A monthly or yearly reminder goes to `day` (the
+ * day for which it was set, by default the day of `time`), or to the last day
+ * of a month that is too short for it. The next step starts from `day` again,
+ * never from the clamped date. Thus, the 31st goes to 28 February and back to
+ * 31 March.
  */
 export function nextOccurrence(
   time: string,
@@ -95,8 +97,8 @@ export function nextOccurrence(
   if (recurrence === "none") return null;
   const src = partsOf(time);
   const { y, mo } = src;
-  // Only a step by date lands on `day`. A daily or weekly one steps from
-  // `time` itself: `snapToFuture` passes the same `day` at every step.
+  // Only a step by date goes to `day`. A daily or weekly step starts from
+  // `time` itself. `snapToFuture` sends the same `day` at each step.
   const d = day ?? src.d;
   switch (recurrence) {
     case "daily":
@@ -115,11 +117,11 @@ export function nextOccurrence(
 }
 
 /**
- * A daily or weekly reminder moved forward in whole steps to the last one
- * that starts at least a day before `now`, at once rather than a step at a
- * time: those steps have a fixed length in days. One years behind would
- * otherwise walk thousands of them. Monthly and yearly steps vary in length,
- * and 1000 of them already span 83 years.
+ * A daily or weekly reminder moved forward in full steps to the last step that
+ * starts one day or more before `now`, in one operation, not one step at a
+ * time. Those steps have a fixed length in days. A reminder that is years
+ * behind would otherwise walk thousands of them. Monthly and yearly steps have
+ * different lengths, and 1000 of them already cover 83 years.
  */
 function skipAhead(
   time: string,
@@ -129,7 +131,7 @@ function skipAhead(
   const step = recurrence === "daily" ? 1 : recurrence === "weekly" ? 7 : 0;
   if (step === 0) return time;
   const from = partsOf(time);
-  // Local calendar dates as day counts, so they subtract in whole days
+  // Local calendar dates as day counts. Thus, they subtract in full days,
   // whatever daylight saving does between them.
   const days =
     (Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) -
@@ -148,8 +150,9 @@ export function snapToFuture(
 ): string {
   if (recurrence === "none") return time;
   let current = skipAhead(time, recurrence, now);
-  // Cap iterations defensively so a non-advancing nextOccurrence (e.g. an edge
-  // case in the monthly clamp) can never lock the tab.
+  // Limit the iterations, as a precaution. Thus, a nextOccurrence that does not
+  // advance (for example, an edge case in the monthly clamp) can never lock the
+  // tab.
   for (let i = 0; i < 1000; i++) {
     if (parseLocalISO(current).getTime() > now.getTime()) return current;
     const advanced = nextOccurrence(current, recurrence, day);
@@ -161,7 +164,10 @@ export function snapToFuture(
 
 type Repeating = Pick<NoteReminder, "time" | "recurrence" | "day">;
 
-/** The day of the month a reminder repeats on: the one it was set for. */
+/**
+ * The day of the month on which a reminder repeats: the day for which it was
+ * set.
+ */
 export function repeatDay(
   reminder: Pick<NoteReminder, "time" | "day">,
 ): number {
@@ -169,9 +175,9 @@ export function repeatDay(
 }
 
 /**
- * The reminder moved to `time`, keeping its repeat day. `day` is stored only
- * while `time` does not show it, so a reminder that never meets a short month
- * never carries one.
+ * The reminder moved to `time`, with its repeat day. `day` is stored only while
+ * `time` does not show it. Thus, a reminder that never meets a short month
+ * never has one.
  */
 export function reminderAt<T extends Repeating>(reminder: T, time: string): T {
   const day = repeatDay(reminder);
@@ -183,7 +189,10 @@ export function reminderAt<T extends Repeating>(reminder: T, time: string): T {
     : ({ ...rest, time } as T);
 }
 
-/** The reminder's next occurrence, or null for one that does not repeat. */
+/**
+ * The next occurrence of the reminder, or null for a reminder that does not
+ * repeat.
+ */
 export function advanceReminder<T extends Repeating>(reminder: T): T | null {
   const next = nextOccurrence(
     reminder.time,
@@ -193,7 +202,7 @@ export function advanceReminder<T extends Repeating>(reminder: T): T | null {
   return next === null ? null : reminderAt(reminder, next);
 }
 
-/** The reminder moved past every occurrence before `now`, none of them fired. */
+/** The reminder moved past each occurrence before `now`. None of them fired. */
 export function snapReminderToFuture<T extends Repeating>(
   reminder: T,
   now: Date = new Date(),
@@ -205,10 +214,11 @@ export function snapReminderToFuture<T extends Repeating>(
 }
 
 /**
- * What the picker saves for a date, hour and recurrence. A reminder a short
- * month has clamped (the 31st shown as 28 February) keeps the day it repeats
- * on while only its hour changes; a new date or recurrence starts from the
- * date picked. A recurring time already past moves to its next occurrence.
+ * What the picker saves for a date, hour and recurrence. A reminder that a
+ * short month clamped (the 31st shown as 28 February) keeps the day on which it
+ * repeats while only its hour changes. A new date or recurrence starts from the
+ * selected date. A recurring time that is already past moves to its next
+ * occurrence.
  */
 export function pickedReminder(
   previous: Repeating | null,
@@ -231,17 +241,17 @@ export function pickedReminder(
 }
 
 /**
- * The instant a wall-clock `time` falls on in `timezone`, as epoch
- * milliseconds. A reminder's `time` has no zone of its own; a browser reads it
- * in the device's, and the server, which is in some other zone, has to read
- * it in the one the reminder was made in.
+ * The instant of a wall-clock `time` in `timezone`, as epoch milliseconds. The
+ * `time` of a reminder has no zone. A browser reads it in the zone of the
+ * device. The server is in a different zone. Thus, it must read it in the zone
+ * where the reminder was made.
  *
- * `Intl` says what the clock shows in a zone at an instant, not the reverse,
- * so this guesses the instant as if the time were UTC and corrects by the
- * zone's offset there, twice: the second pass settles a guess that fell on
- * the other side of a daylight saving change. A time the clocks skip lands
- * just after the gap, as `parseLocalISO` lands it on a device. An unknown
- * zone reads the time in the machine's own.
+ * `Intl` tells what the clock shows in a zone at an instant, not the opposite.
+ * Thus, this function guesses the instant as if the time were UTC, and corrects
+ * it by the offset of the zone there, two times. The second pass corrects a
+ * guess that was on the other side of a daylight saving change. A time that the
+ * clocks skip goes just after the gap, as `parseLocalISO` does on a device. An
+ * unknown zone reads the time in the zone of the machine.
  */
 export function instantOf(time: string, timezone: string): number {
   const { y, mo, d, h, mi, s } = partsOf(time);
@@ -261,7 +271,7 @@ export function instantOf(time: string, timezone: string): number {
   } catch {
     return parseLocalISO(time).getTime();
   }
-  /** What the zone's clock is ahead of UTC by, at `instant`. */
+  /** How much the clock of the zone is ahead of UTC, at `instant`. */
   const offsetAt = (instant: number) => {
     const shown: Record<string, number> = {};
     for (const part of format.formatToParts(instant)) {

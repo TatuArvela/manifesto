@@ -110,7 +110,7 @@ describe("mergeNoteUpdate", () => {
   });
 
   it("keeps the other writer's fill-in of a preview this one left alone", () => {
-    // Device A filled in a pasted link's card; device B, still holding the
+    // Device A filled the card of a pasted link. Device B, which still had the
     // stub, removed a different preview and lost the race.
     const stub = { url: "https://a", title: "https://a", domain: "a" };
     const filled = { url: "https://a", title: "A page", domain: "a" };

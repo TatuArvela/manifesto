@@ -24,8 +24,9 @@ describe("withoutImages", () => {
     ];
     for (const markdown of written) {
       const stripped = withoutImages(renderMarkdown(markdown));
-      // Read as a browser would read it: nothing left that fetches by itself.
-      // (A link may still name the address; it goes nowhere until followed.)
+      // Read as a browser would read it: nothing is left that loads by itself.
+      // (A link can still name the address. It goes nowhere until a person
+      // follows it.)
       const drawn = document.createElement("template");
       drawn.innerHTML = stripped;
       expect(drawn.content.querySelectorAll("img"), markdown).toHaveLength(0);

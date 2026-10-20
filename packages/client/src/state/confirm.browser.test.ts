@@ -61,7 +61,7 @@ describe("confirmDeletion", () => {
   it("asks while the preference is on", async () => {
     confirmBeforeDelete.value = true;
     const answer = confirmDeletion(question);
-    // The deletion is held until the reader has answered.
+    // The deletion waits until the reader answered.
     await Promise.resolve();
     expect(confirmRequest.value?.confirmLabel).toBe("Delete");
     answerConfirmation(false);

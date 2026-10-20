@@ -10,7 +10,7 @@ interface TotpRow {
 
 export function rowToTotp(row: TotpRow): TotpState {
   return {
-    // Under the server key; one that no longer opens matches no code
+    // Under the server key. A secret that does not open now matches no code
     // (`verifyTotp` refuses an empty secret).
     secret: atRest.open(row.secret, AT_REST.totpSecret) ?? "",
     enabledAt: row.enabled_at,

@@ -4,7 +4,7 @@ import { computePanelPosition } from "./Dropdown.tsx";
 const VIEWPORT = { width: 1000, height: 600 };
 const PANEL = { width: 160, height: 200 };
 
-/** A 100x30 trigger with its top-left at (x, y). */
+/** A 100x30 trigger with its top-left corner at (x, y). */
 const triggerAt = (x: number, y: number) => ({
   left: x,
   right: x + 100,
@@ -20,7 +20,7 @@ describe("computePanelPosition", () => {
       VIEWPORT,
       "bottom-start",
     );
-    // 4px gap under the trigger's bottom edge.
+    // A gap of 4px under the bottom edge of the trigger.
     expect(top).toBe(134);
   });
 
@@ -32,8 +32,8 @@ describe("computePanelPosition", () => {
       VIEWPORT,
       "bottom-start",
     );
-    // Below would end at 534 + 200 = 734, past the 600px viewport, and there
-    // is room above, so it sits 4px clear of the trigger's top edge.
+    // Below, it would end at 534 + 200 = 734, past the 600px viewport, and
+    // there is space above. Thus, it is 4px above the top edge of the trigger.
     expect(top).toBe(500 - 200 - 4);
     expect(top + PANEL.height).toBeLessThanOrEqual(trigger.top);
   });
@@ -49,7 +49,7 @@ describe("computePanelPosition", () => {
   });
 
   it("does not flip when the opposite side has no room either", () => {
-    // Trigger low down, but a panel too tall to fit above it.
+    // The trigger is low, but the panel is too tall to fit above it.
     const tall = { width: 160, height: 480 };
     const { top } = computePanelPosition(
       triggerAt(200, 400),
@@ -57,7 +57,7 @@ describe("computePanelPosition", () => {
       VIEWPORT,
       "bottom-start",
     );
-    // Clamped into view rather than flipped to an equally bad position.
+    // Clamped into view, not flipped to a position that is equally bad.
     expect(top).toBe(VIEWPORT.height - tall.height - 4);
     expect(top).toBeGreaterThanOrEqual(4);
   });
@@ -102,7 +102,7 @@ describe("computePanelPosition", () => {
       VIEWPORT,
       "inline-end",
     );
-    // 4px after the trigger's right edge, centred on its 30px height.
+    // 4px after the right edge of the trigger, centered on its 30px height.
     expect(position).toEqual({ left: 304, top: 95 });
   });
 
@@ -113,7 +113,7 @@ describe("computePanelPosition", () => {
       VIEWPORT,
       "inline-end",
     );
-    // Trailing edge on the trigger's right edge, 4px above its top.
+    // The trailing edge on the right edge of the trigger, 4px above its top.
     expect(position).toEqual({ left: 740, top: 56 });
   });
 });

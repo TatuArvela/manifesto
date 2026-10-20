@@ -25,45 +25,47 @@ import { sealer } from "#/storage/sealing.ts";
 import { sealedNote } from "#/storage/shareKeys.ts";
 
 /**
- * Public links: a note published to anyone holding its link, from a server
- * row the owner can revoke (unlike the fragment share link, which carries the
- * note itself and can never be taken back).
+ * Public links: a note published to each person who has its link, from a server
+ * row that the owner can revoke (as the fragment share link cannot, because it
+ * carries the note itself and can never be taken back).
  *
- * The owner's half goes through `apiFetch` like the rest of sharing. The
- * viewer's half is a page with no account, so it asks the server with plain
- * `fetch`. Like the other account-level calls, each resolves with what
- * happened and never rejects.
+ * The half of the owner goes through `apiFetch`, as the remaining sharing code
+ * does. The half of the viewer is a page with no account. Thus, it asks the
+ * server with plain `fetch`. As the other account-level calls do, each resolves
+ * with what occurred, and never rejects.
  *
- * The note a link shows is sealed. What opens it is the **link key**, which
- * rides in the fragment of the link's address (`#k=`), where no browser sends
- * it to a server: the owner's app makes it, and the page reads it from its
- * own address.
+ * The note that a link shows is sealed. The **link key** opens it. The key is
+ * in the fragment of the address of the link (`#k=`), which no browser sends to
+ * a server. The app of the owner makes it, and the page reads it from its own
+ * address.
  */
 
 /** The note whose public links dialog is open, set from the note menu. */
 export const publicLinksDialog = signal<{ noteId: string } | null>(null);
 
-/** Vite's `BASE_URL` without its trailing slash, as the router has it. */
+/** The `BASE_URL` of Vite without its trailing slash, as the router has it. */
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-/** A public link's address, on the page this app is served from, with the
- * link key in its fragment when there is one. */
+/**
+ * The address of a public link, on the page from which this app is served, with
+ * the link key in its fragment when there is one.
+ */
 export function publicLinkUrl(token: string, linkKey?: string): string {
   const key = linkKey ? `#k=${linkKey}` : "";
   return `${window.location.origin}${BASE}/p/${token}${key}`;
 }
 
 /**
- * The whole address of one of the owner's links, to copy: its key opened
- * from the copy the server keeps sealed for them. Null when the key does not
- * open, and then there is no address that would show the note.
+ * The full address of one of the links of the owner, to copy. Its key is opened
+ * from the copy that the server keeps sealed for them. Null when the key does
+ * not open. Then there is no address that would show the note.
  */
 export async function publicLinkAddress(
   link: PublicLink,
 ): Promise<string | null> {
   const sealing = sealer.peek();
   if (!sealing) return null;
-  // Sealing handed through (a test) has no link key to add.
+  // When the seal is skipped (a test), there is no link key to add.
   if (!sealing.handsKeysOn) return publicLinkUrl(link.token);
   try {
     const key = await sealing.openLinkKey(link.noteId, link.sealedLinkKey);
@@ -73,13 +75,13 @@ export async function publicLinkAddress(
   }
 }
 
-/** The link key in an address's fragment, or null. */
+/** The link key in the fragment of an address, or null. */
 export function linkKeyOf(hash: string): string | null {
   const key = new URLSearchParams(hash.replace(/^#/, "")).get("k");
   return key && LINK_KEY_PATTERN.test(key) ? key : null;
 }
 
-/** The token when `pathname` is a public link's page, else null. */
+/** The token when `pathname` is the page of a public link, else null. */
 export function publicLinkToken(pathname: string): string | null {
   const rest =
     BASE && pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname;
@@ -96,10 +98,10 @@ export async function listPublicLinks(
 }
 
 /**
- * Publishes `note`. The link key is made here; the server is sent the note
- * key wrapped by it (a live link) or the note sealed under it (a snapshot),
- * and never the key. Resolves with the new link and its whole address, or
- * null when it could not be made.
+ * Publishes `note`. The link key is made here. The server gets the note key
+ * wrapped by it (a live link) or the note sealed under it (a snapshot), and
+ * never the key. Resolves with the new link and its full address, or null when
+ * the code could not make it.
  */
 export async function createPublicLink(
   note: Note,
@@ -108,7 +110,7 @@ export async function createPublicLink(
     "sealedLinkKey" | "wrappedKey" | "snapshot"
   >,
 ): Promise<{ link: PublicLink; address: string } | null> {
-  // Locked: there is no key to give the link, and one without it opens
+  // Locked: there is no key to give the link, and a link without it opens
   // nothing.
   const sealing = sealer.peek();
   if (!sealing) {
@@ -122,8 +124,8 @@ export async function createPublicLink(
     console.warn("Failed to seal a note for its link:", err);
     return null;
   }
-  // Only sealing handed through (a test) makes a link with no key: a real
-  // one sent without the sealed parts would never open.
+  // Only a skipped seal (a test) makes a link with no key. A real link sent
+  // without the sealed parts would never open.
   if (!made && sealing.handsKeysOn) {
     console.warn("Failed to seal a note for its link");
     return null;
@@ -150,24 +152,26 @@ export async function revokePublicLink(
   return res?.ok ?? false;
 }
 
-/** A public link's note as its page shows it, opened. A link carries no
- * colour: that is the owner's own, under a key no link has. */
+/**
+ * The note of a public link as its page shows it, opened. A link carries no
+ * color. The color belongs to the owner, under a key that no link has.
+ */
 export interface ShownPublicNote {
   title: string;
   content: string;
   color: NoteColor;
   font: NoteFont;
   images: string[];
-  /** In step with `images`, as on a note. */
+  /** In agreement with `images`, as on a note. */
   imageAlts?: string[];
   linkPreviews: LinkPreview[];
   updatedAt: string;
 }
 
-/** What opens each picture of the note being shown, by its reference. */
+/** What opens each picture of the note that shows, by its reference. */
 const imageKeys = new Map<string, ImageKey>();
 
-/** What opening a public link came to. */
+/** The result of the open of a public link. */
 export type PublicNoteResult =
   | { kind: "note"; note: ShownPublicNote; access: string | null }
   | { kind: "locked" }
@@ -186,8 +190,8 @@ async function readPublicNote(res: Response | null): Promise<PublicNoteResult> {
   if (res.status === 404) return { kind: "gone" };
   if (!res.ok) return { kind: "failed" };
   const body = (await res.json()) as PublicNoteResponse;
-  // Without the link key, or with one that opens nothing, there is no note
-  // to show: the same as a link that is not there.
+  // Without the link key, or with a key that opens nothing, there is no note to
+  // show: the same as a link that does not exist.
   const linkKey = linkKeyOf(window.location.hash);
   if (!linkKey) return { kind: "gone" };
   const { note } = body;
@@ -200,8 +204,9 @@ async function readPublicNote(res: Response | null): Promise<PublicNoteResult> {
   } catch {
     key = null;
   }
-  // A snapshot's key is derived from whatever the address holds, so another
-  // link's key gives one too; only the words opening tell it is this note's.
+  // The key of a snapshot comes from the content of the address. Thus, the key
+  // of a different link also gives one. Only the open of the words tells that
+  // it is the key of this note.
   const sealedWords = key && (await openSharedFieldsUnder(key, note.id, note));
   if (!sealedWords) return { kind: "gone" };
   const opened = upgradeNoteWords(sealedWords, note.format);
@@ -227,8 +232,8 @@ async function publicFetch(
   path: string,
   init?: RequestInit,
 ): Promise<Response | null> {
-  // The server this build was made for, as `auth.ts` hands it to storage;
-  // `=== null`, since a same-origin server's base is "".
+  // The server for which this build was made, as `auth.ts` gives it to storage.
+  // `=== null`, because the base of a same-origin server is "".
   const { serverUrl } = storageConnection.value;
   if (serverUrl === null) return null;
   try {
@@ -238,12 +243,12 @@ async function publicFetch(
   }
 }
 
-/** Open a public link. Counts a view unless it asks for a password. */
+/** Open a public link. Counts a view, unless it asks for a password. */
 export async function openPublicNote(token: string): Promise<PublicNoteResult> {
   return readPublicNote(await publicFetch(token));
 }
 
-/** Give a public link its password. Counts a view when it is right. */
+/** Give a public link its password. Counts a view when it is correct. */
 export async function unlockPublicNote(
   token: string,
   password: string,
@@ -258,9 +263,9 @@ export async function unlockPublicNote(
 }
 
 /**
- * A picture a public note shows, as an object URL for an `<img>`, or null.
- * Fetched rather than linked so the password's proof can go in a header, and
- * so the page's CSP needs nothing it does not already allow (`blob:`).
+ * A picture that a public note shows, as an object URL for an `<img>`, or null.
+ * Loaded, not linked. Thus, the proof of the password can go in a header, and
+ * the CSP of the page needs nothing that it does not already permit (`blob:`).
  */
 export async function loadPublicImage(
   token: string,
@@ -273,8 +278,8 @@ export async function loadPublicImage(
     headers: access ? { "X-Link-Access": access } : {},
   });
   if (!res?.ok) return null;
-  // Sealed, like every image: opened with the key the note holds for it,
-  // and shown only if it is the kind of image the note says.
+  // Sealed, as each image is. Opened with the key that the note has for it, and
+  // shown only if it is the kind of image that the note says.
   const key = imageKeys.get(ref);
   if (!key) return null;
   const image = await openImage(key, new Uint8Array(await res.arrayBuffer()));

@@ -28,7 +28,7 @@ describe("a paste on the board", () => {
   beforeEach(async () => {
     host = document.createElement("div");
     document.body.appendChild(host);
-    // Through `act`, so the listener is in place before the first paste.
+    // Through `act`. Thus, the listener is in place before the first paste.
     await act(() => render(<Paster />, host));
     incomingShare.value = null;
     activeView.value = "active";

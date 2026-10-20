@@ -46,9 +46,9 @@ import { menuPanelClass, NoteMenu } from "./NoteMenu.tsx";
 import { noteMenuItems } from "./noteMenuItems.tsx";
 
 /**
- * A note that can be looked at and organized but not written: an automatic
- * note, which its plugin rewrites, or a note shared with this user to view.
- * Pin, color, tags and the reminder are the reader's own either way.
+ * A note that you can look at and organize, but not write: an automatic note,
+ * which its plugin writes again, or a note shared with this user to view. The
+ * pin, color, tags and the reminder belong to the reader in both cases.
  */
 export function NoteReadonlyView({
   note,
@@ -68,7 +68,7 @@ export function NoteReadonlyView({
   const sharedBy =
     note.sharing && note.sharing.role !== "owner" ? note.sharing.owner : null;
 
-  // A listing leaves the attachments behind; an automatic note has none.
+  // A listing does not include the attachments. An automatic note has none.
   const unloadedImages = hasUnloadedImages(note);
   useEffect(() => {
     if (unloadedImages) void ensureImages(note.id);

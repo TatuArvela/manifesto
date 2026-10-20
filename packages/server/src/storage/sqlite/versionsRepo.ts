@@ -49,7 +49,7 @@ export function createSqliteVersionsRepo(db: SqliteDB): VersionsRepo {
   const expireStmt = db.prepare(
     `DELETE FROM note_versions WHERE note_id = ? AND created_at < ?`,
   );
-  // Everything past the newest MAX_NOTE_VERSIONS.
+  // All versions after the newest MAX_NOTE_VERSIONS.
   const trimStmt = db.prepare(
     `DELETE FROM note_versions WHERE note_id = @noteId AND id NOT IN (
        SELECT id FROM note_versions WHERE note_id = @noteId

@@ -1,6 +1,6 @@
 import type { ShareUser } from "#/note.ts";
 
-/** What the audit log records. */
+/** The actions that the audit log records. */
 export const AUDIT_ACTIONS = [
   "account.registered",
   "auth.signed_in",
@@ -48,25 +48,25 @@ export const AUDIT_ACTIONS = [
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
 /**
- * One line of the audit log, as `GET /api/v1/admin/audit` lists it, and
- * `GET /api/v1/auth/me/activity` lists a user's own.
+ * One line of the audit log, as `GET /api/v1/admin/audit` lists it. `GET
+ * /api/v1/auth/me/activity` lists the own lines of a user.
  */
 export interface AuditEntry {
   id: string;
   at: string;
   action: AuditAction;
-  /** Who did it; null when nobody was signed in (a failed sign-in). */
+  /** Who did it. Null when nobody was signed in (a failed sign-in). */
   actor: ShareUser | null;
-  /** Whose account it was about, when not the actor's. */
+  /** The account that it was about, when that is not the actor. */
   target: ShareUser | null;
   noteId: string | null;
   ip: string | null;
-  /** A few words of detail: the method, a failure's reason, a role. */
+  /** A few words of detail: the method, the reason of a failure, a role. */
   detail: Record<string, string>;
 }
 
 export interface AuditLogResponse {
   entries: AuditEntry[];
-  /** Pass as `before` for older entries; null at the end. */
+  /** Send as `before` for older entries. Null at the end. */
   nextBefore: string | null;
 }

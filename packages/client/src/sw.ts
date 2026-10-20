@@ -34,10 +34,11 @@ declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
 };
 
-// "Share to..." posts here (the manifest's `share_target`). Registered before
-// Workbox's routes so the POST is ours; Workbox's navigation route only
-// answers GETs anyway. The shared text and images wait in a cache for the page
-// the redirect opens, since a POST body cannot be handed to it directly.
+// "Share to..." posts here (the `share_target` of the manifest). Registered
+// before the routes of Workbox. Thus, the POST comes to us. The navigation
+// route of Workbox only answers GETs anyway. The shared text and images wait in
+// a cache for the page that the redirect opens, because the code cannot give a
+// POST body to it directly.
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (
@@ -54,7 +55,8 @@ async function receiveShare(request: Request): Promise<Response> {
   const scope = self.registration.scope;
   try {
     const form = await request.formData();
-    // One share at a time: a second before the page took the first replaces it.
+    // One share at a time. A second share before the page took the first
+    // replaces it.
     await caches.delete(SHARE_CACHE);
     const cache = await caches.open(SHARE_CACHE);
     await cache.put(
@@ -81,16 +83,16 @@ async function receiveShare(request: Request): Promise<Response> {
       ),
     );
   } catch {
-    // Unreadable share: the app still opens, with nothing to prefill.
+    // An unreadable share: the app still opens, with nothing to fill in.
   }
   return Response.redirect(`${scope}?${SHARE_TARGET_PARAM}`, 303);
 }
 
-// Under `pnpm dev` the manifest is only `index.html`, with no revision, so
-// Workbox would cache the first copy it fetched and serve it for good: a CSP
-// or meta tag from an earlier run (another `VITE_MANIFESTO_SERVER`, or none)
-// against fresh scripts, until a hard reload bypassed the worker. The dev
-// server answers every route itself, so in dev navigations go to it.
+// Under `pnpm dev`, the manifest is only `index.html`, with no revision. Thus,
+// Workbox would cache the first copy that it loaded and serve it forever: a CSP
+// or meta tag from an earlier run (a different `VITE_MANIFESTO_SERVER`, or
+// none) against new scripts, until a hard reload went around the worker. The
+// dev server answers each route itself. Thus, in dev, navigations go to it.
 if (!import.meta.env.DEV) {
   precacheAndRoute(self.__WB_MANIFEST);
   registerRoute(
@@ -100,12 +102,12 @@ if (!import.meta.env.DEV) {
   );
 }
 
-// The header logo and favicon, cached so they still show offline. They are
-// not precached like the rest of the shell because an instance rebrands by
-// swapping them in place (docs/specification/custom-instances.md): a precache
-// entry is pinned to the file as built, so a swapped logo would never reach a
-// returning user. Stale-while-revalidate serves the copy it has and picks up
-// a swap on the next online visit.
+// The header logo and the favicon, cached so that they still show offline. They
+// are not precached as the remaining shell is. An instance rebrands when it
+// replaces them in place (docs/specification/custom-instances.md). A precache
+// entry is bound to the file as built. Thus, a replaced logo would never reach
+// a user who comes back. Stale-while-revalidate serves the copy that it has,
+// and gets a replacement on the next online visit.
 const BRAND_MARKS = new Set(
   ["logo.svg", "favicon.svg"].map(
     (name) => new URL(name, self.registration.scope).href,
@@ -191,7 +193,8 @@ async function fireDue(): Promise<void> {
         data: { noteId: item.noteId },
       });
     } catch {
-      // Browser may reject if permission isn't actually granted; skip silently.
+      // The browser can reject if permission is not really given. Skip
+      // silently.
       continue;
     }
     const { stored, nextTime } = afterFiring(item, new Date().toISOString());
@@ -236,7 +239,7 @@ self.addEventListener("activate", (event) => {
           });
         }
       } catch {
-        // periodicSync may be unavailable or denied, so fall back to polling.
+        // periodicSync can be not available or refused. Thus, use polling.
       }
       await fireDue();
       schedulePoll();
@@ -245,10 +248,10 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("message", (event: ExtendableMessageEvent) => {
-  // A service worker only ever receives `message` from the same-origin clients
-  // it controls, so there is no sender to check here. The exposure is the
-  // payload: this handler runs privileged and `replaceAll` wipes the entire
-  // reminder store, so every field is checked before it is believed.
+  // A service worker only gets `message` from the same-origin clients that it
+  // controls. Thus, there is no sender to check here. The risk is the payload.
+  // This handler runs with privileges, and `replaceAll` erases the full
+  // reminder store. Thus, the code checks each field before it believes it.
   const data = event.data as
     | { type: "sync-reminders"; reminders: unknown }
     | { type: "delete-reminder"; noteId: unknown }
@@ -280,11 +283,11 @@ self.addEventListener(
   }) as EventListener,
 );
 
-// A reminder the server fired because no page of this account's was open to
-// (`jobs/pushReminders.ts` on the server): show it, and move this worker's own
-// copy of the reminder to where the server moved it, so the next look at the
-// list does not fire the same occurrence again. The server has already
-// written the change to the note, so nothing is reported to a page.
+// A reminder that the server fired, because no page of this account was open
+// (`jobs/pushReminders.ts` on the server). Show it, and move the own copy of
+// the reminder of this worker to where the server moved it. Thus, the next look
+// at the list does not fire the same occurrence again. The server already wrote
+// the change to the note. Thus, nothing is reported to a page.
 self.addEventListener("push", (event) => {
   let payload: unknown = null;
   try {
@@ -298,13 +301,13 @@ self.addEventListener("push", (event) => {
 async function receivePush(payload: unknown): Promise<void> {
   const push = readReminderPush(payload);
   if (!push) {
-    // A push must show something, or the browser shows a notice of its own
-    // and may withdraw the subscription. Nothing this server sends ends here.
+    // A push must show something. If not, the browser shows its own notice, and
+    // can withdraw the subscription. Nothing that this server sends ends here.
     await self.registration.showNotification(await installedName());
     return;
   }
-  // Opened here, with the account key this device keeps while signed in:
-  // the server sent the title and text sealed, and cannot read them.
+  // Opened here, with the account key that this device keeps while signed in.
+  // The server sent the title and text sealed, and cannot read them.
   const worded = await wordedPush(push, await loadDeviceKeys());
   await self.registration.showNotification(worded.title, {
     body: worded.body,
@@ -315,19 +318,20 @@ async function receivePush(payload: unknown): Promise<void> {
     const held = (await getAll()).find((item) => item.noteId === push.noteId);
     if (held) await putOne(afterPush(held, push));
   } catch {
-    // The list is a convenience here: the notification is already up.
+    // The list is only a convenience here. The notification is already up.
   }
 }
 
 /**
- * What the app is called where it is installed, for a notification with
- * nothing else to say: the manifest's `name`, which follows a rebrand by
- * either route (`config.ts`; a worker has no document to read the meta tag
- * from) and needs no catalogue. The host when the manifest cannot be read.
+ * The name of the app where it is installed, for a notification with nothing
+ * else to say. It is the `name` of the manifest, which follows a rebrand by
+ * both routes (`config.ts`; a worker has no document from which to read the
+ * meta tag), and needs no catalogue. The host when the code cannot read the
+ * manifest.
  */
 async function installedName(): Promise<string> {
   try {
-    // The precached copy, so this works offline and makes no request.
+    // The precached copy. Thus, this works offline and makes no request.
     const res = await caches.match(
       new URL("manifest.webmanifest", self.registration.scope),
       { ignoreSearch: true },
@@ -349,9 +353,9 @@ self.addEventListener("notificationclick", (event) => {
         type: "window",
         includeUncontrolled: true,
       });
-      // Only a window of this app. `includeUncontrolled` finds every window
-      // of the origin, and on a shared one (a subpath of a Pages site) that
-      // is other sites' pages too, which would be focused and told the note.
+      // Only a window of this app. `includeUncontrolled` finds each window of
+      // the origin. On a shared origin (a subpath of a Pages site), that
+      // includes the pages of other sites, which would get focus and the note.
       const scope = self.registration.scope;
       for (const client of clientList) {
         if ("focus" in client && client.url.startsWith(scope)) {
@@ -361,9 +365,9 @@ self.addEventListener("notificationclick", (event) => {
         }
       }
       if (self.clients.openWindow) {
-        // Against the scope, not the origin: an instance served from a
-        // subpath (GitHub Pages' `/manifesto/`) is not at `/`. `App` opens the
-        // note named in `?note=` once it starts.
+        // Against the scope, not the origin. An instance served from a subpath
+        // (`/manifesto/` on GitHub Pages) is not at `/`. `App` opens the note
+        // named in `?note=` after it starts.
         const url = new URL(self.registration.scope);
         if (noteId) url.searchParams.set("note", noteId);
         await self.clients.openWindow(url.href);

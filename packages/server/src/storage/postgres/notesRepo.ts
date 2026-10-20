@@ -35,7 +35,7 @@ import {
 import type { PgPool } from "./database.ts";
 import { inTransaction } from "./sharesRepo.ts";
 
-/** See the SQLite copy: same columns, same ordering, same reasons. */
+/** See the SQLite copy: the same columns, the same order, the same reasons. */
 const LIST_COLUMNS = INSERT_COLUMNS.filter(
   (c) => c !== "images" && c !== "preview_refs" && c !== "image_count",
 )
@@ -81,10 +81,10 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
   }
 
   /**
-   * One half of a listing: the user's own notes, or those shared with them.
-   * Over-fetched by one, as the SQLite copy explains.
+   * One half of a listing: the own notes of the user, or the notes shared with
+   * them. With one row more than necessary, as the SQLite copy tells.
    */
-  /** Narrows a listing to changes (`since`). */
+  /** Limits a listing to changes (`since`). */
   type Filter = { since: string } | null;
 
   async function half(
@@ -150,8 +150,10 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
     return result.rows[0]?.role ?? null;
   }
 
-  /** See the SQLite copy. The share row is locked for the length of the
-   * write, so a revocation waits for it or it waits for the revocation. */
+  /**
+   * See the SQLite copy. The share row is locked for the duration of the write.
+   * Thus, a revocation waits for it, or it waits for the revocation.
+   */
   async function recipientUpdate(
     id: string,
     userId: string,
@@ -264,8 +266,8 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
     },
 
     async getById(id: string, userId: string): Promise<SealedNote | null> {
-      // Two plain reads rather than a join with a compound `ON`, which is the
-      // shape of query pg-mem is least reliable about.
+      // Two plain reads, not a join with a compound `ON`. pg-mem is least
+      // reliable with that shape of query.
       const found = await pool.query<ViewRow>(
         `SELECT * FROM notes WHERE id = $1`,
         [id],
@@ -351,19 +353,19 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
         (column, i) => `${column} = $${i + 1}`,
       );
       const idParam = params.length - 1;
-      // Compare-and-set on `updated_at` when the caller passed `If-Match`;
-      // collapses the prior read-then-write race into a single atomic write.
+      // A compare-and-set on `updated_at` when the caller sent `If-Match`. This
+      // changes the old race of a read and a write into one atomic write.
       let where = `WHERE id = $${idParam} AND user_id = $${idParam + 1}`;
       if (expectedUpdatedAt !== undefined) {
         params.push(expectedUpdatedAt);
         where += ` AND updated_at = $${params.length}`;
       }
-      // And on the key the words were sealed under, for the same reason.
+      // Also on the key under which the words were sealed, for the same reason.
       if (expectedKeyVersion !== undefined) {
         params.push(expectedKeyVersion);
         where += ` AND key_version = $${params.length}`;
       }
-      // And on the format the words are in: see `formatCondition`.
+      // Also on the format of the words: see `formatCondition`.
       const format = formatCondition(changes);
       if (format) {
         params.push(format.value);
@@ -397,9 +399,9 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
         (column, i) => `${column} = $${i + 1}`,
       );
       const at = columns.length + 2;
-      // The note, its feeds and its live links move to the new key together:
-      // a link left on the old key would stop opening, with nothing left to
-      // say so.
+      // The note, its feeds and its live links move to the new key together. A
+      // link left on the old key would stop to open, and nothing would tell
+      // this.
       return inTransaction(pool, async (query) => {
         const result = await query(
           `UPDATE notes SET ${assignments.join(", ")}, rekey_due = 0,
@@ -409,7 +411,7 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
           params,
         );
         if ((result.rowCount ?? 0) === 0) return false;
-        // Every feed's copy of the key is of the one before.
+        // The copy of the key of each feed is of the previous key.
         await query(
           `UPDATE note_shares SET reminder_key = '' WHERE note_id = $1`,
           [id],

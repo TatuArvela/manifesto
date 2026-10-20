@@ -15,8 +15,7 @@ describe("openPostgres", () => {
       poolFactory: () => fake as unknown as PgPool,
     });
 
-    // With no listener, `emit("error")` throws, which is what took the
-    // process down.
+    // With no listener, `emit("error")` throws. That stopped the process.
     expect(() =>
       pool.emit("error", new Error("terminating connection"), {} as never),
     ).not.toThrow();

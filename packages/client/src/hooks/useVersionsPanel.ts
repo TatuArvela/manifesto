@@ -6,11 +6,11 @@ import { useFocusTrap } from "./useFocusTrap.ts";
 const CLOSE_MS = 150;
 
 /**
- * The version history panel over an open note: whether it is shown, whether
- * it is fading out, and the Escape and focus trap it holds while it is up.
+ * The version history panel over an open note: if it shows, if it fades out,
+ * and the Escape and focus trap that it has while it is open.
  *
- * Call it after the editor's own `useEscapeStack`, so that a press over the
- * panel closes the panel and not the editor under it.
+ * Call it after the own `useEscapeStack` of the editor. Thus, a press over the
+ * panel closes the panel, not the editor under it.
  */
 export function useVersionsPanel(openAtStart: boolean): {
   shown: boolean;
@@ -23,9 +23,9 @@ export function useVersionsPanel(openAtStart: boolean): {
   const [closing, setClosing] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Opened a render after the editor, not with it: the history's Escape has
-  // to register after the editor's, or one press would close the editor
-  // under it (see `useEscapeStack`).
+  // Opened one render after the editor, not with it. The Escape of the history
+  // must register after that of the editor. If not, one press would close the
+  // editor under it (see `useEscapeStack`).
   useEffect(() => {
     if (openAtStart) setShown(true);
   }, [openAtStart]);

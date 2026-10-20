@@ -28,19 +28,19 @@ import {
   wrappedKey,
 } from "./fields.ts";
 
-// Request bodies of notes: as a token sends them, readable, and as the app
-// sends them, sealed; with their versions, attachments and comments.
+// The request bodies of notes: as a token sends them, readable, and as the app
+// sends them, sealed. Also their versions, attachments and comments.
 
 export const noteColorSchema = z.nativeEnum(NoteColor);
 export const noteFontSchema = z.nativeEnum(NoteFont);
 
 /**
- * Only http(s) URLs are accepted for the link-preview fields, the ones a
- * renderer will dereference. This blocks `javascript:`, `data:`, `file:`, and
- * arbitrary internal-scheme URLs that could otherwise be used to fingerprint or
- * SSRF-probe a recipient's network when a note is shared via /share/...
+ * The link-preview fields, which a renderer will follow, accept only http(s)
+ * URLs. This blocks `javascript:`, `data:`, `file:`, and URLs with arbitrary
+ * internal schemes. These could otherwise fingerprint or SSRF-probe the network
+ * of a recipient when a note is shared through /share/...
  *
- * `Note.images` is not one of these: it holds `attachment:` references.
+ * `Note.images` is not one of these. It contains `attachment:` references.
  */
 const httpUrlSchema = z
   .string()
@@ -49,11 +49,12 @@ const httpUrlSchema = z
   .regex(/^https?:\/\//i, "URL must use http(s) scheme");
 
 /**
- * A preview's thumbnail or favicon: a reference from `POST /api/v1/attachments`,
- * like `images`, so previews add nothing to a listing but their text. Viewing
- * a note never makes the viewer's browser contact the linked site (and the
- * client's CSP would refuse a remote image anyway). An http(s) URL is still
- * accepted so a row written before previews were stored stays updatable.
+ * The thumbnail or favicon of a preview: a reference from `POST
+ * /api/v1/attachments`, as for `images`. Thus, previews add only their text to
+ * a listing. When a person looks at a note, their browser never contacts the
+ * linked site (and the CSP of the client would refuse a remote image anyway).
+ * The code still accepts an http(s) URL. Thus, you can still update a row
+ * written before the server stored previews.
  */
 const previewImageSchema = z.union([
   z.string().regex(ATTACHMENT_REF_PATTERN, "Upload preview images first"),
@@ -72,9 +73,10 @@ const linkPreviewSchema = z
     favicon: previewImageSchema.exactOptional(),
     domain: z.string().max(255),
   })
-  // The card shows `domain` as where the link goes, so it is always the
-  // URL's own host, whatever was sent: a writer could otherwise have a card
-  // name one site and open another, on a shared note or a public link.
+  // The card shows `domain` as the target of the link. Thus, it is always the
+  // host of the URL, whatever was sent. If not, a writer could make a card that
+  // names one site and opens a different site, on a shared note or a public
+  // link.
   .transform((preview) => ({ ...preview, domain: hostOf(preview.url) }));
 
 function hostOf(url: string): string {
@@ -90,9 +92,9 @@ export const linkPreviewQuerySchema = z.object({ url: httpUrlSchema });
 
 const reminderRecurrenceSchema = z.enum(REMINDER_RECURRENCES);
 
-// Bounded like every other field of a note: these ride in each listing, so
-// an uncapped one is a megabyte per note there. A timestamp and an IANA zone
-// name are short; a plugin's key for a note is its own text.
+// Limited, as all other fields of a note. These go in each listing. Thus, an
+// unlimited field can be a megabyte for each note there. A timestamp and an
+// IANA zone name are short. The key of a plugin for a note is its own text.
 const reminderSchema = z.object({
   time: z.string().max(40),
   recurrence: reminderRecurrenceSchema,
@@ -107,10 +109,11 @@ const autoNoteSourceSchema = z.object({
   noteKey: z.string().max(500),
 });
 
-// Per-field caps. The 1 MiB request-body cap is a backstop, but without
-// per-field limits a single authenticated user can fill the listByUser
-// payload with multi-MB notes and OOM the server. The numbers are generous
-// for normal use but reject obviously-pathological inputs.
+// Limits for each field. The request-body limit of 1 MiB is a backstop. But
+// without limits for each field, one authenticated user can fill the listByUser
+// payload with notes of many MB, and use up the memory of the server. The
+// numbers are generous for usual use, but refuse inputs that are clearly
+// pathological.
 const noteFields = {
   title: z.string().max(MAX_NOTE_TITLE_LENGTH),
   content: z.string().max(MAX_NOTE_CONTENT_LENGTH),
@@ -119,13 +122,13 @@ const noteFields = {
   pinned: z.boolean(),
   archived: z.boolean(),
   trashed: z.boolean(),
-  // `trashedAt` is deliberately absent: it drives hard deletion 30 days on,
-  // so a client that could set it could also ask for a note to be destroyed
-  // immediately, or never. The routes stamp it from `trashed` and the
-  // server clock, and zod strips whatever a client sends.
+  // `trashedAt` is absent on purpose. It controls the hard deletion 30 days
+  // later. Thus, a client that could set it could also ask for an immediate
+  // deletion of a note, or for no deletion. The routes set it from `trashed`
+  // and the server clock, and zod removes all values that a client sends.
   position: z.number(),
   tags: z.array(z.string().min(1).max(MAX_TAG_LENGTH)).max(MAX_TAGS_PER_NOTE),
-  // References from `POST /api/v1/attachments`; the bytes never ride in a note.
+  // References from `POST /api/v1/attachments`. The bytes never go in a note.
   images: z
     .array(z.string().regex(ATTACHMENT_REF_PATTERN, "Upload images first"))
     .max(MAX_IMAGES_PER_NOTE),
@@ -137,8 +140,10 @@ const noteFields = {
 
 export const noteCreateSchema = z.object(noteFields);
 
-/** `POST /api/v1/notes/import`: notes as created, with the id and creation time
- * they had where they came from. */
+/**
+ * `POST /api/v1/notes/import`: notes as created, with the id and the creation
+ * time from their source.
+ */
 export const notesImportSchema = z.object({
   notes: z
     .array(
@@ -153,7 +158,10 @@ export const notesImportSchema = z.object({
     .max(MAX_NOTES_PER_IMPORT),
 });
 
-/** `POST /api/v1/notes/:id/versions`: the same bounds as the note's own text. */
+/**
+ * `POST /api/v1/notes/:id/versions`: the same limits as for the own text of the
+ * note.
+ */
 export const noteVersionCreateSchema = z.object({
   title: noteFields.title,
   content: noteFields.content,
@@ -161,9 +169,9 @@ export const noteVersionCreateSchema = z.object({
 });
 export const noteUpdateSchema = z.object(exactPartial(noteFields));
 
-// The same requests from the app, whose notes are sealed before they leave
-// the browser. Every value in someone's words is a ciphertext; what the
-// server acts on stays as it was.
+// The same requests from the app, which seals notes before they go out of the
+// browser. Each value in the words of a person is a ciphertext. The values on
+// which the server acts stay as they were.
 
 const attachmentRefs = (max: number) =>
   z
@@ -176,7 +184,7 @@ const sealedNoteFields = {
   excerpt: sealed(SEALED_FIELD_MAX.excerpt),
   font: sealed(SEALED_FIELD_MAX.font),
   images: sealed(SEALED_FIELD_MAX.images),
-  // What the two sealed lists name, which the server keeps the images by.
+  // What the two sealed lists name, by which the server keeps the images.
   imageRefs: attachmentRefs(MAX_IMAGES_PER_NOTE),
   linkPreviews: sealed(SEALED_FIELD_MAX.linkPreviews),
   // A thumbnail and an icon for each preview.
@@ -201,13 +209,13 @@ export const attachmentsClaimSchema = z.object({
 });
 
 /**
- * The format of a note's words (`noteFormat.ts` in shared). Any the server
- * has not heard of is taken: it stores ciphertext, and a newer app than the
- * server may write one.
+ * The format of the words of a note (`noteFormat.ts` in shared). The code
+ * accepts formats that the server does not know. It stores ciphertext, and an
+ * app that is newer than the server can write one.
  */
 const noteFormat = z.number().int().min(1).max(1_000_000);
 
-/** The sealed fields a format covers. */
+/** The sealed fields that a format covers. */
 const WORD_FIELDS = [
   "title",
   "content",
@@ -226,8 +234,10 @@ export const sealedNoteCreateSchema = z.object({
   ...sealedNoteFields,
 });
 
-/** `POST /api/v1/notes/import` from the app. A note already there keeps the
- * key it has, which the client sealed this copy under. */
+/**
+ * `POST /api/v1/notes/import` from the app. A note that is already there keeps
+ * its key, under which the client sealed this copy.
+ */
 export const sealedNotesImportSchema = z.object({
   notes: z
     .array(
@@ -239,18 +249,18 @@ export const sealedNotesImportSchema = z.object({
 });
 
 /**
- * `PUT /api/v1/notes/:id` from the app. A sealed list travels with the
- * references it names, and the text with its excerpt, or the server's record
- * of either would fall behind what the note says.
+ * `PUT /api/v1/notes/:id` from the app. A sealed list goes with the references
+ * that it names, and the text with its excerpt. If not, the record of the
+ * server of either would be behind what the note says.
  */
 export const sealedNoteUpdateSchema = z
   .object({
     ...exactPartial(sealedNoteFields),
-    // Which note key the sealed values are under. Checked against the
-    // note's, so a change sealed under a key since replaced is refused
-    // and not stored where nobody could open it.
+    // The note key under which the sealed values are. The code compares it with
+    // that of the note. Thus, it refuses a change sealed under a key that was
+    // replaced after that, and does not store it where nobody could open it.
     keyVersion: z.number().int().min(1).exactOptional(),
-    // The format the words are in; see `formatCondition`.
+    // The format of the words. See `formatCondition`.
     format: noteFormat.exactOptional(),
   })
   .refine(
@@ -271,8 +281,8 @@ export const sealedNoteUpdateSchema = z
   );
 
 /**
- * `PUT /api/v1/notes/:id/key`: the note under a new key. Everything everyone on
- * the note shares comes sealed again, with none of it left under the old key.
+ * `PUT /api/v1/notes/:id/key`: the note under a new key. All that the persons
+ * on the note share comes sealed again, with none of it under the old key.
  */
 export const noteRekeySchema = z.object({
   keyVersion: z.number().int().min(2),
@@ -305,21 +315,24 @@ export const sealedVersionCreateSchema = z.object({
   timestamp: z.string().max(40).exactOptional(),
 });
 
-/** `PUT /api/v1/notes/:id/comments/:commentId`: the comment's text sealed under
- * the note key. Its length is the sealing client's to hold. */
+/**
+ * `PUT /api/v1/notes/:id/comments/:commentId`: the text of the comment, sealed
+ * under the note key. The client that seals it checks its length.
+ */
 export const noteCommentSchema = z.object({
   body: sealed(SEALED_FIELD_MAX.comment),
   keyVersion: z.number().int().min(1),
 });
 
-/** `POST /api/v1/notes/:id/comments`, under an id the client chose. */
+/** `POST /api/v1/notes/:id/comments`, under an id that the client selected. */
 export const noteCommentCreateSchema = noteCommentSchema.extend({
   id: noteIdSchema,
 });
 
 /**
- * A comment from a token that carries a key: its words, which the server
- * seals under the note's key. The same body writes a new one and changes one.
+ * A comment from a token that carries a key: its words, which the server seals
+ * under the key of the note. The same body writes a new comment and changes a
+ * comment.
  */
 export const commentTextSchema = z.object({
   body: z.string().trim().min(1).max(MAX_COMMENT_LENGTH),

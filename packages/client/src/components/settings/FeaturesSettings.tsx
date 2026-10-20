@@ -114,9 +114,10 @@ export function FeaturesSettings() {
   );
 }
 
-/** The note a new one starts as, a section of the Features page. */
+/** The note with which a new note starts, a section of the Features page. */
 function DefaultsSection() {
-  // Each font previews itself; "random" and the default font have none to show.
+  // Each font shows its own preview. "random" and the default font have none to
+  // show.
   const fontOptions: SettingsOption<DefaultNoteFont>[] = [
     ...Object.values(NoteFont),
     "random" as const,
@@ -129,8 +130,8 @@ function DefaultsSection() {
     };
   });
 
-  // "Default" is the colour's own name, which reads as nonsense for a default
-  // colour, so this one list calls it plain.
+  // "Default" is the own name of the color, which reads as nonsense for a
+  // default color. Thus, this one list calls it plain.
   const colorOptions: SettingsOption<DefaultNoteColor>[] = [
     ...getColorPickerColors().map((c) => ({
       value: c.value,

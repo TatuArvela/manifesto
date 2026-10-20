@@ -1,20 +1,20 @@
 import type { TextEdit } from "./formatTypes.ts";
 import { lineRange } from "./rawLineFormatting.ts";
 
-// Raw mode's whole blocks (a divider, a table, a code block): text on lines
-// of its own. Pure string work; see `rawFormatting.ts`.
+// The whole blocks of raw mode (a divider, a table, a code block): text on
+// lines of its own. Only string operations. See `rawFormatting.ts`.
 
 /**
- * Puts `block` in after the paragraph the selection ends in (a run of lines
- * with no blank one between, so a whole list), or in place of the selected
- * lines when they are blank, with an empty line on either side. That is
- * where the rich editor puts one too. The blank line above is not only
- * tidiness: `---` straight under a line of text is that line's heading
- * underline, not a divider.
+ * Puts `block` in after the paragraph in which the selection ends (a sequence
+ * of lines with no blank line between, thus a full list). Or it puts it in
+ * place of the selected lines when they are blank, with an empty line on each
+ * side. The rich editor also puts one there. The blank line above is not only
+ * for a clean look. `---` directly under a line of text is the heading
+ * underline of that line, not a divider.
  *
- * `caret` is where the caret lands, as an offset into `block`; past its end
- * counts on into the empty line below it, so `block.length + 2` is the start
- * of whatever follows.
+ * `caret` is where the caret goes, as an offset into `block`. A value past its
+ * end continues into the empty line below it. Thus, `block.length + 2` is the
+ * start of the content that follows.
  */
 export function insertRawBlock(
   value: string,
@@ -117,8 +117,8 @@ export function toggleRawCodeBlock(
     };
   }
 
-  // Each fence line goes with one newline: the one after the opening fence,
-  // the one before the closing fence.
+  // Each fence line goes with one newline: the newline after the opening fence,
+  // and the newline before the closing fence.
   const lineStart = (i: number) =>
     lines.slice(0, i).reduce((sum, l) => sum + l.length + 1, 0);
   const openFrom = lineStart(fence.open);
@@ -129,7 +129,7 @@ export function toggleRawCodeBlock(
   const cut: [number, number][] = [[openFrom, openTo]];
   if (fence.close !== null) {
     const closeFrom = lineStart(fence.close);
-    // An empty block has one newline between its fences, already taken.
+    // An empty block has one newline between its fences, which is already used.
     cut.push([
       Math.max(openTo, closeFrom - 1),
       closeFrom + (lines[fence.close]?.length ?? 0),

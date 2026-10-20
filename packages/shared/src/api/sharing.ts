@@ -2,7 +2,7 @@ import type { OfferedKey } from "#/crypto/shareSeal.ts";
 import type { ShareRole, ShareUser, TeamRef } from "#/note.ts";
 import type { AccountPublicKeys } from "./keys.ts";
 
-/** `GET /api/v1/users?q=`: accounts to share a note with. */
+/** `GET /api/v1/users?q=`: accounts with which to share a note. */
 export interface UserLookupResponse {
   users: DirectoryUser[];
 }
@@ -13,9 +13,9 @@ export interface DirectoryUser extends ShareUser {
 }
 
 /**
- * `POST /api/v1/notes/:id/shares`. `key` is the note key wrapped to the
- * recipient's public key and signed, when the owner's client could make one;
- * without it the invitation waits for a key.
+ * `POST /api/v1/notes/:id/shares`. `key` is the note key wrapped to the public
+ * key of the recipient and signed, when the client of the owner could make one.
+ * Without it, the invitation waits for a key.
  */
 export interface ShareCreateRequest {
   userId: string;
@@ -23,37 +23,43 @@ export interface ShareCreateRequest {
   key?: OfferedKey;
 }
 
-/** `GET /api/v1/users/:id/keys`: an account's public keys, to wrap a note key
- * to and to check its signatures against. */
+/**
+ * `GET /api/v1/users/:id/keys`: the public keys of an account. Note keys are
+ * wrapped to them, and its signatures are checked against them.
+ */
 export interface AccountPublicKeysResponse {
   userId: string;
-  /** Which account key they belong to. */
+  /** The account key to which they belong. */
   version: number;
   publicKeys: AccountPublicKeys;
 }
 
 /**
- * `GET /api/v1/auth/keys/seen`: the public keys this account has seen of the
- * people it shares with, by their account id, each sealed under the
- * account's own personal key. A device keeps nothing past its session, so
- * this is what lets it tell a key it has met from one swapped since.
+ * `GET /api/v1/auth/keys/seen`: the public keys that this account saw of the
+ * people with whom it shares, by their account id. Each is sealed under the own
+ * personal key of the account. A device keeps nothing after its session. Thus,
+ * with this list, it can tell a key that it knows from a key that was replaced
+ * after that.
  */
 export interface SeenKeysResponse {
   seen: Record<string, string>;
 }
 
-/** `PUT /api/v1/auth/keys/seen/:userId`: one of them, as now remembered. */
+/**
+ * `PUT /api/v1/auth/keys/seen/:userId`: one of them, as it is remembered now.
+ */
 export interface SeenKeyRequest {
   sealed: string;
 }
 
-/** How many accounts' keys one account remembers. */
+/** The maximum number of accounts whose keys one account remembers. */
 export const MAX_SEEN_KEYS = 5000;
 
 /**
- * `POST /api/v1/invitations/:noteId/accept`, and `PUT /api/v1/notes/:id/held-key`
- * after the note's key was replaced: the note key wrapped under the caller's
- * own notes key, as they keep the key of a note of their own.
+ * `POST /api/v1/invitations/:noteId/accept`, and `PUT
+ * /api/v1/notes/:id/held-key` after the key of the note was replaced: the note
+ * key wrapped under the own notes key of the caller, as they keep the key of
+ * their own note.
  */
 export interface HeldKeyRequest {
   key: string;
@@ -65,29 +71,29 @@ export interface ShareUpdateRequest {
   role: ShareRole;
 }
 
-/** A note someone has offered to share with the signed-in user. */
+/** A note that a person offered to share with the signed-in user. */
 export interface ShareInvitation {
   noteId: string;
   role: ShareRole;
   owner: ShareUser;
   /**
-   * The note's title, text and font, sealed under the note key, so the
-   * invitation can show the note itself to decide on. Its attachments and
-   * link previews wait until it is accepted.
+   * The title, text and font of the note, sealed under the note key. Thus, the
+   * invitation can show the note itself, for the decision. Its attachments and
+   * link previews wait until the note is accepted.
    */
   title: string;
   content: string;
   font: string;
-  /** Which note key they are under. */
+  /** The note key under which they are. */
   keyVersion: number;
   /**
-   * That key, wrapped to the recipient's public key and signed by whoever
-   * wrapped it. Null while nobody has: the invitation is then waiting for a
-   * key, and shows nothing.
+   * That key, wrapped to the public key of the recipient and signed by the
+   * person who wrapped it. Null while nobody did: the invitation then waits for
+   * a key, and shows nothing.
    */
   offered: OfferedKey | null;
   invitedAt: string;
-  /** The team the note was shared with, when it came that way. */
+  /** The team with which the note was shared, when it came that way. */
   team?: TeamRef;
 }
 

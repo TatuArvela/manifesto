@@ -24,8 +24,8 @@ export interface IncomingShare {
 }
 
 /**
- * Something another app shared to this one, waiting for `NoteInput` to open
- * it as a new note. Cleared by whoever takes it.
+ * Something that a different app shared to this one, which waits for
+ * `NoteInput` to open it as a new note. The code that takes it clears it.
  */
 export const incomingShare = signal<IncomingShare | null>(null);
 
@@ -40,9 +40,10 @@ function blobToDataUrl(blob: Blob): Promise<string | null> {
 }
 
 /**
- * Pictures as a new note holds them: shrunk, as `data:` URLs, each checked
- * against the accepted types and the size cap. One too large is reported by
- * name and left out; one that is not an accepted image is left out quietly.
+ * Pictures as a new note keeps them: shrunk, as `data:` URLs, each checked
+ * against the accepted types and the size limit. A picture that is too large is
+ * reported by name, and not included. A picture that is not an accepted image
+ * is silently not included.
  */
 export async function imagesForNote(
   files: readonly { blob: Blob; name: string }[],
@@ -66,17 +67,17 @@ export async function imagesForNote(
 }
 
 /**
- * Picks up a share the service worker parked (see `shareTarget.ts`) when the
- * app was opened on `?share-target`. The parameter is removed at once, so a
- * reload does not open the same share again, and so is the cache, whatever it
- * held.
+ * Picks up a share that the service worker kept (see `shareTarget.ts`) when the
+ * app opened on `?share-target`. The parameter is removed immediately. Thus, a
+ * reload does not open the same share again. The cache is also removed,
+ * whatever it contained.
  */
 export async function takeIncomingShare(): Promise<void> {
   const url = new URL(window.location.href);
   if (!url.searchParams.has(SHARE_TARGET_PARAM)) return;
   url.searchParams.delete(SHARE_TARGET_PARAM);
-  // A bookmarklet sends the page in the query rather than through the
-  // service worker (`bookmarkletHref`).
+  // A bookmarklet sends the page in the query, not through the service worker
+  // (`bookmarkletHref`).
   const fields = ["title", "text", "url"] as const;
   const inQuery = fields.some((field) => url.searchParams.has(field));
   const queried: SharedText = {
@@ -119,7 +120,7 @@ export async function takeIncomingShare(): Promise<void> {
     }
     images.push(...(await imagesForNote(parked)));
   } catch {
-    // Nothing usable was parked; the app simply opens.
+    // Nothing usable was kept. The app only opens.
   } finally {
     await caches.delete(SHARE_CACHE).catch(() => {});
   }
@@ -134,7 +135,7 @@ export async function takeIncomingShare(): Promise<void> {
   openShare(draft, images);
 }
 
-/** Opens a share as a new note, on the notes view where that editor lives. */
+/** Opens a share as a new note, on the notes view where that editor is. */
 function openShare(
   draft: { title: string; content: string },
   images: string[],
@@ -146,9 +147,10 @@ function openShare(
 }
 
 /**
- * Opens a new note holding what was pasted or dropped on the board. As a share
- * does, it goes to the notes view, where the new-note editor lives; a tag
- * being looked at there stays filtered, so the reader is not moved.
+ * Opens a new note that contains what was pasted or dropped on the board. As a
+ * share does, it goes to the notes view, where the new-note editor is. A tag
+ * that the reader looks at there stays filtered. Thus, the reader does not
+ * move.
  */
 export function startNoteWith(content: string, images: string[]): void {
   if (!content && images.length === 0) return;

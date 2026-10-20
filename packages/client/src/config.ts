@@ -1,32 +1,35 @@
 import { resolvePrivacyUrl } from "./utils/privacyUrl.ts";
 
 /**
- * Branding: the product name shown to users.
+ * Branding: the product name that users see.
  *
- * Two ways to set it, so both kinds of self-hoster are served:
+ * There are two ways to set it, so that both types of self-hoster can do it:
  *
- * - **Building from source**: set `VITE_APP_NAME`. It is resolved once in
- *   `vite.config.ts` and reaches the bundle as `__APP_NAME__`, `index.html` as
- *   the `<title>` and the `application-name` meta tag, and
- *   `manifest.webmanifest` as `name`/`short_name`.
- * - **Deploying the release zip**: edit the `application-name` meta tag in the
- *   shipped `index.html` (plus the `<title>` and the manifest, which are plain
- *   text in the same folder). Nobody should need a toolchain to rename an app,
- *   and the JS bundle is minified past the point of safe hand-editing.
+ * - **Build from source**: set `VITE_APP_NAME`. `vite.config.ts` resolves it
+ *   one time. It reaches the bundle as `__APP_NAME__`, `index.html` as the
+ *   `<title>` and the `application-name` meta tag, and `manifest.webmanifest`
+ *   as `name`/`short_name`.
+ * - **Deploy the release zip**: edit the `application-name` meta tag in the
+ *   shipped `index.html` (and the `<title>` and the manifest, which are plain
+ *   text in the same folder). Nobody must need a toolchain to rename an app,
+ *   and the JS bundle is minified too much for a safe manual edit.
  *
- * The meta tag wins when present, so an edited bundle overrides what it was
- * built with. Everything downstream (the header, the login screen, download
- * filenames, and any translated string containing `{appName}`) follows from
- * {@link APP_NAME}.
+ * The meta tag wins when it is present. Thus, an edited bundle overrides the
+ * value with which it was built. All parts after it (the header, the login
+ * screen, the names of downloaded files, and each translated string that
+ * contains `{appName}`) follow from {@link APP_NAME}.
  */
 
-/** The unsubstituted build-time token, in case the raw template gets served. */
+/**
+ * The build-time token without substitution, in case the raw template is
+ * served.
+ */
 const PLACEHOLDER = "%APP_NAME%";
 
 /**
- * The `application-name` meta tag if the document carries a usable one, else
- * `fallback` (the name baked in at build time). Exported for the tests, which
- * cannot re-import this module with a different document.
+ * The `application-name` meta tag if the document has a usable one. Otherwise
+ * `fallback` (the name from the build). Exported for the tests, which cannot
+ * import this module again with a different document.
  */
 export function resolveAppName(fallback: string): string {
   if (typeof document === "undefined") return fallback;
@@ -40,14 +43,13 @@ export function resolveAppName(fallback: string): string {
 export const APP_NAME: string = resolveAppName(__APP_NAME__);
 
 /**
- * Whether a first-time visitor is greeted by the welcome dialog, which says
- * what the app is and, above all, where their notes are kept.
+ * If the welcome dialog greets a first-time visitor. It tells what the app is
+ * and, most important, where their notes are kept.
  *
- * On by default. Switched off with `VITE_APP_WELCOME=off` at build time, or in
- * a release bundle by setting the `welcome-dialog` meta tag in `index.html` to
- * `off`, for the same reason the name is read from a meta tag: an operator
- * should not need a toolchain for it. The tag wins when it holds a value it
- * recognises.
+ * On by default. `VITE_APP_WELCOME=off` at build time switches it off. In a
+ * release bundle, set the `welcome-dialog` meta tag in `index.html` to `off`.
+ * This is for the same reason as for the name: an operator must not need a
+ * toolchain for it. The tag wins when it contains a value that the code knows.
  */
 export function resolveWelcomeEnabled(fallback: boolean): boolean {
   if (typeof document === "undefined") return fallback;
@@ -62,7 +64,10 @@ export function resolveWelcomeEnabled(fallback: boolean): boolean {
 
 export const WELCOME_ENABLED: boolean = resolveWelcomeEnabled(__APP_WELCOME__);
 
-/** The unsubstituted build-time token, in case the raw template gets served. */
+/**
+ * The build-time token without substitution, in case the raw template is
+ * served.
+ */
 const SERVER_PLACEHOLDER = "%MANIFESTO_SERVER%";
 
 function usableServer(value: string | undefined): string | null {
@@ -72,30 +77,30 @@ function usableServer(value: string | undefined): string | null {
 }
 
 /**
- * The Manifesto server this deployment talks to, or null for open mode.
+ * The Manifesto server of this deployment, or null for open mode.
  *
- * Two ways to set it, the same pair as the product name:
+ * There are two ways to set it, the same pair as for the product name:
  *
- * - **Building from source**: set `VITE_MANIFESTO_SERVER`. `vite.config.ts`
- *   also widens the `connect-src` in `index.html` to the server's HTTP and
- *   `ws(s)://` origins, so the address and the policy cannot disagree.
- * - **Deploying the release zip**: fill in the `manifesto-server` meta tag in
- *   the shipped `index.html`. That one is not enough on its own, because the
- *   CSP in the same file still says `connect-src 'self'` and the browser
- *   blocks every request until the server's origins are added there too.
- *   `main.tsx` checks for exactly that mismatch at startup and says so, since
- *   the alternative is a login screen that fails with no explanation. See
+ * - **Build from source**: set `VITE_MANIFESTO_SERVER`. `vite.config.ts` also
+ *   adds the HTTP and `ws(s)://` origins of the server to the `connect-src` in
+ *   `index.html`. Thus, the address and the policy always agree.
+ * - **Deploy the release zip**: fill the `manifesto-server` meta tag in the
+ *   shipped `index.html`. That alone is not sufficient, because the CSP in the
+ *   same file still says `connect-src 'self'`, and the browser blocks each
+ *   request until the origins of the server are also added there. `main.tsx`
+ *   checks for exactly that mismatch at startup and tells it, because the
+ *   alternative is a login screen that fails with no explanation. See
  *   `utils/serverCsp.ts`.
  *
- * The tag wins when it holds a value, so an edited bundle overrides what it
- * was built with. Empty, absent or an unsubstituted placeholder means open
- * mode, which is what the published zip ships as and what it keeps doing if
- * nobody touches the tag.
+ * The tag wins when it contains a value. Thus, an edited bundle overrides the
+ * value with which it was built. Empty, absent, or a placeholder without
+ * substitution means open mode. The published zip ships so, and stays so if
+ * nobody changes the tag.
  *
- * A trailing slash is stripped, so `https://notes.example.com/` and the same
- * without agree. `/` therefore resolves to the empty string rather than null,
- * which is the deliberate same-origin case: requests go to this page's own
- * origin, and `'self'` already permits them.
+ * The code removes a slash at the end. Thus, `https://notes.example.com/` and
+ * the same address without the slash agree. Thus, `/` resolves to the empty
+ * string, not to null. That is the same-origin case, on purpose: requests go to
+ * the own origin of this page, and `'self'` already permits them.
  */
 export function resolveServerUrl(fallback: string | undefined): string | null {
   const fromTag =
@@ -108,16 +113,17 @@ export function resolveServerUrl(fallback: string | undefined): string | null {
 }
 
 /**
- * The server as an absolute URL, resolved the way the browser would.
+ * The server as an absolute URL, resolved as the browser would do it.
  *
- * {@link resolveServerUrl} keeps whatever was configured, which may be
- * relative (`/`, or `/notes` behind a path-stripping proxy). That is the right
- * base for `fetch`, which resolves it against the page. It is not enough for
- * everything: `new WebSocket("/api/v1/ws")` is not a thing, and the welcome
- * dialog has a host to name. Those callers take this instead.
+ * {@link resolveServerUrl} keeps the configured value, which can be relative
+ * (`/`, or `/notes` behind a proxy that removes the path). That is the correct
+ * base for `fetch`, which resolves it against the page. It is not sufficient
+ * for all callers: `new WebSocket("/api/v1/ws")` does not work, and the welcome
+ * dialog must name a host. Those callers use this.
  *
- * Null in open mode, and null when there is no document to resolve a relative
- * value against, which is any non-browser caller.
+ * Null in open mode, and null when there is no document against which to
+ * resolve a relative value, which is the case for each caller that is not a
+ * browser.
  */
 export function resolveServerOrigin(serverUrl: string | null): string | null {
   if (serverUrl === null) return null;
@@ -127,10 +133,11 @@ export function resolveServerOrigin(serverUrl: string | null): string | null {
 }
 
 /**
- * Reduce a product name to something safe to put in a filename. Diacritics are
- * folded rather than dropped, so "Müistiö" becomes `muistio`; a name with no
- * ASCII letters or digits left after folding (a CJK-only name, say) falls back
- * to `notes` so downloads never end up called `-export-2026-01-01.json`.
+ * Changes a product name into a value that is safe in a filename. The code
+ * folds diacritics, and does not drop them. Thus, "Müistiö" becomes `muistio`.
+ * If a name has no ASCII letters or digits after the fold (for example, a name
+ * only in CJK), it becomes `notes`. Thus, downloads never get the name
+ * `-export-2026-01-01.json`.
  */
 export function toFileSlug(name: string): string {
   return (
@@ -143,12 +150,15 @@ export function toFileSlug(name: string): string {
   );
 }
 
-/** Prefix for exports and crash backups (`manifesto-export-2026-01-01.json`). */
+/**
+ * The prefix for exports and crash backups
+ * (`manifesto-export-2026-01-01.json`).
+ */
 export const APP_FILE_SLUG: string = toFileSlug(APP_NAME);
 
 /**
- * A branding meta tag's value, or null when the document has none, it is
- * empty, or it still holds a `%PLACEHOLDER%` because the raw template is being
+ * The value of a branding meta tag, or null when the document has none, it is
+ * empty, or it still contains a `%PLACEHOLDER%` because the raw template is
  * served.
  */
 function metaValue(name: string): string | null {
@@ -161,20 +171,21 @@ function metaValue(name: string): string | null {
 }
 
 /**
- * One of the deployment's own names: the meta tag if it holds one, else what
- * the build was given, else null for a deployment that did not set it. The
- * same pair of paths as {@link resolveAppName}, for the same reason.
+ * One of the own names of the deployment: the meta tag if it contains one,
+ * otherwise the value of the build, otherwise null for a deployment that did
+ * not set it. The same pair of paths as {@link resolveAppName}, for the same
+ * reason.
  */
 export function resolveBrandText(tag: string, fallback: string): string | null {
   return metaValue(tag) ?? (fallback.trim() || null);
 }
 
 /**
- * A branding image as a URL the page can load. A bare file name is one beside
- * `index.html`, so it is base-prefixed for a subpath deployment; an absolute
- * path or a `data:` URL is taken as it is. A remote `https:` URL would be too,
- * and is then refused by the page's `img-src 'self'`, which is why the docs
- * say to ship the file with the build.
+ * A branding image as a URL that the page can load. A bare file name is a file
+ * next to `index.html`. Thus, it gets the base prefix for a subpath deployment.
+ * An absolute path or a `data:` URL is used as it is. A remote `https:` URL is
+ * also used as it is, but the `img-src 'self'` of the page then refuses it. For
+ * this reason, the docs tell you to ship the file with the build.
  */
 export function resolveLogoUrl(
   value: string | null,
@@ -188,9 +199,9 @@ export function resolveLogoUrl(
 
 /**
  * A logo in both themes. `dark` is drawn in place of `light` while the app is
- * dark, if the deployment gave one; without it, `invertInDark` says whether
- * `light` is inverted there instead (the app's mark is, as a single-colour
- * shape; an instance's or organisation's logo keeps its colours).
+ * dark, if the deployment gave one. Without it, `invertInDark` tells if `light`
+ * is inverted there (the mark of the app is, as a shape with one color. The
+ * logo of an instance or organization keeps its colors).
  */
 export interface Logo {
   light: string;
@@ -199,9 +210,9 @@ export interface Logo {
 }
 
 /**
- * A logo from its meta tags (`<tag>` and `<tag>-dark`) or the build's values,
- * or null when there is no light one to draw: a dark variant alone has
- * nothing to stand in for.
+ * A logo from its meta tags (`<tag>` and `<tag>-dark`) or the values of the
+ * build, or null when there is no light logo to draw. A dark variant alone
+ * replaces nothing.
  */
 export function resolveLogo(
   tag: string,
@@ -218,10 +229,11 @@ export function resolveLogo(
 }
 
 /**
- * The app's mark: the header, the sign-in screen, the welcome dialog, About. A
- * plain file at a fixed name beside `index.html` rather than a hashed import,
- * so replacing it is the same kind of job as replacing the favicon.
- * `logo.svg` unless `VITE_APP_LOGO` or the `app-logo` meta tag names another.
+ * The mark of the app: the header, the sign-in screen, the welcome dialog,
+ * About. It is a plain file with a fixed name next to `index.html`, not a
+ * hashed import. Thus, its replacement is the same type of job as the
+ * replacement of the favicon. `logo.svg`, unless `VITE_APP_LOGO` or the
+ * `app-logo` meta tag names a different file.
  */
 export const APP_LOGO: Logo = resolveLogo(
   "app-logo",
@@ -234,9 +246,10 @@ export const APP_LOGO: Logo = resolveLogo(
 };
 
 /**
- * What this copy is for, when a deployment names it ("Foo QA project"): shown
- * beside the app's name in the header and the tab, and on the sign-in screen,
- * so two instances of the same app in one browser can be told apart.
+ * The purpose of this copy, when a deployment names it ("Foo QA project"). It
+ * shows next to the name of the app in the header and the tab, and on the
+ * sign-in screen. Thus, you can tell two instances of the same app in one
+ * browser apart.
  */
 export const INSTANCE_NAME: string | null = resolveBrandText(
   "instance-name",
@@ -244,8 +257,8 @@ export const INSTANCE_NAME: string | null = resolveBrandText(
 );
 
 /**
- * The instance's own logo, next to its name in About and, when the top bar
- * carries the instance (see {@link HEADER_BRAND}), there and in the tab.
+ * The own logo of the instance, next to its name in About and, when the top bar
+ * shows the instance (see {@link HEADER_BRAND}), there and in the tab.
  */
 export const INSTANCE_LOGO: Logo | null = resolveLogo(
   "instance-logo",
@@ -253,22 +266,22 @@ export const INSTANCE_LOGO: Logo | null = resolveLogo(
   false,
 );
 
-/** Who owns this copy ("Acme Inc"), on the sign-in screen and in About. */
+/** The owner of this copy ("Acme Inc"), on the sign-in screen and in About. */
 export const ORG_NAME: string | null = resolveBrandText(
   "org-name",
   __BRANDING__.orgName,
 );
 
 /**
- * Where the operator's privacy notice is: who holds what, for how long, and
- * how to ask for it. Linked from the sign-in screen, where an account is
- * made, and from About. Null when the deployment did not set one.
+ * The location of the privacy notice of the operator: who has what, for how
+ * long, and how to ask for it. The sign-in screen, where accounts are made, and
+ * About link to it. Null when the deployment did not set one.
  */
 export const PRIVACY_URL: string | null = resolvePrivacyUrl(
   resolveBrandText("privacy-url", __BRANDING__.privacyUrl),
 );
 
-/** The organisation's logo, beside its name. */
+/** The logo of the organization, next to its name. */
 export const ORG_LOGO: Logo | null = resolveLogo(
   "org-logo",
   { light: __BRANDING__.orgLogo, dark: __BRANDING__.orgLogoDark },
@@ -276,9 +289,9 @@ export const ORG_LOGO: Logo | null = resolveLogo(
 );
 
 /**
- * Whose name the top bar carries: `instance` if the `header-brand` meta tag or
- * `VITE_HEADER_BRAND` says so and there is an instance name to carry, `app`
- * otherwise. The app keeps its place in About either way.
+ * The name that the top bar shows: `instance` if the `header-brand` meta tag or
+ * `VITE_HEADER_BRAND` says so and there is an instance name to show, otherwise
+ * `app`. The app keeps its place in About in both cases.
  */
 export function resolveHeaderBrand(
   fallback: string,
@@ -289,13 +302,13 @@ export function resolveHeaderBrand(
 }
 
 /**
- * The top bar's mark and name on the Notes view. An instance without a logo
- * shows its name alone.
+ * The mark and name of the top bar on the Notes view. An instance without a
+ * logo shows only its name.
  */
 export const HEADER_BRAND: {
   name: string;
   logo: Logo | null;
-  /** The instance is the brand, so it is not repeated beside it. */
+  /** The instance is the brand. Thus, it does not repeat next to it. */
   isInstance: boolean;
 } =
   resolveHeaderBrand(__BRANDING__.headerBrand, INSTANCE_NAME) === "instance"
@@ -303,21 +316,24 @@ export const HEADER_BRAND: {
     : { name: APP_NAME, logo: APP_LOGO, isInstance: false };
 
 /**
- * The tab's icon, when it is not the page's own `favicon.svg`: the instance's
- * logo, once the instance is the brand the top bar carries. Null otherwise.
+ * The icon of the tab, when it is not the own `favicon.svg` of the page: the
+ * logo of the instance, when the instance is the brand of the top bar. Null
+ * otherwise.
  */
 export const FAVICON: Logo | null = HEADER_BRAND.isInstance
   ? HEADER_BRAND.logo
   : null;
 
 /**
- * Points the page's icon at `logo`. The link's `type` goes, since the logo
- * need not be an SVG and a wrong one makes the browser skip the icon.
+ * Points the icon of the page to `logo`. The `type` of the link goes, because
+ * the logo does not have to be an SVG, and a wrong type makes the browser skip
+ * the icon.
  *
- * A dark variant follows the browser's colour scheme, which is what the tab
- * around the icon follows, by swapping the one link's `href` as the scheme
- * changes. Not a second link with a `media` attribute: a browser that ignores
- * `media` on an icon, or finds neither link matching, showed no icon at all.
+ * A dark variant follows the color scheme of the browser, which the tab around
+ * the icon also follows. The code changes the `href` of the one link when the
+ * scheme changes. It does not use a second link with a `media` attribute. A
+ * browser that ignores `media` on an icon, or finds no matching link, showed no
+ * icon.
  */
 export function applyFavicon(
   logo: Logo | null,
@@ -344,10 +360,10 @@ export function applyFavicon(
 }
 
 /**
- * The window title: the instance first, since that is what tells tabs apart,
- * then the app's name unless `VITE_TITLE_APP_NAME` or the `title-app-name`
- * meta tag says `off`. With no instance there is only the app's name to use,
- * whatever the setting says, since a title cannot be empty.
+ * The window title: the instance first, because that tells tabs apart, then the
+ * name of the app, unless `VITE_TITLE_APP_NAME` or the `title-app-name` meta
+ * tag says `off`. With no instance, there is only the name of the app to use,
+ * whatever the setting says, because a title cannot be empty.
  */
 export function windowTitle(
   appName: string,

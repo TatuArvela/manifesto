@@ -34,10 +34,12 @@ import { PublicLinksDialogHost } from "./sharing/PublicLinksDialog.tsx";
 const SERVER = "http://server.test";
 const TOKEN = "AbCdEfGhIjKlMnOpQrStUv";
 
-/** The key in the link's address, and the note as a snapshot link's server
- * hands it over: sealed under a key derived from that one. The page has no
- * account, so it opens this for real whatever the rest of this project hands
- * through. */
+/**
+ * The key in the address of the link, and the note as the server of a snapshot
+ * link gives it: sealed under a key derived from that key. The page has no
+ * account. Thus, it really opens this, whatever the other parts of this project
+ * skip.
+ */
 const LINK_KEY = newLinkKey();
 let shown: PublicNote;
 

@@ -143,9 +143,9 @@ describe("LocalStorageAdapter", () => {
   });
 
   it("does not parse the stored list again for a write of its own", async () => {
-    // Auto-save writes every half second while the user types, and the list
-    // carries every image, so a parse per write was megabytes per keystroke
-    // pause.
+    // Auto-save writes each half second while the user types, and the list
+    // carries each image. Thus, a parse for each write was megabytes for each
+    // pause in typing.
     const note = await adapter.create(sampleNote);
     await adapter.getAll();
     const parse = vi.spyOn(JSON, "parse");
@@ -207,9 +207,9 @@ describe("LocalStorageAdapter", () => {
   });
 
   it("reports a refusal and does not throw when localStorage is full", async () => {
-    // The refusal is reported as a fact, not as a toast: this layer has no
+    // The refusal is reported as a fact, not as a toast. This layer has no
     // message catalogue and no toast queue, and `actions.ts` decides what the
-    // user is told. The message itself is covered in `actions.browser.test.ts`.
+    // user is told. `actions.browser.test.ts` covers the message itself.
     quotaRefusedAt.value = 0;
     const setItem = vi
       .spyOn(Storage.prototype, "setItem")
@@ -217,8 +217,9 @@ describe("LocalStorageAdapter", () => {
         throw new DOMException("Quota exceeded", "QuotaExceededError");
       });
     try {
-      // Must not throw: the caller's try/catch isn't responsible for storage
-      // failure, and the note stays on screen for the rest of the session.
+      // Must not throw. The try/catch of the caller is not responsible for a
+      // storage failure, and the note stays on the screen for the remaining
+      // session.
       await expect(adapter.create(sampleNote)).resolves.toBeDefined();
       expect(quotaRefusedAt.value).toBeGreaterThan(0);
     } finally {
@@ -251,9 +252,9 @@ describe("cross-tab note changes", () => {
   }
 
   it("reports the list another tab wrote", async () => {
-    // Every tab holds the whole list and writes all of it back on any edit, so
-    // without hearing this a tab puts its stale copy back: trash a note in one
-    // tab, change anything in another, and the trashed note returns.
+    // Each tab has the full list, and writes all of it back on each edit. Thus,
+    // without this event, a tab puts its stale copy back. Trash a note in one
+    // tab, change anything in a different tab, and the trashed note comes back.
     const adapter = new LocalStorageAdapter();
     const kept = await adapter.create({ ...sampleNote, title: "Kept" });
     const trashed = await adapter.create({ ...sampleNote, title: "Trashed" });
@@ -274,7 +275,7 @@ describe("cross-tab note changes", () => {
     const seen: Note[][] = [];
     const stop = subscribeToExternalNotes((notes) => seen.push(notes));
     try {
-      // `localStorage.clear()` in another tab arrives with a null key.
+      // `localStorage.clear()` in a different tab arrives with a null key.
       window.dispatchEvent(
         new StorageEvent("storage", { key: null, storageArea: localStorage }),
       );

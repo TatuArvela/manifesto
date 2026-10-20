@@ -1,15 +1,18 @@
 import type { TextEdit } from "./formatTypes.ts";
 import { lineRange, parseLine } from "./rawLineFormatting.ts";
 
-// Raw mode's Indent and Outdent: list items moved a level in or out by their
-// leading spaces, taking the items nested under them along, as the rich
-// editor's `sinkListItem` and `liftListItem` do. Pure string work; see
+// Indent and Outdent of raw mode: list items moved one level in or out by their
+// leading spaces, with the items nested under them, as `sinkListItem` and
+// `liftListItem` of the rich editor do. Only string operations. See
 // `rawFormatting.ts`.
 
 interface Line {
   text: string;
   indent: number;
-  /** The marker with its spaces (`- `, `1. `), or "" for a line that is no item. */
+  /**
+   * The marker with its spaces (`- `, `1. `), or "" for a line that is not an
+   * item.
+   */
   marker: string;
 }
 
@@ -19,8 +22,8 @@ const describe = (text: string): Line => {
 };
 
 /**
- * The nearest item above `index` whose indent is at most `limit`, looking no
- * further than the list: a line of other text, or two blank lines, end it.
+ * The nearest item above `index` whose indent is at most `limit`. It looks only
+ * in the list. A line of other text, or two blank lines, ends it.
  */
 function itemAbove(lines: Line[], index: number, limit: number): Line | null {
   let blanks = 0;
@@ -39,8 +42,9 @@ function itemAbove(lines: Line[], index: number, limit: number): Line | null {
 }
 
 /**
- * One past the last line of the item at `index` and everything nested under
- * it: the lines after it indented further, and blank lines between them.
+ * One past the last line of the item at `index` and all that is nested under
+ * it: the lines after it with a larger indent, and the blank lines between
+ * them.
  */
 function subtreeEnd(lines: Line[], index: number): number {
   const indent = lines[index]?.indent ?? 0;
@@ -59,12 +63,13 @@ function subtreeEnd(lines: Line[], index: number): number {
 }
 
 /**
- * Indents (`dir` 1) or outdents (-1) the list items the selection touches.
+ * Indents (`dir` 1) or outdents (-1) the list items that the selection touches.
  *
- * An item moves in only under an item at its own level just above it, to
- * where that item's text starts, so a numbered list nests under `1. ` by
- * three spaces and a bulleted one under `- ` by two. It moves out to the
- * level of the item it is nested under. Other lines are left as they are.
+ * An item moves in only under an item at its own level just above it, to where
+ * the text of that item starts. Thus, a numbered list nests under `1. ` by
+ * three spaces, and a bulleted list under `- ` by two. It moves out to the
+ * level of the item under which it is nested. The code does not change other
+ * lines.
  */
 export function shiftListItems(
   value: string,

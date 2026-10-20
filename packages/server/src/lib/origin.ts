@@ -1,11 +1,11 @@
 import type { Context } from "hono";
 
 /**
- * This server's own address as the client reached it. Behind a proxy with
- * `TRUST_PROXY` on, the scheme and host the proxy was reached at: one built
- * from the socket's side (`http://10.0.0.5:3001`) is not an address anyone
- * outside used, whether it names an OAuth issuer or the origin a passkey is
- * checked against.
+ * The own address of this server, as the client reached it. Behind a proxy with
+ * `TRUST_PROXY` on, it is the scheme and host at which the client reached the
+ * proxy. An address built from the side of the socket (`http://10.0.0.5:3001`)
+ * is not an address that a person outside used. This is important when it names
+ * an OAuth issuer, or the origin against which a passkey is checked.
  */
 export function publicOrigin(c: Context, trustProxy: boolean): string {
   const url = new URL(c.req.url);

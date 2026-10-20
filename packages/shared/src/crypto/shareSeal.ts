@@ -3,30 +3,30 @@ import { base64urlToBytes, bytesToBase64url, utf8, wipe } from "./bytes.ts";
 import { associatedData, derivable, deriveKey, seal, unseal } from "./seal.ts";
 
 /**
- * Handing a note key to another account
+ * How a note key goes to a different account
  * (`docs/specification/features/encryption.md`, "Sharing").
  *
- * The key is wrapped to the recipient's public key: an ephemeral ECDH key is
- * made for the one wrap, and the key both sides can derive from it seals the
- * note key. Wrapping to a public key takes no secret, and the server knows
- * every public key, so by itself a wrapped key says nothing about who made
- * it. The account that wraps therefore signs it, together with the note, the
- * version of the key and the account it is for, and the recipient uses no
- * wrapped key whose signature does not check against the key it remembers for
- * the signer.
+ * The key is wrapped to the public key of the recipient. The code makes an
+ * ephemeral ECDH key for the one wrap. The key that both sides can derive from
+ * it seals the note key. A wrap to a public key needs no secret, and the server
+ * knows all public keys. Thus, a wrapped key alone tells nothing about who made
+ * it. For this reason, the account that wraps also signs it, together with the
+ * note, the version of the key and the account that it is for. The recipient
+ * uses no wrapped key whose signature does not pass the check against the key
+ * that it remembers for the signer.
  */
 
 const P256 = { name: "ECDH", namedCurve: "P-256" } as const;
 const SIGNING = { name: "ECDSA", namedCurve: "P-256" } as const;
 const SIGNATURE = { name: "ECDSA", hash: "SHA-256" } as const;
 
-/** A note key on its way to an account, as the server passes it on. */
+/** A note key on its way to an account, as the server sends it. */
 export interface OfferedKey {
-  /** Which note key this is. */
+  /** The note key that this is. */
   keyVersion: number;
   /** The public half of the key made for this one wrap. */
   ephemeral: string;
-  /** The note key, sealed under what the two public keys agree on. */
+  /** The note key, sealed under the agreement of the two public keys. */
   wrapped: string;
   /** The account that wrapped and signed it. */
   signer: string;
@@ -34,13 +34,13 @@ export interface OfferedKey {
   signature: string;
 }
 
-/** What a wrap is for, which the signature and the seal both bind it to. */
+/** The purpose of a wrap. The signature and the seal both bind it to this. */
 export interface OfferContext {
   noteId: string;
   recipientId: string;
 }
 
-/** The longest an offered key's parts may be, for the server to hold one to. */
+/** The maximum length of the parts of an offered key, for a server check. */
 export const OFFERED_KEY_MAX = { wrapped: 256, signature: 128 } as const;
 
 function publicKey(
@@ -101,8 +101,8 @@ function signedBytes(
 }
 
 /**
- * Wraps a note key for `context.recipientId` and signs it as `signer`.
- * Throws when `recipientKey` is not a P-256 point.
+ * Wraps a note key for `context.recipientId`, and signs it as `signer`. Throws
+ * when `recipientKey` is not a P-256 point.
  */
 export async function offerNoteKey(
   context: OfferContext,
@@ -136,8 +136,10 @@ export async function offerNoteKey(
   };
 }
 
-/** Whether `offer` was signed for this note and recipient by the holder of
- * `signerKey`. False for anything malformed. */
+/**
+ * If the holder of `signerKey` signed `offer` for this note and recipient.
+ * False for all malformed input.
+ */
 export async function verifyOfferedKey(
   context: OfferContext,
   offer: OfferedKey,
@@ -156,9 +158,9 @@ export async function verifyOfferedKey(
 }
 
 /**
- * The note key an offer carries, opened with the recipient's private key.
- * Null when it does not open. The caller checks the signature first, and
- * wipes the bytes.
+ * The note key of an offer, opened with the private key of the recipient. Null
+ * when it does not open. The caller checks the signature first, and wipes the
+ * bytes.
  */
 export async function openOfferedKey(
   context: OfferContext,
@@ -181,7 +183,7 @@ export async function openOfferedKey(
 }
 
 /**
- * A short fingerprint of an account's two public keys, for two people to
+ * A short fingerprint of the two public keys of an account, for two people to
  * compare: 96 bits of their SHA-256, as six groups of four.
  */
 export async function keyFingerprint(keys: AccountPublicKeys): Promise<string> {

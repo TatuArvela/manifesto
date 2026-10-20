@@ -9,28 +9,28 @@ import { appendStubPreviews } from "#/utils/linkPreview.ts";
 
 /**
  * The link previews of a note that does not exist yet. The same two steps as
- * `addLinkPreviews` in `state/linkPreviews.ts` takes for a saved note (a plain
- * card at once, filled in when the preview resolves), held in component state
- * instead of written to storage. A preview still loading when the draft is
- * saved is handed over by {@link DraftLinkPreviews.takePending}, for
- * `applyLinkPreviews` to put into the note the draft became.
+ * `addLinkPreviews` in `state/linkPreviews.ts` does for a saved note (a plain
+ * card immediately, filled when the preview resolves), kept in component state,
+ * not written to storage. {@link DraftLinkPreviews.takePending} gives a preview
+ * that still loads when the draft is saved to `applyLinkPreviews`, which puts
+ * it into the note that the draft became.
  */
 export interface DraftLinkPreviews {
   previews: LinkPreview[];
   add(urls: string[]): void;
   remove(index: number): void;
-  /** Puts back the previews of a kept draft, as they were kept. */
+  /** Restores the previews of a kept draft, as they were kept. */
   restore(previews: LinkPreview[]): void;
-  /** Hands over the previews still loading; the draft stops waiting on them. */
+  /** Gives the previews that still load. The draft stops to wait for them. */
   takePending(): Promise<LinkPreview | null>[];
   clear(): void;
 }
 
 export function useDraftLinkPreviews(): DraftLinkPreviews {
   const [previews, setPreviewsState] = useState<LinkPreview[]>([]);
-  // As of the last change rather than the last render: a paste and a preview
-  // arriving can both land before a render, and building the second change
-  // from render state throws away the first.
+  // As of the last change, not the last render. A paste and a preview that
+  // arrives can both come before a render. If the code built the second change
+  // from the render state, it would lose the first.
   const latest = useRef<LinkPreview[]>([]);
   const pending = useRef(new Map<string, Promise<LinkPreview | null>>());
 
@@ -55,8 +55,8 @@ export function useDraftLinkPreviews(): DraftLinkPreviews {
         const resolving = resolveLinkPreview(url);
         draft.set(url, resolving);
         void resolving.then((resolved) => {
-          // Not this draft's any more: it was saved or discarded, and the
-          // answer went to the note along with the rest.
+          // It does not belong to this draft now. It was saved or discarded,
+          // and the answer went to the note with the other data.
           if (pending.current.get(url) !== resolving || !resolved) return;
           setPreviews(
             latest.current.map((p) => (p.url === url ? resolved : p)),

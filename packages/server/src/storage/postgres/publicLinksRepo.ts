@@ -52,7 +52,7 @@ export function createPostgresPublicLinksRepo(pool: PgPool): PublicLinksRepo {
          RETURNING mode`,
         [token, noteId],
       );
-      // A live link gave whoever had it the note's key.
+      // A live link gave the key of the note to the persons who had it.
       if (result.rows[0]?.mode === "live") {
         await pool.query(`UPDATE notes SET rekey_due = 1 WHERE id = $1`, [
           noteId,

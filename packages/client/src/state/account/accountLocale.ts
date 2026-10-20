@@ -8,17 +8,17 @@ let reportingLocale: string | null = null;
 let stop: (() => void) | null = null;
 
 /**
- * The server writes mail another account's action sends this one (a share
- * invitation) in the language it holds for the account, so the client tells
- * it the one the app is in whenever the two differ: on the first start
- * against a server that keeps one, and after the user changes it. A server
- * that does not keep one leaves `locale` absent and is not asked. Started
- * once, by `App`.
+ * The server writes the mail that the action of a different account sends to
+ * this account (a share invitation) in the language that it keeps for the
+ * account. Thus, the client tells it the language of the app each time the two
+ * are different: on the first start against a server that keeps one, and after
+ * the user changes it. The client does not ask a server that does not keep one,
+ * which leaves `locale` absent. `App` starts it one time.
  */
 export function startAccountLocaleReport(): () => void {
   stop ??= effect(() => {
-    // The connection, not `authToken`: `apiFetch` sends what it holds, and
-    // it is written from the token by an effect of its own.
+    // The connection, not `authToken`. `apiFetch` sends what it has, and an
+    // effect of its own writes it from the token.
     const { serverUrl, token } = storageConnection.value;
     const user = currentUser.value;
     const wanted = locale.value;

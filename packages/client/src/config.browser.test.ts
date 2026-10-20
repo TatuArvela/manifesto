@@ -24,8 +24,8 @@ import {
 } from "./config.ts";
 
 /**
- * Run `fn` with an `application-name` meta tag in the document, the state a
- * hand-edited release bundle is in when it loads.
+ * Run `fn` with an `application-name` meta tag in the document. That is the
+ * state of a release bundle that a person edited, when it loads.
  */
 function withMetaTag<T>(
   content: string,
@@ -44,8 +44,9 @@ function withMetaTag<T>(
 }
 
 describe("APP_NAME", () => {
-  // The test HTML carries no `application-name` meta tag, so this exercises the
-  // build-time half: `VITE_APP_NAME` is unset, so `__APP_NAME__` is the default.
+  // The test HTML has no `application-name` meta tag. Thus, this tests the
+  // build-time half: `VITE_APP_NAME` is not set. Thus, `__APP_NAME__` is the
+  // default.
   test("falls back to the built-in name when nothing overrides it", () => {
     expect(APP_NAME).toBe("Manifesto");
     expect(APP_FILE_SLUG).toBe("manifesto");
@@ -53,8 +54,8 @@ describe("APP_NAME", () => {
 });
 
 describe("APP_LOGO", () => {
-  // The header mark is a plain file at a fixed path rather than a hashed
-  // bundled import, so a rebrand can overwrite it in a built bundle.
+  // The header mark is a plain file at a fixed path, not a hashed bundled
+  // import. Thus, a rebrand can overwrite it in a built bundle.
   test("points at logo.svg under the deployment base", () => {
     expect(APP_LOGO).toEqual({
       light: `${import.meta.env.BASE_URL}logo.svg`,
@@ -65,7 +66,7 @@ describe("APP_LOGO", () => {
 });
 
 describe("the deployment's own branding", () => {
-  // The test build sets none of it, which is every stock deployment.
+  // The test build sets none of it, as all usual deployments.
   test("is absent unless configured, and the title is the app's name", () => {
     expect(INSTANCE_NAME).toBeNull();
     expect(ORG_NAME).toBeNull();
@@ -289,8 +290,8 @@ describe("resolveLogoUrl()", () => {
 });
 
 describe("resolveAppName()", () => {
-  // The rename path for someone deploying the release zip: edit the meta tag,
-  // no rebuild.
+  // The rename path for a person who deploys the release zip: edit the meta
+  // tag, and do not build again.
   test("prefers an application-name meta tag over the built-in name", () => {
     expect(withMetaTag("Notes", () => resolveAppName("Manifesto"))).toBe(
       "Notes",
@@ -369,8 +370,8 @@ describe("resolveServerUrl", () => {
   });
 
   test("lets a hand-edited tag override the build", () => {
-    // The whole point: a zip built in open mode, pointed at a server by
-    // editing one line, with no toolchain anywhere.
+    // The purpose: a zip built in open mode, pointed to a server with an edit
+    // of one line, with no toolchain.
     expect(
       withMetaTag(
         "https://notes.acme.com",
@@ -396,7 +397,7 @@ describe("resolveServerUrl", () => {
     expect(
       withMetaTag("%MANIFESTO_SERVER%", () => resolveServerUrl(undefined), TAG),
     ).toBeNull();
-    // An empty tag must not shadow a build that does name a server.
+    // An empty tag must not hide a build that names a server.
     expect(
       withMetaTag("", () => resolveServerUrl("https://notes.example.com"), TAG),
     ).toBe("https://notes.example.com");
@@ -406,9 +407,9 @@ describe("resolveServerUrl", () => {
     expect(resolveServerUrl("https://notes.example.com/")).toBe(
       "https://notes.example.com",
     );
-    // `/` collapses to the empty string, meaning this page's own origin. It
-    // has to stay distinct from null, which is open mode, and every guard
-    // downstream tests null rather than falsiness because of it.
+    // `/` becomes the empty string, which means the own origin of this page. It
+    // must stay different from null, which is open mode. For this reason, each
+    // guard after it tests null, not falsiness.
     expect(resolveServerUrl("/")).toBe("");
     expect(resolveServerUrl("/")).not.toBeNull();
   });

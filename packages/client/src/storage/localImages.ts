@@ -2,16 +2,16 @@ import { LOCAL_IMAGE_REF_PREFIX } from "@manifesto/shared";
 import { isQuotaError, reportQuotaRefusal } from "./quota.ts";
 
 /**
- * Open mode's images, in IndexedDB rather than inside the notes in
- * `localStorage`. `localStorage` holds about 5 MB for the whole site and only
- * strings, so a few photos as base64 filled it and then every save failed,
- * text included. IndexedDB stores the bytes as they are and gets a share of
- * the disk. A note refers to an image as `local:<sha256>`, so the same image
- * attached twice is stored once.
+ * The images of open mode, in IndexedDB, not inside the notes in
+ * `localStorage`. `localStorage` has approximately 5 MB for the full site, and
+ * only strings. Thus, a few photos as base64 filled it, and then each save
+ * failed, also for text. IndexedDB stores the bytes as they are, and gets a
+ * part of the disk. A note refers to an image as `local:<sha256>`. Thus, the
+ * same image attached two times is stored one time.
  *
- * The first image stored asks the browser to keep this site's storage
- * persistent (`navigator.storage.persist()`), since in open mode it is the
- * only copy and a browser clearing space would otherwise take it.
+ * The first stored image asks the browser to keep the storage of this site
+ * persistent (`navigator.storage.persist()`). In open mode, it is the only
+ * copy, and a browser that makes space free would otherwise take it.
  */
 
 const DB_NAME = "manifesto-images";
@@ -21,8 +21,8 @@ interface StoredImage {
   hash: string;
   blob: Blob;
   /**
-   * When the image was last stored, not first: attaching an image already
-   * here starts its grace again (see `sweepLocalImages`).
+   * When the image was last stored, not first. An attach of an image that is
+   * already here starts its grace period again (see `sweepLocalImages`).
    */
   createdAt: number;
 }
@@ -72,10 +72,10 @@ async function sha256(blob: Blob): Promise<string> {
 }
 
 /**
- * Stores an image and resolves its `local:` reference. An image already
- * stored is written again all the same, to restamp it: it may be one no note
- * refers to any more, attached now to a draft, and keeping its old stamp would
- * let the next sweep take it from under that draft.
+ * Stores an image, and resolves its `local:` reference. An image that is
+ * already stored is written again anyway, to give it a new stamp. It can be an
+ * image to which no note refers now, attached now to a draft. With its old
+ * stamp, the next sweep could take it from under that draft.
  */
 export async function putLocalImage(blob: Blob): Promise<string> {
   const hash = await sha256(blob);
@@ -97,7 +97,7 @@ export async function putLocalImage(blob: Blob): Promise<string> {
   return `${LOCAL_IMAGE_REF_PREFIX}${hash}`;
 }
 
-/** The bytes a `local:` reference names; rejects if they are gone. */
+/** The bytes that a `local:` reference names. Rejects if they are gone. */
 export async function getLocalImage(ref: string): Promise<Blob> {
   const hash = ref.slice(LOCAL_IMAGE_REF_PREFIX.length);
   const found = (await request("readonly", (s) => s.get(hash))) as
@@ -108,9 +108,9 @@ export async function getLocalImage(ref: string): Promise<Blob> {
 }
 
 /**
- * Deletes images no note refers to any more and that are older than
- * `graceMs`: a note deleted for good, an image removed from a note. The grace
- * spares an image just attached to a draft that is not saved yet. Resolves
+ * Deletes images to which no note refers now and that are older than `graceMs`:
+ * a note deleted permanently, an image removed from a note. The grace period
+ * keeps an image just attached to a draft that is not saved yet. Resolves with
  * how many it deleted.
  */
 export async function sweepLocalImages(

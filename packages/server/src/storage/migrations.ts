@@ -1,29 +1,29 @@
 /**
- * The rules both drivers' migration runners follow.
+ * The rules that the migration runners of both drivers follow.
  *
- * Until now each driver ran one blob of `CREATE TABLE IF NOT EXISTS`. That
- * builds a correct schema on an empty database and does nothing at all on a
- * populated one, so the *next* change to the schema would have applied on a
- * developer's fresh checkout and silently skipped every deployed instance,
- * leaving a column the code expects missing from the table.
+ * Before, each driver ran one block of `CREATE TABLE IF NOT EXISTS`. That
+ * builds a correct schema on an empty database, and does nothing on a database
+ * that has data. Thus, the *next* schema change would have applied on the new
+ * checkout of a developer, and silently skipped all deployed instances. A
+ * column that the code needs would then be missing from the table.
  *
- * A migration is therefore a step with a name, applied once and recorded. The
- * SQL is per-dialect (SQLite has no boolean and no `BYTEA`; Postgres has no
- * `COLLATE NOCASE`), but the ledger, the ordering rules and the names are
- * shared, so a change to one driver's schema that is not made to the other's
- * shows up as a failing test rather than as a difference nobody noticed.
+ * Thus, a migration is a step with a name, applied one time and recorded. The
+ * SQL is different for each dialect (SQLite has no boolean and no `BYTEA`;
+ * Postgres has no `COLLATE NOCASE`). But the ledger, the order rules and the
+ * names are shared. Thus, a schema change in one driver that is not in the
+ * other shows as a failing test, not as a difference that nobody saw.
  */
 
 export interface Migration {
   /**
-   * Ordered by this, and never renamed once shipped: the name is what a
-   * deployed database remembers having run.
+   * The order uses this. Never rename it after it ships: a deployed database
+   * remembers the name of each step that it ran.
    */
   id: string;
   sql: string;
   /**
-   * A step that must not run on some databases: when `sql` finds a row, the
-   * runner stops with `message` and changes nothing.
+   * A step that must not run on some databases. When `sql` finds a row, the
+   * runner stops with `message`, and changes nothing.
    */
   refuseIf?: { sql: string; message: string };
 }
@@ -37,11 +37,11 @@ export class MigrationRefusedError extends Error {
 }
 
 /**
- * Notes written before encryption are readable where they lie, and changing
- * them in place would leave the old text in the database's free pages and in
- * every backup. So the encrypted version starts on an empty database
+ * Notes written before encryption are readable where they are. A change in
+ * place would leave the old text in the free pages of the database and in all
+ * backups. Thus, the encrypted version starts on an empty database
  * (`docs/specification/features/encryption.md`, "A server from before
- * encryption"), and this is what a server started on an older one says.
+ * encryption"). This is what a server says when it starts on an older database.
  */
 export const BEFORE_ENCRYPTION = {
   sql: "SELECT 1 FROM notes LIMIT 1",
@@ -53,7 +53,7 @@ export const BEFORE_ENCRYPTION = {
     "docs/specification/features/encryption.md.",
 };
 
-/** Where a database records what it has already run. */
+/** Where a database records the steps that it already ran. */
 export const LEDGER_TABLE_SQL = `
 CREATE TABLE IF NOT EXISTS schema_migrations (
   id         TEXT PRIMARY KEY,
@@ -61,16 +61,15 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 )`;
 
 /**
- * The migrations this database has yet to run, in order.
+ * The migrations that this database must still run, in order.
  *
- * Throws rather than guessing when the declared list and the ledger disagree,
- * because each disagreement means someone edited history:
+ * It throws, and does not guess, when the declared list and the ledger do not
+ * agree. Each difference means that a person edited the history:
  *
- * - a duplicate id: two steps would collapse into one, and the second would
- *   never run;
- * - an id in the ledger that is no longer declared: a shipped migration was
- *   renamed or deleted, so this database's schema is not one the code knows
- *   how to reason about. Running the rest on top of it would be guesswork.
+ * - A duplicate id: two steps would become one, and the second would never run.
+ * - An id in the ledger that is not declared now: a shipped migration was
+ *   renamed or deleted. Thus, the code cannot know the schema of this database.
+ *   To run the other steps on top of it would be a guess.
  */
 export function pendingMigrations(
   declared: readonly Migration[],

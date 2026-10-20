@@ -101,8 +101,8 @@ export function createSqliteServerSecretsRepo(db: SqliteDB): ServerSecretsRepo {
       insertStmt.run(name, sealed, now);
       const held = read(name);
       if (held !== null) return held;
-      // What the name holds does not open. Only if it is still that value,
-      // so that of two processes that find it so, one's is kept by both.
+      // The value of the name does not open. Only if it is still that value.
+      // Thus, if two processes find this, both keep the value of one of them.
       replaceStmt.run(sealed, now, name, stored(name));
       return read(name) ?? value;
     },

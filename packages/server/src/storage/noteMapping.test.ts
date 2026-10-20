@@ -17,14 +17,14 @@ import { createSqliteStorage } from "./sqlite/driver.ts";
 import type { StorageDriver } from "./types.ts";
 
 /**
- * The two drivers store a note in different column types (SQLite has no
- * boolean and no JSON) and used to carry their own copy of the mapping
- * between a row and a note. Parity was a convention, and the tests only ever
- * checked each driver against itself, so a change made in one file and not the
- * other would have gone unnoticed.
+ * The two drivers store a note in different column types (SQLite has no boolean
+ * and no JSON). Before, each one had its own copy of the mapping between a row
+ * and a note. Parity was only a convention, and the tests only checked each
+ * driver against itself. Thus, nobody would have seen a change made in one file
+ * and not in the other.
  *
- * These run the same assertions against both, and compare their answers
- * directly where the answer should be identical.
+ * These tests run the same assertions against both drivers, and compare their
+ * answers directly where the answer must be the same.
  */
 
 const NOW = "2026-04-01T00:00:00.000Z";
@@ -59,7 +59,10 @@ async function withUser(storage: StorageDriver): Promise<StorageDriver> {
   return storage;
 }
 
-/** Every field a note has, so nothing round-trips by being left at zero. */
+/**
+ * All fields of a note. Thus, nothing passes the round trip because it stayed
+ * at zero.
+ */
 const fullNote: NoteCreate = {
   title: "Shopping",
   content: "Milk, eggs",
@@ -109,7 +112,7 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
       createdAt: NOW,
       updatedAt: NOW,
     });
-    // What only the sealed note has: its key, and the excerpt beside the text.
+    // What only the sealed note has: its key, and the excerpt with the text.
     expect(note).toMatchObject({
       key: ciphertext("key of claimed"),
       keyVersion: 1,
@@ -118,8 +121,9 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
   });
 
   it("sends nothing readable where a ciphertext belongs", async () => {
-    // A share's colour and tags start as the columns' defaults, which are not
-    // ciphertext and mean "never set": they go out empty, never as they are.
+    // The color and the tags of a share start as the defaults of the columns.
+    // These are not ciphertext, and mean "never set". They go out empty, never
+    // as they are.
     const note = await storage.notes.insert({
       id: "n1",
       userId: "u1",
@@ -132,9 +136,10 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
   });
 
   it("leaves the two optional fields off a note that has neither", async () => {
-    // `readonly` and `source` are optional on `Note`, and each driver had its
-    // own conditional deciding whether to attach them, the one place the two
-    // mappings could disagree about a note's *shape* rather than its values.
+    // `readonly` and `source` are optional on `Note`. Each driver had its own
+    // condition to decide whether to attach them. That was the only place where
+    // the two mappings could disagree about the *shape* of a note, not its
+    // values.
     const { readonly: _r, source: _s, ...plain } = fullNote;
     const note = await storage.notes.insert({
       id: "n1",
@@ -180,7 +185,7 @@ describe.each(drivers)("$name notes mapping", ({ open }) => {
 });
 
 describe("the two drivers agree", () => {
-  /** The note each driver returns for the same write. */
+  /** The note that each driver returns for the same write. */
   async function noteFrom(
     open: () => Promise<StorageDriver>,
   ): Promise<SealedNote> {
@@ -222,7 +227,7 @@ describe.each(drivers)("$name listings", ({ open }) => {
     await storage.close();
   });
 
-  /** `count` notes, each a millisecond newer than the last. */
+  /** `count` notes, each one millisecond newer than the previous one. */
   async function seed(count: number, extra: Partial<typeof fullNote> = {}) {
     for (let i = 0; i < count; i++) {
       const at = new Date(Date.parse(NOW) + i).toISOString();
@@ -258,9 +263,9 @@ describe.each(drivers)("$name listings", ({ open }) => {
   });
 
   it("walks every note exactly once, even when they share a timestamp", async () => {
-    // The ordering key is `(updated_at, id)` for exactly this: five notes
-    // written in the same millisecond have no order by timestamp alone, and a
-    // page boundary inside them would repeat one and drop another.
+    // The order key is `(updated_at, id)` for exactly this reason. Five notes
+    // written in the same millisecond have no order by timestamp alone. A page
+    // boundary among them would repeat one note and lose a different one.
     for (let i = 0; i < 5; i++) {
       await storage.notes.insert({
         id: `same-${i}`,

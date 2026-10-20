@@ -164,25 +164,26 @@ export function SearchView() {
   const [advancedOpen, setAdvancedOpen] = useState(filtersActive);
 
   useEffect(() => {
-    // Only autofocus on desktop; on mobile this would raise the soft keyboard
-    // on every search-view mount (incl. back-navigation and deep-link restore).
-    // The mobile input is `md:hidden`; desktop uses the header input anyway,
-    // so this effectively only fires when the desktop input is rendered.
+    // Autofocus only on desktop. On mobile, this would open the soft keyboard
+    // on each mount of the search view (also back navigation and deep-link
+    // restore). The mobile input is `md:hidden`, and desktop uses the header
+    // input anyway. Thus, this only fires when the desktop input renders.
     if (window.matchMedia("(min-width: 768px)").matches) {
       inputRef.current?.focus();
     }
   }, []);
 
-  // Escape leaves the search view, wherever focus happens to be. This view is
-  // the bottom layer while it is up, so anything opened over it (the note
-  // editor, the settings panel, a popover) registers later and takes the key
+  // Escape leaves the search view, wherever the focus is. This view is the
+  // bottom layer while it is open. Thus, each layer opened over it (the note
+  // editor, the settings panel, a popover) registers later, and takes the key
   // first.
   useEscapeStack(true, exitSearch);
 
   return (
-    // Centred on its own, rather than relying on the wrapper App puts around
-    // the search view, which only exists in list mode. `max-w-xl` matches the
-    // header's search field, so the filters line up under it in both modes.
+    // Centered by itself. It does not rely on the wrapper that App puts around
+    // the search view, which exists only in list mode. `max-w-xl` is the same
+    // as the search field of the header. Thus, the filters align under it in
+    // both modes.
     <div
       class={`mt-4 mb-6 p-4 flex flex-col gap-3 max-w-xl mx-auto ${boardCard}`}
     >

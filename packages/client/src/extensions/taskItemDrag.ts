@@ -18,10 +18,10 @@ import {
   isTaskItem,
 } from "./taskListStructure.ts";
 
-// Dragging a checklist item by its handle: a pointer-driven drag (not HTML5
-// drag and drop) that moves the item and its subtree, and indents or outdents
-// it by how far sideways it is dropped. One drag at a time, held in module
-// state, since there is only one pointer doing it.
+// A drag of a checklist item by its handle: a drag that the pointer controls
+// (not HTML5 drag and drop). It moves the item and its subtree, and indents or
+// outdents it by how far to the side it is dropped. One drag at a time, kept in
+// module state, because only one pointer does it.
 
 const DRAG_THRESHOLD_PX = 4;
 const INDICATOR_HEIGHT_PX = 2;
@@ -33,7 +33,9 @@ type TaskItemInfo = {
   outerListPos: number;
   dom: HTMLElement;
   label: HTMLElement;
-  /** The item's own line, its first paragraph, without the items under it. */
+  /**
+   * The own line of the item, its first paragraph, without the items under it.
+   */
   line: HTMLElement;
   labelX: number;
 };
@@ -54,16 +56,16 @@ type DragState = {
   atListEnd: boolean;
   targetLevel: number;
   indicator: HTMLElement;
-  /** The item under the finger, drawn at the level it would land on. */
+  /** The item under the finger, drawn at the level where it would go. */
   ghost: HTMLElement | null;
   /**
-   * The point of the item held at the aim: where the pointer took hold of it,
-   * or for a finger the middle of its line.
+   * The point of the held item at the aim: where the pointer took it, or, for a
+   * finger, the middle of its line.
    */
   grabOffsetY: number;
-  /** Whether the pointer is a finger, whose aim is lifted above it. */
+  /** If the pointer is a finger, whose aim is above it. */
   touch: boolean;
-  /** How far above the pointer the drop is aimed now; it only grows. */
+  /** How far above the pointer the drop aims now. It only grows. */
   lift: number;
   sourceLabelOffsetX: number;
   lastX: number;
@@ -107,7 +109,7 @@ function collectTaskItems(view: EditorView): TaskItemInfo[] {
 }
 
 /**
- * Measured on the whole line, not the checkbox: a box at the top of a long
+ * Measured on the full line, not on the checkbox. A box at the top of a long
  * item put the middle of the item in the slot after it.
  */
 function findSlot(items: TaskItemInfo[], y: number): number {
@@ -189,14 +191,14 @@ function positionIndicator(state: DragState) {
 }
 
 /**
- * A copy of the dragged item that follows the pointer and snaps sideways to
- * the level it would be dropped at. The line alone says where; on a touch
- * screen the finger sits on it, and a shift of one indent in a two-pixel line
- * was all that told a nested drop from a flat one.
+ * A copy of the dragged item that follows the pointer, and snaps to the side to
+ * the level where it would drop. The line alone tells where. On a touch screen,
+ * the finger is on it, and a shift of one indent in a two-pixel line was the
+ * only sign of a nested drop or a flat drop.
  *
- * The copy is wrapped in the editor's own class so the task-row rules still
- * draw it, and takes the note's font from the item itself, since it lives in
- * `document.body`, outside the note.
+ * The copy is wrapped in the own class of the editor. Thus, the task-row rules
+ * still draw it. It gets the font of the note from the item itself, because it
+ * is in `document.body`, outside the note.
  */
 function createGhost(source: HTMLElement): HTMLElement {
   const style = getComputedStyle(source);
@@ -209,7 +211,7 @@ function createGhost(source: HTMLElement): HTMLElement {
   const list = document.createElement("ul");
   const copy = source.cloneNode(true) as HTMLElement;
   copy.classList.remove("task-item-dragging", "task-item-active");
-  // Its handles and X buttons are not controls, and would only clutter.
+  // Its handles and X buttons are not controls, and would only add clutter.
   for (const control of copy.querySelectorAll(
     ".task-item-drag-handle, .task-item-delete",
   ))
@@ -227,10 +229,10 @@ function positionGhost(state: DragState) {
 }
 
 /**
- * Scrolls while the pointer rests near an edge of the scrolling area, and
- * re-aims the drop as the list moves under it. Runs every frame of a drag;
- * the item positions are read live, so nothing collected at the start goes
- * stale.
+ * Scrolls while the pointer stays near an edge of the scrolling area, and aims
+ * the drop again when the list moves under it. Runs on each frame of a drag.
+ * The code reads the positions of the items live. Thus, nothing collected at
+ * the start becomes stale.
  */
 function autoScroll() {
   const state = dragState;
@@ -345,7 +347,8 @@ function endDrag(commit: boolean) {
     try {
       applyDrop(state);
     } catch {
-      // View may have been torn down mid-drop; swallow to keep cleanup clean.
+      // The view can be torn down during the drop. Ignore the error, to keep
+      // the cleanup clean.
     }
   }
 }
@@ -372,7 +375,7 @@ function onPointerMove(e: PointerEvent) {
   aim(dragState);
 }
 
-/** The height the drop is aimed at: the pointer, or above a finger. */
+/** The height at which the drop aims: the pointer, or above a finger. */
 function aimY(state: DragState): number {
   return state.lastY - state.lift;
 }
@@ -382,7 +385,7 @@ function updateLift(state: DragState) {
   state.lift = touchLift(state.lift, state.lastY - state.startY);
 }
 
-/** Works out where the pointer would drop the item, and shows it. */
+/** Calculates where the pointer would drop the item, and shows it. */
 function aim(state: DragState) {
   const y = aimY(state);
   state.slot = findSlot(state.items, y);
@@ -405,9 +408,9 @@ function aim(state: DragState) {
 }
 
 /**
- * Starts a drag of the task item at `pos`, whose node view is `listItem`,
- * from a press on its handle. The drag is live until the pointer is released
- * (drop), cancelled, or Escape is pressed.
+ * Starts a drag of the task item at `pos`, whose node view is `listItem`, from
+ * a press on its handle. The drag is live until the pointer releases (drop), a
+ * cancel occurs, or you push Escape.
  */
 export function startTaskItemDrag(
   view: EditorView,
@@ -446,8 +449,9 @@ export function startTaskItemDrag(
   };
   const onKeyDown = (ev: KeyboardEvent) => {
     if (ev.key !== "Escape") return;
-    // The press is the drag's. Heard first (capture), and kept from the
-    // Escape stack's listener, which would close the note under the drag too.
+    // The press belongs to the drag. It is heard first (capture), and kept from
+    // the listener of the Escape stack, which would also close the note under
+    // the drag.
     ev.preventDefault();
     ev.stopPropagation();
     endDrag(false);
@@ -495,11 +499,12 @@ export function startTaskItemDrag(
   try {
     handle.setPointerCapture(e.pointerId);
   } catch {
-    // setPointerCapture is best-effort; document-level listeners drive the drag.
+    // setPointerCapture is best effort. Document-level listeners control the
+    // drag.
   }
 }
 
-/** Abandons the drag if it is of this item, as its node view goes away. */
+/** Abandons the drag if it is of this item, when its node view goes away. */
 export function endTaskItemDragOf(listItem: HTMLElement): void {
   if (dragState && dragState.sourceDom === listItem) endDrag(false);
 }

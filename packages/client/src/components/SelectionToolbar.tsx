@@ -31,14 +31,16 @@ import { Tooltip } from "./Tooltip.tsx";
 
 const selToolbarBtnClass = "p-2 rounded-lg hover:bg-white/10 transition-colors";
 
-/** How long the selection bar takes to fade out; `selection-bar-out` in CSS. */
+/** How long the selection bar takes to fade out. `selection-bar-out` in CSS. */
 export const SELECTION_BAR_LEAVE_MS = 180;
 
-/** The bar laid over the header while notes are selected: what can be done to
- * all of them at once. */
+/**
+ * The bar over the header while notes are selected: the actions that apply to
+ * all of them at the same time.
+ */
 export function SelectionToolbar({ leaving }: { leaving: boolean }) {
-  // Leaving select mode empties the selection in the same step, so the count
-  // is held at what it was while the bar fades rather than reading "0".
+  // The end of select mode empties the selection in the same step. Thus, the
+  // count stays at its last value while the bar fades, and does not show "0".
   const liveCount = selectedNotes.value.size;
   const heldCount = useRef(liveCount);
   if (!leaving) heldCount.current = liveCount;
@@ -47,7 +49,8 @@ export function SelectionToolbar({ leaving }: { leaving: boolean }) {
   const [showTagPicker, setShowTagPicker] = useState(false);
   const colors = getColorPickerColors();
   const selected = notes.value.filter((n) => selectedNotes.value.has(n.id));
-  // The colour to mark in the picker: the one every selected note has, if any.
+  // The color to mark in the picker: the color that all selected notes have, if
+  // there is one.
   const [first] = selected;
   const sharedColor =
     first && selected.every((n) => n.color === first.color)
@@ -59,10 +62,10 @@ export function SelectionToolbar({ leaving }: { leaving: boolean }) {
     visibleIds.length > 0 &&
     visibleIds.every((id) => selectedNotes.value.has(id));
 
-  // A bulk deletion asks whatever the Confirm Deletions preference says. The
-  // preference is about the cost of being asked on a single note; nothing here
-  // acts on fewer than the whole selection, and a selection is easy to grow by
-  // one card without noticing.
+  // A bulk deletion asks, whatever the Confirm Deletions preference says. The
+  // preference is about the cost of a question on one note. Nothing here acts
+  // on less than the full selection, and it is easy to add one card to a
+  // selection without a notice.
   const askThenDelete = async (
     key: "bulkTrash" | "bulkDelete",
     run: () => void,

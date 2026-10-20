@@ -2,9 +2,9 @@ import type { PresenceUser } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 
 /**
- * Map of noteId → map of userId → PresenceUser for users currently viewing
- * that note in another tab/device. Updated by the WS presence:join /
- * presence:leave events; cleared on logout.
+ * A map of noteId → map of userId → PresenceUser, for users who look at that
+ * note now in a different tab or device. The WS presence:join and
+ * presence:leave events update it. A logout clears it.
  */
 export const presenceByNote = signal<Map<string, Map<string, PresenceUser>>>(
   new Map(),

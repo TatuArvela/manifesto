@@ -58,12 +58,12 @@ import {
  * Notes for a token that carries a key
  * (`docs/specification/features/encryption.md`, "Tokens that carry a key").
  *
- * The app sends and is sent sealed notes, and the routes store what they are
- * given. A script cannot seal or open one, so for a request that presents a
- * token the server does it, with the keys the token carries, in memory, for
- * that request: readable notes in, readable notes out, the same sealed rows
- * in between. Everything here is that translation, so a route does one thing
- * whoever is asking.
+ * The app sends and gets sealed notes, and the routes store what they get. A
+ * script cannot seal or open a note. Thus, for a request with a token, the
+ * server does it, with the keys of the token, in memory, for that request:
+ * readable notes in, readable notes out, and the same sealed rows between them.
+ * All code here is that translation. Thus, a route does one thing, whoever
+ * asks.
  */
 
 type Ctx = Context<{ Variables: { auth: AuthContext } }>;
@@ -75,9 +75,10 @@ type SealedImportItem = z.infer<
 >["notes"][number];
 
 /**
- * The keys of the token making this request, or null for the app's own
- * session, which is answered sealed. A token that carries none (one made for
- * the account routes alone) is refused: it has nothing to open a note with.
+ * The keys of the token of this request, or null for the own session of the
+ * app, which gets sealed answers. The server refuses a token that has no keys
+ * (a token made only for the account routes), because it has nothing with which
+ * to open a note.
  */
 export function tokenKeys(c: Ctx): AccountSealKeys | null {
   const auth = c.get("auth");
@@ -91,7 +92,10 @@ export function tokenKeys(c: Ctx): AccountSealKeys | null {
   return auth.keys;
 }
 
-/** A request body held to `schema`, refused as the validator refuses one. */
+/**
+ * A request body checked against `schema`, refused as the validator refuses
+ * one.
+ */
 export async function bodyOf<S extends z.ZodType>(
   c: Ctx,
   schema: S,
@@ -112,8 +116,10 @@ export async function bodyOf<S extends z.ZodType>(
   );
 }
 
-/** What sealing refuses (a title too long, an image with no key) is the
- * caller's to fix, as a validation failure is. */
+/**
+ * What the seal refuses (a title that is too long, an image without a key) the
+ * caller must correct, as for a validation failure.
+ */
 async function sealing<T>(work: () => Promise<T>): Promise<T> {
   try {
     return await work();
@@ -123,8 +129,10 @@ async function sealing<T>(work: () => Promise<T>): Promise<T> {
   }
 }
 
-/** A note as this request is answered: sealed for the app, opened for a
- * token. Null when the token's keys do not open it. */
+/**
+ * A note as this request gets it: sealed for the app, opened for a token. Null
+ * when the keys of the token do not open it.
+ */
 export async function noteOut(
   keys: AccountSealKeys | null,
   sealed: SealedNote,
@@ -133,7 +141,9 @@ export async function noteOut(
   return (await openSealedNote(keys, sealed))?.note ?? null;
 }
 
-/** A listing, the same way; a note the token cannot open is left out. */
+/**
+ * A listing, in the same way. The code skips a note that the token cannot open.
+ */
 export async function notesOut(
   keys: AccountSealKeys | null,
   sealed: SealedNote[],
@@ -147,8 +157,10 @@ export async function notesOut(
   return out;
 }
 
-/** The new note in a request, sealed: as the app sent it, or sealed here
- * under an id of the server's choosing for a token. */
+/**
+ * The new note in a request, sealed: as the app sent it, or sealed here under
+ * an id that the server selects, for a token.
+ */
 export async function createBody(
   c: Ctx,
   keys: AccountSealKeys | null,
@@ -165,10 +177,11 @@ export async function createBody(
 }
 
 /**
- * The keys of the images a token's note names, for the ones the token
- * uploaded: each was kept wrapped under the account's notes key with the
- * attachment (`POST /api/v1/attachments`), and is sealed into the note from
- * here. A reference with no such key is left to sealing, which refuses it.
+ * The keys of the images that the note of a token names, for the images that
+ * the token uploaded. The server kept each one wrapped under the notes key of
+ * the account, with the attachment (`POST /api/v1/attachments`). From here, it
+ * is sealed into the note. The code leaves a reference without such a key to
+ * the seal, which refuses it.
  */
 async function uploadedKeys(
   keys: AccountSealKeys,
@@ -192,11 +205,12 @@ async function uploadedKeys(
 }
 
 /**
- * The changes with every image they name made the note owner's, as the app
- * does before it seals (`POST /api/v1/attachments/claim`): an editor's token
- * names its own upload, and the write takes only the owner's reference. The
- * copy holds the same bytes, so the key kept with the upload opens it, and
- * goes into `imageKeys` under the reference the note will name.
+ * The changes, with each image that they name given to the owner of the note,
+ * as the app does before it seals (`POST /api/v1/attachments/claim`). The token
+ * of an editor names its own upload, and the write accepts only the reference
+ * of the owner. The copy contains the same bytes. Thus, the key kept with the
+ * upload opens it. The key goes into `imageKeys` under the reference that the
+ * note will name.
  */
 async function ownedByOwner(
   storage: StorageDriver,
@@ -250,9 +264,9 @@ async function sealedFrom(
 }
 
 /**
- * The changes in a request, sealed. For a token they are sealed under the
- * key the note has, which takes reading the note first: null when there is
- * no such note for this account.
+ * The changes in a request, sealed. For a token, they are sealed under the key
+ * of the note. For that, the code must read the note first. Null when this
+ * account has no such note.
  */
 export async function updateBody(
   c: Ctx,
@@ -277,24 +291,24 @@ async function sealedChanges(
   if (!opened) {
     throw new HttpError(409, "This token cannot open the note's key");
   }
-  // A token cannot describe an image, but its new list of images keeps the
-  // descriptions the app gave them, each with its own image.
+  // A token cannot describe an image. But its new list of images keeps the
+  // descriptions that the app gave them, each with its own image.
   const described =
     plain.images && opened.note.imageAlts
       ? { ...plain, imageAlts: carriedImageAlts(opened.note, plain.images) }
       : plain;
-  // The images the note already names keep their keys, and one the token
-  // uploaded brings the key kept with it; any other has none here, and
-  // sealing refuses it.
+  // The images that the note already names keep their keys. An image that the
+  // token uploaded brings the key kept with it. All other images have no key
+  // here, and the seal refuses them.
   const imageKeys = await uploadedKeys(keys, storage, plain, opened.imageKeys);
-  // A note stored in an older format moves to this one with all its words
-  // at once, the ones not changed as they were opened.
+  // A note stored in an older format moves to this format with all of its words
+  // at the same time. The words that did not change go as they were opened.
   const whole =
     current.format < currentNoteFormat()
       ? withEveryWord(opened.note, described)
       : described;
-  // On a note shared with the token's account they become the owner's
-  // first. A viewer's are left as they are, for the route to refuse.
+  // On a note shared with the account of the token, they first go to the owner.
+  // The images of a viewer stay as they are, so that the route can refuse them.
   const access = await storage.notes.access(id, keys.userId);
   const changes =
     access?.role === "edit"
@@ -315,8 +329,9 @@ async function sealedChanges(
     keyVersion: _v,
     ...body
   } = sealed;
-  // Words under the note key say which one, as the app's do, so the write
-  // is refused if the note leaves that key before it lands.
+  // Words under the note key tell which key, as the words of the app do. Thus,
+  // the server refuses the write if the note leaves that key before the write
+  // completes.
   const shared = SEALED_SHARED_NOTE_FIELDS.some((field) => field in body);
   return (
     shared ? { ...body, keyVersion: opened.key.version } : body
@@ -324,9 +339,9 @@ async function sealedChanges(
 }
 
 /**
- * The notes of an import, sealed. For a token, a note the account already
- * owns is written over under the key it has, and any other under a new key
- * and, when its id is taken or missing, a new id.
+ * The notes of an import, sealed. For a token, a note that the account already
+ * owns is written over under its key. All other notes are written under a new
+ * key and, when their id is taken or missing, a new id.
  */
 export async function importBody(
   c: Ctx,
@@ -345,7 +360,7 @@ export async function importBody(
         access.role === "owner"
           ? await sealedChanges(keys, storage, id, plain as NoteUpdate)
           : null;
-      // A shared note is skipped by the route; it needs only to name it.
+      // The route skips a shared note. It only needs to name it.
       out.push({
         ...(changes ?? {}),
         id,
@@ -365,14 +380,15 @@ export async function importBody(
   return out;
 }
 
-/** A note's versions as this request is answered. */
+/** The versions of a note, as this request gets them. */
 export async function versionsOut(
   keys: AccountSealKeys | null,
   note: SealedNote,
   sealed: SealedNoteVersion[],
 ): Promise<(SealedNoteVersion | NoteVersion)[]> {
   if (!keys) return sealed;
-  // Each with the key it was written under: the note's, or one before it.
+  // Each with the key under which it was written: that of the note, or a
+  // previous key.
   const ring = await ringOf(keys, note);
   if (!ring) return [];
   const out: NoteVersion[] = [];
@@ -384,8 +400,10 @@ export async function versionsOut(
   return out;
 }
 
-/** The version in a request, sealed; null for a token whose keys do not
- * open the note. */
+/**
+ * The version in a request, sealed. Null for a token whose keys do not open the
+ * note.
+ */
 export async function versionBody(
   c: Ctx,
   keys: AccountSealKeys | null,
@@ -403,16 +421,16 @@ export async function versionBody(
   };
 }
 
-/** A note's key and the ones it was under before, as a token opens them. */
+/** The key of a note and its previous keys, as a token opens them. */
 export interface NoteRing {
   key: NoteSealKey;
   older: Map<number, NoteSealKey>;
 }
 
 /**
- * The keys of a note the token's account holds, for what is written beside
- * the note under them (its comments). 404 when the account cannot see the
- * note, 409 when the token's keys do not open it.
+ * The keys of a note of the account of the token, for what is written next to
+ * the note under them (its comments). 404 when the account cannot see the note.
+ * 409 when the keys of the token do not open it.
  */
 export async function noteRing(
   keys: AccountSealKeys,
@@ -426,7 +444,10 @@ export async function noteRing(
   return ring;
 }
 
-/** The keys of a note as it was read; null when the token's do not open it. */
+/**
+ * The keys of a note as it was read. Null when the keys of the token do not
+ * open it.
+ */
 async function ringOf(
   keys: AccountSealKeys,
   note: SealedNote,
@@ -448,7 +469,10 @@ function ringKey(ring: NoteRing, version: number): NoteSealKey | null {
     : (ring.older.get(version) ?? null);
 }
 
-/** A comment's text as a token reads it; null for one that does not open. */
+/**
+ * The text of a comment as a token reads it. Null for a comment that does not
+ * open.
+ */
 export async function commentOut(
   ring: NoteRing,
   comment: { id: string; keyVersion: number; body: string },
@@ -458,9 +482,9 @@ export async function commentOut(
 }
 
 /**
- * The comment in a request, sealed: as the app sent it, under the id it
- * chose, or sealed here for a token under the note's key. `id` is the
- * comment being changed, absent for a new one.
+ * The comment in a request, sealed: as the app sent it, under the id that the
+ * app selected, or sealed here for a token under the key of the note. `id` is
+ * the comment that changes. Absent for a new comment.
  */
 export async function commentBody(
   c: Ctx,

@@ -42,7 +42,7 @@ describe("deviceKeys", () => {
     });
     if (!loaded) return;
     expect(loaded.accountKey.extractable).toBe(false);
-    // The same key: what the one in hand sealed, the stored one opens.
+    // The same key: what the key in hand sealed, the stored key opens.
     const sealed = await seal(
       await accountSubkey(keys.accountKey, "notes"),
       new TextEncoder().encode("x"),

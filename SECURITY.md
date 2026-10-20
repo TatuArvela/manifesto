@@ -4,60 +4,68 @@
 
 Report it privately through GitHub:
 [**Report a vulnerability**](https://github.com/TatuArvela/manifesto/security/advisories/new)
-(the Security tab of this repository). Please do not open a public issue, discussion or pull request
-for it.
+(the Security tab of this repository). Do not open a public issue, discussion or pull request for
+it.
 
-A useful report says:
+A good report tells:
 
-- what an attacker can do, and what they need first (an account, a share, a link, network position),
-- how to reproduce it, against a version or commit,
-- which mode it affects: open mode, connected mode, or both,
-- any deployment detail it depends on (storage driver, `AUTH_PROVIDER`, `WEBHOOKS`, reverse proxy).
+- What an attacker can do, and what the attacker must have first (an account, a share, a link, a
+  network position).
+- How to reproduce it, on a specified version or commit.
+- Which mode it affects: open mode, connected mode, or both.
+- The deployment details that it needs (storage driver, `AUTH_PROVIDER`, `WEBHOOKS`, reverse
+  proxy).
 
 ## What to expect
 
-Manifesto is a side project kept by one maintainer, so there is no response-time guarantee. A report is
-read before anything else in the queue, and a confirmed issue is fixed in a normal release, then
-disclosed through a GitHub security advisory that credits the reporter unless they ask otherwise. Please
-keep the details private until that advisory is out.
+Manifesto is a side project with one maintainer. Thus, there is no guaranteed response time. The
+maintainer reads a report before all other items in the queue. A normal release fixes a confirmed
+issue. Then a GitHub security advisory discloses it. The advisory gives credit to the reporter,
+unless the reporter asks for no credit. Keep the details private until the advisory is public.
 
 ## Supported versions
 
-Only the latest release gets security fixes; nothing is backported while Manifesto is at 0.x. Server
-images are tagged per release (`ghcr.io/tatuarvela/manifesto-server:X.Y.Z`), so a self-hosted server
-stays on the version it pinned until its operator moves the tag.
+Only the latest release gets security fixes. While Manifesto is at 0.x, we do not backport fixes.
+Each release has its own server image tag (`ghcr.io/tatuarvela/manifesto-server:X.Y.Z`). Thus, a
+self-hosted server stays on its pinned version until its operator changes the tag.
 
 ## Scope
 
-In scope is anything in this repository: the client, the server, the published image and the
-configuration they document. Examples of what matters most:
+The scope is all of this repository: the client, the server, the published image and the
+configuration that they document. These are examples of the most important issues:
 
-- signing in as someone else, or keeping access after a session, token or share has ended,
-- reading or changing another account's notes, attachments or settings without a share that allows it,
-- script running in the app's origin from a note, a share link, an import or a link preview,
-- an auto-notes plugin reaching anything outside its sandbox,
-- a token reaching anything its scopes do not name, or an MCP token (`mfm_`) anything its tools do not,
-- the server fetching a private address through link previews, or reaching through a webhook an
-  address its `WEBHOOKS` setting refuses (under any setting, that includes link-local addresses such as
-  a cloud metadata service).
+- A person signs in as a different person, or keeps access after the end of a session, token or
+  share.
+- A person reads or changes the notes, attachments or settings of a different account without a
+  share that permits it.
+- A note, a share link, an import or a link preview runs a script in the origin of the app.
+- An auto-notes plugin gets access to something outside its sandbox.
+- A token gets access to something that its scopes do not name. An MCP token (`mfm_`) gets access
+  to something that its tools do not name.
+- The server gets a private address through link previews. Or, a webhook connects to an address that
+  its `WEBHOOKS` setting refuses. All settings refuse link-local addresses, for example a cloud
+  metadata service.
 
-Some behaviour is deliberate, and the linked pages say why:
+Some behavior is on purpose. The linked pages tell why:
 
-- **The server operator can read notes.** Notes are not end-to-end encrypted
+- **The server operator can read notes.** Notes do not have end-to-end encryption
   ([Encryption](docs/specification/features/encryption.md), [Privacy](docs/specification/features/privacy.md)).
-- **Anyone holding a share link can read that note.** The note travels in the link
+- **All persons with a share link can read that note.** The note is in the link
   ([Sharing](docs/specification/features/sharing.md)).
-- **Open mode data is as private as the browser profile it is in.** It never leaves the device.
-- **`WEBHOOKS=private` reaches the local network**, loopback included. That is what the setting is for
-  ([Webhooks](docs/specification/features/webhooks.md)).
-- **An admin can export an account's notes when the server has `ADMIN_EXPORT` on**, and the account's
-  owner sees it on their Activity page ([Privacy](docs/specification/features/privacy.md)).
+- **Open-mode data is only as private as its browser profile.** It never goes off the device.
+- **`WEBHOOKS=private` can connect to the local network**, and to loopback. That is the purpose of
+  the setting ([Webhooks](docs/specification/features/webhooks.md)).
+- **An admin can export the notes of an account when the server has `ADMIN_EXPORT` on.** The owner
+  of the account sees the export on their Activity page
+  ([Privacy](docs/specification/features/privacy.md)).
 
-A deployment that departs from [Server Deployment](docs/specification/server/deployment.md), such as a
-proxy that appends to `X-Forwarded-For` rather than overwriting it, is outside the software's control;
-a report that the documentation leads people into such a setup is welcome, though. A vulnerability in a
-dependency is in scope when Manifesto exposes it; otherwise it belongs upstream, and Dependabot brings
-the fix in weekly.
+The software cannot control a deployment that does not agree with
+[Server Deployment](docs/specification/server/deployment.md). An example is a proxy that appends to
+`X-Forwarded-For`, and does not overwrite it. But if the documentation causes people to make such a
+setup, a report about it is welcome.
 
-The [preview](https://tatuarvela.github.io/manifesto/) is the client in open mode, with no server
-behind it. Please test against your own copy rather than anything someone else runs.
+A vulnerability in a dependency is in scope when Manifesto exposes it. If not, report it to the
+upstream project. Dependabot brings the fix each week.
+
+The [preview](https://tatuarvela.github.io/manifesto/) is the client in open mode. It has no server.
+Do your tests on your own copy. Do not test on a copy that a different person runs.

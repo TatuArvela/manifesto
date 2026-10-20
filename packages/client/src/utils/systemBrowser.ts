@@ -1,34 +1,37 @@
 /**
- * Handing a link from the installed app to the system's own browser. An
- * installed app on a phone opens a link in a view of its own (an in-app
- * browser over the app), which has none of the reader's tabs, bookmarks or
- * sign-ins. The web gives a page no say in that, but each phone has an
- * address that asks the system to open a link in its browser instead:
+ * Gives a link from the installed app to the own browser of the system. An
+ * installed app on a phone opens a link in its own view (an in-app browser over
+ * the app), which has none of the tabs, bookmarks or sign-ins of the reader.
+ * The web gives a page no control of that. But each phone has an address that
+ * asks the system to open a link in its browser:
  *
  * - iOS and iPadOS 17 and later: the `x-safari-https:` scheme, which opens
- *   Safari whatever the default browser is.
- * - Android: an `intent:` address with no package, which the system hands
- *   to the default browser, falling back to the plain link where it cannot.
+ *   Safari, whatever the default browser is.
+ * - Android: an `intent:` address with no package, which the system gives to
+ *   the default browser. Where it cannot, the plain link is used.
  *
- * Elsewhere (a desktop window, a tab) a new tab already is the browser.
+ * In other places (a desktop window, a tab), a new tab is already the browser.
  */
 
 export type LinkPlatform = "ios" | "android" | "other";
 
-/** The phone's system, as far as handing off a link is concerned. */
+/**
+ * The system of the phone, as much as it is important for the handover of a
+ * link.
+ */
 export function linkPlatform(
   nav: Pick<Navigator, "userAgent" | "maxTouchPoints"> = navigator,
 ): LinkPlatform {
   const ua = nav.userAgent;
   if (/Android/i.test(ua)) return "android";
   if (/iPhone|iPad|iPod/.test(ua)) return "ios";
-  // iPadOS asks for desktop sites and so calls itself a Mac, the only Mac
+  // iPadOS asks for desktop sites, and thus says that it is a Mac, the only Mac
   // with a touch screen.
   if (/Macintosh/.test(ua) && nav.maxTouchPoints > 1) return "ios";
   return "other";
 }
 
-/** Whether the app is running installed, in a window of its own. */
+/** If the app runs installed, in its own window. */
 export function isInstalledApp(): boolean {
   if ((navigator as { standalone?: boolean }).standalone === true) return true;
   try {
@@ -43,7 +46,7 @@ export function isInstalledApp(): boolean {
 /**
  * The address that opens `href` in the system browser on `platform`, or null
  * when there is none: a link that is not a web address, or a platform where a
- * new tab already is the browser.
+ * new tab is already the browser.
  */
 export function systemBrowserHref(
   href: string,

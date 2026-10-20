@@ -29,18 +29,19 @@ import type { NoteShare } from "./types.ts";
 
 /**
  * The mapping between shared notes as the drivers store them and as one user
- * sees them, written once for both drivers as `noteMapping.ts` is for notes.
+ * sees them. It is written one time for both drivers, as `noteMapping.ts` is
+ * for notes.
  *
- * A note has one row, the owner's, holding the owner's own color, pin and the
- * rest. Each recipient's copy of those lives in their `note_shares` row. A
- * recipient's view is the note row with their share laid over it, which is
- * what `rowToViewNote` does, and every note with members also learns who they
- * are, which is `attachSharing`.
+ * A note has one row, that of the owner, which contains the own color, pin and
+ * other fields of the owner. The copy of those of each recipient is in their
+ * `note_shares` row. The view of a recipient is the note row with their share
+ * over it. `rowToViewNote` does this. Each note with members also gets the list
+ * of the members. `attachSharing` does this.
  */
 
 /**
- * A note row, and when it reached the reader through a share, that share's
- * personal columns under an `s_` prefix. Select them with
+ * A note row and, when it reached the reader through a share, the personal
+ * columns of that share under an `s_` prefix. Select them with
  * `SHARE_OVERLAY_COLUMNS`.
  */
 export interface ViewRow extends NoteRow {
@@ -87,7 +88,7 @@ export interface ShareRow {
   wrapped_key_version?: number | string | null;
 }
 
-/** An offered key as stored, or null for none or anything else. */
+/** An offered key as stored, or null for none or for all other values. */
 export function parseOffered(
   raw: string | null | undefined,
 ): OfferedKey | null {
@@ -103,9 +104,8 @@ export function parseOffered(
 }
 
 /**
- * Whether a share's holder was ever handed the note's key: offered it with
- * the invitation, or keeping it since. When such a share ends, the note is
- * due a new key.
+ * If the holder of a share ever got the key of the note: with the invitation,
+ * or kept since then. When such a share ends, the note is due a new key.
  */
 export function heldKey(row: ShareRow): boolean {
   return (
@@ -115,15 +115,15 @@ export function heldKey(row: ShareRow): boolean {
 }
 
 /**
- * Whether a share's holder has nothing that opens the note at `keyVersion`:
- * no copy of that key under their own notes key, and none offered to them.
+ * If the holder of a share has nothing that opens the note at `keyVersion`: no
+ * copy of that key under their own notes key, and no offer of it.
  */
 function waitsForKey(row: ShareRow, keyVersion: number): boolean {
   if (Number(row.wrapped_key_version ?? 0) === keyVersion) return false;
   return parseOffered(row.offered_key)?.keyVersion !== keyVersion;
 }
 
-/** A share with the account it belongs to, and the team it came through. */
+/** A share with its account, and the team through which it came. */
 export interface MemberRow extends ShareRow {
   username: string;
   display_name: string;
@@ -155,7 +155,7 @@ export interface InvitationRow {
   team_name?: string | null;
 }
 
-/** A role read from the database. Anything unknown is the lesser one. */
+/** A role read from the database. All unknown values are the smaller role. */
 export function parseRole(raw: string | null | undefined): ShareRole {
   return raw === "edit" ? "edit" : "view";
 }
@@ -175,7 +175,7 @@ export function rowToShare(row: ShareRow): NoteShare {
   };
 }
 
-/** The team a row came through, as a note or an invitation names it. */
+/** The team through which a row came, as a note or an invitation names it. */
 function teamOf(row: {
   via_team?: string | null;
   team_name?: string | null;
@@ -208,8 +208,8 @@ export function rowToInvitation(row: InvitationRow): ShareInvitation {
     content: sealedColumn(row.content),
     font: sealedColumn(row.font),
     keyVersion: Number(row.key_version),
-    // Only one for the key the note is under now: an older one opens
-    // nothing the invitation shows.
+    // Only one for the current key of the note. An older one opens nothing that
+    // the invitation shows.
     offered:
       parseOffered(row.offered_key)?.keyVersion === Number(row.key_version)
         ? parseOffered(row.offered_key)
@@ -220,18 +220,17 @@ export function rowToInvitation(row: InvitationRow): ShareInvitation {
 }
 
 /**
- * The note as its reader sees it. A row that came through a share takes the
- * recipient's own personal fields, their own trash included, and their own
- * wrapped copy of the note key. The owner's trash never shows here: a note in
- * it does not reach anyone else at all.
+ * The note as its reader sees it. A row that came through a share gets the own
+ * personal fields of the recipient, with their own trash, and their own wrapped
+ * copy of the note key. The trash of the owner never shows here, because a note
+ * in it does not reach other persons.
  */
 export function rowToViewNote(row: ViewRow): SealedNote {
   const note = rowToNote(row);
   if (row.s_role === null || row.s_role === undefined) return note;
-  // Their copy of the key, while it is the key the note is under. Behind
-  // it, they hold nothing that opens the note, and are handed the offer
-  // that would.
-  // Replacing the key is the owner's to do.
+  // Their copy of the key, while it is the current key of the note. When it is
+  // behind, they have nothing that opens the note, and they get the offer that
+  // would. Only the owner can replace the key.
   delete note.rekeyDue;
   const current = Number(row.s_wrapped_key_version ?? 0) === note.keyVersion;
   note.key = current ? sealedColumn(row.s_wrapped_key) : "";
@@ -250,9 +249,9 @@ export function rowToViewNote(row: ViewRow): SealedNote {
 }
 
 /**
- * Adds `sharing` to every note that has members. `rows` and `notes` run in
- * the same order. The owner hears about invitations still waiting for an
- * answer; a recipient sees only the people who accepted.
+ * Adds `sharing` to each note that has members. `rows` and `notes` are in the
+ * same order. The owner learns about invitations that still wait for an answer.
+ * A recipient sees only the people who accepted.
  */
 export function attachSharing(
   rows: ViewRow[],
@@ -299,7 +298,7 @@ export function attachSharing(
   });
 }
 
-/** The user ids whose names `attachSharing` needs: every note's owner. */
+/** The user ids whose names `attachSharing` needs: the owner of each note. */
 export function ownerIdsOf(rows: ViewRow[]): string[] {
   return [...new Set(rows.map((row) => row.user_id))];
 }
@@ -308,9 +307,9 @@ const SHARED_FIELDS = new Set<string>(SEALED_SHARED_NOTE_FIELDS);
 const PERSONAL_FIELDS = new Set<string>(SEALED_PERSONAL_NOTE_FIELDS);
 
 /**
- * A recipient's update, split by where each field is written: the shared
- * fields to the note, the personal ones (their own trash among them) to their
- * share, and the rest (auto-note markers) belonging to the owner alone.
+ * An update of a recipient, split by where each field goes: the shared fields
+ * to the note, the personal fields (their own trash among them) to their share,
+ * and the others (auto-note markers), which belong only to the owner.
  */
 export function splitChanges(changes: SealedNoteUpdate): {
   shared: SealedNoteUpdate;
@@ -334,8 +333,8 @@ export function splitChanges(changes: SealedNoteUpdate): {
 }
 
 /**
- * Which fields a role may not write, of those in an update. Empty means the
- * update is allowed.
+ * The fields in an update that a role cannot write. Empty means that the update
+ * is permitted.
  */
 export function forbiddenFields(
   role: ShareRole,
@@ -354,10 +353,11 @@ function newerFirst(a: ViewRow, b: ViewRow): number {
 }
 
 /**
- * Two pages in `(updated_at, id)` descending order, merged into one of at
- * most `limit + 1` rows. A listing reads a user's own notes and those shared
- * with them as two index-friendly queries, each over-fetched by one, and the
- * first `limit + 1` of the union are always among those.
+ * Two pages in descending `(updated_at, id)` order, merged into one page of a
+ * maximum of `limit + 1` rows. A listing reads the own notes of a user and the
+ * notes shared with them as two queries that can use indexes, each with one row
+ * more than necessary. The first `limit + 1` rows of the union are always among
+ * those.
  */
 export function mergePages(
   own: ViewRow[],
@@ -368,10 +368,10 @@ export function mergePages(
 }
 
 /**
- * The time a membership change is stamped with, as `notes.members_changed_at`.
- * Taken here rather than from the caller because only `GET /api/v1/sync` reads
- * it, and a removal or a role change has no other time of its own to pass
- * down. The clock is the one `updated_at` is stamped from.
+ * The time of a membership change, as `notes.members_changed_at`. The code
+ * takes it here, not from the caller, because only `GET /api/v1/sync` reads it,
+ * and a removal or a role change has no other time of its own to send. The
+ * clock is the clock of `updated_at`.
  */
 export function membersChangedAt(): string {
   return nowIso();

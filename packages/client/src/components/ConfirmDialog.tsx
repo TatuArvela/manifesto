@@ -7,19 +7,19 @@ import { Backdrop } from "./Backdrop.tsx";
 import { buttonClass } from "./buttonClasses.ts";
 
 /**
- * The one place a destructive action stops to ask. Driven by the
- * `confirmRequest` signal rather than mounted per call site, because the
- * question is asked from card menus, the trash view and the header's selection
- * bar, and only ever one at a time.
+ * The only place where a destructive action stops to ask. The `confirmRequest`
+ * signal controls it. It is not mounted for each caller, because card menus,
+ * the trash view and the selection bar of the header ask the question, and only
+ * one at a time.
  *
- * Escape and the backdrop both answer "no", which is the safe answer: the
- * gesture that dismisses a dialog must never be the one that deletes.
+ * Escape and the backdrop both answer "no", which is the safe answer. The
+ * gesture that dismisses a dialog must never be the gesture that deletes.
  */
 export function ConfirmDialogHost() {
   const request = confirmRequest.value;
   const [closing, setClosing] = useState(false);
-  // Held across the fade-out so the panel still has something to draw after
-  // the signal has been cleared.
+  // Kept across the fade-out. Thus, the panel still has something to draw after
+  // the signal was cleared.
   const shownRef = useRef(request);
   if (request) shownRef.current = request;
   const shown = shownRef.current;
@@ -27,8 +27,9 @@ export function ConfirmDialogHost() {
   const cancelRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useFocusTrap<HTMLDivElement>(!!request);
 
-  // Cancel, not confirm: the keyboard should land on the way out, so that a
-  // stray Enter on a dialog nobody read closes it rather than deleting.
+  // Cancel, not confirm. The keyboard must go to the way out. Thus, an
+  // accidental Enter on a dialog that nobody read closes it, and does not
+  // delete.
   useEffect(() => {
     if (request) cancelRef.current?.focus();
   }, [request]);

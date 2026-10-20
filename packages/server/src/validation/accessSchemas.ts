@@ -7,11 +7,13 @@ import {
 import { z } from "zod";
 import { confirmationPassword, sealed } from "./fields.ts";
 
-// Request bodies of what reaches an account from outside the app: API and
-// MCP tokens, an assistant's OAuth sign-in, and webhooks.
+// The request bodies of what reaches an account from outside the app: API and
+// MCP tokens, the OAuth sign-in of an assistant, and webhooks.
 
-/** `POST /api/v1/tokens`. An MCP token's tools reach notes and nothing else,
- * so it takes only the note scopes. */
+/**
+ * `POST /api/v1/tokens`. The tools of an MCP token reach notes and nothing
+ * else. Thus, it accepts only the note scopes.
+ */
 export const apiTokenCreateSchema = z
   .object({
     name: z.string().trim().min(1).max(100),
@@ -22,8 +24,8 @@ export const apiTokenCreateSchema = z
       .min(1)
       .max(API_TOKEN_SCOPES.length)
       .exactOptional(),
-    // A token the app made, to carry keys: the secret's SHA-256, its first
-    // characters for a list to show, and the keys wrapped under it.
+    // A token that the app made, to carry keys: the SHA-256 of the secret, its
+    // first characters for a list, and the keys wrapped under it.
     tokenHash: z
       .string()
       .regex(/^[0-9a-f]{64}$/)
@@ -52,9 +54,10 @@ export const apiTokenCreateSchema = z
   );
 
 /**
- * `POST /api/v1/oauth/register`, in the names RFC 7591 gives them. Unknown fields
- * are dropped; which redirect addresses are allowed is `redirectUriProblem`'s
- * to say, so the answer can use the error the RFC names.
+ * `POST /api/v1/oauth/register`, with the names that RFC 7591 gives them. The
+ * code removes unknown fields. `redirectUriProblem` decides which redirect
+ * addresses are permitted. Thus, the answer can use the error that the RFC
+ * names.
  */
 export const oauthRegisterSchema = z.object({
   redirect_uris: z.array(z.string()).min(1).max(10),
@@ -64,7 +67,7 @@ export const oauthRegisterSchema = z.object({
   response_types: z.array(z.string().max(100)).max(10).exactOptional(),
 });
 
-/** `POST /api/v1/oauth/authorize`: the consent page's answer. */
+/** `POST /api/v1/oauth/authorize`: the answer of the consent page. */
 export const oauthAuthorizeSchema = z
   .object({
     clientId: z.string().min(1).max(2000),
@@ -78,8 +81,8 @@ export const oauthAuthorizeSchema = z
       .max(2),
     expiresInDays: z.number().int().min(1).max(3650).exactOptional(),
     password: confirmationPassword,
-    // A code the app made, to carry keys: its SHA-256, and the keys wrapped
-    // under a key derived from it.
+    // A code that the app made, to carry keys: its SHA-256, and the keys
+    // wrapped under a key derived from it.
     codeHash: z
       .string()
       .regex(/^[0-9a-f]{64}$/)
@@ -92,8 +95,10 @@ export const oauthAuthorizeSchema = z
     { message: "codeHash and wrappedKeys come together" },
   );
 
-/** `POST /api/v1/webhooks`. Where it may point is checked on every delivery,
- * against the resolved address; this only refuses what is never a webhook. */
+/**
+ * `POST /api/v1/webhooks`. Each delivery checks where it can point, against the
+ * resolved address. This only refuses what is never a webhook.
+ */
 export const webhookCreateSchema = z.object({
   url: z
     .string()

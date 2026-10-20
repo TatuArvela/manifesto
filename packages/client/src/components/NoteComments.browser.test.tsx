@@ -79,10 +79,10 @@ function comment(overrides: Partial<NoteComment> = {}): NoteComment {
   };
 }
 
-/** The server's side of the comments, for the fetch stub below. */
+/** The side of the server for the comments, for the fetch stub below. */
 let stored: NoteComment[] = [];
 const requests: { method: string; path: string; body: unknown }[] = [];
-/** Answers the next read in place of `stored`, once. */
+/** Answers the next read in place of `stored`, one time. */
 let nextRead: (() => Promise<Response>) | null = null;
 const reads = () => requests.filter((r) => r.method === "GET").length;
 
@@ -142,8 +142,8 @@ function type(field: HTMLTextAreaElement, value: string) {
 const tick = () => new Promise((r) => requestAnimationFrame(r));
 
 /**
- * Takes the panel down and waits for it to let go. Preact runs an effect's
- * cleanup after the next paint, not at the unmount itself.
+ * Removes the panel, and waits until it releases. Preact runs the cleanup of an
+ * effect after the next paint, not at the unmount itself.
  */
 async function close() {
   render(null, host);
@@ -213,7 +213,7 @@ describe("NoteComments", () => {
     await open();
     expect(rows()[0]).toContain("Olivia");
     expect(rows()[0]).toContain("Shall we take the train?");
-    // Someone no longer on the note: the words stay, the name does not.
+    // A person who is not on the note now: the words stay, the name does not.
     expect(rows()[1]).toContain(t("comments.formerParticipant"));
     expect(rows()[1]).toContain("I was here");
   });
@@ -232,7 +232,7 @@ describe("NoteComments", () => {
     expect(requests.at(-1)).toEqual({
       method: "POST",
       path: "/notes/n1/comments",
-      // The writer chooses the id, since the sealed text is bound to it.
+      // The writer selects the id, because the sealed text is bound to it.
       body: { id: expect.any(String), body: "Yes please", keyVersion: 1 },
     });
     expect(field.value).toBe("");
@@ -246,7 +246,7 @@ describe("NoteComments", () => {
     ];
     await show(sharedNote("edit"), alice);
     await open();
-    // One edit button: the other comment is Olivia's.
+    // One edit button. The other comment belongs to Olivia.
     expect(
       host.querySelectorAll(`[aria-label="${t("comments.edit")}"]`),
     ).toHaveLength(1);
@@ -277,7 +277,7 @@ describe("NoteComments", () => {
       `[aria-label="${t("comments.delete")}"]`,
     );
     expect(deletes).toHaveLength(2);
-    // The owner cannot edit what someone else wrote.
+    // The owner cannot edit what a different person wrote.
     expect(labelled(t("comments.edit"))).toBeNull();
 
     deletes[0]?.click();
@@ -326,7 +326,7 @@ describe("NoteComments", () => {
       expect(host.textContent).toContain(t("comments.loadFailed")),
     );
 
-    // No line to open while there is nothing to open onto.
+    // No line to open while there is nothing to open.
     expect(toggle()).toBeNull();
     retry()?.click();
     await vi.waitFor(() =>
@@ -353,9 +353,9 @@ describe("NoteComments", () => {
     render(<NoteComments note={sharedNote("edit")} />, host);
     await vi.waitFor(() => expect(reads()).toBe(1));
 
-    // Written after the server read the list the first answer carries.
+    // Written after the server read the list that the first answer contains.
     stored = [comment()];
-    // Not awaited: the read it asks for again is the one this test answers.
+    // Not awaited. This test answers the read that it asks for again.
     void receiveComment(comment());
     answer(json({ comments: [] }));
     await vi.waitFor(() =>
@@ -388,7 +388,7 @@ describe("NoteComments", () => {
     await open();
     expect(rows()[0]).toContain("Alice");
 
-    // Alice is removed: the server now leaves her name off.
+    // Alice is removed. The server now does not send her name.
     stored = [comment({ author: null })];
     const note = sharedNote("owner");
     render(
@@ -405,7 +405,7 @@ describe("NoteComments", () => {
     );
     expect(reads()).toBe(2);
 
-    // Anything else about the note changing reads nothing.
+    // Other changes to the note read nothing.
     render(
       <NoteComments
         note={{
@@ -445,7 +445,7 @@ describe("NoteComments", () => {
 
     toggle()?.click();
     await vi.waitFor(() => expect(aside.querySelector("li")).toBeTruthy());
-    // The note keeps only the line; the list and the field are beside it.
+    // The note keeps only the line. The list and the field are next to it.
     expect(rows()).toEqual([]);
     expect(aside.textContent).toContain("Shall we take the train?");
     expect(

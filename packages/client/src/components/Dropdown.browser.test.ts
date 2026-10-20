@@ -5,7 +5,7 @@ import "#/styles.css";
 import { Dropdown } from "./Dropdown.tsx";
 
 describe("trigger", () => {
-  /** A dropdown whose trigger toggles it, the way every caller wires one. */
+  /** A dropdown whose trigger toggles it, as all callers connect one. */
   function Harness() {
     const [open, setOpen] = useState(false);
     return h(Dropdown, {
@@ -33,9 +33,9 @@ describe("trigger", () => {
     await nextTask();
     expect(panel.matches(":popover-open")).toBe(true);
 
-    // A tap in the order a phone delivers it: the pointer goes down on the
-    // trigger, the browser light-dismisses the panel and the close renders,
-    // and only then, as a separate gesture, does the click arrive.
+    // A tap in the order that a phone delivers it: the pointer goes down on the
+    // trigger, the browser light-dismisses the panel and the close renders, and
+    // only then, as a separate gesture, does the click arrive.
     trigger.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     panel.hidePopover();
     await nextTask();
@@ -64,10 +64,10 @@ describe("trigger", () => {
   });
 });
 
-// Real CSS, a real popover and a real computed style: the bug this covers
-// lives in the cascade, not in any of our code.
+// Real CSS, a real popover and a real computed style. The bug of this test is
+// in the cascade, not in our code.
 describe("panel text colour", () => {
-  /** Renders an open panel under `parent` and returns its computed colour. */
+  /** Renders an open panel under `parent`, and returns its computed color. */
   const panelColor = (parentStyle: string, panelClass?: string): string => {
     const host = document.createElement("div");
     host.setAttribute("style", parentStyle);
@@ -91,15 +91,16 @@ describe("panel text colour", () => {
   };
 
   it("inherits the page colour when the panel names none", () => {
-    // The UA stylesheet gives `[popover]` `color: CanvasText`, which beats
-    // inheritance. Without our reset the panel would render black here, on
-    // whatever dark background its own class list paints.
+    // The UA stylesheet gives `[popover]` `color: CanvasText`, which wins over
+    // inheritance. Without our reset, the panel would be black here, on the
+    // dark background that its own class list paints.
     expect(panelColor("color: rgb(1, 2, 3)")).toBe("rgb(1, 2, 3)");
   });
 
   it("lets a panel that names a colour keep it", () => {
-    // The header's menus are declared inside white-on-blue text and have to
-    // override, so the reset must sit in a layer the utilities outrank.
+    // The menus of the header are declared inside white-on-blue text, and must
+    // override it. Thus, the reset must be in a layer that the utilities
+    // outrank.
     const reference = document.createElement("span");
     reference.className = "text-neutral-900";
     document.body.appendChild(reference);
@@ -136,8 +137,8 @@ describe("closing", () => {
     new Promise((resolve) => setTimeout(resolve, ms));
 
   it("stays in the top layer while its exit plays, then leaves it", async () => {
-    // Hiding the popover at once took the panel out of the top layer before
-    // it had faded, which only Chromium could paper over.
+    // When the popover hid immediately, the panel went out of the top layer
+    // before it faded. Only Chromium could hide the problem.
     const host = document.createElement("div");
     document.body.appendChild(host);
     render(h(Harness, null), host);

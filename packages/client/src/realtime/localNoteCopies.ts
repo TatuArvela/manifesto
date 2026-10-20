@@ -1,29 +1,29 @@
 /**
- * The offline copies `yjsSession.ts` keeps of each note opened for editing,
- * one IndexedDB database per note (`manifesto:yjs-sealed:<id>`). They outlive
- * the session, so signing out deletes them, or the next person at a shared
- * computer can hold them.
+ * The offline copies that `yjsSession.ts` keeps of each note opened for
+ * editing, one IndexedDB database for each note (`manifesto:yjs-sealed:<id>`).
+ * They stay after the session. Thus, a sign-out deletes them. If not, the next
+ * person at a shared computer can have them.
  *
- * Plain IndexedDB, not y-indexeddb: this runs at sign-out in the entry
- * bundle, which must not pull the collaboration stack in.
+ * Plain IndexedDB, not y-indexeddb. This runs at sign-out in the entry bundle,
+ * which must not bring in the collaboration stack.
  */
 
 export const LOCAL_COPY_PREFIX = "manifesto:yjs-sealed:";
 
 /**
  * Where a copy was kept before the shared document was sealed: the document
- * itself, readable. The name is never opened again, since what is loaded
- * from a copy is synced to the server as it is, and it must not start with
- * `LOCAL_COPY_PREFIX` or the other way round, which is what lets one be
- * deleted without the other.
+ * itself, readable. The code never opens the name again, because the data
+ * loaded from a copy is synced to the server as it is. It must not start with
+ * `LOCAL_COPY_PREFIX`, and the opposite, so that one can be deleted without the
+ * other.
  */
 const READABLE_COPY_PREFIX = "manifesto:yjs:";
 
 /**
- * Delete every offline copy in this browser. `indexedDB.databases()` finds
- * them all; `noteIds` covers a browser without it, which can only delete the
- * notes it is told about. Resolves once each deletion has been asked for;
- * never rejects. A copy an editor still holds open is deleted when it closes.
+ * Delete each offline copy in this browser. `indexedDB.databases()` finds all
+ * of them. `noteIds` covers a browser without it, which can only delete the
+ * notes that it gets. Resolves after the code asked for each deletion. It never
+ * rejects. A copy that an editor still has open is deleted when it closes.
  */
 export async function deleteLocalNoteCopies(
   noteIds: readonly string[],
@@ -33,17 +33,17 @@ export async function deleteLocalNoteCopies(
 }
 
 /**
- * Readable copies are made by no code any more, so once a listing has found
- * them all there are none left to look for, and a note opened later costs no
- * second pass. Without a listing, each note is deleted once by its id.
+ * No code makes readable copies now. Thus, after a listing found all of them,
+ * there are none left to look for, and a note opened later costs no second
+ * pass. Without a listing, each note is deleted one time by its id.
  */
 let readableCopiesGone = false;
 const readableCopiesDeleted = new Set<string>();
 
 /**
- * Delete every copy from before the shared document was sealed, which holds
- * a note's text readable and is of no use to anything now. `noteIds` as
- * above. Never rejects.
+ * Delete each copy from before the shared document was sealed, which contains
+ * the text of a note readable, and is of no use now. `noteIds` as above. It
+ * never rejects.
  */
 export async function deleteReadableNoteCopies(
   noteIds: readonly string[],
@@ -57,7 +57,7 @@ export async function deleteReadableNoteCopies(
   }
 }
 
-/** Whether the browser listed its databases, so every copy was found. */
+/** If the browser listed its databases. Thus, the code found each copy. */
 async function deleteCopies(
   prefixes: readonly string[],
   noteIds: readonly string[],
@@ -76,7 +76,7 @@ async function deleteCopies(
     }
     listed = databases !== undefined;
   } catch {
-    // Listing is refused in some private modes; the ids still apply.
+    // Some private modes refuse the listing. The ids still apply.
   }
   await Promise.all([...names].map(deleteDatabase));
   return listed;
@@ -88,7 +88,8 @@ function deleteDatabase(name: string): Promise<void> {
       const req = indexedDB.deleteDatabase(name);
       req.onsuccess = () => resolve();
       req.onerror = () => resolve();
-      // Still open somewhere: the deletion waits for it, sign-out need not.
+      // Still open in some place. The deletion waits for it. The sign-out does
+      // not have to.
       req.onblocked = () => resolve();
     } catch {
       resolve();

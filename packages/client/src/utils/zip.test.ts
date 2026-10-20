@@ -25,7 +25,8 @@ describe("writeZip", () => {
       { name: "a.txt", data: encoder.encode("hello") },
     ]);
     const view = new DataView(await zip.arrayBuffer());
-    // The local header's checksum field; CRC-32 of "hello" is 0x3610a686.
+    // The checksum field of the local header. The CRC-32 of "hello" is
+    // 0x3610a686.
     expect(view.getUint32(14, true)).toBe(0x3610a686);
   });
 });

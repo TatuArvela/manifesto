@@ -14,14 +14,15 @@ import {
 } from "./sealedDocument.ts";
 
 /**
- * Every import of the collaboration stack (Yjs, Hocuspocus, y-indexeddb)
- * lives behind this module, which `yjsProvider` reaches only through a dynamic
- * `import()`. Open mode is the default build and can never open a socket, so
- * keeping these out of the entry chunk is what stops ~130 KB of collaboration
- * code from loading for every user who will never sync.
+ * All imports of the collaboration stack (Yjs, Hocuspocus, y-indexeddb) are
+ * behind this module. `yjsProvider` reaches it only through a dynamic
+ * `import()`. Open mode is the default build and can never open a socket. Thus,
+ * when these are out of the entry chunk, approximately 130 KB of collaboration
+ * code does not load for each user who will never sync.
  *
- * Nothing here is a Preact hook: the module is a plain factory so that the
- * moment it arrives is the caller's problem, not a render-order constraint.
+ * Nothing here is a Preact hook. The module is a plain factory. Thus, the
+ * moment when it arrives is a problem for the caller, not a constraint on the
+ * render order.
  */
 
 export type YjsConnectionStatus =
@@ -42,24 +43,29 @@ export interface YjsSessionOptions {
   noteId: string;
   token: string;
   /**
-   * The note's key, which its shared document is sealed with. Null only
-   * where sealing is handed through (a test of what sits above storage), and
-   * then the document is synced as it is.
+   * The key of the note, with which its shared document is sealed. Null only
+   * where the seal is skipped (a test of the code above storage). Then the
+   * document syncs as it is.
    */
   key: NoteSealKey | null;
-  /** The keys the note was under before; see `joinSealedDocument`. */
+  /** The previous keys of the note. See `joinSealedDocument`. */
   older?: ReadonlyMap<number, NoteSealKey> | undefined;
   /**
-   * Our cursor label. The server replaces it with the account it authenticated
-   * before anyone else sees it, so this only has to be right for this tab.
+   * Our cursor label. The server replaces it with the authenticated account
+   * before any other person sees it. Thus, it only has to be correct for this
+   * tab.
    */
   user: YjsSessionUser | null;
   onStatus: (status: YjsConnectionStatus) => void;
   onSynced: () => void;
-  /** Entries of the document did not open here, `count` of them so far: the
-   * editor shows the rest, and says that it is not everything. */
+  /**
+   * Entries of the document did not open here, `count` of them so far. The
+   * editor shows the others, and tells that it is not everything.
+   */
   onUnreadable: (count: number) => void;
-  /** `reason` is `EDITOR_OUTDATED_REASON` when this build is too old to join. */
+  /**
+   * `reason` is `EDITOR_OUTDATED_REASON` when this build is too old to join.
+   */
   onAuthenticationFailed: (reason: string) => void;
 }
 
@@ -70,15 +76,15 @@ export interface YjsSession {
 }
 
 /**
- * Opens one note's shared document. What the editor binds to (`ydoc`) is
- * readable and stays in this browser. What is synced to the server over the
- * Hocuspocus protocol, and mirrored into IndexedDB so an offline edit
- * survives a reload, is a second document that holds the first one's edits
- * sealed under the note's key (`sealedDocument.ts`): the server relays and
- * stores ciphertext, and so does this browser's offline copy. The note id is
- * the document name, and the server authorizes against that name rather than
- * the URL, so it is the one value that decides which document this
- * connection may touch.
+ * Opens the shared document of one note. The editor binds to a readable
+ * document (`ydoc`) that stays in this browser. A second document syncs to the
+ * server over the Hocuspocus protocol, and is mirrored into IndexedDB so that
+ * an offline edit stays after a reload. It contains the edits of the first
+ * document, sealed under the key of the note (`sealedDocument.ts`). The server
+ * relays and stores ciphertext, and so does the offline copy of this browser.
+ * The note id is the document name, and the server authorizes against that
+ * name, not against the URL. Thus, it is the one value that decides which
+ * document this connection can change.
  */
 export function createYjsSession({
   url,
@@ -93,13 +99,13 @@ export function createYjsSession({
   onAuthenticationFailed,
 }: YjsSessionOptions): YjsSession {
   const wire = new Y.Doc();
-  // One id for both documents, so "the client with the lowest id" is the
-  // same client to everyone, whichever document they count in.
+  // One id for both documents. Thus, "the client with the lowest id" is the
+  // same client for all persons, whichever document they count in.
   const ydoc = key ? new Y.Doc() : wire;
   ydoc.clientID = wire.clientID;
-  // A browser from before the document was sealed may still hold it
-  // readable, under the old name. Whatever a copy holds is synced as it is,
-  // so the sealed copy has a name of its own and the old ones are removed.
+  // A browser from before the document was sealed can still have it readable,
+  // under the old name. The content of a copy syncs as it is. Thus, the sealed
+  // copy has its own name, and the old copies are removed.
   void deleteReadableNoteCopies([noteId]);
   const idb = new IndexeddbPersistence(`${LOCAL_COPY_PREFIX}${noteId}`, wire);
   const sealed: SealedDocument | null = key
@@ -114,7 +120,8 @@ export function createYjsSession({
     : null;
   let compacting: ReturnType<typeof setInterval> | undefined;
   const provider = new HocuspocusProvider({
-    // The server refuses an editor older than its own; see EDITOR_SCHEMA_VERSION.
+    // The server refuses an editor older than its own. See
+    // EDITOR_SCHEMA_VERSION.
     url: `${url}?editor=${EDITOR_SCHEMA_VERSION}`,
     name: noteId,
     document: wire,
@@ -125,8 +132,8 @@ export function createYjsSession({
         onSynced();
         return;
       }
-      // Synced is a promise to the editor that the document it binds holds
-      // what the server has: true only once every entry has been opened.
+      // Synced is a promise to the editor that the document to which it binds
+      // contains what the server has. True only after each entry opened.
       void sealed.settled().then(() => {
         onSynced();
         void sealed.compact();
@@ -135,8 +142,8 @@ export function createYjsSession({
     onAuthenticationFailed: ({ reason }) => onAuthenticationFailed(reason),
   });
 
-  // The editor's awareness is its own; what crosses the wire is each cursor
-  // sealed, under the label the server stamps on it.
+  // The awareness of the editor is its own. Each cursor goes across the wire
+  // sealed, under the label that the server adds to it.
   const outer = provider.awareness ?? null;
   const awareness = key && outer ? new Awareness(ydoc) : outer;
   const leavePresence =
@@ -145,12 +152,13 @@ export function createYjsSession({
       : null;
   if (user) awareness?.setLocalStateField("user", user);
   if (sealed) {
-    // A long session gathers edits too, not only a fresh join.
+    // A long session also collects edits, not only a new join.
     compacting = setInterval(() => void sealed.compact(), 60_000);
   }
 
-  // A closing tab never runs the effect cleanup, so without this our cursor
-  // lingers in everyone else's editor until the server times the socket out.
+  // A tab that closes never runs the cleanup of the effect. Thus, without this,
+  // our cursor stays in the editors of all other persons until the server times
+  // out the socket.
   const onPageHide = () => {
     outer?.setLocalState(null);
   };
@@ -171,8 +179,8 @@ export function createYjsSession({
         if (ydoc !== wire) ydoc.destroy();
         wire.destroy();
       };
-      // The last edits are still being sealed: the wire document, its
-      // socket and its offline copy stay until they have been written.
+      // The last edits are still in their seal. The wire document, its socket
+      // and its offline copy stay until they are written.
       if (sealed) void sealed.destroy().then(close);
       else close();
     },

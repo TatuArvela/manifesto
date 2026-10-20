@@ -16,29 +16,29 @@ import { StoredImage } from "./StoredImage.tsx";
 
 interface ImageGalleryProps {
   images: string[];
-  /** What each image shows, in words, in step with `images`: its `alt`. */
+  /** What each image shows, in words, aligned with `images`: its `alt`. */
   alts?: string[] | undefined;
   /**
-   * Gives an image its description; left out where it cannot change. The
-   * image is named by its reference rather than its place, which another
-   * writer may have moved by the time this lands.
+   * Gives an image its description. Not given where it cannot change. The code
+   * names the image by its reference, not its position, because a different
+   * writer can have moved it before this write completes.
    */
   onDescribe?: ((image: string, alt: string) => void) | undefined;
   onDelete?: (index: number) => void;
-  /** Opens the image on the drawing pad; left out where it cannot change. */
+  /** Opens the image on the drawing pad. Not given where it cannot change. */
   onEdit?: ((index: number) => void) | undefined;
   /**
-   * Fill the height of the parent, sharing it between the images and
-   * cropping each to fit, instead of taking each image's own height: the
-   * shape a square card needs when the images are all it holds.
+   * Fill the height of the parent, shared between the images, and crop each
+   * image to fit. Do not use the own height of each image. A square card needs
+   * this shape when it contains only the images.
    */
   fill?: boolean;
 }
 
 /**
- * A button over an image in the editor: out of the way until the image is
- * pointed at or the button focused, and always there on a touch screen, which
- * has no pointer to bring it out.
+ * A button over an image in the editor. It stays hidden until the pointer is on
+ * the image or the button has focus. It always shows on a touch screen, which
+ * has no pointer to show it.
  */
 const imageButtonClass =
   "absolute bottom-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover/img:opacity-100 focus-visible:opacity-100 touch:opacity-100 hover:bg-black/80 transition-opacity cursor-pointer";
@@ -52,7 +52,7 @@ export function ImageGallery({
   fill,
 }: ImageGalleryProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  // Opened from "Describe image", which goes straight to the field.
+  // Opened from "Describe image", which goes directly to the field.
   const [describing, setDescribing] = useState(false);
   const open = (index: number, describe: boolean) => {
     setDescribing(describe);
@@ -61,7 +61,7 @@ export function ImageGallery({
 
   if (images.length === 0) return null;
   const altOf = (i: number) => alts?.[i] ?? "";
-  // The buttons over an image sit right to left: delete, draw, describe.
+  // The buttons over an image are from right to left: delete, draw, describe.
   const buttonsRight = ["right-2", "right-11", "right-20"];
   let nextButton = 0;
   const deleteAt = onDelete ? buttonsRight[nextButton++] : undefined;
@@ -165,7 +165,7 @@ function ImageLightbox({
   images: string[];
   alts: string[] | undefined;
   onDescribe: ((image: string, alt: string) => void) | undefined;
-  /** Focus the description field rather than the first button. */
+  /** Focus the description field, not the first button. */
   describing: boolean;
   index: number;
   onChangeIndex: (i: number) => void;
@@ -180,8 +180,8 @@ function ImageLightbox({
   useEscapeStack(true, onClose);
   const dialogRef = useFocusTrap<HTMLDivElement>(true);
 
-  // On the dialog, which holds the focus (`useFocusTrap`), rather than on the
-  // document: the arrows are this layer's, and never anything under it.
+  // On the dialog, which keeps the focus (`useFocusTrap`), not on the document.
+  // The arrows belong to this layer, never to a layer under it.
   const onKeyDown = (e: KeyboardEvent) => {
     if (!hasMultiple || e.defaultPrevented) return;
     // The arrows move the caret in the description, not between images.
@@ -267,10 +267,10 @@ function ImageLightbox({
 }
 
 /**
- * The description of the image shown, under it in the viewer: what a screen
- * reader reads in its place. Saved when the field is left, when another image
- * is shown and when the viewer closes, whichever comes first, and only if it
- * changed.
+ * The description of the shown image, under it in the viewer: what a screen
+ * reader reads in its place. The code saves it when the field loses focus, when
+ * a different image shows, and when the viewer closes, whichever comes first,
+ * and only if it changed.
  */
 function ImageDescription({
   image,
@@ -286,7 +286,7 @@ function ImageDescription({
   const id = useId();
   const [draft, setDraft] = useState(alt);
   const fieldRef = useRef<HTMLTextAreaElement>(null);
-  // Read at unmount, which sees only the first render's values otherwise.
+  // Read at unmount. Otherwise, it sees only the values of the first render.
   const latest = useRef({ draft, alt, onDescribe });
   latest.current = { draft, alt, onDescribe };
 
@@ -294,20 +294,21 @@ function ImageDescription({
     const { draft, alt, onDescribe } = latest.current;
     const text = draft.trim();
     if (text !== alt) onDescribe(image, text);
-    // Saved once: a later save compares with what was just written.
+    // Saved one time. A later save compares with the value that was just
+    // written.
     latest.current.alt = text;
   }, [image]);
 
-  // Layout, so it runs ahead of the viewer's focus trap, which then finds
-  // focus inside and leaves it here rather than on the first button.
+  // Layout. Thus, it runs before the focus trap of the viewer. The trap then
+  // finds focus inside, and leaves it here, not on the first button.
   useLayoutEffect(() => {
     if (autoFocus) fieldRef.current?.focus();
   }, [autoFocus]);
 
-  // On the way out, which is when the viewer closed or moved to another
-  // image (the component is keyed by its image). A layout effect, whose
-  // cleanup runs as the field is removed: an effect's cleanup ran too late
-  // for the close to have saved by the next frame.
+  // On the way out, which is when the viewer closed or moved to a different
+  // image (the component has its image as the key). A layout effect, whose
+  // cleanup runs when the field is removed. The cleanup of an effect ran too
+  // late for the close to save before the next frame.
   useLayoutEffect(() => save, [save]);
 
   return (

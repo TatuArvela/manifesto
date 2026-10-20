@@ -1,15 +1,23 @@
 interface BackdropProps {
-  /** A press outside the dialog. Escape is the dialog's own, through `useEscapeStack`. */
+  /**
+   * A press outside the dialog. Escape belongs to the dialog, through
+   * `useEscapeStack`.
+   */
   onDismiss: () => void;
-  /** Fades out with the dialog's exit while true. */
+  /** Fades out with the exit of the dialog while true. */
   closing?: boolean;
-  /** Its layer, and anything else it needs: `layer-backdrop`, `layer-nested-backdrop max-sm:hidden`. */
+  /**
+   * Its layer, and other classes that it needs: `layer-backdrop`,
+   * `layer-nested-backdrop max-sm:hidden`.
+   */
   class: string;
-  /** The darker shade, for a viewer that should hide the board. */
+  /** The darker shade, for a viewer that must hide the board. */
   deep?: boolean;
 }
 
-/** The dimmed layer behind a modal dialog, which closes it when pressed. */
+/**
+ * The dimmed layer behind a modal dialog, which closes it when you press it.
+ */
 export function Backdrop({
   onDismiss,
   closing,
@@ -17,7 +25,7 @@ export function Backdrop({
   deep,
 }: BackdropProps) {
   return (
-    // The keyboard route out is Escape, so the layer needs no key handler.
+    // The keyboard way out is Escape. Thus, the layer needs no key handler.
     // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss
     // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss
     <div

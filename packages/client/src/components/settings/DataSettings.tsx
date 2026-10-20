@@ -34,8 +34,9 @@ const IMPORT_FORMATS: [MessageKey, MessageKey][] = [
 ];
 
 /**
- * One action of the Data page: what it does, in a sentence, and the button
- * that does it. The button's text is the row's name to a settings search.
+ * One action of the Data page: what it does, in a sentence, and the button that
+ * does it. For a settings search, the text of the button is the name of the
+ * row.
  */
 function ActionRow({
   body,
@@ -58,9 +59,9 @@ function ActionRow({
 }
 
 /**
- * The apps and formats Import reads, as chips to choose from, with what to
- * bring from the chosen one under them. The first, a backup of this app's
- * own, is chosen to start with.
+ * The apps and formats that Import reads, as chips to select from, with what to
+ * bring from the selected one under them. The first, a backup of this app, is
+ * selected at the start.
  */
 function ImportFormats() {
   const [chosen, setChosen] = useState(0);
@@ -146,8 +147,8 @@ export function DataSettings() {
   };
 
   const handleDeleteAll = async () => {
-    // `deleteAllNotes` reports its own failure; saying "deleted" regardless
-    // would contradict the toast it just raised.
+    // `deleteAllNotes` reports its own failure. If the code said "deleted"
+    // anyway, it would contradict the toast that it just showed.
     const deleted = await deleteAllNotes();
     setShowDeleteConfirm(false);
     if (deleted) setDeleteStatus(t("settings.data.deleted"));

@@ -3,11 +3,11 @@ import { t } from "#/i18n/index.ts";
 import { dismissToast, holdToasts, toasts } from "#/state/ui.ts";
 
 /**
- * The toast stack. The region is on the page even while empty, since a
+ * The toast stack. The region is on the page also while it is empty, because a
  * screen reader announces only what arrives in a live region that already
- * exists. On a phone it spans the width and sits above the new-note button
- * (`NoteInput`), which it would otherwise cover. Pointing at it or focusing
- * it holds the successes that would otherwise leave on their own.
+ * exists. On a phone, it uses the full width and is above the new-note button
+ * (`NoteInput`), which it would otherwise cover. When the pointer is on it or
+ * it has focus, the success messages that would go away by themselves stay.
  */
 export function Toasts() {
   return (

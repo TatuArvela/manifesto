@@ -5,10 +5,10 @@ import type { StorageDriver } from "#/storage/types.ts";
 import { claimed, claimedUpdate, heldKey } from "./claimed.ts";
 
 /**
- * The format a note's words are in, run against both drivers: a write is held
- * to it in the statement that writes, so an app older than the one that wrote
- * a note never stores words over it, and a note never holds words in two
- * formats at once (`formatCondition` in `noteMapping.ts`).
+ * The format of the words of a note, run against both drivers. The statement
+ * that writes checks each write against it. Thus, an app older than the app
+ * that wrote a note never stores words over it, and a note never contains words
+ * in two formats at the same time (`formatCondition` in `noteMapping.ts`).
  */
 
 const T0 = "2026-04-01T00:00:00.000Z";
@@ -30,7 +30,7 @@ const noteData = {
   reminder: null,
 };
 
-/** Every word of a note, as a write that moves it to `format` sends them. */
+/** All words of a note, as a write that moves it to `format` sends them. */
 function everyWord(title: string, format: number) {
   return {
     ...claimedUpdate({
@@ -165,7 +165,8 @@ export function describeNoteFormatContract(
           format,
           title: "t",
           content: "c",
-          // From the clock: a version older than the age limit goes at once.
+          // From the clock: a version older than the age limit goes
+          // immediately.
           createdAt: nowIso(),
         });
       }

@@ -4,7 +4,8 @@ import { describe, expect, it } from "vitest";
 import { defined } from "#/test/defined.ts";
 import { insertBlock } from "./blockInsertion.ts";
 
-// Node names as Milkdown's presets give them, which is all `insertBlock` reads.
+// Node names as the presets of Milkdown give them, which is all that
+// `insertBlock` reads.
 const schema = new Schema({
   nodes: {
     doc: { content: "block+" },
@@ -23,7 +24,7 @@ const list_item = defined(schema.nodes.list_item);
 const p = (text = "") =>
   paragraph.create(null, text ? schema.text(text) : undefined);
 
-/** The document as a line per top-level block, `|` marking the caret. */
+/** The document as one line for each top-level block. `|` marks the caret. */
 function show(state: EditorState): string {
   const caret = state.selection.from;
   const lines: string[] = [];

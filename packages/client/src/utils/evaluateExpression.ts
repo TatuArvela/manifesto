@@ -18,7 +18,7 @@ function isDigit(c: string | undefined): boolean {
   return c !== undefined && c >= "0" && c <= "9";
 }
 
-/** Whether `top`, on the operator stack, is applied before `op` is pushed. */
+/** If `top`, on the operator stack, applies before `op` is pushed. */
 function popsBefore(top: Token | undefined, op: Operator): boolean {
   if (top?.kind === "unary-minus") return UNARY_PRECEDENCE > PRECEDENCE[op];
   if (top?.kind === "op") return PRECEDENCE[top.value] >= PRECEDENCE[op];
@@ -26,9 +26,9 @@ function popsBefore(top: Token | undefined, op: Operator): boolean {
 }
 
 /**
- * Tokenize a tail expression like "200+300" or "(1,5 + 2) * 3" using the
- * provided decimal separator. The other of "." / "," is treated as an
- * in-number grouping char and stripped. Returns null on any invalid input.
+ * Tokenize a tail expression such as "200+300" or "(1,5 + 2) * 3" with the
+ * given decimal separator. The other of "." / "," is treated as a grouping
+ * character in a number, and removed. Returns null on all invalid input.
  */
 function tokenize(text: string, decimal: "." | ","): Token[] | null {
   const grouping = decimal === "." ? "," : ".";
@@ -64,7 +64,7 @@ function tokenize(text: string, decimal: "." | ","): Token[] | null {
           raw += d;
           i++;
         } else if (d === grouping) {
-          // Strip grouping separator silently
+          // Remove the grouping separator silently.
           i++;
         } else if (d === decimal) {
           if (seenDecimal) return null;
@@ -87,11 +87,11 @@ function tokenize(text: string, decimal: "." | ","): Token[] | null {
 }
 
 /**
- * Shunting-yard: convert infix tokens to RPN.
+ * Shunting-yard: change infix tokens to RPN.
  *
- * Unary minus (`-x`, `*-x`, `(-x`) is promoted to a dedicated unary-minus
- * token with the highest precedence and right-associativity. Unary plus is
- * not supported; constructs like `200++300` are rejected as invalid.
+ * Unary minus (`-x`, `*-x`, `(-x`) becomes a special unary-minus token, with
+ * the highest precedence and right-associativity. Unary plus is not supported.
+ * The code refuses constructs such as `200++300` as invalid.
  */
 function toRpn(tokens: Token[]): Token[] | null {
   const output: Token[] = [];
@@ -110,7 +110,7 @@ function toRpn(tokens: Token[]): Token[] | null {
           prev = unary;
           continue;
         }
-        // Unary + or any binary op in a unary slot is invalid.
+        // Unary + or a binary operator in a unary position is invalid.
         return null;
       }
     }
@@ -126,7 +126,7 @@ function toRpn(tokens: Token[]): Token[] | null {
     if (tok.kind === "number") {
       output.push(tok);
     } else if (tok.kind === "unary-minus") {
-      // Right-associative, highest precedence: don't pop anything.
+      // Right-associative, highest precedence: do not pop anything.
       stack.push(tok);
     } else if (tok.kind === "op") {
       while (popsBefore(stack.at(-1), tok.value)) {
@@ -196,13 +196,13 @@ function evalRpn(rpn: Token[]): number | null {
 }
 
 /**
- * Evaluate the arithmetic expression found at the end of `text`, ending
- * immediately before an `=` sign. Returns `{ expression, result }` where
- * `expression` is the matched tail (without the trailing `=`) or `null`
- * if the tail is not a valid expression.
+ * Evaluate the arithmetic expression at the end of `text`, which ends
+ * immediately before an `=` sign. Returns `{ expression, result }`, where
+ * `expression` is the matched tail (without the trailing `=`), or `null` if the
+ * tail is not a valid expression.
  *
- * The match only succeeds when the expression is either the whole line or
- * preceded by whitespace, so prose like `foo=bar=` does not light up.
+ * The match succeeds only when the expression is the full line, or has
+ * whitespace before it. Thus, prose such as `foo=bar=` does not show a result.
  */
 export function evaluateExpression(
   text: string,
@@ -212,7 +212,7 @@ export function evaluateExpression(
   const body = text.slice(0, -1);
   if (body.length === 0) return null;
 
-  // Walk backwards to find the start of an allowed-char run.
+  // Move backward to find the start of a sequence of permitted characters.
   const grouping = decimal === "." ? "," : ".";
   let start = body.length;
   while (start > 0) {
@@ -235,9 +235,9 @@ export function evaluateExpression(
       break;
     }
   }
-  // Require a separator between prose and the expression: either the char
-  // immediately before the matched region is whitespace, or the matched
-  // region itself starts with whitespace.
+  // A separator is necessary between prose and the expression. The character
+  // immediately before the matched region is whitespace, or the matched region
+  // itself starts with whitespace.
   if (start > 0) {
     const prev = body[start - 1];
     const startsWithWs = body[start] === " " || body[start] === "\t";
@@ -247,7 +247,8 @@ export function evaluateExpression(
 
   const expression = body.slice(start);
   if (expression.trim() === "") return null;
-  // Must contain at least one digit and one operator for a useful calc.
+  // It must contain a minimum of one digit and one operator for a useful
+  // calculation.
   if (!/\d/.test(expression)) return null;
 
   const tokens = tokenize(expression, decimal);
@@ -260,9 +261,9 @@ export function evaluateExpression(
 }
 
 /**
- * Format a calculated result using the given decimal separator. Integers are
- * rendered without a fractional part; non-integers use up to 10 significant
- * digits with trailing zeros trimmed. No thousand separators.
+ * Format a calculated result with the given decimal separator. Integers show
+ * without a fractional part. Other values use up to 10 significant digits, with
+ * trailing zeros removed. No thousand separators.
  */
 export function formatResult(n: number, decimal: "." | ","): string {
   if (!Number.isFinite(n)) return "";
@@ -271,11 +272,12 @@ export function formatResult(n: number, decimal: "." | ","): string {
     s = String(n);
   } else {
     s = n.toPrecision(10);
-    // Strip trailing zeros after decimal point (and the point itself if bare).
+    // Remove trailing zeros after the decimal point (and the point itself if it
+    // is alone).
     if (s.includes(".") && !s.includes("e")) {
       s = s.replace(/\.?0+$/, "");
     } else if (s.includes("e")) {
-      // Fallback for very large/small: just use default toString.
+      // Fallback for very large or small values: use the default toString.
       s = String(n);
     }
   }

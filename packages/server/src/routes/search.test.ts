@@ -78,7 +78,7 @@ describe("search route", () => {
       cursor = page.nextCursor;
       pages++;
     } while (cursor !== null && pages < 5);
-    // Each match once, none skipped at a page's edge.
+    // Each match one time. None skipped at the edge of a page.
     expect(found.sort()).toEqual(["MILK again", "Milk", "Oat milk"]);
     expect(pages).toBe(2);
   });

@@ -1,15 +1,15 @@
 import type { FormatType, TextEdit } from "./formatTypes.ts";
 import type { InlineFormat } from "./rawInlineFormatting.ts";
 
-// Raw mode's line formats (headings, quotes, lists, checklists): each line
-// taken apart into its prefixes and put back together. Pure string work; see
-// `rawFormatting.ts`.
+// The line formats of raw mode (headings, quotes, lists, checklists): each line
+// taken apart into its prefixes and put back together. Only string operations.
+// See `rawFormatting.ts`.
 
 /**
- * One line of markdown taken apart as far as the toolbar cares: nesting, a
- * quote, a list marker, a task box, a heading, then the text. Anything the
- * pattern does not recognise stays in `text`, so reassembling an untouched
- * line always gives back exactly what went in.
+ * One line of Markdown taken apart as far as the toolbar needs: nesting, a
+ * quote, a list marker, a task box, a heading, then the text. All that the
+ * pattern does not know stays in `text`. Thus, when the code puts an unchanged
+ * line back together, it always gives back exactly what went in.
  */
 interface ParsedLine {
   indent: string;
@@ -24,7 +24,8 @@ const LINE_RE =
   /^(\s*)((?:> ?)*)((?:[-*+]|\d+[.)]) +)?(\[[ xX]\](?: |$))?(#{1,6}(?: +|$))?(.*)$/;
 
 export function parseLine(line: string): ParsedLine {
-  // Every group but the last matches the empty string, so this always matches.
+  // Each group other than the last matches the empty string. Thus, this always
+  // matches.
   const [
     ,
     indent = "",
@@ -45,14 +46,14 @@ export const isOrdered = (p: ParsedLine) => /^\d/.test(p.marker);
 export const isBullet = (p: ParsedLine) => p.marker !== "" && !isOrdered(p);
 export const headingLevel = (p: ParsedLine) => p.heading.trim().length;
 
-/** The whole lines the selection touches, as offsets into `value`. */
+/** The whole lines that the selection touches, as offsets into `value`. */
 export function lineRange(
   value: string,
   start: number,
   end: number,
 ): [number, number] {
-  // `lastIndexOf` clamps a negative position to 0 and would then find a
-  // newline the caret is before, not after.
+  // `lastIndexOf` clamps a negative position to 0, and would then find a
+  // newline that the caret is before, not after.
   const from = start === 0 ? 0 : value.lastIndexOf("\n", start - 1) + 1;
   // A selection that ends at the very start of a line (a triple-click, or a
   // drag down to the next line) does not include that line.
@@ -70,8 +71,8 @@ function transformLines(
   const [from, to] = lineRange(value, start, end);
   const raw = value.slice(from, to).split("\n");
   const parsed = raw.map(parseLine);
-  // Blank lines between paragraphs are left as they are, unless there is
-  // nothing else: a cursor on an empty line is where a new list starts.
+  // The code does not change blank lines between paragraphs, unless there is
+  // nothing else. A cursor on an empty line is where a new list starts.
   const blank = raw.map((l) => l.trim() === "");
   const targets = blank.every(Boolean)
     ? parsed
@@ -80,7 +81,7 @@ function transformLines(
   const next = parsed.map(joinLine);
   const replaced = next.join("\n");
 
-  // Keep the cursor on the text it was on, however long the prefix became.
+  // Keep the cursor on the same text, however long the prefix became.
   const firstDelta = (next[0]?.length ?? 0) - (raw[0]?.length ?? 0);
   const totalDelta = replaced.length - (to - from);
   const newStart = Math.max(from, start + firstDelta);
@@ -135,8 +136,8 @@ export function toggleBlock(
         break;
       }
       case "checklist": {
-        // Mirrors the rich editor: tasks toggle out of the list altogether,
-        // as the other list buttons do, rather than into plain bullets.
+        // The same as in the rich editor. Tasks toggle fully out of the list,
+        // as the other list buttons do, and do not become plain bullets.
         const all = lines.every((l) => l.box !== "");
         for (const l of lines) {
           if (all) {

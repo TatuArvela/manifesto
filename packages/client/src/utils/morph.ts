@@ -1,9 +1,10 @@
 /**
- * The open and close of a note's editor, drawn as the note itself growing into
- * the editor and shrinking back onto its card: the editor panel is laid out
- * where it belongs and transformed to start (or end) over the rectangle it
- * came from, or on a phone uncovered from it (see `morphClip`). Transform,
- * clip and opacity only, so the editor inside is never re-laid out mid-flight.
+ * The open and close of the editor of a note, drawn as the note itself that
+ * grows into the editor and shrinks back onto its card. The editor panel is
+ * laid out where it belongs, and transformed to start (or end) over the
+ * rectangle from which it came, or on a phone uncovered from it (see
+ * `morphClip`). Only transform, clip and opacity. Thus, the layout of the
+ * editor inside never changes during the animation.
  */
 
 import { isPhoneLayout } from "./phoneSheets.ts";
@@ -16,20 +17,23 @@ export interface RectLike {
 }
 
 /**
- * How long either morph runs. Both ways take the same time and follow the same
- * curve: one that moves at once and settles gently, so the editor settles
- * into place opening and onto its card closing. The close once ran the opening
- * curve backwards instead, which barely moved for most of its run and then
- * snapped onto the card, and read as no animation at all.
+ * How long each morph runs. Both directions take the same time and follow the
+ * same curve: a curve that moves immediately and stops smoothly. Thus, the
+ * editor goes smoothly into place when it opens, and onto its card when it
+ * closes. Before, the close ran the curve of the open backward. That almost did
+ * not move for most of its time, then jumped onto the card, and looked like no
+ * animation.
  */
 export const MORPH_MS = 240;
 const EASING = "cubic-bezier(0.2, 0, 0, 1)";
-/** The share of the run the panel spends fading, at the start or the end. */
+/**
+ * The part of the run during which the panel fades, at the start or the end.
+ */
 const FADE_SHARE = 0.3;
 
 /**
- * The transform that draws an element laid out at `to` over `from` instead,
- * with `transform-origin` at its top left.
+ * The transform that draws an element laid out at `to` over `from`, with
+ * `transform-origin` at its top left.
  */
 export function morphTransform(from: RectLike, to: RectLike): string {
   const scaleX = to.width > 0 ? from.width / to.width : 1;
@@ -38,14 +42,14 @@ export function morphTransform(from: RectLike, to: RectLike): string {
 }
 
 /**
- * The clip that shows only the part of an element laid out at `to` that lies
- * over `rect`, with a note's rounded corners.
+ * The clip that shows only the part of an element laid out at `to` that is over
+ * `rect`, with the rounded corners of a note.
  *
- * A phone's editor is the whole screen and a card is a fraction of it, in
- * different proportions: scaling one onto the other squashed the note's text
- * to half its width and a quarter of its height, in plain view for most of a
- * close. So there the editor is uncovered where it stands instead, from the
- * card's rectangle out to the screen, and nothing in it changes shape.
+ * The editor of a phone is the full screen, and a card is a fraction of it, in
+ * different proportions. A scale of one onto the other squashed the text of the
+ * note to half its width and a quarter of its height, clearly visible for most
+ * of a close. Thus, there the editor is uncovered where it is, from the
+ * rectangle of the card out to the screen, and nothing in it changes shape.
  */
 export function morphClip(rect: RectLike, to: RectLike): string {
   const top = rect.top - to.top;
@@ -59,9 +63,10 @@ export function morphClip(rect: RectLike, to: RectLike): string {
 }
 
 /**
- * Whether a rectangle is worth morphing from: some of it on screen, and not
- * collapsed. A card scrolled out of sight, or opened from a notification while
- * the grid is somewhere else, would have the editor fly in from off the page.
+ * If a rectangle is a good start for a morph: a part of it is on the screen,
+ * and it is not collapsed. With a card scrolled out of sight, or opened from a
+ * notification while the grid is in a different place, the editor would come in
+ * from off the page.
  */
 export function isMorphSource(
   rect: RectLike | null | undefined,
@@ -84,20 +89,21 @@ export function viewportSize() {
 }
 
 /**
- * Ends a morph still running (or held at its end), so the panel is measured where it is laid out
- * rather than part way through: closing during the open is one press away.
+ * Ends a morph that still runs (or is held at its end). Thus, the panel is
+ * measured where it is laid out, not at a point during the animation. A close
+ * during the open is only one press.
  */
 export function settle(panel: HTMLElement) {
   for (const animation of panel.getAnimations()) animation.cancel();
 }
 
 /**
- * Grows `panel` out of `from` into where it is laid out.
+ * Grows `panel` out of `from` into its layout position.
  *
- * By default it starts clear over the source, which fades out underneath it,
- * so the two cross over there rather than one popping over the other. A source
- * that vanishes at once instead (the sheet peeled off the new-note pad) asks
- * for `opaque`, so there is no moment with neither on screen.
+ * By default, it starts transparent over the source, which fades out under it.
+ * Thus, the two cross there, and one does not suddenly show over the other. A
+ * source that disappears immediately (the sheet peeled off the new-note pad)
+ * asks for `opaque`. Thus, there is no moment with neither on the screen.
  */
 export function morphIn(
   panel: HTMLElement,
@@ -121,14 +127,15 @@ export function morphIn(
 }
 
 /**
- * Shrinks `panel` onto `to`, fading over the last part of the way. Holds the
- * end state, and resolves once it has played, which is when the caller should
- * take the panel down: a timer started beside it runs out first, since the
- * animation only starts on the next frame, and cut the landing off.
+ * Shrinks `panel` onto `to`, and fades over the last part of the way. Keeps the
+ * end state, and resolves after it played. Then the caller must remove the
+ * panel. A timer started next to it ends first, because the animation only
+ * starts on the next frame, and cut off the landing.
  *
- * The fade is its own animation, on linear time: under the shared curve its
+ * The fade is its own animation, on linear time. Under the shared curve, its
  * keyframes would be placed by progress, and a curve that covers most of the
- * distance early would start the fade with the panel still far from the card.
+ * distance early would start the fade while the panel is still far from the
+ * card.
  */
 export function morphOut(panel: HTMLElement, to: RectLike): Promise<void> {
   settle(panel);
@@ -148,7 +155,8 @@ export function morphOut(panel: HTMLElement, to: RectLike): Promise<void> {
   );
   return motion.finished.then(
     () => {},
-    // Cancelled: reopened mid-close, which settles the panel where it stands.
+    // Cancelled: opened again during the close, which stops the panel where it
+    // is.
     () => {},
   );
 }

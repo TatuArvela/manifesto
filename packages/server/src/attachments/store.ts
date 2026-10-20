@@ -8,22 +8,23 @@ import { HttpError } from "#/middleware/error.ts";
 import type { ClaimedImages, StorageDriver } from "#/storage/types.ts";
 
 /**
- * Every attachment a note refers to belongs to the note's owner, whose notes
- * it is swept with and whose account it goes with. Two steps keep that true
- * now that a note names its images inside ciphertext, where the server
- * cannot rewrite a reference:
+ * Each attachment to which a note refers belongs to the owner of the note. The
+ * server sweeps it with the notes of the owner, and deletes it with the account
+ * of the owner. Now a note names its images inside ciphertext, where the server
+ * cannot change a reference. Thus, two steps keep this true:
  *
- * - **`adoptImages`**, before the note is sealed: the writer hands over the
- *   references it means to name, and gets back the owner's own for each. One
- *   the owner already holds comes back as it is. One held by someone else is
- *   the case of an editor adding their own upload to another person's note,
- *   or copying an image out of a note shared with them: if the writer may
- *   read it, its sealed bytes are copied to the owner under a new id. The
- *   bytes are the same, so the key the note holds for it still opens it.
- * - **`claimImages`**, when the note is written: each reference it names
- *   beside a sealed list (`imageRefs`, `previewRefs`) must be the owner's by
- *   then. Anything else is refused, or a crafted reference would lend a note
- *   someone else's image.
+ * - **`adoptImages`**, before the note is sealed: the writer gives the
+ *   references that it will name, and gets back the own reference of the owner
+ *   for each one. A reference that the owner already has comes back as it is. A
+ *   reference that a different person has is the case of an editor who adds
+ *   their own upload to the note of a different person, or copies an image out
+ *   of a note shared with them. If the writer can read it, its sealed bytes are
+ *   copied to the owner under a new id. The bytes are the same. Thus, the key
+ *   that the note has for it still opens it.
+ * - **`claimImages`**, when the note is written: each reference that it names
+ *   next to a sealed list (`imageRefs`, `previewRefs`) must belong to the owner
+ *   by then. The server refuses all other references. If not, a crafted
+ *   reference could give a note the image of a different person.
  */
 export async function claimImages(
   storage: StorageDriver,
@@ -37,11 +38,11 @@ export async function claimImages(
       throw new HttpError(422, "Unknown attachment");
     }
   }
-  // The one place a claim is made, so the one cast.
+  // The only place where a claim is made. Thus, the only cast.
   return images as ClaimedImages;
 }
 
-/** The owner's own reference for each of `refs`, in order; see above. */
+/** The own reference of the owner for each of `refs`, in order. See above. */
 export async function adoptImages(
   storage: StorageDriver,
   refs: string[],
@@ -63,8 +64,8 @@ export async function adoptImages(
     }
     const source = await storage.attachments.get(id);
     if (!source) throw new HttpError(422, "Unknown attachment");
-    // Under the address it has: the owner holds it once however many times
-    // it is handed over, and two people's addresses for one image differ.
+    // Under its address. The owner has it one time, however many times it
+    // comes, and the addresses of two persons for one image are different.
     const copy = await storage.attachments.put({
       id: newId(),
       ownerId,

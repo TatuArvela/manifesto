@@ -1,12 +1,12 @@
 // @title Mail delivery
 //
-// Example auto-note plugin: Finnish postal mail delivery schedule.
+// Example auto-note plugin: the delivery schedule of Finnish postal mail.
 //
-// The Finnish postal service delivers on alternating-week patterns:
+// The Finnish postal service delivers on a pattern that alternates by week:
 //   - Even weeks: Monday, Wednesday, Friday
 //   - Odd weeks:  Tuesday, Thursday
 //
-// Paste this into Settings → Auto-notes → Paste code, or host it at an HTTPS
+// Paste this into Settings → Auto-notes → Paste code, or put it on an HTTPS
 // URL and add it as a URL source.
 
 function getWeekNumber(date) {

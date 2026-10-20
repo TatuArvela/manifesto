@@ -112,8 +112,8 @@ export function createPostgresAttachmentsRepo(pool: PgPool): AttachmentsRepo {
             [action === "mark" ? now : null, row.id],
           );
         } else if (action === "delete") {
-          // Only if it is still unreferenced: a note may have taken it up
-          // again since the scan above.
+          // Only if it is still unreferenced. A note can have taken it again
+          // after the scan above.
           const gone = await pool.query(
             `DELETE FROM attachments WHERE id = $1 AND NOT EXISTS
                (SELECT 1 FROM notes

@@ -5,10 +5,10 @@ import type * as Y from "yjs";
 import { editorHistoryPlugins } from "./editorHistory.ts";
 
 /**
- * Name of the shared `Y.XmlFragment` the editor binds to. Exported because
- * `MilkdownEditor` has to look at the same fragment to decide whether it is
- * empty, since checking a different one would seed a document that already has
- * content, or blank one that does not.
+ * The name of the shared `Y.XmlFragment` to which the editor binds. Exported
+ * because `MilkdownEditor` must look at the same fragment to decide if it is
+ * empty. A check of a different fragment would fill a document that already has
+ * content, or make blank a document that does not.
  */
 export const DEFAULT_FRAGMENT_NAME = "prosemirror";
 
@@ -21,21 +21,22 @@ export interface YjsCollabOptions {
 export type YjsCollabFactory = (options: YjsCollabOptions) => MilkdownPlugin;
 
 /**
- * `y-prosemirror` pulls the Yjs runtime in behind it, so it is fetched on
- * demand rather than imported at module scope: open mode is the default build
- * and never binds an editor to a shared document.
+ * `y-prosemirror` brings the Yjs runtime behind it. Thus, the code gets it on
+ * demand, and does not import it at module scope. Open mode is the default
+ * build, and never binds an editor to a shared document.
  *
- * It has to be *loaded* before the editor is built rather than awaited inside
- * the plugin, which is the whole reason this is a two-step load. A Milkdown
- * plugin's runner may await, but Milkdown reads `prosePluginsCtx` to construct
- * the view in the same pass, so a runner that awaits anything before calling
- * `ctx.update` has its plugins arrive after the view exists: no `ySyncPlugin`,
- * an editor showing the local note instead of the shared document, and (once
- * it saves) that local copy written over everyone else's. The collaborative
- * binding tests fail exactly that way if this is inlined back into the runner.
+ * It must be *loaded* before the editor is built, and not awaited inside the
+ * plugin. That is the reason for a load in two steps. The runner of a Milkdown
+ * plugin can await, but Milkdown reads `prosePluginsCtx` to construct the view
+ * in the same pass. Thus, if a runner awaits something before it calls
+ * `ctx.update`, its plugins arrive after the view exists. Then there is no
+ * `ySyncPlugin`, the editor shows the local note in place of the shared
+ * document, and (when it saves) that local copy is written over the copies of
+ * all other persons. The tests of the collaborative binding fail exactly in
+ * that way if this code goes back into the runner.
  *
- * The promise is memoized, so every note after the first in a session gets the
- * module without a second fetch.
+ * The promise is memoized. Thus, each note after the first in a session gets
+ * the module without a second fetch.
  */
 let modulePromise: Promise<YjsCollabFactory> | null = null;
 
@@ -48,10 +49,10 @@ export function loadYjsCollab(): Promise<YjsCollabFactory> {
         async () => {
           const fragment = ydoc.getXmlFragment(fragmentName);
           ctx.update(prosePluginsCtx, (plugins) => {
-            // y-prosemirror's yUndoPlugin replaces the standard history
-            // plugin; mixing the two double-applies undo on remote
-            // operations. It brings no keys of its own, and the toolbar
-            // finds it through `editorHistory`, so it comes with both.
+            // The yUndoPlugin of y-prosemirror replaces the standard history
+            // plugin. If you use both, an undo applies two times on remote
+            // operations. It brings no keys of its own, and the toolbar finds
+            // it through `editorHistory`. Thus, it comes with both.
             const next = [
               ...plugins,
               ySyncPlugin(fragment),
@@ -66,8 +67,8 @@ export function loadYjsCollab(): Promise<YjsCollabFactory> {
           });
         },
     );
-    // A failed fetch must not poison every later attempt with a rejected
-    // promise: drop it so the next note tries again.
+    // A failed fetch must not break each later attempt with a rejected promise.
+    // Drop it, so that the next note tries again.
     modulePromise.catch(() => {
       modulePromise = null;
     });

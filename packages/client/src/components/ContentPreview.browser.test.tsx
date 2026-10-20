@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ContentPreview } from "./ContentPreview.tsx";
 
 /**
- * What a card actually shows. The pieces below it (the checklist parser, the
- * segmenter, the renderer) have their own tests; these are the four ways the
- * preview used to disagree with the note it was drawing.
+ * What a card really shows. The parts below it (the checklist parser, the
+ * segmenter, the renderer) have their own tests. These tests are about the four
+ * ways in which the preview did not agree with the note that it drew.
  */
 
 let host: HTMLDivElement;

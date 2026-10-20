@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { createShutdown } from "./shutdown.ts";
 
 /**
- * Order and idempotency are the whole content of this module, so that is what
- * these check. Every step records its name in one list, which is the only way
- * to assert "storage closed last" as a fact rather than as a reading of the
+ * The order and the idempotency are all of the purpose of this module. Thus,
+ * these tests check them. Each step records its name in one list. That is the
+ * only way to assert "storage closed last" as a fact, not as a reading of the
  * source.
  */
 
@@ -24,10 +24,10 @@ function recorder() {
 
 describe("createShutdown", () => {
   it("lets go in the order that keeps writes safe", async () => {
-    // Where the server's own close lands depends on when its sockets end, so
-    // that is the next test's subject; these four are ordered by what they
-    // may still write. `closeServer` is left out rather than pinned to a
-    // timing this does not care about.
+    // When the own close of the server occurs depends on when its sockets end.
+    // Thus, that is the subject of the next test. These four are in the order
+    // of what they can still write. `closeServer` is not included, so that the
+    // test does not depend on a timing that is not important here.
     const { calls, step } = recorder();
 
     await createShutdown({
@@ -56,8 +56,8 @@ describe("createShutdown", () => {
   });
 
   it("flushes realtime before closing storage", async () => {
-    // Flushing a debounced Yjs document is a write. Closing the database
-    // first would lose whatever was still in the 10s window.
+    // A flush of a debounced Yjs document is a write. If the database closed
+    // first, the data that was still in the 10s window would be lost.
     const { calls, step } = recorder();
 
     await createShutdown({
@@ -75,11 +75,11 @@ describe("createShutdown", () => {
 
   it("does not wait for connections before doing what closes them", async () => {
     // `close()` calls back only when the open sockets are gone, and a
-    // collaboration socket is open by design, so awaiting it before the
-    // realtime teardown and the connection drop would stall the whole
-    // shutdown until the timeout, with pending Yjs writes unflushed. This
-    // `closeServer` resolves only once those have run, which is exactly the
-    // deadlock the old order produced.
+    // collaboration socket is open by design. If the code awaited it before the
+    // realtime teardown and the drop of connections, the full shutdown would
+    // stop until the timeout, with Yjs writes that did not flush. This
+    // `closeServer` resolves only after those ran. That is exactly the deadlock
+    // that the old order caused.
     const { calls, step } = recorder();
     let connectionsDropped = false;
 
@@ -114,9 +114,9 @@ describe("createShutdown", () => {
   });
 
   it("runs once however many times it is asked", async () => {
-    // A container sends SIGTERM and then SIGINT; an impatient operator presses
-    // Ctrl-C twice. Neither may start a second teardown over a half-finished
-    // one.
+    // A container sends SIGTERM and then SIGINT. An impatient operator pushes
+    // Ctrl-C two times. Neither must start a second teardown over a teardown
+    // that is half complete.
     const closeStorage = vi.fn(async () => {});
     const shutdown = createShutdown({ closeStorage });
 
@@ -127,7 +127,7 @@ describe("createShutdown", () => {
   });
 
   it("closes storage even when an earlier step throws", async () => {
-    // A database left open is worse than a socket that refused to close.
+    // A database that stays open is worse than a socket that did not close.
     const closeStorage = vi.fn(async () => {});
 
     await createShutdown({
@@ -159,8 +159,8 @@ describe("createShutdown", () => {
   });
 
   it("gives up rather than hanging forever", async () => {
-    // A socket that never closes must not hold the process past the runtime's
-    // patience (SIGKILL at 30s in most containers).
+    // A socket that never closes must not keep the process after the patience
+    // of the runtime (SIGKILL at 30s in most containers).
     const shutdown = createShutdown({
       closeServer: () => new Promise<void>(() => {}),
       timeoutMs: 20,

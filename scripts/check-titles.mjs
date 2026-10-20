@@ -1,7 +1,8 @@
 // Checks pull request titles and commit subjects against the conventional
-// commit shape release-please reads. A squash merge takes the PR title, or the
-// commit subject when the PR has one commit, so both reach the changelog.
-// These rules live here and nowhere else; the skills and templates point here.
+// commit shape that release-please reads. A squash merge takes the PR title, or
+// the commit subject when the PR has one commit. Thus, both reach the
+// changelog. These rules are here and in no other place. The skills and
+// templates point here.
 //
 //   node scripts/check-titles.mjs "feat(client): a title" ...
 //   node scripts/check-titles.mjs --commits origin/main..HEAD
@@ -12,7 +13,8 @@ import { readFileSync } from "node:fs";
 
 const TYPES = ["feat", "fix", "perf", "refactor", "docs", "test", "build", "ci", "chore", "revert"];
 const SCOPES = ["client", "server", "shared", "deps"];
-// GitHub appends " (#123)" on merge, and the changelog line should still read as one line.
+// GitHub adds " (#123)" on merge, and the changelog line must still read as one
+// line.
 const MAX_LENGTH = 100;
 const SHAPE = /^(?<type>[a-z]+)(?:\((?<scope>[a-z-]+)\))?!?: (?<description>.+)$/;
 
@@ -25,7 +27,7 @@ const RULES = `A title is "type(scope): description":
 
 /** @param {string} title @returns {string[]} */
 function problems(title) {
-  // The Revert button's own wording; release-please understands it.
+  // The own words of the Revert button. release-please understands them.
   if (/^Revert ".+"$/.test(title)) return [];
   const match = SHAPE.exec(title);
   if (!match?.groups) return ['not "type(scope): description"'];
@@ -42,7 +44,10 @@ function problems(title) {
   return found;
 }
 
-/** The subject of a message file as git will store it: comments and leading blank lines dropped. */
+/**
+ * The subject of a message file as git will store it: comments and leading
+ * blank lines dropped.
+ */
 function subjectOf(path) {
   const line = readFileSync(path, "utf8")
     .split("\n")
@@ -60,8 +65,9 @@ if (mode === "--commits") {
     .filter((line) => line !== "");
 } else if (mode === "--file" && value !== undefined) {
   const subject = subjectOf(value);
-  // Merges, and fixups meant for `rebase --autosquash`, are let through here;
-  // a fixup still on the branch at push time fails the CI run of --commits.
+  // The script lets merges, and fixups for `rebase --autosquash`, through here.
+  // A fixup that is still on the branch at push time fails the CI run of
+  // --commits.
   const exempt = subject === "" || /^(Merge |fixup! |squash! |amend! )/.test(subject);
   titles = exempt ? [] : [subject];
 } else {

@@ -9,7 +9,7 @@ import {
 import { loadAdminOverview } from "#/state/admin.ts";
 import { SetupChecks } from "./SetupChecks.tsx";
 
-/** The jobs the server runs, by the names it gives them. */
+/** The jobs that the server runs, by the names that it gives them. */
 const JOB_NAMES: Record<string, MessageKey> = {
   "trash cleanup": "overview.job.trash",
   "session cleanup": "overview.job.sessions",
@@ -36,9 +36,9 @@ function uptime(seconds: number): string {
 }
 
 /**
- * The admin view's Overview: what the server holds, per account and in all,
- * whether its setup has something to fix, and whether its background jobs
- * are running and how they last went.
+ * The Overview of the admin view: what the server contains, for each account
+ * and in total, if its setup has something to correct, and if its background
+ * jobs run and how they ran last.
  */
 export function AdminOverview() {
   const [overview, setOverview] = useState<AdminOverviewResponse | null>(null);

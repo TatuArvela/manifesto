@@ -2,8 +2,9 @@ export interface AuthCredentials {
   username: string;
   password: string;
   /**
-   * Read only when the account holds a temporary password: the sign-in then
-   * sets this as the password instead of answering `password_change_required`.
+   * The server reads this only when the account has a temporary password. The
+   * sign-in then sets this as the password, and does not answer
+   * `password_change_required`.
    */
   newPassword?: string;
 }
@@ -15,7 +16,9 @@ export interface RegisterRequest {
   email?: string;
 }
 
-/** `PUT /api/v1/auth/me`: the signed-in user's own details. `null` clears. */
+/**
+ * `PUT /api/v1/auth/me`: the own details of the signed-in user. `null` clears.
+ */
 export interface AuthMeUpdateRequest {
   email: string | null;
 }
@@ -34,12 +37,16 @@ export interface AuthUser {
   avatarColor: string;
   email: string | null;
   isAdmin: boolean;
-  /** Whether the account signs in with a password here (and so can change
-   * it, and use two-factor), rather than through single sign-on. Absent from
-   * older servers. */
+  /**
+   * If the account signs in with a password here (and thus can change it, and
+   * use two-factor), not through single sign-on. Absent from older servers.
+   */
   hasPassword?: boolean;
-  /** The language the account's client last reported, used for mail sent to
-   * it; null until one has. Absent from older servers. */
+  /**
+   * The language that the client of the account reported last. The server uses
+   * it for mail to the account. Null until a client reports one. Absent from
+   * older servers.
+   */
   locale?: string | null;
 }
 

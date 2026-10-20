@@ -8,10 +8,10 @@ import { showsTwoFactor } from "./SettingsNav.tsx";
 import { TwoFactorSettings } from "./TwoFactorSettings.tsx";
 
 /**
- * The ways into a local account, together: its password, and the second
- * factor the server offers or the account already has (`showsTwoFactor`).
- * Single sign-on has neither here, so the page is only for an account with
- * a password of its own.
+ * The ways into a local account, together: its password, and the second factor
+ * that the server offers or that the account already has (`showsTwoFactor`).
+ * Single sign-on has neither here. Thus, the page is only for an account with
+ * its own password.
  */
 export function SignInSettings() {
   const [changing, setChanging] = useState(false);
@@ -46,9 +46,9 @@ export function SignInSettings() {
 }
 
 /**
- * Change your own password. Every other session of the account ends and this
- * one carries on. The success message says so, so being signed out on another
- * device comes as no surprise.
+ * Change your own password. All other sessions of the account end, and this
+ * session continues. The success message tells this. Thus, the sign-out on a
+ * different device is not a surprise.
  */
 function PasswordForm({ onDone }: { onDone: () => void }) {
   const [current, setCurrent] = useState("");

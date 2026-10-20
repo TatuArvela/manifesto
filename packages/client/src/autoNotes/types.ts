@@ -12,17 +12,17 @@ export interface PluginSource {
   origin: PluginOrigin;
   lastError?: string | undefined;
   /**
-   * The tags the user has allowed this plugin to read notes from. A plugin
-   * reads a tag only while its source still asks for it (`// @reads`) and it
-   * is here; absent or empty, the plugin reads nothing, as every plugin did
-   * before there was anything to read.
+   * The tags from which the user permits this plugin to read notes. A plugin
+   * reads a tag only while its source still asks for it (`// @reads`) and it is
+   * here. If this is absent or empty, the plugin reads nothing, as all plugins
+   * did before they could read.
    */
   reads?: string[] | undefined;
 }
 
 /**
- * A note as a plugin is shown it: its text and how its owner has filed it,
- * and nothing that points outside the note (no images, no link previews).
+ * A note as a plugin sees it: its text and how its owner keeps it, and nothing
+ * that points outside the note (no images, no link previews).
  */
 export interface PluginNote {
   id: string;
@@ -44,7 +44,7 @@ export interface AutoNoteResult {
   pinned?: boolean;
   tags?: string[];
   position?: number;
-  /** Stable sub-id when a plugin returns multiple notes. */
+  /** A stable sub-id when a plugin returns many notes. */
   key?: string;
 }
 
@@ -52,7 +52,7 @@ export interface PluginContextInput {
   today: string;
   locale: string;
   approxLabels: ApproxLabels;
-  /** The tags the plugin is reading from, and the notes that carry them. */
+  /** The tags from which the plugin reads, and the notes that have them. */
   reads?: string[];
   notes?: PluginNote[];
 }

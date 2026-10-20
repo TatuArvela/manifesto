@@ -1,98 +1,124 @@
 # Reminders
 
-Notes can have a scheduled reminder that fires as a device notification at the chosen time, optionally repeating on a recurrence.
+A note can have a scheduled reminder. The reminder fires as a device notification at the selected
+time. It can repeat on a recurrence.
 
 ## Behavior
 
-- Each note has at most one active reminder
-- A reminder is set via the bell button, which sits second (after the colour) on both the note editor's
-  toolbar and the card's, or from the reminder's own chip on a card that has one
-- The picker offers a date, a time, and a recurrence (none, daily, weekly, monthly, yearly)
-- A reminder chip on the card surfaces the next fire time; past-due reminders are highlighted
-- The sidebar "Reminders" view lists all notes with an active reminder, sorted by next fire time
-- Archived notes still fire their reminders; trashed notes do not
+- Each note has a maximum of one active reminder.
+- To set a reminder, use the bell button. It is the second button (after the color) on the toolbar of
+  the note editor and on the toolbar of the card. On a card that has a reminder, you can also use the
+  chip of the reminder.
+- The picker has a date, a time, and a recurrence (none, daily, weekly, monthly, yearly).
+- A reminder chip on the card shows the next fire time. Reminders that are past due are highlighted.
+- The "Reminders" view in the sidebar lists all notes with an active reminder, sorted by the next
+  fire time.
+- Archived notes still fire their reminders. Trashed notes do not.
 
 ## Delivery
 
-Reminders are delivered via three paths on the device, in priority order, and in connected mode a fourth
-from the server for when none of those is awake (see [Push from the server](#push-from-the-server)):
+The device delivers reminders through three paths, in this order of priority. In connected mode, a
+fourth path from the server operates when none of these is awake (see
+[Push from the server](#push-from-the-server)):
 
-1. **Service worker notification (primary).** When notifications permission is granted, a service worker schedules reminders in IndexedDB and calls `showNotification` when they are due. This path fires even when the tab is closed, subject to the browser waking the service worker (Chromium with Periodic Background Sync is the most reliable; Firefox and Safari are best-effort).
-2. **From the open page (fallback while the tab is open).** The page maintains a `setTimeout` per upcoming reminder and shows the notification through its service worker registration, falling back to the page's own `Notification` only where there is no worker. The worker path is what works on phones: Chrome on Android refuses `new Notification()` and an installed iOS app has none. Catches missed fires via `visibilitychange` when the tab regains focus (within a one-hour window).
-3. **In-app banner (fallback when permission is denied).** The app renders a dismissible banner linking to the note. No OS notification is shown.
+1. **Service worker notification (primary).** When the user gives notification permission, a
+   service worker schedules reminders in IndexedDB, and calls `showNotification` when they are due.
+   This path fires also when the tab is closed, if the browser wakes the service worker. Chromium
+   with Periodic Background Sync is the most reliable. In Firefox and Safari, the result is not
+   guaranteed.
+2. **From the open page (fallback while the tab is open).** The page keeps one `setTimeout` for each
+   upcoming reminder. It shows the notification through the registration of its service worker. Only
+   when there is no worker does it use the `Notification` of the page. The worker path is the path
+   that works on phones: Chrome on Android refuses `new Notification()`, and an installed iOS app has
+   no `Notification`. When the tab gets focus again, `visibilitychange` finds missed fires (in a
+   window of one hour).
+3. **In-app banner (fallback when permission is denied).** The app shows a banner with a link to the
+   note. You can dismiss the banner. The OS shows no notification.
 
-Tapping a notification focuses an open window and opens the note there. With no window open it starts the app at its own scope (not the origin root, so an instance under a subpath works) with `?note=<id>`, which the app opens once and removes from the URL.
+When you tap a notification, it focuses an open window and opens the note there. If no window is
+open, it starts the app at its own scope (not at the root of the origin, so that an instance under a
+subpath works), with `?note=<id>`. The app opens that note one time, and removes the parameter from
+the URL.
 
-Each fire is deduplicated across the two notification paths by:
+These two things prevent a duplicate fire across the two notification paths:
 
-- Using the note id as the notification `tag` (the OS coalesces same-tag notifications)
-- A 60-second `lastFiredAt` window stored on the reminder
+- The note id is the notification `tag`. The OS combines notifications with the same tag.
+- The reminder stores a 60-second `lastFiredAt` window.
 
 ## Push from the server
 
-A service worker fires a reminder only while the browser lets it run, which a phone with the app closed
-mostly does not. In connected mode the server covers that: a reminder that comes due and that no device
-has fired is sent as a Web Push message, which the browser's push service delivers to the installed
-app whether or not it is open (iOS 16.4 or later for an app added to the Home Screen, Android, and
-desktop browsers).
+A service worker fires a reminder only while the browser lets it run. On a phone with the app closed,
+this usually does not occur. In connected mode, the server does this work. If a reminder becomes due
+and no device fired it, the server sends it as a Web Push message. The push service of the browser
+delivers it to the installed app, also when the app is not open (iOS 16.4 or later for an app added
+to the Home Screen, Android, and desktop browsers).
 
-- **Who gets it.** Every browser of the account that allows notifications and holds a subscription.
-  A browser subscribes by itself: when notifications are allowed (asked, as before, when the first
-  reminder is saved) and at each start after that, it fetches the server's push key, subscribes at
-  its own push service, and hands the subscription to the server. There is no setting to turn on.
-- **When.** The server looks every 30 seconds and steps in for a reminder that has been due for
-  45 seconds without being fired. An open app fires its reminder on time and moves it on within a
-  moment, so the server only ever acts on one that no client handled: a reminder does not arrive
-  twice, and one for a closed app arrives up to about a minute late. One more than an hour overdue
-  is left alone, as on the device.
-- **What it does to the reminder.** Exactly what a client firing it does: a repeating reminder moves to
-  its next occurrence, by the same rules (the maths is shared code, `reminderTime.ts` in
-  `@manifesto/shared`), and one that does not repeat is marked fired. The write reaches open clients
-  as any change does, and the message tells the service worker where the reminder went, so its own
-  list does not fire the same occurrence again.
-- **The time zone.** A reminder's time is a wall-clock time. The server reads it in the zone the
-  reminder was made in (`NoteReminder.timezone`), not its own.
-- **What is sent, and to whom.** The server cannot read a note
-  ([Encryption](encryption.md#reminders)), so it sends the note's title and the first 140
-  characters of its text as it holds them, sealed, with the note's key as its reader keeps it.
-  The service worker opens them with the account key the device holds while it is signed in, and
-  shows the title (for an untitled note "Untitled reminder", in the language the account last used
-  the app in) and that text. A device that is signed out shows "Untitled reminder" and nothing of
-  the note. The whole message is also encrypted to the browser's subscription keys (RFC 8291), so
-  the push service that carries it (Google's, Apple's or Mozilla's) cannot read even that much. The request is signed with the server's own key
-  (VAPID, RFC 8292), which is made on first use and kept in the database; nothing has to be
-  configured. Both are written over `node:crypto` in `push/webPush.ts` rather than taken from a
-  library, and the encryption is tested against the RFC's own example.
-- **How it ends.** A subscription belongs to the session the browser was signed in with and goes when
-  that session does: signing out there, a password change, an admin ending the account's sessions, or
-  the session expiring. It also goes when the push service reports it gone, or after ten failed sends
-  in a row. An account keeps the ten most recent.
-- **Tapping** the notification opens the note, as any other reminder's does.
+- **Who gets it.** Each browser of the account that permits notifications and has a subscription. A
+  browser subscribes automatically. When notifications are permitted (the app asks, as before, when
+  you save the first reminder), and at each start after that, it gets the push key of the server,
+  subscribes at its own push service, and gives the subscription to the server. There is no setting
+  to turn on.
+- **When.** The server examines the reminders each 30 seconds. It acts on a reminder that is due for
+  45 seconds and that no device fired. An open app fires its reminder on time, and moves it on almost
+  immediately. Thus, the server only acts on a reminder that no client handled. A reminder does not
+  arrive two times. A reminder for a closed app arrives up to approximately one minute late. The
+  server ignores a reminder that is more than one hour overdue, as the device does.
+- **What it does to the reminder.** It does the same as a client that fires it. A repeating reminder
+  moves to its next occurrence, by the same rules (the calculation is shared code, `reminderTime.ts`
+  in `@manifesto/shared`). A reminder that does not repeat gets the mark fired. The write goes to
+  open clients as all changes do. The message tells the service worker the new time of the reminder.
+  Thus, its own list does not fire the same occurrence again.
+- **The time zone.** The time of a reminder is a wall-clock time. The server reads it in the zone
+  where the reminder was made (`NoteReminder.timezone`), not in its own zone.
+- **What is sent, and to whom.**
+  - The server cannot read a note ([Encryption](encryption.md#reminders)). Thus, it sends the title
+    of the note and the first 140 characters of its text as it keeps them: sealed, with the key of
+    the note as its reader keeps it.
+  - The service worker opens them with the account key, which the device keeps while it is signed in.
+    It shows the title and that text. For an untitled note, the title is "Untitled reminder", in the
+    language that the account used last in the app.
+  - A device that is signed out shows "Untitled reminder", and no data of the note.
+  - The full message is also encrypted to the subscription keys of the browser (RFC 8291). Thus, the
+    push service that carries it (of Google, Apple or Mozilla) cannot read it.
+  - The request is signed with the key of the server (VAPID, RFC 8292). The server makes the key on
+    the first use, and keeps it in the database. You do not have to configure anything.
+  - We wrote both with `node:crypto` in `push/webPush.ts`. We did not use a library. A test compares
+    the encryption with the example in the RFC.
+- **How it ends.** A subscription belongs to the session of the browser, and ends with that session:
+  a sign-out there, a password change, an admin who ends the sessions of the account, or the expiry
+  of the session. It also ends when the push service reports that it is gone, or after ten failed
+  sends in sequence. An account keeps the ten most recent subscriptions.
+- **Tapping** the notification opens the note, as for all other reminders.
 
-A host turns this off with `WEB_PUSH=off` (see [Server Deployment](../server/deployment.md)); reminders
-then arrive as they do in open mode. Open mode has no server to send anything and stays best-effort.
+A host turns this off with `WEB_PUSH=off` (see [Server Deployment](../server/deployment.md)). Then
+reminders arrive as in open mode. Open mode has no server to send messages, and its delivery is not
+guaranteed.
 
 ## Recurrence
 
-When a recurring reminder fires, the stored `time` is advanced to the next occurrence:
+When a recurring reminder fires, the app moves the stored `time` to the next occurrence:
 
 - `daily`: +1 day
 - `weekly`: +7 days
-- `monthly`: the same day next month, or that month's last day when it is shorter
-- `yearly`: the same date next year, with 29 February falling back to the 28th outside a leap year
+- `monthly`: the same day in the next month, or the last day of that month if the month is shorter
+- `yearly`: the same date in the next year. Outside a leap year, 29 February becomes the 28th.
 
-A shorter month moves one occurrence, not the reminder: each step starts from the day the reminder was
-set for, so the 31st goes to 28 February and back to 31 March, and 29 February returns in the next leap
-year. While a clamped `time` hides that day, the reminder carries it as `day`; it is dropped again once
-`time` shows it. Changing only the hour in the picker keeps it; a new date or recurrence starts over.
+A shorter month moves one occurrence, not the reminder. Each step starts from the day that the
+reminder was set for. Thus, the 31st goes to 28 February, and back to 31 March. 29 February comes
+back in the next leap year. While a clamped `time` hides that day, the reminder keeps it as `day`.
+The app removes `day` again when `time` shows that day. If you change only the hour in the picker, the
+reminder keeps `day`. A new date or a new recurrence starts again.
 
-Arithmetic operates on local components, so a reminder at 08:00 local stays at 08:00 across DST transitions.
+The calculation uses local components. Thus, a reminder at 08:00 local time stays at 08:00 across DST
+changes.
 
 ## Permission Flow
 
-- Permission is requested only when the user saves their first reminder
-- If granted: the service worker is registered (if supported) and Periodic Background Sync is requested with a 15-minute minimum interval
-- If denied: the reminder is still saved and will fire via the in-app banner when the tab is open. A one-time toast explains this
+- The app asks for permission only when the user saves their first reminder.
+- If the user gives permission: the app registers the service worker (if possible), and requests
+  Periodic Background Sync with a minimum interval of 15 minutes.
+- If the user refuses: the app still saves the reminder. It fires through the in-app banner when the
+  tab is open. A toast tells this one time.
 
 ## Data Model
 
@@ -100,30 +126,37 @@ See [Data Model: NoteReminder](../data-model.md#notereminder).
 
 ## Calendar Feed
 
-In connected mode, a user's reminders can show in any calendar app that subscribes to a feed (a phone's
-calendar, Thunderbird, Google Calendar by URL). In Settings → API tokens, a **Calendar feed** token
-gives an address to subscribe to, and a `webcal:` link that opens the device's calendar app with it.
+In connected mode, a calendar app that subscribes to a feed can show the reminders of a user (the
+calendar of a phone, Thunderbird, Google Calendar by URL). In Settings → API tokens, a **Calendar
+feed** token gives an address to subscribe to. It also gives a `webcal:` link that opens the calendar
+app of the device with that address.
 
-- Each note with a reminder is an event at the reminder's time, in its timezone, repeating daily,
-  weekly, monthly or yearly as the reminder does, with an alarm when it is due. A monthly or yearly
-  reminder past the 28th repeats on "the last of the 28th to its day" (`BYMONTHDAY` with
-  `BYSETPOS=-1`), since `FREQ=MONTHLY` alone skips the months without its date where the app fires
-  on their last day. A note in the trash is
-  left out. The event is named by the note's title, or its first line when it has none, and holds its
-  text.
-- The feed is read-only: moving an event in the calendar does not move the reminder.
-- The address is the secret. It is shown once, when the token is made, and anyone who has it can read
-  the reminders; revoking the token in Settings stops the feed. It opens nothing else, and is not a
-  sign-in token anywhere.
-- Notes are [encrypted](encryption.md#tokens-that-carry-a-key), so the address carries a key: the
-  one that opens the notes that have a reminder, and no others. A reminder set by a script shows as
-  "Reminder", without the note's name or text, until the app has next been open on that account.
-- Calendar apps fetch the feed on their own schedule, often every few hours, so a changed reminder can
-  take that long to show there. The app's own notifications stay the ones that arrive on time.
-- The calendar is named after the token, so two devices can each have their own.
+- Each note with a reminder is an event at the time of the reminder, in its time zone. The event
+  repeats daily, weekly, monthly or yearly, as the reminder does. It has an alarm when it is due.
+- A monthly or yearly reminder after the 28th repeats on "the last of the 28th to its day"
+  (`BYMONTHDAY` with `BYSETPOS=-1`). `FREQ=MONTHLY` alone skips the months that do not have that
+  date, but the app fires on the last day of those months.
+- A note in the trash is not in the feed.
+- The name of the event is the title of the note, or its first line if it has no title. The event
+  contains the text of the note.
+- The feed is read-only. If you move an event in the calendar, the reminder does not move.
+- The address is the secret. The app shows it one time, when you make the token. All persons who have
+  it can read the reminders. To stop the feed, revoke the token in Settings. The address opens
+  nothing else, and it is not a sign-in token.
+- Notes are [encrypted](encryption.md#tokens-that-carry-a-key). Thus, the address contains a key:
+  the key that opens the notes that have a reminder, and no other notes. A reminder that a script set
+  shows as "Reminder", without the name or the text of the note, until the next time that the app is
+  open on that account.
+- Calendar apps get the feed on their own schedule, frequently each few hours. Thus, a changed
+  reminder can take that long to show there. The notifications of the app still arrive on time.
+- The name of the calendar is the name of the token. Thus, two devices can each have their own
+  calendar.
 
 ## Limitations
 
-- In open mode, or on a server with `WEB_PUSH=off`, reminders while the tab is closed depend on the browser waking the service worker. This is best-effort; if the browser is fully closed, reminders queue until the next app open and fire on visibility change
-- A pushed reminder arrives up to about a minute after it is due, the price of never arriving twice
-- Reminders are local to the device; they are not synced across devices in open mode
+- In open mode, or on a server with `WEB_PUSH=off`, reminders while the tab is closed need the
+  browser to wake the service worker. This is not guaranteed. If the browser is fully closed,
+  reminders wait until the app opens again, and fire on the visibility change.
+- A pushed reminder arrives up to approximately one minute after it is due. This delay makes sure
+  that it never arrives two times.
+- Reminders are local to the device. In open mode, they do not sync between devices.

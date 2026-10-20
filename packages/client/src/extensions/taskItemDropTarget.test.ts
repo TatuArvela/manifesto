@@ -40,7 +40,7 @@ describe("slotAt", () => {
 
 describe("neighborIndex", () => {
   it("steps over the item being dragged", () => {
-    // Dragging item 2 of 0..4, aimed between items 2 and 3.
+    // A drag of item 2 of 0..4, aimed between items 2 and 3.
     expect(neighborIndex(3, 2, "above")).toBe(1);
     expect(neighborIndex(3, 2, "below")).toBe(3);
     // Aimed between items 1 and 2.
@@ -85,7 +85,7 @@ describe("dropLevel", () => {
   });
 
   it("goes no shallower than the item below, which would become its child", () => {
-    // Dropped between a level 2 and a level 3 item, pulled far left.
+    // Dropped between a level 2 item and a level 3 item, pulled far left.
     const items = list(1, 2, 3, 1);
     expect(dropLevel(items, 2, 3, 3, -INDENT_PX * 5, false)).toBe(3);
   });

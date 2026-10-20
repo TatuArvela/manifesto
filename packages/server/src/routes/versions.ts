@@ -11,10 +11,10 @@ type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * The time to file a version under: the one a client brought, when it is a
- * real moment within the history's life and not in the future, else now. A
- * history kept in a browser comes across with its own dates this way, and a
- * client cannot file a version where it would never be pruned.
+ * The time under which to keep a version: the time that a client brought, when
+ * it is a real time within the life of the history and not in the future.
+ * Otherwise, now. Thus, a history kept in a browser comes across with its own
+ * dates, and a client cannot put a version where it would never be pruned.
  */
 export function versionTimestamp(
   asked: string | undefined,
@@ -29,9 +29,9 @@ export function versionTimestamp(
 }
 
 /**
- * `/api/v1/notes/:id/versions`: connected mode's version history, the same for
- * everyone holding the note. Anyone who can read the note reads it; only
- * those who can change the text (owner, editors) add to it.
+ * `/api/v1/notes/:id/versions`: the version history of connected mode, the same
+ * for all persons who have the note. All persons who can read the note can read
+ * it. Only those who can change the text (owner, editors) can add to it.
  */
 export function registerVersionRoutes(
   notes: AuthedApp,
@@ -64,7 +64,7 @@ export function registerVersionRoutes(
     if (!version) {
       throw new HttpError(409, "This token cannot open the note's key");
     }
-    // The id is the client's, or for a token the server's: the sealed values
+    // The client selects the id, or the server for a token. The sealed values
     // are bound to it.
     const added = await storage.versions.add({
       id: version.id,

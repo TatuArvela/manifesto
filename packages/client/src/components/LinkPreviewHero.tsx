@@ -8,9 +8,9 @@ export function LinkPreviewHero({
 }: {
   preview: LinkPreview;
   /**
-   * Stretch to the height of a flex column instead of keeping 16:9: a square
-   * card is taller than that, and a fixed-shape hero left its bottom third as
-   * bare note colour.
+   * Stretch to the height of a flex column, and do not keep 16:9. A square card
+   * is taller than that, and a hero with a fixed shape left its bottom third as
+   * bare note color.
    */
   fill?: boolean;
 }) {
@@ -19,8 +19,8 @@ export function LinkPreviewHero({
       href={preview.url}
       target="_blank"
       rel="noopener noreferrer"
-      // The card is what a drag picks up. A link, or the picture in it, is
-      // draggable by default, and the nearest draggable wins.
+      // A drag picks up the card. A link, or the picture in it, is draggable by
+      // default, and the nearest draggable element wins.
       draggable={false}
       class={`block relative ${fill ? "flex-1 min-h-0" : "aspect-video"} w-full bg-black/70 overflow-hidden no-underline text-white`}
       onClick={(e) => e.stopPropagation()}

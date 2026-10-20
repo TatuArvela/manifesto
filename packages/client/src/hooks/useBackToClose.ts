@@ -2,10 +2,10 @@ import { useLayoutEffect, useRef } from "preact/hooks";
 import { openHistoryLayer } from "#/state/sheetHistory.ts";
 
 /**
- * Makes the browser's back call `onBack` while `active`. A sheet passes its
- * open state, so its entry goes as soon as it starts to close. An `onBack`
- * that returns `false` has kept the sheet open (it is asking first), and back
- * stays its own. How the entries are kept is in `state/sheetHistory.ts`.
+ * Makes the back of the browser call `onBack` while `active`. A sheet gives its
+ * open state. Thus, its entry goes when it starts to close. An `onBack` that
+ * returns `false` kept the sheet open (it asks first), and back stays with it.
+ * `state/sheetHistory.ts` tells how the entries are kept.
  */
 export function useBackToClose(active: boolean, onBack: () => unknown): void {
   const handler = useRef(onBack);

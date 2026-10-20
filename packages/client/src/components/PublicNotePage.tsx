@@ -15,16 +15,16 @@ import { renderMarkdown } from "#/utils/remarkRenderer.ts";
 import { buttonClass } from "./buttonClasses.ts";
 
 /**
- * The page a public link opens, rendered in place of the app: no account, no
- * board, one note. It reads the note once (which counts a view), asks for the
- * password first when the link has one, and says the same thing however a
- * link fails, as the server does.
+ * The page that a public link opens, rendered in place of the app: no account,
+ * no board, one note. It reads the note one time (which counts a view). It asks
+ * for the password first when the link has one. It says the same thing for all
+ * failures of a link, as the server does.
  */
 export function PublicNotePage({ token }: { token: string }) {
   const [result, setResult] = useState<PublicNoteResult | null>(null);
 
   useEffect(() => {
-    // Read once: a second read would count a second view.
+    // Read one time. A second read would count a second view.
     void openPublicNote(token).then(setResult);
   }, [token]);
 
@@ -161,7 +161,7 @@ function PublicNoteView({
         <div
           class="prose dark:prose-invert max-w-none break-words"
           style={{ fontFamily: font }}
-          // Sanitized by `renderMarkdown` (DOMPurify), as everywhere else.
+          // Sanitized by `renderMarkdown` (DOMPurify), as in all other places.
           dangerouslySetInnerHTML={{ __html: contentHtml }}
         />
       )}

@@ -2,19 +2,20 @@ import type { RefObject } from "preact";
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
 
 /**
- * The width of one grid column, read off a hidden ruler: a grid laid out like
- * the board's, holding one empty cell. `undefined` until it has been measured.
+ * The width of one grid column, read from a hidden ruler: a grid with the same
+ * layout as the board, with one empty cell. `undefined` until it is measured.
  *
- * A layout effect, not an effect: whatever takes this width has none of its
- * own until it runs, so measuring after paint leaves it stretched across the
- * whole column area for a frame, very visible on leaving the search view,
- * which remounts the composer with the width unknown again. A zero reading is
- * ignored rather than applied: the ruler measures nothing while its view is
- * not the one shown, and 0px would collapse what it sizes when it comes back.
+ * A layout effect, not an effect. The element that takes this width has no
+ * width of its own until it runs. Thus, a measurement after paint leaves it
+ * stretched across the full column area for one frame. This is very visible
+ * when you leave the search view, which mounts the composer again with the
+ * width unknown. The code ignores a zero reading, and does not apply it. The
+ * ruler measures nothing while its view does not show, and 0px would collapse
+ * what it sizes when it comes back.
  *
- * Measured again whenever `measuring` turns true. `App` keeps the composer
- * mounted in the archive, trash and reminders views, where there is no ruler;
- * mounted in one of those, it would come back to the notes view never measured.
+ * Measured again each time `measuring` becomes true. `App` keeps the composer
+ * mounted in the archive, trash and reminders views, where there is no ruler.
+ * Mounted in one of those, it would come back to the notes view never measured.
  */
 export function useColumnWidth(measuring: boolean): {
   rulerRef: RefObject<HTMLDivElement | null>;
@@ -36,8 +37,8 @@ export function useColumnWidth(measuring: boolean): {
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(ruler);
-    // The cell too: switching to small notes changes the column count, which
-    // narrows the cell while the ruler keeps its width.
+    // Also the cell. A change to small notes changes the number of columns,
+    // which makes the cell narrower, while the ruler keeps its width.
     observer.observe(cell);
     return () => observer.disconnect();
   }, [measuring]);

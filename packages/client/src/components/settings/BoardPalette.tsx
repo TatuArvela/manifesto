@@ -13,10 +13,10 @@ const selectedClass =
 const swatchClass = "w-6 h-6 sm:w-7 sm:h-7 rounded-full cursor-pointer";
 
 /**
- * One of the board's two colours, as a card of swatches four across. Its
- * first row is the two choices that are not a colour, "none" and "random",
- * each as wide as two swatches, where they sit in every picker on the page;
- * then the neutrals and the native picker, then the presets.
+ * One of the two colors of the board, as a card of swatches, four across. Its
+ * first row is the two choices that are not a color, "none" and "random", each
+ * as wide as two swatches, where they are in each picker on the page. Then the
+ * neutrals and the native picker, then the presets.
  */
 export function BoardPalette({
   legend,
@@ -32,10 +32,10 @@ export function BoardPalette({
 }: {
   legend: string;
   value: BoardColorChoice;
-  /** False while the picture is on the board, so nothing here is marked. */
+  /** False while the picture is on the board. Thus, nothing here has a mark. */
   selected: boolean;
   noneLabel: string;
-  /** What "random" stands for now, which its swatch is drawn in once picked. */
+  /** What "random" means now. Its swatch shows in it after the selection. */
   randomShows: Exclude<BoardColorChoice, "random">;
   /** The `data-board-swatch` that draws `customValue` as the board would. */
   customSwatch: "custom" | "gradient-custom";
@@ -80,7 +80,7 @@ export function BoardPalette({
           data-board-swatch={value === "random" ? randomShows : "none"}
           class={`board-swatch col-span-2 h-6 sm:h-7 rounded-full cursor-pointer flex items-center justify-center ${ringClass} ${marked("random") ? selectedClass : ""}`}
           onClick={() => {
-            // Picking "random" again is how to ask for another.
+            // A new selection of "random" is how to ask for a different one.
             if (value === "random") onReroll();
             onPick("random");
           }}

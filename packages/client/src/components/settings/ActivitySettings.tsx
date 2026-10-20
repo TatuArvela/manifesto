@@ -4,9 +4,9 @@ import { loadAccountActivity } from "#/state/account/accountActivity.ts";
 import { SERVER_ORIGIN } from "#/state/account/auth.ts";
 
 /**
- * The account's Activity page: the lines of the audit log about this user,
- * so what an admin can see about someone, that person can see too, including
- * an admin downloading their notes.
+ * The Activity page of the account: the lines of the audit log about this user.
+ * Thus, what an admin can see about a person, that person can also see, also a
+ * download of their notes by an admin.
  */
 export function ActivitySettings() {
   return (

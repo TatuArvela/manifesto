@@ -1,6 +1,7 @@
 # Server
 
-The Manifesto server is a separate, optional application that provides persistent storage, authentication, and multi-user support.
+The Manifesto server is a separate, optional application. It gives persistent storage,
+authentication, and support for many users.
 
 ## Tech Stack
 
@@ -10,137 +11,211 @@ The Manifesto server is a separate, optional application that provides persisten
 | Hono            | HTTP framework                   |
 | TypeScript      | Language (strict mode)           |
 | better-sqlite3  | Default SQLite storage driver    |
-| Hocuspocus + Yjs | Collaborative editing transport |
+| Hocuspocus + Yjs | Transport for collaborative editing |
 | argon2          | Password hashing (local auth)    |
 
 ## Architecture
 
-The server is split into two pluggable layers behind narrow interfaces. Both are selected at boot via environment variables; the rest of the codebase only depends on the interfaces, never on a concrete implementation.
+The server has two pluggable layers behind narrow interfaces. Environment variables select both when
+the server starts. The other code depends only on the interfaces, never on a concrete
+implementation.
 
 ### Storage drivers
 
-Storage is abstracted as a `StorageDriver`. Two implementations ship today:
+A `StorageDriver` is the abstraction of the storage. There are two implementations now:
 
-- **SQLite** (`better-sqlite3`, `STORAGE_DRIVER=sqlite`, the default): single file, zero config, ideal for self-hosted single-server deployments.
-- **Postgres** (`pg`, `STORAGE_DRIVER=postgres`): managed database, suitable for scale-out and team deployments.
+- **SQLite** (`better-sqlite3`, `STORAGE_DRIVER=sqlite`, the default): one file, no configuration.
+  It is the best choice for a self-hosted deployment on one server.
+- **Postgres** (`pg`, `STORAGE_DRIVER=postgres`): a managed database. It is correct for scale-out
+  and for team deployments.
 
-Both drivers implement the same interface; the rest of the server is identical regardless of which one is selected.
+Both drivers implement the same interface. The other parts of the server are the same, whatever
+driver you select.
 
-The driver bundles six repositories:
+The driver has six repositories:
 
 | Repository      | Purpose                                                          |
 |-----------------|------------------------------------------------------------------|
 | `users`         | User accounts (local password or external IdP), admin rights and email addresses |
-| `sessions`      | Bearer-token sessions for both local and SSO logins              |
-| `notes`         | Note CRUD and search, over the notes a user owns and those shared with them |
-| `shares`        | Invitations and shares: who a note is shared with, and on what terms |
-| `yjs`           | Persisted Y.Doc state for collaborative editing                  |
-| `maintenance`   | Background jobs (e.g. trash cleanup) that need bulk DB access    |
+| `sessions`      | Bearer-token sessions for local logins and SSO logins            |
+| `notes`         | Note operations and search, over the notes that a user owns and the notes shared with them |
+| `shares`        | Invitations and shares: with whom a note is shared, and with which rights |
+| `yjs`           | The persisted Y.Doc state for collaborative editing              |
+| `maintenance`   | Background jobs (for example, trash cleanup) that need bulk database access |
 
-Adding another driver means implementing these six interfaces and registering the driver in `src/storage/index.ts`. No other module needs to change.
+To add a driver, implement these six interfaces, and register the driver in
+`src/storage/index.ts`. No other module must change.
 
 #### Driver tradeoffs
 
-- **SQLite**: zero-configuration, a single file, backed up with SQLite's own `.backup` rather than `cp` (the driver runs WAL; see [Backups](deployment.md#backups)). Fast and ideal for one-server deployments. Pure synchronous writes (better-sqlite3) keep latencies tiny on a notes workload.
-- **Postgres**: required for any deployment that wants to scale beyond one app server, share state with other services, or use managed-database backups. The schema mirrors SQLite's; `yjs_state` lives in `BYTEA`.
+- **SQLite**: no configuration, one file. Make a backup with the `.backup` command of SQLite, not
+  with `cp` (the driver runs WAL; see [Backups](deployment.md#backups)). It is fast and is the best
+  choice for a deployment on one server. Synchronous writes (better-sqlite3) keep the latencies very
+  small for a notes workload.
+- **Postgres**: necessary for a deployment with more than one app server, a deployment that shares
+  state with other services, or a deployment that uses the backups of a managed database. The schema
+  is the same as that of SQLite. `yjs_state` is in `BYTEA`.
 
 #### Schema migrations
 
-Each driver declares an ordered list of migrations, and a `schema_migrations`
-table in the database records which have run. On boot the driver applies the
-ones that are missing, each in its own transaction, and writes its ledger row
-in the same transaction, so a step that fails leaves behind neither half of a
-schema change nor a claim to have made it.
+Each driver declares an ordered list of migrations. A `schema_migrations` table in the database
+records which migrations ran. When the server starts, the driver applies the missing migrations.
+Each migration runs in its own transaction. The driver writes its ledger row in the same
+transaction. Thus, if a step fails, it leaves no half of a schema change, and no record that it made
+the change.
 
-Several instances may boot against one Postgres database at once (a rolling
-deploy, two replicas). Each step is taken under a database advisory lock and
-checked against the ledger again once the lock is held, so one instance runs it
-and the others wait and then skip it. SQLite has one writer at a time by
-nature, and one server per file.
+Many instances can start against one Postgres database at the same time (a rolling deploy, two
+replicas). Each step runs under a database advisory lock. When the instance has the lock, it checks
+the ledger again. Thus, one instance runs the step, and the others wait and then skip it. SQLite has
+one writer at a time by design, and one server for each file.
 
-Both drivers ship the same migration ids, in the same order; a test fails if
-they diverge. The SQL differs where the dialects do (SQLite has no boolean
-type and no `BYTEA`; Postgres has no `COLLATE NOCASE`), but what a database has
-been through is described the same way either side.
+Both drivers have the same migration ids, in the same order. A test fails if they are different. The
+SQL is different where the dialects are different (SQLite has no boolean type and no `BYTEA`;
+Postgres has no `COLLATE NOCASE`). But both sides describe the history of a database in the same way.
 
-A migration id is a promise: once a release has shipped it, it is never
-renamed and never removed, because a deployed database remembers having run it.
-A driver that finds an applied migration it no longer declares refuses to start
-rather than stacking later steps on a schema it cannot describe.
+A migration id is a promise. After a release contains it, we never rename it and never remove it,
+because a deployed database remembers that it ran. If a driver finds an applied migration that it
+does not declare now, it does not start. It does not add later steps on a schema that it cannot
+describe.
 
 ### Authentication providers
 
-Authentication is abstracted as an `AuthProvider`. The provider:
+An `AuthProvider` is the abstraction of authentication. The provider:
 
-- Implements `authenticate(token)`, which turns a bearer token into an identity (used by HTTP middleware and both WebSocket handshakes).
-- Owns its own router, mounted under `/api/v1/auth`. The local provider mounts `/register`, `/login`, `/logout`, `/password`. The OIDC provider mounts `/login` (302 to the IdP), `/callback`, and `/logout`. App-level services a route needs, such as session revocation, are handed to `router()` when it is mounted rather than to the provider when it is built.
+- Implements `authenticate(token)`, which changes a bearer token into an identity. The HTTP
+  middleware and both WebSocket handshakes use it.
+- Owns its own router, mounted under `/api/v1/auth`. The local provider mounts `/register`,
+  `/login`, `/logout` and `/password`. The OIDC provider mounts `/login` (302 to the IdP),
+  `/callback` and `/logout`. The app-level services that a route needs, for example session
+  revocation, go to `router()` when it mounts. They do not go to the provider when it is built.
 
-Two implementations ship today:
+There are two implementations now:
 
-- **`local`** (default): username + argon2-hashed password, sessions stored server-side. Mounts `/register`, `/login`, `/logout`, `/password`.
-- **`oidc`**: OAuth 2.0 Authorization Code Flow with PKCE against any OpenID Connect IdP (Authentik, Keycloak, Google, Auth0, Okta, etc.). Mounts `/login` (redirect to IdP), `/callback` (code exchange + JIT user provisioning + session mint), `/logout`. The IdP is contacted only at login time; once a session is minted, `authenticate(token)` is identical to the local provider: pure session lookup, no IdP round-trip per request.
+- **`local`** (default): username and argon2-hashed password. The server stores the sessions. It
+  mounts `/register`, `/login`, `/logout` and `/password`.
+- **`oidc`**: OAuth 2.0 Authorization Code Flow with PKCE, against an OpenID Connect IdP (Authentik,
+  Keycloak, Google, Auth0, Okta and others). It mounts `/login` (redirect to the IdP), `/callback`
+  (code exchange, user provisioning just in time, and a new session) and `/logout`. The server
+  contacts the IdP only at login. After the server makes a session, `authenticate(token)` is the same
+  as for the local provider: only a session lookup, with no IdP round trip for each request.
 
-The server also exposes provider-agnostic auth endpoints used by the client, `GET /api/v1/auth/me` (bearer-protected, returns the current user; used after an OIDC callback when the client only has a token in the URL fragment). How to sign in is part of the public `GET /api/v1/capabilities`, which the client reads to pick the login UI.
+The server also has auth endpoints that do not depend on the provider, for the client:
+`GET /api/v1/auth/me` (bearer-protected, returns the current user). The client uses it after an OIDC
+callback, when it has only a token in the URL fragment. The public `GET /api/v1/capabilities` tells
+how to sign in. The client reads it to select the login UI.
 
-The `users` schema supports both modes: `password_hash` is nullable, and `(provider, external_id)` is the IdP-stable identity. Local and SSO users coexist in the same table; account linking across providers is not supported in v1.
+The `users` schema supports both modes: `password_hash` is nullable, and `(provider, external_id)`
+is the stable identity from the IdP. Local users and SSO users are in the same table. Version 1 does
+not support account links across providers.
 
 ### REST API
 
-Implements the endpoints defined in [API](../api.md). The auth provider owns `/api/v1/auth/*`; the rest of the surface is static.
+The server implements the endpoints in [API](../api.md). The auth provider owns `/api/v1/auth/*`.
+The other routes are static.
 
 ### Administration
 
-`/api/v1/admin` (`src/routes/admin.ts`) lets admins list, create, reset, promote and delete accounts; see [Account Administration](../features/accounts.md). It is provider-agnostic, except that creating accounts and resetting passwords exist only under `AUTH_PROVIDER=local`.
+`/api/v1/admin` (`src/routes/admin.ts`) lets admins list, create, reset, promote and delete accounts.
+See [Account Administration](../features/accounts.md). It does not depend on the provider. The
+exceptions are the creation of accounts and the reset of passwords, which exist only with
+`AUTH_PROVIDER=local`.
 
-The rules that must hold whatever calls them live in the `users` repository, so both drivers enforce them and a shared contract test (`src/storage/contracts/adminContract.ts`) runs against each:
+The rules that must apply for all callers are in the `users` repository. Thus, both drivers enforce
+them, and a shared contract test (`src/storage/contracts/adminContract.ts`) runs against each driver:
 
-- `create` makes an account admin when asked to, or otherwise exactly when it is the first, decided inside the `INSERT`. Under single sign-on the first sign-in is how a server gets its admin.
-- `setAdmin` and `delete` refuse to remove the last admin. SQLite runs the count and the write in an immediate transaction; Postgres locks every admin row (`FOR UPDATE`, in id order) before counting, so two admins demoting each other at once cannot both succeed.
+- `create` makes an account admin when the caller asks for it. If not, it makes the account admin
+  only when it is the first account. The `INSERT` decides this. With single sign-on, the first
+  sign-in gives a server its admin.
+- `setAdmin` and `delete` refuse to remove the last admin. SQLite runs the count and the write in an
+  immediate transaction. Postgres locks all admin rows (`FOR UPDATE`, in id order) before it counts.
+  Thus, if two admins demote each other at the same time, both cannot succeed.
 
-Under local sign-in, `ensureInitialAdmin` (`src/auth/initialAdmin.ts`) runs in `src/index.ts` before the server listens. When no admin has a password of their own it creates `admin` with a temporary password, or gives the still-unclaimed one a fresh password, and prints it regardless of `LOG_LEVEL`. See [The initial admin](../features/accounts.md#the-initial-admin).
+With local sign-in, `ensureInitialAdmin` (`src/auth/initialAdmin.ts`) runs in `src/index.ts` before
+the server listens. When no admin has their own password, it creates `admin` with a temporary
+password, or gives the unclaimed `admin` a new password. It prints the password, whatever the
+`LOG_LEVEL`. See [The initial admin](../features/accounts.md#the-initial-admin).
 
-Ending a user's sessions (a reset, a deletion, a password change) goes through `endUserSessions` in `src/auth/session.ts`, which deletes the rows and announces the revocation on `src/auth/revocations.ts`. Both socket layers subscribe and close the sockets those sessions opened, because a socket is authenticated only once, when it connects.
+When the sessions of a user end (a reset, a deletion, a password change), this goes through
+`endUserSessions` in `src/auth/session.ts`. It deletes the rows, and announces the revocation on
+`src/auth/revocations.ts`. Both socket layers subscribe, and close the sockets of those sessions. The
+reason is that a socket authenticates only one time, when it connects.
 
 ### Sharing between accounts
 
-A shared note has one row in `notes`, the owner's, holding the fields everyone shares and the owner's
-own color, pin and the rest. Each recipient has a row in `note_shares` holding their role, when they
-accepted (`null` while it is an invitation), and their own copy of the personal fields. See
+A shared note has one row in `notes`, the row of the owner. It contains the fields that all persons
+share, and the personal color, pin and other fields of the owner. Each recipient has a row in
+`note_shares`. That row contains their role, the time when they accepted (`null` while it is an
+invitation), and their own copy of the personal fields. See
 [Sharing with People](../features/sharing-with-people.md) for the rules.
 
-- **Reading.** `notes.listByUser` and `notes.search` read the user's own notes and their accepted
-  shares as two index-friendly queries, each over-fetched by one, and merge them by `(updatedAt, id)`,
-  so paging sees one ordering. A recipient's copy is the note row with their share laid over it, and
-  every note with members carries `sharing`. The mapping lives once, in `storage/shareMapping.ts`, for
-  both drivers.
-- **Writing.** `notes.update` sends the owner's changes to the note. A recipient's are split: shared
-  fields to the note (editors only), personal ones to their share. Both happen in one transaction that
-  re-reads their role (SQLite: an immediate transaction; Postgres: the share row `FOR UPDATE`), and
-  both stamp the note's `updated_at`, so one `If-Match` token serves every participant. A field the role
-  does not allow throws `NoteAccessError`, which the route turns into `403`, and nothing is written.
-- **Fan-out.** `src/sharing/noteEvents.ts` sends each participant their own copy after a change, since a
-  shared note looks different to each of them, and tells people who lost it (removed, or the note
-  trashed or deleted) that it is gone.
-- **Sockets.** `src/sharing/accessChanges.ts` announces lost access the way `auth/revocations.ts`
-  announces ended sessions. `/api/v1/yjs` closes the affected sockets; `/api/v1/ws` stops showing the person
-  on the note and stops telling them who else is.
-- **Contract.** `src/storage/contracts/sharingContract.ts` runs the same rules against both drivers: an
-  invitation grants nothing, personal fields stay apart, viewers cannot write the note, the owner's
-  trash hides a note from recipients while a recipient's is their own, an expired recipient trash
-  removes only their share, cascades take shares along.
+- **Reading.** `notes.listByUser` and `notes.search` read the own notes of the user and the accepted
+  shares, as two queries that can use indexes. Each query gets one more row than necessary. The
+  results merge by `(updatedAt, id)`. Thus, paging sees one order. The copy of a recipient is the note
+  row with their share over it. Each note with members has `sharing`. The mapping is in one place,
+  `storage/shareMapping.ts`, for both drivers.
+- **Writing.** `notes.update` sends the changes of the owner to the note. The changes of a recipient
+  are split: shared fields go to the note (only for editors), and personal fields go to their share.
+  Both occur in one transaction, which reads their role again (SQLite: an immediate transaction;
+  Postgres: the share row `FOR UPDATE`). Both set the `updated_at` of the note. Thus, one `If-Match`
+  token serves all participants. A field that the role does not permit throws `NoteAccessError`. The
+  route changes it to `403`, and nothing is written.
+- **Fan-out.** After a change, `src/sharing/noteEvents.ts` sends each participant their own copy,
+  because a shared note looks different to each of them. It tells the persons who lost it (removed,
+  or the note was trashed or deleted) that it is gone.
+- **Sockets.** `src/sharing/accessChanges.ts` announces lost access, in the same way as
+  `auth/revocations.ts` announces ended sessions. `/api/v1/yjs` closes the sockets of the person.
+  `/api/v1/ws` stops the presence of the person on the note, and stops telling them who else is
+  there.
+- **Contract.** `src/storage/contracts/sharingContract.ts` runs the same rules against both drivers:
+  - An invitation gives no rights.
+  - Personal fields stay separate.
+  - Viewers cannot write the note.
+  - The trash of the owner hides a note from recipients. The trash of a recipient belongs only to
+    that recipient.
+  - An expired trash of a recipient removes only their share.
+  - Cascades remove the shares too.
 
-`USER_LOOKUP` decides what `GET /api/v1/users` answers: only an exact username or address, never
-showing the address (`exact`, the default), or matches as the owner types (`search`).
+`USER_LOOKUP` decides what `GET /api/v1/users` answers. `exact` (the default) answers only an exact
+username or address, and never shows the address. `search` answers matches while the owner types.
 
 ### Link previews
 
-`GET /api/v1/link-preview` is the one route that makes the server reach out to the internet on a user's behalf, so it is built around not being turned against the server's own network. `src/linkPreview/safeFetch.ts` resolves the hostname, refuses unless every address is publicly routable (`addressPolicy.ts`), and then connects to that checked address through a pinned `lookup` rather than letting the HTTP client resolve the name a second time, which a hostname with a short TTL could answer differently. Redirects go back through the same check, and the body limit applies after decompression. `parseHtml.ts` reads the metadata with bounded regular expressions, and `fetchPreview.ts` identifies images by their leading bytes. Uses Node's own `http`, `https`, `dns` and `zlib`, with no dependency. See [Link Previews](../features/link-previews.md) for the rules and `LINK_PREVIEWS` to turn it off.
+`GET /api/v1/link-preview` is the only route that makes the server connect to the internet for a
+user. Thus, its design prevents its use against the network of the server.
+
+- `src/linkPreview/safeFetch.ts` resolves the hostname. It refuses the request unless each address
+  is publicly routable (`addressPolicy.ts`).
+- It then connects to that checked address through a pinned `lookup`. It does not let the HTTP
+  client resolve the name a second time. A hostname with a short TTL can give a different answer the
+  second time.
+- Redirects go through the same check again. The body limit applies after decompression.
+- `parseHtml.ts` reads the metadata with bounded regular expressions.
+- `fetchPreview.ts` identifies images by their first bytes.
+- It uses the `http`, `https`, `dns` and `zlib` modules of Node, with no dependency.
+
+See [Link Previews](../features/link-previews.md) for the rules, and `LINK_PREVIEWS` to turn it off.
 
 ### WebSockets
 
-- `/api/v1/ws`: application JSON socket for `note:*`, `invitation:*` and `presence:*` events. Authenticates via the active auth provider. Token is passed in the `Sec-WebSocket-Protocol` header. A revoked session's connections are closed with `4401`. A `presence:update` is checked against the note's audience (its owner and accepted recipients) and relayed to that audience only.
-- `/api/v1/yjs`: Hocuspocus-backed Yjs collaboration channel, multiplexing every note over one socket by document name. The `onAuthenticate` hook resolves the token via the active auth provider and then checks, against the joined document name, that the user may edit the note: its owner, or an accepted recipient who can edit. Persistence is delegated to `storage.yjs`, keyed by the note's owner, so Yjs state lives in whichever store is selected. A revoked session's whole socket is closed, and its reconnect fails authentication; so is the socket of someone who loses the right to edit a note (`4403`).
+- `/api/v1/ws`: the application JSON socket for `note:*`, `invitation:*` and `presence:*` events.
+  - It authenticates through the active auth provider. The token goes in the
+    `Sec-WebSocket-Protocol` header.
+  - The server closes the connections of a revoked session with `4401`.
+  - The server checks a `presence:update` against the audience of the note (its owner and the
+    accepted recipients), and sends it only to that audience.
+- `/api/v1/yjs`: the Yjs collaboration channel, with Hocuspocus. It sends all notes over one socket,
+  by document name.
+  - The `onAuthenticate` hook resolves the token through the active auth provider. Then it checks,
+    against the joined document name, that the user can edit the note: its owner, or an accepted
+    recipient who can edit.
+  - `storage.yjs` does the persistence, with the owner of the note as the key. Thus, the Yjs state is
+    in the selected store.
+  - The server closes the full socket of a revoked session, and its reconnect fails authentication.
+    It does the same for the socket of a person who loses the right to edit a note (`4403`).
 
 ### Multi-User
 
-Each user has their own notes, isolated by user ID, and sees another user's note only once it is shared with them and they accept. Tags are per-user (each user has their own tag namespace), including on shared notes. Collaborative editing is per-note and gated on the right to edit it.
+Each user has their own notes, isolated by user ID. A user sees a note of a different user only
+after it is shared with them, and they accept it. Each user has their own tags (their own tag
+namespace), also on shared notes. Collaborative editing applies to each note, and needs the right to
+edit it.

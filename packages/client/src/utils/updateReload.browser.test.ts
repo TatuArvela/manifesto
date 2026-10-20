@@ -16,7 +16,7 @@ describe("pageIsIdle", () => {
   });
 
   it("is not idle with a dialog open", () => {
-    // The note editor is one, and its save waits out a debounce.
+    // The note editor is one, and its save waits for a debounce.
     mount('<div role="dialog" aria-modal="true"></div>');
     expect(pageIsIdle()).toBe(false);
   });

@@ -3,13 +3,13 @@ import type { StorageDriver } from "#/storage/types.ts";
 import type { NoteEvents } from "./noteEvents.ts";
 
 /**
- * Empties an account whose keys are gone: everything sealed under them can
- * never be read again, so it is removed rather than left as ciphertext nobody
- * opens. The notes it owns go from everyone who held them, the notes shared
- * with it and the invitations waiting for it are given up (their owners keep
- * them, and decide whether to share again with the new keys), and its
- * preferences go. The account itself stays: its sign-in, its email address
- * and its place in teams.
+ * Empties an account whose keys are gone. Nobody can ever read the data sealed
+ * under them again. Thus, the code removes it, and does not leave ciphertext
+ * that nobody opens. The notes that it owns go from all persons who had them.
+ * The code gives up the notes shared with it and the invitations that wait for
+ * it (their owners keep them, and decide whether to share again with the new
+ * keys). Its preferences go. The account itself stays: its sign-in, its email
+ * address and its place in teams.
  */
 export async function emptyAccount(
   deps: { storage: StorageDriver; noteEvents: NoteEvents },
@@ -31,7 +31,7 @@ export async function emptyAccount(
 
   for (const { id, own } of held) {
     if (own) {
-      // Read before the delete, which takes the shares with it by cascade.
+      // Read before the delete, because the cascade deletes the shares.
       const shares = (await storage.shares.audience(id))?.shares ?? [];
       if (await storage.notes.delete(id, userId)) {
         noteEvents.deleted(id, userId, shares);
@@ -43,9 +43,10 @@ export async function emptyAccount(
     noteEvents.ended([removed]);
     await noteEvents.changed(id);
   }
-  // Every share left, whatever state it or its note is in: an invitation,
-  // and a note its owner has in the trash, which no listing shows and which
-  // would come back from there under a key this account can no longer open.
+  // Each share that is left, whatever its state or the state of its note: an
+  // invitation, and a note that its owner has in the trash. No listing shows
+  // that note, and it would come back from there under a key that this account
+  // cannot open now.
   for (const share of await storage.shares.listByRecipient(userId)) {
     const removed = await storage.shares.delete(share.noteId, userId);
     if (!removed) continue;

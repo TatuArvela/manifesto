@@ -94,9 +94,10 @@ describe("segmentContent", () => {
 
 describe("checklist merge scenarios", () => {
   /**
-   * Simulates what SegmentedContentEditor does when a text segment is edited
-   * and the new text contains checklist lines: re-segments the content and
-   * determines which checklist segment to focus and at what position.
+   * Simulates what SegmentedContentEditor does when a person edits a text
+   * segment and the new text contains checklist lines. It makes the segments of
+   * the content again, and finds which checklist segment gets focus and at
+   * which position.
    */
   function computeFocusAfterTextEdit(
     originalContent: string,
@@ -144,19 +145,22 @@ describe("checklist merge scenarios", () => {
   });
 
   it("typing checklist syntax before an existing checklist: focus first (the new item)", () => {
-    // text segment "---" sits between two checklists
+    // The text segment "---" is between two checklists.
     const content = "- [ ] A\n---\n- [ ] B\n- [ ] C";
     // Segments: checklist(A), text(---), checklist(B, C)
     // Edit text segment (index 1) "---" → "- [ ] New"
     const result = computeFocusAfterTextEdit(content, 1, "- [ ] New");
-    // New content: "- [ ] A\n- [ ] New\n- [ ] B\n- [ ] C" → single checklist
-    // "- [ ] New" is at absolute line 1, checklist starts at 0
-    // lineInSeg = 1, so position = "last"
-    // Wait, in this case the entire thing merges into one checklist.
-    // The new item is at index 1 (not 0), so "last" is used.
-    // But actually the user's cursor should go to the item they typed.
-    // Since they typed at position 1 in a 4-item checklist, neither first nor last is perfect.
-    // The behavior is: lineInSeg=1 !== 0, so "last".
+    // New content: "- [ ] A\n- [ ] New\n- [ ] B\n- [ ] C" → a single checklist.
+    //
+    // "- [ ] New" is at absolute line 1, and the checklist starts at 0.
+    // lineInSeg = 1. Thus, position = "last".
+    //
+    // In this case, all content merges into one checklist. The new item is at
+    // index 1 (not 0). Thus, "last" is used.
+    //
+    // The cursor of the user should really go to the item that they typed. They
+    // typed at position 1 in a checklist of 4 items. Thus, neither first nor
+    // last is perfect. The behavior is: lineInSeg=1 !== 0, thus "last".
     expect(result).not.toBeNull();
     expect(result?.segIndex).toBe(0);
   });
@@ -184,13 +188,12 @@ describe("checklist merge scenarios", () => {
 
   it("typing checklist syntax in text with no adjacent checklist: focus first", () => {
     const content = "text above\n---\ntext below";
-    // Segments: text("text above"), text("---"), text("text below")
-    // Wait, these would be one text segment since consecutive text lines merge.
-    // Actually: all lines are text, so single segment.
+    // Segments: all lines are text. Consecutive text lines merge. Thus, there
+    // is a single segment.
     const segments = segmentContent(content);
     expect(segments).toHaveLength(1);
 
-    // Edit the single text segment: change middle line to checklist
+    // Edit the single text segment: change the middle line to a checklist.
     const result = computeFocusAfterTextEdit(
       content,
       0,
@@ -224,9 +227,9 @@ describe("checklist merge scenarios", () => {
 
 describe("checklist item removal (backspace on empty item)", () => {
   /**
-   * Simulates what SegmentedContentEditor does when a checklist emits
-   * new lines containing a non-checklist line (e.g. backspace on empty
-   * first item converts it to ""). Determines focus target.
+   * Simulates what SegmentedContentEditor does when a checklist gives new lines
+   * that contain a line that is not a checklist line (for example, backspace on
+   * an empty first item changes it to ""). Finds the focus target.
    */
   function computeFocusAfterChecklistEdit(
     originalContent: string,
@@ -269,9 +272,12 @@ describe("checklist item removal (backspace on empty item)", () => {
       "- [ ] Version History",
     ]);
     // New content: "---\n\n- [ ] Font options\n- [ ] Version History"
-    // Segments: text("---", ""), checklist("- [ ] Font options", "- [ ] Version History")
-    // The empty line merges into text segment at index 0
-    // Focus should go to text segment 0, position "last"
+    //
+    // Segments: text("---", ""), checklist("- [ ] Font options", "- [ ] Version
+    // History")
+    //
+    // The empty line merges into the text segment at index 0. Focus must go to
+    // text segment 0, position "last".
     expect(result).toEqual({ segIndex: 0, position: "last" });
   });
 
@@ -285,8 +291,10 @@ describe("checklist item removal (backspace on empty item)", () => {
       "- [ ] B",
     ]);
     // New content: "\n- [ ] A\n- [ ] B"
+    //
     // Segments: text(""), checklist("- [ ] A", "- [ ] B")
-    // Focus goes to text segment 0, position "last"
+    //
+    // Focus goes to text segment 0, position "last".
     expect(result).toEqual({ segIndex: 0, position: "last" });
   });
 
@@ -300,17 +308,19 @@ describe("checklist item removal (backspace on empty item)", () => {
       "- [ ] B",
     ]);
     // New content: "- [ ] A\n\n- [ ] B"
+    //
     // Segments: checklist("- [ ] A"), text(""), checklist("- [ ] B")
-    // Focus goes to text segment 1, position "last"
+    //
+    // Focus goes to text segment 1, position "last".
     expect(result).toEqual({ segIndex: 1, position: "last" });
   });
 });
 
 describe("empty checklist items", () => {
-  // Pressing Enter in the editor makes an item with no label yet. Requiring
-  // "`] `" meant it stopped counting as a checklist line the moment it was
-  // created: the box disappeared, the text re-rendered as literal `- [ ]`,
-  // and there was no longer anything to click to get it back.
+  // Enter in the editor makes an item with no label yet. When "`] `" was
+  // necessary, the item stopped to count as a checklist line at the moment when
+  // it was created. The box disappeared, the text rendered again as literal `-
+  // [ ]`, and there was nothing to click to get it back.
   it.each(["- [ ]", "- [x]", "[ ]", "  - [ ]"])("matches %o", (line) => {
     expect(isChecklistLine(line)).toBe(true);
   });
@@ -331,8 +341,9 @@ describe("empty checklist items", () => {
   });
 
   it("does not leave a trailing space when there is no label", () => {
-    // `${indent}${bullet}[x] ${label}` used to write "- [x] ", invisible in
-    // the editor, but the note's content is no longer what it was.
+    // Before, `${indent}${bullet}[x] ${label}` wrote "- [x] ", which is
+    // invisible in the editor, but the content of the note is not the same as
+    // before.
     expect(setChecklistChecked("- [x]", false)).toBe("- [ ]");
   });
 });

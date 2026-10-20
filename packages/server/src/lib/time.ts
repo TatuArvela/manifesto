@@ -1,9 +1,10 @@
 let lastNowMs = 0;
 
 export function nowIso(): string {
-  // Strictly monotonic per process: `updated_at` is the optimistic-concurrency
-  // version marker, so two writes in the same millisecond must still produce
-  // distinct timestamps or `If-Match` checks silently match the wrong row.
+  // Strictly monotonic for each process. `updated_at` is the version marker for
+  // optimistic concurrency. Thus, two writes in the same millisecond must still
+  // make different timestamps. If not, `If-Match` checks silently match the
+  // wrong row.
   const ms = Math.max(Date.now(), lastNowMs + 1);
   lastNowMs = ms;
   return new Date(ms).toISOString();

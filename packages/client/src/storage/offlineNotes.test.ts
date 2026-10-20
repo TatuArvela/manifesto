@@ -8,9 +8,9 @@ import {
 } from "./offlineNotes.ts";
 
 /**
- * What a device keeps of notes not stored yet is sealed in connected mode,
- * and opens only for the account, key version, kind and record it was
- * sealed for. The IndexedDB side is the browser project's.
+ * What a device keeps of notes that are not stored yet is sealed in connected
+ * mode. It opens only for the account, key version, kind and record for which
+ * it was sealed. The browser project tests the IndexedDB side.
  */
 
 const draft = {
@@ -35,7 +35,8 @@ describe("sealOffline / openOffline", () => {
   it("does not open for another account", async () => {
     const me = await owner("u1");
     const sealed = await sealOffline(me, "draft", "current", draft);
-    // The same key under another account's name, and another account's key.
+    // The same key under the name of a different account, and the key of a
+    // different account.
     const renamed: OfflineOwner = {
       id: "u2",
       keys: { ...(me.keys ?? (await testKeys())), userId: "u2" },

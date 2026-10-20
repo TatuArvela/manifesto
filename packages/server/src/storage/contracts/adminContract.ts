@@ -4,11 +4,11 @@ import type { CreateUserInput, StorageDriver } from "#/storage/types.ts";
 import { claimed } from "./claimed.ts";
 
 /**
- * What both drivers must do for account administration, run against each.
+ * What both drivers must do for account administration, run against each one.
  *
- * Shared rather than copied because these are rules, not queries: the first
- * account is the admin, the last admin stays, a deleted user takes their notes
- * and sessions along. A driver that gets one of them wrong fails here under its
+ * Shared, not copied, because these are rules, not queries: the first account
+ * is the admin, the last admin stays, and a deleted user takes their notes and
+ * sessions. A driver that does one of them incorrectly fails here, under its
  * own name.
  */
 

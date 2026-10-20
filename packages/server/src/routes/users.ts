@@ -14,7 +14,10 @@ interface UsersDeps {
   storage: StorageDriver;
 }
 
-/** How many accounts a search offers. Enough to pick from while typing. */
+/**
+ * The number of accounts that a search shows. Sufficient to select from while
+ * you type.
+ */
 const SEARCH_LIMIT = 10;
 
 function toDirectoryUser(user: User, withEmail: boolean): DirectoryUser {
@@ -28,13 +31,13 @@ function toDirectoryUser(user: User, withEmail: boolean): DirectoryUser {
 }
 
 /**
- * `GET /api/v1/users?q=`: the accounts a note could be shared with.
+ * `GET /api/v1/users?q=`: the accounts with which a note could be shared.
  *
- * Under `USER_LOOKUP=search` any part of a username, display name or email
- * address matches. Under `exact` only a whole username or address does, and
- * the answer never carries an address: someone who knew only the username
- * learns nothing more about the account than that it exists. The signed-in
- * user is never among the results.
+ * With `USER_LOOKUP=search`, any part of a username, display name or email
+ * address matches. With `exact`, only a full username or address matches, and
+ * the answer never contains an address. A person who knew only the username
+ * learns nothing more about the account than that it exists. The results never
+ * include the signed-in user.
  */
 export function createUsersRoutes(deps: UsersDeps) {
   const users = new Hono<{ Variables: { auth: AuthContext } }>();
@@ -75,9 +78,9 @@ export function createUsersRoutes(deps: UsersDeps) {
   });
 
   /**
-   * An account's public keys, for wrapping a note key to and for checking
-   * what it signed. Public by nature, so any signed-in account may ask, by
-   * id. `404` for an account that has not been set up yet, which then has
+   * The public keys of an account, to wrap a note key to, and to check what it
+   * signed. They are public by nature. Thus, all signed-in accounts can ask for
+   * them, by id. `404` for an account that is not set up yet, which then has
    * nothing to wrap to.
    */
   users.get("/:id/keys", async (c) => {
