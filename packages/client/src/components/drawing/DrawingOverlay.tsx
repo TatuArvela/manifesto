@@ -11,8 +11,9 @@ export interface CanvasBox {
 }
 
 /**
- * The box of the canvas, measured again when it changes size: the paper takes
- * what room there is, and a rotated phone gives it a different room.
+ * The box of the canvas, measured again when it or the area around it changes
+ * size: the paper takes what room there is, and a rotated phone gives it a
+ * different room. A wider area moves a paper of the same size to its centre.
  */
 export function useCanvasBox(
   canvasRef: RefObject<HTMLCanvasElement | null>,
@@ -31,6 +32,7 @@ export function useCanvasBox(
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(canvas);
+    if (canvas.parentElement) observer.observe(canvas.parentElement);
     return () => observer.disconnect();
   }, [canvasRef]);
   return box;

@@ -21,9 +21,9 @@ export interface FillArea {
 export const FILL_TOLERANCE = 48;
 
 /**
- * The area from `(x, y)` on RGBA bytes, row by row. Each pixel goes on the
- * stack at most one time for each of its four neighbours. Thus, the work is
- * bounded by the size of the picture. Null for a point outside it.
+ * The area from `(x, y)` on RGBA bytes, row by row. A run of a row goes on the
+ * stack at most one time from each of the two runs next to it. Thus, the work
+ * is bounded by the size of the picture. Null for a point outside it.
  */
 export function floodFill(
   data: Uint8ClampedArray,
@@ -65,10 +65,22 @@ export function floodFill(
     while (start % width > 0 && !mask[start - 1] && near(start - 1)) start--;
     let end = i;
     while ((end + 1) % width > 0 && !mask[end + 1] && near(end + 1)) end++;
+    // One seed for each run of the rows above and below, not one for each
+    // pixel. Thus, the stack stays small on a large empty paper.
+    let above = false;
+    let below = false;
     for (let p = start; p <= end; p++) {
       mask[p] = 1;
-      if (row > 0 && !mask[p - width]) stack.push(p - width);
-      if (row < height - 1 && !mask[p + width]) stack.push(p + width);
+      if (row > 0) {
+        const open = !mask[p - width] && near(p - width);
+        if (open && !above) stack.push(p - width);
+        above = open;
+      }
+      if (row < height - 1) {
+        const open = !mask[p + width] && near(p + width);
+        if (open && !below) stack.push(p + width);
+        below = open;
+      }
     }
     left = Math.min(left, start % width);
     right = Math.max(right, end % width);

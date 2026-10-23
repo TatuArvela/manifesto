@@ -180,13 +180,40 @@ export function setLayerOpacity(
   );
 }
 
-/** Ends a change that joins: the next one is a step of its own. */
-export const endJoin = (history: SketchHistory): SketchHistory =>
-  history.joins === undefined ? history : { ...history, joins: undefined };
+/** The same picture: the same layers, in the same order and look. */
+const sameSketch = (a: Sketch, b: Sketch): boolean =>
+  a.frame === b.frame &&
+  a.layers.length === b.layers.length &&
+  a.layers.every((layer, i) => {
+    const other = b.layers[i];
+    return (
+      other !== undefined &&
+      layer.id === other.id &&
+      layer.marks === other.marks &&
+      layer.visible === other.visible &&
+      (layer.opacity ?? 1) === (other.opacity ?? 1)
+    );
+  });
 
-/** The box of the ink of a layer, or null for an empty layer. */
+/**
+ * Ends a change that joins: the next one is a step of its own. A slide that
+ * went back to where it started is no step at all.
+ */
+export function endJoin(history: SketchHistory): SketchHistory {
+  if (history.joins === undefined) return history;
+  const before = history.past.at(-1);
+  if (before && sameSketch(before, history.present)) {
+    return { ...history, past: history.past.slice(0, -1), joins: undefined };
+  }
+  return { ...history, joins: undefined };
+}
+
+/** The box of the ink of a layer, or null when it has no ink. */
 export const layerBounds = (layer: Layer): Rect | null =>
   markBounds(layer.marks);
+
+/** True when a layer has ink: an eraser alone adds none. */
+export const hasInk = (layer: Layer): boolean => layerBounds(layer) !== null;
 
 /** Moves, or makes larger or smaller, all that is on the active layer. */
 export function transformLayer(
@@ -300,4 +327,6 @@ export const hasStrokes = (sketch: Sketch): boolean =>
  */
 export const hasVisibleStrokes = (sketch: Sketch): boolean =>
   sketch.frame !== undefined ||
-  sketch.layers.some((layer) => layer.visible && layer.marks.length > 0);
+  sketch.layers.some(
+    (layer) => layer.visible && (layer.opacity ?? 1) > 0 && hasInk(layer),
+  );

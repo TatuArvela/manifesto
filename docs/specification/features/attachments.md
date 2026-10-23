@@ -33,7 +33,7 @@ shares and exports it as a picture, and it uses one of the image slots of the no
 - **Tools** in the bottom bar:
   - **Pen** draws a free line. A tap makes a dot.
   - **Eraser** takes ink away from the current layer only. The layers under it, and the image under
-    the drawing, stay. It is always round, and four times the size of the pen.
+    the drawing, stay. It has the tip of the pen, and is four times the size of the pen.
   - **Fill** fills the area around the press that has the color there, as the drawing shows it,
     with the foreground ink, on the current layer. It stops at a line, and covers the soft edge of
     the line. Hidden layers do not count. A fill is a picture of its area. Thus, a large resize of
@@ -43,13 +43,14 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   - **Shapes** opens four tools: **Line**, **Rectangle**, **Ellipse** and **Polygon**. A drag
     draws a line, or a box or an ellipse in the box of the drag. With Shift, a line goes in steps
     of 15 degrees, and a box or an ellipse has equal sides. A polygon gets a corner at each press.
-    A press on the first corner, or a double click, closes it, and Escape discards it. A shape with
-    no size draws nothing.
+    A press on the first corner, or a double click, closes it. Escape or Undo discards it, and so
+    does a change from the other controls of the top bar or the layer list. A shape with no size
+    draws nothing.
   - **Select**, **Move** and **Pan** are described below. Pan drags the view of a zoomed drawing.
 - **Pen settings** sets the tip (round, square, or a tilted oval as a broad nib), the size (three
   sizes or a field from 1 to 200), the opacity of the ink (5 to 100 percent), and what a shape draws
   (its outline, its inside, or both). The size and the opacity apply to all tools. The tip applies
-  to the pen and the line. A square or oval tip presses its shape along the line. The shapes make
+  to the pen, the line and the eraser. A square or oval tip presses its shape along the line. The shapes make
   one area, so a transparent ink does not become darker where they overlap.
 - A shape in the size and tip of the pen, the line or the eraser follows the pointer, and a finger
   while it touches. Thus, you see where a stroke will apply before you draw it.
@@ -67,6 +68,7 @@ shares and exports it as a picture, and it uses one of the image slots of the no
 - **Move** shows a dashed box around the ink of the current layer. A drag moves the ink. A drag of
   the handle at the bottom right corner makes it larger or smaller, from its top left corner, with
   the same scale on both axes (from 0.05 to 20 times). The strokes move as lines, not as a picture.
+  A hidden layer shows no box and does not move.
   Thus, they stay sharp at any size, and a pen width grows with them. A drag is one step.
 - **Select** marks an area with a drag. With an area, two buttons show. **Crop layer** cuts the ink
   of the current layer to the area: the rest no longer shows, but lines that you draw after it are
@@ -86,8 +88,9 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   - The stroke follows the pointer past the edge of the paper.
   - When the system cancels a touch, the pad keeps what you drew.
 - If the pad has a drawing, it asks before it closes, from the close button, Escape or Back. If you
-  do not discard, Back stays with the pad. Done with no ink that shows adds nothing. Done, or a close
-  while the pen is still down, includes the line that you draw, and a polygon in progress.
+  do not discard, Back stays with the pad. Done with no ink that shows adds nothing. An eraser
+  alone, or a layer at no opacity, shows no ink. Done, or a close while the pen is still down,
+  includes the line that you draw, and a polygon in progress.
 - If the app cannot make the picture, the pad tells you, and stays open with the drawing on it.
 - The pad is not available on a note that you cannot change (shared to view, or an auto-note).
 - The pad and all of its drawing code load the first time that it opens. The board does not load
