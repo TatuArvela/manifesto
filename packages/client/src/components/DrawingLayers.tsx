@@ -2,12 +2,15 @@ import { ArrowDown, ArrowUp, Eye, EyeOff, Plus, Trash2 } from "lucide-preact";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { t } from "#/i18n/index.ts";
 import {
+  activeLayer,
   addLayer,
+  endJoin,
   MAX_LAYERS,
   moveLayer,
   removeLayer,
   type SketchHistory,
   selectLayer,
+  setLayerOpacity,
   toggleLayer,
 } from "#/utils/drawingLayers.ts";
 
@@ -31,6 +34,8 @@ export function DrawingLayers({
   useEscapeStack(true, onClose);
   const { layers, active } = history.present;
   const top = layers.length - 1;
+  const current = activeLayer(history.present);
+  const opacity = Math.round((current?.opacity ?? 1) * 100);
 
   return (
     <fieldset
@@ -99,6 +104,34 @@ export function DrawingLayers({
           );
         })}
       </ul>
+      {current && (
+        <label class="mt-1 flex items-center gap-2 px-2 py-1 text-sm">
+          <span class="flex-1 truncate">
+            {t("drawing.layerOpacity", {
+              name: t("drawing.layerName", { n: current.id }),
+            })}
+          </span>
+          <input
+            type="range"
+            class="w-24 accent-blue-500"
+            min={0}
+            max={100}
+            step={5}
+            value={opacity}
+            onInput={(event) =>
+              onChange(
+                setLayerOpacity(
+                  history,
+                  current.id,
+                  Number(event.currentTarget.value) / 100,
+                ),
+              )
+            }
+            onChange={() => onChange(endJoin(history))}
+          />
+          <span class="w-9 text-right tabular-nums">{opacity}%</span>
+        </label>
+      )}
       <button
         type="button"
         class="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer disabled:cursor-default"

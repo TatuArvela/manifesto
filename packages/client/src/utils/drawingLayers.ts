@@ -9,6 +9,8 @@ export interface Layer {
   /** Also the number in its name. A deleted layer does not give its number to a new one. */
   id: number;
   visible: boolean;
+  /** From 0 to 1. Opaque when absent. */
+  opacity?: number;
   strokes: readonly Stroke[];
 }
 
@@ -24,6 +26,11 @@ export interface SketchHistory {
   past: readonly Sketch[];
   present: Sketch;
   future: readonly Sketch[];
+  /**
+   * The kind of the last change, when the next change of the same kind joins
+   * it: the values of one slide of an opacity are one step, not a hundred.
+   */
+  joins?: string | undefined;
 }
 
 /** More layers than this are hard to tell apart in a list on a phone. */
@@ -41,13 +48,24 @@ export function newSketchHistory(): SketchHistory {
   };
 }
 
-/** The sketch after a change, as one step to undo. No step when nothing changed. */
-function record(history: SketchHistory, next: Sketch): SketchHistory {
+/**
+ * The sketch after a change, as one step to undo. No step when nothing changed.
+ * A change with the `joins` of the last one replaces it in the same step.
+ */
+function record(
+  history: SketchHistory,
+  next: Sketch,
+  joins?: string,
+): SketchHistory {
   if (next === history.present) return history;
+  if (joins !== undefined && history.joins === joins) {
+    return { ...history, present: next };
+  }
   return {
     past: [...history.past, history.present],
     present: next,
     future: [],
+    joins,
   };
 }
 
@@ -135,6 +153,26 @@ export function toggleLayer(history: SketchHistory, id: number): SketchHistory {
     })),
   );
 }
+
+/** How opaque a layer is, from 0 to 1. One slide of it is one step. */
+export function setLayerOpacity(
+  history: SketchHistory,
+  id: number,
+  opacity: number,
+): SketchHistory {
+  const value = Math.min(1, Math.max(0, opacity));
+  const layer = history.present.layers.find((each) => each.id === id);
+  if (!layer || (layer.opacity ?? 1) === value) return history;
+  return record(
+    history,
+    changeLayer(history.present, id, (each) => ({ ...each, opacity: value })),
+    `opacity:${id}`,
+  );
+}
+
+/** Ends a change that joins: the next one is a step of its own. */
+export const endJoin = (history: SketchHistory): SketchHistory =>
+  history.joins === undefined ? history : { ...history, joins: undefined };
 
 /** Moves a layer one place up (+1) or down (-1). Nothing past the top or the bottom. */
 export function moveLayer(
