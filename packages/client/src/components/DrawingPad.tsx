@@ -84,6 +84,8 @@ export function DrawingPad() {
     scratch: HTMLCanvasElement;
   } | null>(null);
   const frame = useRef(0);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const cursorRef = useRef<HTMLDivElement>(null);
   const [ink, setInk] = useState<string>(INKS[0].color);
   const [width, setWidth] = useState<number>(WIDTHS[1]);
   const [erasing, setErasing] = useState(false);
@@ -294,9 +296,11 @@ export function DrawingPad() {
     live.current = { under, layer, over, scratch: blankCanvas(paper) };
     drawing.current = { pointerId: event.pointerId, stroke };
     paintActive();
+    showCursor(event);
   };
 
   const onPointerMove = (event: PointerEvent) => {
+    if (event.isPrimary) showCursor(event);
     const canvas = canvasRef.current;
     const active = drawing.current;
     if (!canvas || active?.pointerId !== event.pointerId) return;
@@ -312,6 +316,33 @@ export function DrawingPad() {
 
   const endStroke = (event: PointerEvent) => {
     if (drawing.current?.pointerId === event.pointerId) commitStroke();
+    // A finger leaves the screen: there is no place to show the pen at.
+    if (event.pointerType === "touch") hideCursor();
+  };
+
+  /**
+   * The circle that the next stroke will fill, at the pointer, in the width of
+   * the pen or the eraser as the paper shows it. Set on the element itself: a
+   * render at each move of the pointer would cost a frame.
+   */
+  const showCursor = (event: PointerEvent) => {
+    const cursor = cursorRef.current;
+    const stage = stageRef.current;
+    const canvas = canvasRef.current;
+    if (!cursor || !stage || !canvas || !ready) return;
+    const shown = canvas.getBoundingClientRect();
+    const around = stage.getBoundingClientRect();
+    const strokeWidth =
+      (erasing ? width * ERASER_SCALE : width) * penScale(paper);
+    const size = Math.max(4, (strokeWidth * shown.width) / paper.width);
+    cursor.style.display = "block";
+    cursor.style.width = `${size}px`;
+    cursor.style.height = `${size}px`;
+    cursor.style.transform = `translate(${event.clientX - around.left - size / 2}px, ${event.clientY - around.top - size / 2}px)`;
+  };
+
+  const hideCursor = () => {
+    if (cursorRef.current) cursorRef.current.style.display = "none";
   };
 
   return (
@@ -377,18 +408,29 @@ export function DrawingPad() {
       </div>
 
       {/* The paper keeps its shape and takes what room there is. */}
-      <div class="flex-1 min-h-0 flex items-center justify-center px-2">
+      <div
+        ref={stageRef}
+        class="relative flex-1 min-h-0 flex items-center justify-center px-2 overflow-hidden"
+      >
         <canvas
           ref={canvasRef}
           width={paper.width}
           height={paper.height}
-          class="max-w-full max-h-full rounded-lg shadow-lg cursor-crosshair touch-none select-none"
+          class="max-w-full max-h-full rounded-lg shadow-lg cursor-none touch-none select-none"
           style={{ aspectRatio: `${paper.width} / ${paper.height}` }}
           aria-label={t("drawing.paper")}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={endStroke}
           onPointerCancel={endStroke}
+          onPointerLeave={hideCursor}
+        />
+        {/* Light and dark rings: it shows over any ink and over a photo. */}
+        <div
+          ref={cursorRef}
+          aria-hidden="true"
+          class={`absolute left-0 top-0 hidden rounded-full pointer-events-none shadow-[0_0_0_1px_rgba(0,0,0,0.6),inset_0_0_0_1px_rgba(255,255,255,0.9)] ${erasing ? "border border-dashed border-neutral-500" : ""}`}
+          style={erasing ? undefined : { backgroundColor: `${ink}66` }}
         />
       </div>
 
