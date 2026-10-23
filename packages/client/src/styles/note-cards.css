@@ -35,6 +35,30 @@
 }
 
 /*
+ * The shadow of a card on the board: a sheet of paper that lies on the page,
+ * with its lower edge a little up off it. In layers, not a single blur: a tight
+ * contact shadow on all sides, and a soft shadow that falls below the sheet and
+ * is narrower than it (the negative spread). Thus, the shadow is darkest under
+ * the bottom edge, and the sides stay almost clean. A hovered card (or one with
+ * its menu open) comes up a little more off the page.
+ */
+@utility note-shadow {
+  box-shadow:
+    0 0 1px rgb(0 0 0 / 0.12),
+    0 1px 2px rgb(0 0 0 / 0.06),
+    0 6px 8px -5px rgb(0 0 0 / 0.22),
+    0 14px 18px -12px rgb(0 0 0 / 0.18);
+
+  :is(.group:hover, .group[data-popover-open]) & {
+    box-shadow:
+      0 0 1px rgb(0 0 0 / 0.12),
+      0 2px 4px rgb(0 0 0 / 0.06),
+      0 10px 14px -8px rgb(0 0 0 / 0.26),
+      0 22px 28px -16px rgb(0 0 0 / 0.22);
+  }
+}
+
+/*
  * The sticky note stack.
  *
  * The stack is a pad of paper: two full sheets (`-next` behind `-top`) on a

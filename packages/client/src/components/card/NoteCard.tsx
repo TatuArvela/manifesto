@@ -271,7 +271,7 @@ export const NoteCard = memo(function NoteCard({
               : !isTrashView
                 ? "p-4 pb-2"
                 : "p-4",
-            "shadow-sm group-hover:shadow-lg group-data-popover-open:shadow-lg",
+            "note-shadow",
             // Gone while it morphs into the editor, because the editor is the
             // card. Otherwise, a ghost of it, to show where the note is.
             open && !closing && (morphing ? "opacity-0" : "opacity-20"),
