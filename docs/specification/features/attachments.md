@@ -30,7 +30,7 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   field that takes any other ink. A press on one of the twelve colors sets the foreground ink, and a
   right click sets the background ink. **Swap inks** exchanges them. Lines, outlines and fills use
   the foreground ink. The inside of a shape uses the background ink.
-- **Tools** in the bottom bar:
+- **Tools**, in this order: Move, Select, Eyedropper, Pen, Eraser, Fill, Shapes and Hand.
   - **Pen** draws a free line. A tap makes a dot.
   - **Eraser** takes ink away from the current layer only. The layers under it, and the image under
     the drawing, stay. It has the tip of the pen, and is four times the size of the pen.
@@ -38,7 +38,7 @@ shares and exports it as a picture, and it uses one of the image slots of the no
     with the foreground ink, on the current layer. It stops at a line, and covers the soft edge of
     the line. Hidden layers do not count. A fill is a picture of its area. Thus, a large resize of
     it is less sharp than a line.
-  - **Eye dropper** takes the foreground ink from where you press on the drawing, as it shows with
+  - **Eyedropper** takes the foreground ink from where you press on the drawing, as it shows with
     all layers and the image. Then the tool from before comes back.
   - **Shapes** opens four tools: **Line**, **Rectangle**, **Ellipse** and **Polygon**. A drag
     draws a line, or a box or an ellipse in the box of the drag. With Shift, a line goes in steps
@@ -46,10 +46,11 @@ shares and exports it as a picture, and it uses one of the image slots of the no
     A press on the first corner, or a double click, closes it. Escape or Undo discards it, and so
     does a change from the other controls of the top bar or the layer list. A shape with no size
     draws nothing.
-  - **Select**, **Move** and **Pan** are described below. Pan drags the view of a zoomed drawing.
-- On a wide screen, the tools are a rail at the left of the paper, the inks a rail at the right, and
-  the options of the current tool a bar over the paper. On a phone, the inks and the tools are two
-  rows under the paper, and the options a panel from the pen button.
+  - **Select** and **Move** are described below. **Hand** drags the view of a zoomed drawing.
+- On a wide screen, the tools and the two inks are a rail at the left of the paper, the options of
+  the current tool a bar over the paper, and the colors and the layers panels at the right. On a
+  phone, the inks and the colors are one row under the paper, and the tools a row under that. The
+  options and the layers are panels that a button of the tools row opens.
 - **Pen settings** shows only the options of the current tool. It sets the tip (round, square, or a tilted oval as a broad nib), the size (three
   sizes or a field from 1 to 200), the opacity of the ink (5 to 100 percent), and what a shape draws
   (its outline, its inside, or both). The size and the opacity apply to all tools. The tip applies

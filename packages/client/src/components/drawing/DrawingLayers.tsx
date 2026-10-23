@@ -19,19 +19,23 @@ const rowButton =
 
 /**
  * The layers of the drawing on the pad, the top one first, as in the picture.
+ * On a wide screen, a panel at the right of the paper, always there. On a
+ * phone, a panel that the layers button opens.
  * A press on a name makes that layer the one the pen draws on. Each other
  * control is one step that undo takes back.
  */
 export function DrawingLayers({
+  open,
   history,
   onChange,
   onClose,
 }: {
+  open: boolean;
   history: SketchHistory;
   onChange: (next: SketchHistory) => void;
   onClose: () => void;
 }) {
-  useEscapeStack(true, onClose);
+  useEscapeStack(open, onClose);
   const { layers, active } = history.present;
   const top = layers.length - 1;
   const current = activeLayer(history.present);
@@ -39,9 +43,12 @@ export function DrawingLayers({
 
   return (
     <fieldset
-      class="absolute right-0 bottom-full mb-1 w-64 max-w-[calc(100vw-1rem)] md:left-full md:right-auto md:bottom-0 md:mb-0 md:ml-2 rounded-lg bg-neutral-800 p-1 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0"
+      class={`${open ? "block" : "hidden"} absolute right-2 bottom-full mb-1 w-64 max-w-[calc(100vw-1rem)] rounded-lg bg-neutral-800 p-1 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0 md:static md:block md:w-auto md:max-w-none md:p-2 md:shadow-none md:ring-0`}
       aria-label={t("drawing.layers")}
     >
+      <legend class="hidden md:block float-left w-full px-1 pb-2 text-xs font-medium text-neutral-400">
+        {t("drawing.layers")}
+      </legend>
       <ul class="flex flex-col gap-0.5">
         {[...layers.entries()].reverse().map(([at, layer]) => {
           const name = t("drawing.layerName", { n: layer.id });
