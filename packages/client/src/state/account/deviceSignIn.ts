@@ -146,6 +146,14 @@ export async function inspectDeviceSignIn(
   return (await res.json()) as DeviceSignInRequestResponse;
 }
 
+/**
+ * "Not me": ends the request, and the log of the account records it. A request
+ * that is already gone needs nothing, so the answer is not shown.
+ */
+export async function denyDeviceSignIn(id: string): Promise<void> {
+  await apiFetch("POST", "/auth/device-sign-in/deny", { id });
+}
+
 export type ApproveResult =
   | { kind: "ok" | "gone" | "failed" | "wrongCode" }
   | {

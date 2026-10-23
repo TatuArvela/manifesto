@@ -1120,6 +1120,8 @@ export const en = {
   "audit.action.auth.sign_in_link_requested": "Sign-in link sent",
   "audit.action.auth.device_sign_in_approved":
     "Approved a sign-in on a new device",
+  "audit.action.auth.device_sign_in_denied":
+    "Refused a sign-in on a new device",
   "audit.action.auth.two_factor_enabled": "Two-factor sign-in turned on",
   "audit.action.auth.two_factor_disabled": "Two-factor sign-in turned off",
   "audit.action.auth.passkey_added": "Passkey added",

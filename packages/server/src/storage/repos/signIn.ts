@@ -229,6 +229,11 @@ export interface DeviceSignInsRepo {
     now: string,
   ): Promise<boolean>;
   /**
+   * Ends a pending request that its person refused. False for a request that
+   * is gone, or that was approved before.
+   */
+  deny(idHash: string, now: string): Promise<boolean>;
+  /**
    * Uses an approved request, atomically, and tells for which account it is.
    * `pending` while it waits for an approval. Null when it is gone.
    */

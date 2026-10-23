@@ -271,6 +271,20 @@ export const AUTH_OPERATIONS: Operation[] = [
   },
   {
     method: "post",
+    path: "/api/v1/auth/device-sign-in/deny",
+    tag: "Auth",
+    summary: "Refuse a request to sign in a new device; the log records it",
+    auth: "session",
+    limits: [],
+    feature: "deviceSignIn",
+    body: deviceSignInInspectSchema,
+    responses: {
+      ...noContent,
+      "410": { description: "Expired or used", schema: "Error" },
+    },
+  },
+  {
+    method: "post",
     path: "/api/v1/auth/device-sign-in/wait",
     tag: "Auth",
     summary:

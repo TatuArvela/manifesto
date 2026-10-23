@@ -192,6 +192,22 @@ describe("sign-in of a new device by a QR code that it shows", () => {
     expect((await wait(waitToken)).status).toBe(410);
   });
 
+  it("ends a refused request, and logs the refusal", async () => {
+    const { id, waitToken } = await start();
+    const denied = await post(
+      "/api/v1/auth/device-sign-in/deny",
+      { id },
+      authHeaders(session),
+    );
+    expect(denied.status).toBe(204);
+    expect((await wait(waitToken)).status).toBe(410);
+    expect((await approve({ id })).status).toBe(410);
+    const entries = await storage.audit.list({ limit: 20 });
+    expect(entries.some((e) => e.action === "auth.device_sign_in_denied")).toBe(
+      true,
+    );
+  });
+
   it("refuses an expired request", async () => {
     const { id, waitToken } = await start();
     await storage.deviceSignIns.deleteExpired("2999-01-01T00:00:00.000Z");

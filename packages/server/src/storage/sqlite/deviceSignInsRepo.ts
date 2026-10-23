@@ -25,6 +25,11 @@ export function createSqliteDeviceSignInsRepo(db: SqliteDB): DeviceSignInsRepo {
      WHERE id_hash = @idHash AND approved_at IS NULL AND used_at IS NULL
        AND expires_at > @now`,
   );
+  const denyStmt = db.prepare(
+    `UPDATE device_sign_ins SET used_at = @now
+     WHERE id_hash = @idHash AND approved_at IS NULL AND used_at IS NULL
+       AND expires_at > @now`,
+  );
   const claimStmt = db.prepare(
     `UPDATE device_sign_ins SET used_at = @now
      WHERE wait_hash = @waitHash AND approved_at IS NOT NULL
@@ -33,7 +38,8 @@ export function createSqliteDeviceSignInsRepo(db: SqliteDB): DeviceSignInsRepo {
   );
   const pendingStmt = db.prepare(
     `SELECT 1 FROM device_sign_ins
-     WHERE wait_hash = @waitHash AND approved_at IS NULL AND expires_at > @now`,
+     WHERE wait_hash = @waitHash AND approved_at IS NULL AND used_at IS NULL
+       AND expires_at > @now`,
   );
   const deleteByUserStmt = db.prepare(
     `DELETE FROM device_sign_ins WHERE user_id = ? AND used_at IS NULL`,
@@ -67,6 +73,9 @@ export function createSqliteDeviceSignInsRepo(db: SqliteDB): DeviceSignInsRepo {
           now,
         }).changes === 1
       );
+    },
+    async deny(idHash, now) {
+      return denyStmt.run({ idHash, now }).changes === 1;
     },
     async claim(waitHash, now) {
       const row = claimStmt.get({ waitHash, now }) as ClaimedRow | undefined;

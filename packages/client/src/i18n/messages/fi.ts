@@ -1137,6 +1137,8 @@ export const fi: Messages = {
   "audit.action.auth.sign_in_link_requested": "Kirjautumislinkki lähetetty",
   "audit.action.auth.device_sign_in_approved":
     "Hyväksyi kirjautumisen uudella laitteella",
+  "audit.action.auth.device_sign_in_denied":
+    "Hylkäsi kirjautumisen uudella laitteella",
   "audit.action.auth.two_factor_enabled":
     "Kaksivaiheinen kirjautuminen otettu käyttöön",
   "audit.action.auth.two_factor_disabled":
