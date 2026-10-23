@@ -5,6 +5,8 @@ paths:
   - "packages/client/src/components/NoteGrid.tsx"
   - "packages/client/src/components/ReorderableGrid.tsx"
   - "packages/client/src/hooks/useReorderDrag.ts"
+  - "packages/client/src/hooks/useCardRoom.ts"
+  - "packages/client/src/components/card/cardActionsFit.ts"
   - "packages/client/src/components/NoteSheet.tsx"
   - "packages/client/src/components/editor/NoteEditorToolbar.tsx"
   - "packages/client/src/state/ordering.ts"
@@ -35,6 +37,18 @@ natural height, measures it, and then writes each span back.
   grid again.
 - Content that settles after the first paint (images, fonts) must cause a new measurement. If not,
   the card keeps its first height.
+
+## The buttons of a card
+
+The row of buttons at the bottom of a card has no scroll. The buttons that do not fit go into the
+`...` menu of the card, from the right end of the row, and the menu button always stays.
+
+- All cards of one grid have one width. Thus, `useCardRoom` in `ReorderableGrid` measures the first
+  card once (with `offsetWidth`, because a leaning card has a wider box), and gives it to the cards
+  through `CardRoomContext`. No card measures itself.
+- `overflowingActions` (`card/cardActionsFit.ts`) counts the buttons that fit from fixed sizes. If
+  you change `iconButtonClass`, the padding of a card or the gap of the row, change its constants.
+- A popover whose button is not on the row opens from the menu button.
 
 ## Reorder
 

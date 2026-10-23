@@ -1,5 +1,6 @@
 import type { Note } from "@manifesto/shared";
 import clsx from "clsx";
+import type { LucideIcon } from "lucide-preact";
 import {
   Archive,
   Bell,
@@ -17,7 +18,6 @@ import {
   Undo2,
   X,
 } from "lucide-preact";
-import { useRef } from "preact/hooks";
 import { plugins } from "#/autoNotes/registry.ts";
 import { iconButtonClass } from "#/components/editor/editorButtons.ts";
 import { PresenceAvatars } from "#/components/PresenceAvatars.tsx";
@@ -30,7 +30,35 @@ import {
 } from "#/state/actions.ts";
 import { refreshAutoNotes } from "#/state/autoNotes.ts";
 import { confirmDeletion } from "#/state/confirm.ts";
+import type { CardAction } from "./cardActionsFit.ts";
 import type { CardPopoverKind } from "./NoteCardPopovers.tsx";
+
+/**
+ * The icon and the name of a button of the row. The row and the rows that the
+ * menu gets in its place read the same one. Call it in render.
+ */
+export function cardActionLook(
+  action: CardAction,
+  note: Note,
+): { icon: LucideIcon; label: string } {
+  switch (action) {
+    case "color":
+      return { icon: Palette, label: t("noteCard.color") };
+    case "font":
+      return { icon: Type, label: t("editor.font") };
+    case "reminder":
+      return {
+        icon: Bell,
+        label: note.reminder ? t("reminder.edit") : t("reminder.set"),
+      };
+    case "image":
+      return { icon: ImageIcon, label: t("editor.addImage") };
+    case "draw":
+      return { icon: PenLine, label: t("editor.draw") };
+    case "tags":
+      return { icon: Tag, label: t("noteMenu.tags") };
+  }
+}
 
 /** The round button at the top-left corner of a card that selects it. */
 export function CardSelectButton({
@@ -159,13 +187,16 @@ export function CardStatusBar({
 /**
  * The row of buttons at the bottom of a card, in the order of the editor
  * toolbar: color, font, reminder, pictures, tags and the menu. In the trash:
- * restore and delete.
+ * restore and delete. The buttons in `hidden` did not fit, and are rows of the
+ * menu in their place.
  */
 export function CardActions({
   note,
   isTrashView,
   isSelectMode,
   overlay,
+  hidden,
+  fileInputRef,
   colorBtnRef,
   fontBtnRef,
   reminderBtnRef,
@@ -184,6 +215,9 @@ export function CardActions({
   isTrashView: boolean;
   isSelectMode: boolean;
   overlay?: boolean;
+  hidden: CardAction[];
+  /** The picker of `onAttach`. The menu also opens it. */
+  fileInputRef: preact.RefObject<HTMLInputElement | null>;
   colorBtnRef: preact.Ref<HTMLButtonElement>;
   fontBtnRef: preact.Ref<HTMLButtonElement>;
   reminderBtnRef: preact.Ref<HTMLButtonElement>;
@@ -204,7 +238,7 @@ export function CardActions({
   onAttach?: ((files: File[]) => void) | undefined;
   onDraw?: (() => void) | undefined;
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const shows = (action: CardAction) => !hidden.includes(action);
   return (
     /* biome-ignore lint/a11y/noStaticElementInteractions: event stop container */
     /* biome-ignore lint/a11y/useKeyWithClickEvents: event stop container */
@@ -285,19 +319,21 @@ export function CardActions({
               </Tooltip>
             </>
           )}
-          <Tooltip label={t("noteCard.color")}>
-            <button
-              ref={colorBtnRef}
-              type="button"
-              class={iconButtonClass}
-              onClick={onToggleColorPicker}
-              aria-label={t("noteCard.changeColor")}
-              aria-expanded={openPopover === "color"}
-            >
-              <Palette class="w-4 h-4" />
-            </button>
-          </Tooltip>
-          {onToggleFontPicker && (
+          {shows("color") && (
+            <Tooltip label={t("noteCard.color")}>
+              <button
+                ref={colorBtnRef}
+                type="button"
+                class={iconButtonClass}
+                onClick={onToggleColorPicker}
+                aria-label={t("noteCard.changeColor")}
+                aria-expanded={openPopover === "color"}
+              >
+                <Palette class="w-4 h-4" />
+              </button>
+            </Tooltip>
+          )}
+          {onToggleFontPicker && shows("font") && (
             <Tooltip label={t("editor.font")}>
               <button
                 ref={fontBtnRef}
@@ -312,34 +348,38 @@ export function CardActions({
             </Tooltip>
           )}
           {/* In the editor's order: colour, font, reminder, pictures. */}
-          <Tooltip
-            label={note.reminder ? t("reminder.edit") : t("reminder.set")}
-          >
-            <button
-              ref={reminderBtnRef}
-              type="button"
-              class={iconButtonClass}
-              onClick={onToggleReminder}
-              aria-label={
-                note.reminder ? t("reminder.edit") : t("reminder.set")
-              }
-              aria-expanded={openPopover === "reminder"}
+          {shows("reminder") && (
+            <Tooltip
+              label={note.reminder ? t("reminder.edit") : t("reminder.set")}
             >
-              <Bell class="w-4 h-4" />
-            </button>
-          </Tooltip>
+              <button
+                ref={reminderBtnRef}
+                type="button"
+                class={iconButtonClass}
+                onClick={onToggleReminder}
+                aria-label={
+                  note.reminder ? t("reminder.edit") : t("reminder.set")
+                }
+                aria-expanded={openPopover === "reminder"}
+              >
+                <Bell class="w-4 h-4" />
+              </button>
+            </Tooltip>
+          )}
           {onAttach && (
             <>
-              <Tooltip label={t("editor.addImage")}>
-                <button
-                  type="button"
-                  class={iconButtonClass}
-                  onClick={() => fileInputRef.current?.click()}
-                  aria-label={t("editor.addImage")}
-                >
-                  <ImageIcon class="w-4 h-4" />
-                </button>
-              </Tooltip>
+              {shows("image") && (
+                <Tooltip label={t("editor.addImage")}>
+                  <button
+                    type="button"
+                    class={iconButtonClass}
+                    onClick={() => fileInputRef.current?.click()}
+                    aria-label={t("editor.addImage")}
+                  >
+                    <ImageIcon class="w-4 h-4" />
+                  </button>
+                </Tooltip>
+              )}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -357,7 +397,7 @@ export function CardActions({
               />
             </>
           )}
-          {onDraw && (
+          {onDraw && shows("draw") && (
             <Tooltip label={t("editor.draw")}>
               <button
                 type="button"
@@ -369,18 +409,20 @@ export function CardActions({
               </button>
             </Tooltip>
           )}
-          <Tooltip label={t("noteMenu.tags")}>
-            <button
-              ref={tagsBtnRef}
-              type="button"
-              class={iconButtonClass}
-              onClick={onToggleTags}
-              aria-label={t("noteMenu.tags")}
-              aria-expanded={openPopover === "tags"}
-            >
-              <Tag class="w-4 h-4" />
-            </button>
-          </Tooltip>
+          {shows("tags") && (
+            <Tooltip label={t("noteMenu.tags")}>
+              <button
+                ref={tagsBtnRef}
+                type="button"
+                class={iconButtonClass}
+                onClick={onToggleTags}
+                aria-label={t("noteMenu.tags")}
+                aria-expanded={openPopover === "tags"}
+              >
+                <Tag class="w-4 h-4" />
+              </button>
+            </Tooltip>
+          )}
           <Tooltip label={t("noteMenu.more")}>
             <button
               ref={menuBtnRef}
