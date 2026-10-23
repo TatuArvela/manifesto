@@ -26,8 +26,19 @@ pad: a sheet of white paper. You draw on it with a finger, a pen or a mouse. Don
 the note as a PNG image, through the same path as an attached picture. Thus, the app stores, shows,
 shares and exports it as a picture, and it uses one of the image slots of the note.
 
-- There are four inks (black, red, blue, green), three pen widths, an eraser, an undo of the last
-  stroke, and clear. A tap makes a dot.
+- There are four inks (black, red, blue, green), three pen widths, an eraser, undo, redo, and clear.
+  A tap makes a dot.
+- The drawing has layers. **Layers**, in the bottom bar, opens the list, the top layer first. Press
+  the name of a layer to draw on it. Each layer has buttons to hide or show it, to move it up or
+  down, and to delete it (not the last layer). **Add layer** puts a new layer over the current one,
+  to a maximum of eight. A line that you draw on a hidden layer shows that layer again.
+- Clear empties the current layer. The eraser takes ink away from the current layer only. The layers
+  under it, and the image under the drawing, stay.
+- Each stroke, clear, and change to a layer is one step that undo takes back and redo does again.
+  The choice of the layer to draw on is not a step. A new change after an undo removes the steps to
+  redo.
+- The layers and the steps are only for the open pad. Done flattens the layers that show into one
+  picture. Hidden layers are not in it.
 - The paper is 1600 by 1200 and opaque. Thus, a drawing looks the same on a note of any color and in
   both themes. It shows as large as possible, and keeps its shape.
 - Only one pointer draws at a time, the first one down. The pad ignores a second finger or a palm
@@ -36,7 +47,7 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   - The stroke follows the pointer past the edge of the paper.
   - When the system cancels a touch, the pad keeps what you drew.
 - If the pad has a drawing, it asks before it closes, from the close button, Escape or Back. If you
-  do not discard, Back stays with the pad. Done on empty paper adds nothing. Done, or a close while
+  do not discard, Back stays with the pad. Done with no ink that shows adds nothing. Done, or a close while
   the pen is still down, includes the line that you draw.
 - If the app cannot make the picture, the pad tells you, and stays open with the drawing on it.
 - The pad is not available on a note that you cannot change (shared to view, or an auto-note).
@@ -48,9 +59,9 @@ when the pointer is on the image, and always on a touch screen. The button opens
 pad as the paper. Done puts the result in the position of the image (at the end, if you removed the
 image in the meantime). Use this to change a drawing after you save it, and to add notes on a photo.
 
-- After a drawing is on the note, it is a picture. Thus, its old lines are part of the paper. Undo
-  and clear apply only to the lines of this session. The eraser paints white over all that is under
-  it, also a photo. To keep the strokes, the app needs a place to store them with the image.
+- After a drawing is on the note, it is a picture. Thus, its old lines and layers are part of the
+  paper. Undo, clear and the eraser apply only to the lines of this session, and the eraser does not
+  remove the picture. To keep the strokes, the app needs a place to store them with the image.
 - The paper gets the shape of the image. Its long edge is a minimum of 1600, the size of a new
   drawing (a line drawn on a thumbnail looks like blocks), and a maximum of `MAX_IMAGE_EDGE`. The app
   scales the pens, so that they look the same width on the screen.

@@ -3,6 +3,7 @@
 // be tested without a pointer.
 
 import { carriedImageAlts, type Note } from "@manifesto/shared";
+import type { Layer } from "./drawingLayers.ts";
 import { MAX_IMAGE_EDGE } from "./shrinkImage.ts";
 
 /** The own size of the drawing, whatever size it shows at: 4 by 3. */
@@ -57,6 +58,11 @@ export interface Stroke {
   /** In the own pixels of the drawing. */
   width: number;
   points: Point[];
+  /**
+   * Takes ink away from its own layer, and leaves what is under that layer.
+   * Thus, it never paints over the image under the drawing.
+   */
+  erase?: boolean;
 }
 
 /**
@@ -87,6 +93,9 @@ export function drawStroke(
 ): void {
   const [first, ...rest] = stroke.points;
   if (!first) return;
+  ctx.globalCompositeOperation = stroke.erase
+    ? "destination-out"
+    : "source-over";
   ctx.strokeStyle = stroke.color;
   ctx.fillStyle = stroke.color;
   ctx.lineWidth = stroke.width;
@@ -98,6 +107,7 @@ export function drawStroke(
     ctx.beginPath();
     ctx.arc(first[0], first[1], stroke.width / 2, 0, Math.PI * 2);
     ctx.fill();
+    ctx.globalCompositeOperation = "source-over";
     return;
   }
   ctx.beginPath();
@@ -114,23 +124,59 @@ export function drawStroke(
   }
   ctx.lineTo(previous[0], previous[1]);
   ctx.stroke();
+  ctx.globalCompositeOperation = "source-over";
+}
+
+/** An empty, transparent canvas the size of the paper. */
+export function blankCanvas(paper: PaperSize): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = paper.width;
+  canvas.height = paper.height;
+  return canvas;
+}
+
+/**
+ * The strokes of one layer on `scratch`, from nothing. On its own canvas, an
+ * eraser takes away only the ink of that layer.
+ */
+export function paintLayer(
+  scratch: HTMLCanvasElement,
+  strokes: readonly Stroke[],
+): void {
+  const ctx = scratch.getContext("2d");
+  if (!ctx) return;
+  ctx.clearRect(0, 0, scratch.width, scratch.height);
+  for (const stroke of strokes) drawStroke(ctx, stroke);
 }
 
 /**
  * The full drawing from nothing: paper, the image under the drawing if there is
- * one, then each stroke in order. The paper stays under the image. Thus, an
- * image with transparent parts is as opaque as all other drawings.
+ * one, then each layer that shows, from the bottom up. The paper stays under
+ * the image. Thus, an image with transparent parts is as opaque as all other
+ * drawings. With `onlyLayers`, it is the given layers alone, on a transparent
+ * ground: the pad keeps those under and over the line in progress.
  */
 export function renderDrawing(
   ctx: CanvasRenderingContext2D,
-  strokes: readonly Stroke[],
+  layers: readonly Layer[],
   paper: PaperSize = BLANK_PAPER,
   base: CanvasImageSource | null = null,
+  onlyLayers = false,
 ): void {
-  ctx.fillStyle = PAPER;
-  ctx.fillRect(0, 0, paper.width, paper.height);
-  if (base) ctx.drawImage(base, 0, 0, paper.width, paper.height);
-  for (const stroke of strokes) drawStroke(ctx, stroke);
+  if (onlyLayers) {
+    ctx.clearRect(0, 0, paper.width, paper.height);
+  } else {
+    ctx.fillStyle = PAPER;
+    ctx.fillRect(0, 0, paper.width, paper.height);
+    if (base) ctx.drawImage(base, 0, 0, paper.width, paper.height);
+  }
+  let scratch: HTMLCanvasElement | null = null;
+  for (const layer of layers) {
+    if (!layer.visible || layer.strokes.length === 0) continue;
+    scratch ??= blankCanvas(paper);
+    paintLayer(scratch, layer.strokes);
+    ctx.drawImage(scratch, 0, 0);
+  }
 }
 
 /** Above this, a PNG is a photograph, not line art, and is saved as one. */

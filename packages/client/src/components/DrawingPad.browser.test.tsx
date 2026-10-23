@@ -205,6 +205,85 @@ describe("DrawingPad", () => {
     expect(inkAt(0.25, 0.5)).toBe(PAPER);
   });
 
+  it("redoes what was undone, a clear also", async () => {
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    await settled();
+    button(t("drawing.clear"))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe(PAPER);
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe(PAPER);
+    button(t("editor.redo"))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+  });
+
+  it("draws on layers that hide, move, and keep the eraser to themselves", async () => {
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    button(t("drawing.layers"))?.click();
+    await settled();
+    host.querySelectorAll<HTMLButtonElement>("button").forEach((each) => {
+      if (each.textContent === t("drawing.addLayer")) each.click();
+    });
+    await settled();
+    const second = t("drawing.layerName", { n: 2 });
+    button(t("drawing.hideLayer", { name: second }))?.click();
+    await settled();
+
+    // A red line over the black one, on the new layer.
+    button("Red")?.click();
+    await settled();
+    drawLine([0.5, 0.3], [0.5, 0.7]);
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("220,38,38");
+
+    // Hidden, the layer leaves the black line under it.
+    button(t("drawing.hideLayer", { name: second }))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    button(t("drawing.showLayer", { name: second }))?.click();
+    await settled();
+
+    // Under the first layer, the red line goes under the black one.
+    button(t("drawing.layerDown", { name: second }))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    expect(inkAt(0.5, 0.35)).toBe("220,38,38");
+
+    // The eraser on the red layer leaves the black line.
+    button(t("drawing.eraser"))?.click();
+    await settled();
+    drawLine([0.4, 0.5], [0.6, 0.5]);
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    drawLine([0.5, 0.3], [0.5, 0.4]);
+    await settled();
+    expect(inkAt(0.5, 0.35)).toBe(PAPER);
+
+    // Undo brings it all back, one step at a time.
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.35)).toBe("220,38,38");
+  });
+
+  it("saves only the layers that show, and nothing when none do", async () => {
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    button(t("drawing.layers"))?.click();
+    await settled();
+    button(
+      t("drawing.hideLayer", { name: t("drawing.layerName", { n: 1 }) }),
+    )?.click();
+    await settled();
+    button(t("editor.done"))?.click();
+    await settled();
+    expect(saved).toEqual([]);
+    expect(drawingRequest.value).toBeNull();
+  });
+
   it("hands the drawing over as a PNG with the ink in it", async () => {
     drawLine([0.2, 0.5], [0.8, 0.5]);
     await settled();
