@@ -14,7 +14,14 @@ import {
 import { updateNote } from "#/state/notesStore.ts";
 import { hasDatedItems } from "#/utils/itemDate.ts";
 import { hasCheckedItems } from "#/utils/markdown.ts";
-import { menuPanelClass, NoteMenu } from "./NoteMenu.tsx";
+import type { CardAction } from "./cardActionsFit.ts";
+import { cardActionLook } from "./NoteCardControls.tsx";
+import {
+  menuDividerClass,
+  menuItemClass,
+  menuPanelClass,
+  NoteMenu,
+} from "./NoteMenu.tsx";
 import { noteMenuItems } from "./noteMenuItems.tsx";
 
 export type CardPopoverKind = "color" | "font" | "tags" | "menu" | "reminder";
@@ -100,18 +107,45 @@ function CardMenu({
   anchorRef,
   onClose,
   onShowVersions,
+  overflow,
+  onOverflow,
   leaving,
 }: {
   note: Note;
   anchorRef: Anchor;
   onClose: () => void;
   onShowVersions: (() => void) | undefined;
+  overflow: CardAction[];
+  onOverflow: (action: CardAction) => void;
   leaving: boolean;
 }) {
+  // Not `NoteMenuAction` rows: `NoteMenu` closes the menu after each of those,
+  // and most of these open a different panel in its place.
+  const overflowRows = overflow.length > 0 && (
+    <>
+      {overflow.map((action) => {
+        const { icon: Icon, label } = cardActionLook(action, note);
+        return (
+          <button
+            key={action}
+            type="button"
+            class={menuItemClass}
+            data-menu-row={action}
+            onClick={() => onOverflow(action)}
+          >
+            <Icon class="w-4 h-4" />
+            {label}
+          </button>
+        );
+      })}
+      <div class={menuDividerClass} />
+    </>
+  );
   return (
     <CardPopover anchorRef={anchorRef} onClose={onClose} leaving={leaving}>
       <div class={menuPanelClass}>
         <NoteMenu
+          before={overflowRows}
           items={noteMenuItems(note, {
             onShowVersions,
             checkedItems: {
@@ -146,6 +180,8 @@ export function NoteCardPopovers({
   menuBtnRef,
   reminderAnchorRef,
   onShowVersions,
+  overflow,
+  onOverflow,
 }: {
   note: Note;
   shown: CardPopoverKind | null;
@@ -166,14 +202,20 @@ export function NoteCardPopovers({
    * Opens the editor of the note on its history. Not given where it has none.
    */
   onShowVersions?: (() => void) | undefined;
+  /** The buttons that did not fit on the row, which the menu shows. */
+  overflow: CardAction[];
+  onOverflow: (action: CardAction) => void;
 }) {
   const close = () => setOpen(null);
+  // A button that did not fit is not on the page. Its panel then opens from
+  // the menu button, from which it was picked.
+  const from = (ref: Anchor) => (ref.current ? ref : menuBtnRef);
   return (
     <>
       {shown === "color" && (
         <CardColorPicker
           note={note}
-          anchorRef={colorBtnRef}
+          anchorRef={from(colorBtnRef)}
           onClose={close}
           leaving={leaving}
         />
@@ -182,14 +224,18 @@ export function NoteCardPopovers({
       {shown === "font" && (
         <CardFontPicker
           note={note}
-          anchorRef={fontBtnRef}
+          anchorRef={from(fontBtnRef)}
           onClose={close}
           leaving={leaving}
         />
       )}
 
       {shown === "tags" && (
-        <CardPopover anchorRef={tagsBtnRef} onClose={close} leaving={leaving}>
+        <CardPopover
+          anchorRef={from(tagsBtnRef)}
+          onClose={close}
+          leaving={leaving}
+        >
           <div class={tagPickerPanelClass}>
             <TagPicker
               tags={note.tags}
@@ -206,13 +252,15 @@ export function NoteCardPopovers({
           anchorRef={menuBtnRef}
           onClose={close}
           onShowVersions={onShowVersions}
+          overflow={overflow}
+          onOverflow={onOverflow}
           leaving={leaving}
         />
       )}
 
       {shown === "reminder" && (
         <CardPopover
-          anchorRef={reminderAnchorRef}
+          anchorRef={from(reminderAnchorRef)}
           onClose={close}
           leaving={leaving}
         >

@@ -1,7 +1,9 @@
 import type { Note } from "@manifesto/shared";
+import { useCardRoom } from "#/hooks/useCardRoom.ts";
 import { useMasonryGrid } from "#/hooks/useMasonryGrid.ts";
 import { useReorderDrag } from "#/hooks/useReorderDrag.ts";
 import { noteSize, viewMode } from "#/state/prefs.ts";
+import { CardRoomContext } from "./card/cardActionsFit.ts";
 import { NoteCard } from "./card/NoteCard.tsx";
 import { gridColumns } from "./gridColumns.ts";
 
@@ -44,6 +46,8 @@ export function ReorderableGrid({
     },
   );
 
+  const cardRoom = useCardRoom(gridRef, notes[0]?.id);
+
   const { gridHandlers, cardHandlers } = useReorderDrag({
     notes,
     reorderable,
@@ -66,18 +70,20 @@ export function ReorderableGrid({
       style={isColumn ? undefined : { gridAutoRows: "1px" }}
       {...gridHandlers}
     >
-      {notes.map((note) => (
-        <NoteCard
-          key={note.id}
-          note={note}
-          draggable={reorderable}
-          onDragStart={cardHandlers.onDragStart}
-          onDragEnd={cardHandlers.onDragEnd}
-          onTouchDragStart={cardHandlers.onTouchDragStart}
-          onTouchDragMove={cardHandlers.onTouchDragMove}
-          onTouchDragEnd={cardHandlers.onTouchDragEnd}
-        />
-      ))}
+      <CardRoomContext.Provider value={cardRoom}>
+        {notes.map((note) => (
+          <NoteCard
+            key={note.id}
+            note={note}
+            draggable={reorderable}
+            onDragStart={cardHandlers.onDragStart}
+            onDragEnd={cardHandlers.onDragEnd}
+            onTouchDragStart={cardHandlers.onTouchDragStart}
+            onTouchDragMove={cardHandlers.onTouchDragMove}
+            onTouchDragEnd={cardHandlers.onTouchDragEnd}
+          />
+        ))}
+      </CardRoomContext.Provider>
     </div>
   );
 }

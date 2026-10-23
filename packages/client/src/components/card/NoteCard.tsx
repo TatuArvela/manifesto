@@ -2,7 +2,7 @@ import { imageCountOf, type Note, roleOf } from "@manifesto/shared";
 import { useComputed } from "@preact/signals";
 import clsx from "clsx";
 import { memo } from "preact/compat";
-import { useRef, useState } from "preact/hooks";
+import { useContext, useRef, useState } from "preact/hooks";
 import { autoNoteColorMap, noteColorMap, noteText } from "#/colors.ts";
 import { useEditor } from "#/components/editor/lazyEditor.ts";
 import { NoteSheet } from "#/components/NoteSheet.tsx";
@@ -28,6 +28,11 @@ import { cardName } from "#/utils/cardName.ts";
 import { contentIsOnlyPreviewUrls } from "#/utils/linkPreview.ts";
 import { MORPH_MS } from "#/utils/morph.ts";
 import { noteTilt } from "#/utils/noteTilt.ts";
+import {
+  type CardAction,
+  CardRoomContext,
+  overflowingActions,
+} from "./cardActionsFit.ts";
 import { NoteCardBody } from "./NoteCardBody.tsx";
 import {
   CardActions,
@@ -170,6 +175,40 @@ export const NoteCard = memo(function NoteCard({
       openNoteWith(note.id, { kind: "attach", files: [file] }),
     );
   const cardLabel = cardName(note) || t("noteCard.untitled");
+
+  // The buttons of the row that do not fit on this card go into its menu.
+  const cardRoom = useContext(CardRoomContext);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const rowActions: CardAction[] = opensEditor
+    ? ["color", "font", "reminder", "image", "draw", "tags"]
+    : ["color", "reminder", "tags"];
+  const overflow =
+    cardRoom === undefined || isTrashView
+      ? []
+      : overflowingActions({
+          room: cardRoom,
+          actions: rowActions,
+          leading: note.readonly ? 2 : 0,
+          overlay: overlayControls,
+        });
+  const onOverflow = (action: CardAction) => {
+    switch (action) {
+      case "reminder":
+        setReminderFromChip(false);
+        setOpenPopover("reminder");
+        return;
+      case "image":
+        setOpenPopover(null);
+        fileInputRef.current?.click();
+        return;
+      case "draw":
+        setOpenPopover(null);
+        drawFromCard();
+        return;
+      default:
+        setOpenPopover(action);
+    }
+  };
 
   const handleSelectClick = (e: Event) => {
     e.stopPropagation();
@@ -363,6 +402,8 @@ export const NoteCard = memo(function NoteCard({
             isTrashView={isTrashView}
             isSelectMode={isSelectMode}
             overlay={overlayControls}
+            hidden={overflow}
+            fileInputRef={fileInputRef}
             colorBtnRef={colorBtnRef}
             fontBtnRef={fontBtnRef}
             reminderBtnRef={reminderBtnRef}
@@ -406,6 +447,8 @@ export const NoteCard = memo(function NoteCard({
               ? () => openNoteWith(note.id, { kind: "versions" })
               : undefined
           }
+          overflow={overflow}
+          onOverflow={onOverflow}
         />
       </div>
 

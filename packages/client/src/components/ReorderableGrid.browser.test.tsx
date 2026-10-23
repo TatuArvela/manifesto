@@ -559,6 +559,10 @@ describe("ReorderableGrid", () => {
         <ReorderableGrid notes={three} reorderable onReorder={() => {}} />,
         host,
       );
+      // The grid measures its first card after it mounts, and gives the width
+      // to all cards once. That render is not one of a selection.
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await tick();
       rendered.length = 0;
       selectedNotes.value = new Set([defined(three[1]).id]);
       await tick();
