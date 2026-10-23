@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.0](https://github.com/TatuArvela/manifesto/compare/v0.8.0...v0.9.0) (2026-10-23)
+
+
+### Features
+
+* **client:** a note's shadow curls up at its bottom corners, with a setting to turn it off ([#170](https://github.com/TatuArvela/manifesto/issues/170)) ([b679702](https://github.com/TatuArvela/manifesto/commit/b6797024560b573bea4b70f8dfe0c712bc7dd6af))
+* urgent reminders that repeat until done, and a Reminders view in sections ([#172](https://github.com/TatuArvela/manifesto/issues/172)) ([5e5278a](https://github.com/TatuArvela/manifesto/commit/5e5278a3b61d75a760e0f7567242f0c06114eff1))
+
+
+### Bug Fixes
+
+* **client:** the buttons that do not fit on a card go into its menu ([#169](https://github.com/TatuArvela/manifesto/issues/169)) ([d8a2af8](https://github.com/TatuArvela/manifesto/commit/d8a2af89b713fc1686914ca7d085e0b260d79b6b))
+
 ## [0.8.0](https://github.com/TatuArvela/manifesto/compare/v0.7.0...v0.8.0) (2026-10-20)
 
 
