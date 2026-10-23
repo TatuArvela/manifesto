@@ -18,7 +18,17 @@ export interface PenSettings {
   tip: PenTip;
   /** From 0 to 1. */
   opacity: number;
+  /** What a shape draws: its outline, its inside, or both. */
+  shapes: ShapeStyle;
 }
+
+export type ShapeStyle = "outline" | "filled" | "both";
+
+const SHAPE_STYLES = [
+  { style: "outline", label: "drawing.shapeOutline" },
+  { style: "filled", label: "drawing.shapeFilled" },
+  { style: "both", label: "drawing.shapeBoth" },
+] as const;
 
 /** The look of a tip on its button, as the paper shows it. */
 export function tipStyle(tip: PenTip, size: number) {
@@ -34,7 +44,8 @@ const choice = (on: boolean) =>
   `w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer ${on ? "bg-white/20" : "hover:bg-white/10"}`;
 
 /**
- * The shape, width and transparency of the pen. The width has three sizes to
+ * The shape, width and transparency of the pen, also for the eraser, lines
+ * and the outlines of shapes, and what a shape draws. The width has three sizes to
  * press, and a field for any other, in the pixels of a new drawing. Thus, a
  * width looks the same on paper of any size.
  */
@@ -52,7 +63,7 @@ export function DrawingPen({
   return (
     <fieldset
       class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-64 max-w-[calc(100vw-1rem)] rounded-lg bg-neutral-800 p-2 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0 flex flex-col gap-2 text-sm"
-      aria-label={t("drawing.pen")}
+      aria-label={t("drawing.penSettings")}
     >
       <div class="flex items-center gap-1">
         <span class="flex-1">{t("drawing.tip")}</span>
@@ -121,6 +132,23 @@ export function DrawingPen({
           {Math.round(pen.opacity * 100)}%
         </span>
       </label>
+      <div class="flex items-center gap-1">
+        <span class="flex-1">{t("drawing.shapeStyle")}</span>
+        {SHAPE_STYLES.map(({ style, label }) => (
+          <button
+            key={style}
+            type="button"
+            class={choice(pen.shapes === style)}
+            onClick={() => onChange({ ...pen, shapes: style })}
+            aria-label={t(label)}
+            aria-pressed={pen.shapes === style}
+          >
+            <span
+              class={`w-4 h-4 rounded-sm ${style === "filled" ? "" : "border-2 border-neutral-100"} ${style === "outline" ? "" : "bg-neutral-400"}`}
+            />
+          </button>
+        ))}
+      </div>
     </fieldset>
   );
 }

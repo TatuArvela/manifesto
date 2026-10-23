@@ -100,10 +100,40 @@ export interface Clip {
   marks: readonly Mark[];
 }
 
-/** What a layer contains: strokes, and groups of them cut to an area. */
-export type Mark = Stroke | Clip;
+export type ShapeKind = "rect" | "ellipse" | "polygon";
+
+/**
+ * A box, an ellipse in a box, or a polygon. A box and an ellipse have the two
+ * corners of the box as points; a polygon has its corners. The outline is in
+ * `color`, the inside in `fill`. Each one is absent when it is not drawn.
+ */
+export interface Shape {
+  shape: ShapeKind;
+  points: Point[];
+  width: number;
+  color?: string;
+  fill?: string;
+  /** From 0 to 1. Opaque when absent. */
+  opacity?: number;
+}
+
+/**
+ * The area of a flood fill, as a picture of it in its color. A fill follows
+ * the pixels that showed at the press. Thus, it is a picture, not a line, and
+ * a large resize of it is less sharp.
+ */
+export interface Fill {
+  image: CanvasImageSource;
+  at: Rect;
+  opacity?: number;
+}
+
+/** What a layer contains: lines, shapes, fills, and groups of them cut to an area. */
+export type Mark = Stroke | Shape | Fill | Clip;
 
 export const isClip = (mark: Mark): mark is Clip => "clip" in mark;
+export const isShape = (mark: Mark): mark is Shape => "shape" in mark;
+export const isFill = (mark: Mark): mark is Fill => "image" in mark;
 
 /** The area that two boxes share, or null when they do not touch. */
 export function intersect(a: Rect, b: Rect): Rect | null {
@@ -133,6 +163,16 @@ export const transformRect = (rect: Rect, by: Transform): Rect => ({
 });
 
 export function transformMark(mark: Mark, by: Transform): Mark {
+  if (isFill(mark)) return { ...mark, at: transformRect(mark.at, by) };
+  if (isShape(mark)) {
+    return {
+      ...mark,
+      width: mark.width * by.scale,
+      points: mark.points.map(
+        ([x, y]): Point => [x * by.scale + by.dx, y * by.scale + by.dy],
+      ),
+    };
+  }
   if (!isClip(mark)) return transformStroke(mark, by);
   return {
     clip: transformRect(mark.clip, by),
@@ -162,7 +202,14 @@ export function markBounds(marks: readonly Mark[]): Rect | null {
       if (shown) include(shown);
       continue;
     }
-    const reach = (mark.width / 2) * (mark.tip === "square" ? Math.SQRT2 : 1);
+    if (isFill(mark)) {
+      include(mark.at);
+      continue;
+    }
+    const reach =
+      isShape(mark) || mark.tip !== "square"
+        ? mark.width / 2
+        : (mark.width / 2) * Math.SQRT2;
     for (const [x, y] of mark.points) {
       include({
         x: x - reach,
@@ -356,12 +403,82 @@ export function blankCanvas(size: PaperSize): HTMLCanvasElement {
   return canvas;
 }
 
+/** The outline of a shape, as a path in progress. */
+export function shapePath(
+  ctx: CanvasRenderingContext2D | Path2D,
+  shape: Pick<Shape, "shape" | "points">,
+): void {
+  const [a, b] = shape.points;
+  if (!a) return;
+  if (shape.shape === "polygon") {
+    ctx.moveTo(a[0], a[1]);
+    for (const point of shape.points.slice(1)) ctx.lineTo(point[0], point[1]);
+    ctx.closePath();
+    return;
+  }
+  if (!b) return;
+  const x = Math.min(a[0], b[0]);
+  const y = Math.min(a[1], b[1]);
+  const width = Math.abs(b[0] - a[0]);
+  const height = Math.abs(b[1] - a[1]);
+  if (shape.shape === "rect") {
+    ctx.rect(x, y, width, height);
+    return;
+  }
+  ctx.moveTo(x + width, y + height / 2);
+  ctx.ellipse(
+    x + width / 2,
+    y + height / 2,
+    width / 2,
+    height / 2,
+    0,
+    0,
+    Math.PI * 2,
+  );
+}
+
+/** A shape: its inside first, then its outline over it. */
+export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
+  ctx.globalAlpha = shape.opacity ?? 1;
+  ctx.beginPath();
+  shapePath(ctx, shape);
+  if (shape.fill) {
+    ctx.fillStyle = shape.fill;
+    ctx.fill();
+  }
+  if (shape.color && shape.width > 0) {
+    ctx.strokeStyle = shape.color;
+    ctx.lineWidth = shape.width;
+    // A box keeps square corners. The corners of a polygon can be very sharp,
+    // and a mitre would go far past them.
+    ctx.lineJoin = shape.shape === "rect" ? "miter" : "round";
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
 /** Marks in order. A group is cut to its area, and its marks only. */
 export function drawMarks(
   ctx: CanvasRenderingContext2D,
   marks: readonly Mark[],
 ): void {
   for (const mark of marks) {
+    if (isFill(mark)) {
+      ctx.globalAlpha = mark.opacity ?? 1;
+      ctx.drawImage(
+        mark.image,
+        mark.at.x,
+        mark.at.y,
+        mark.at.width,
+        mark.at.height,
+      );
+      ctx.globalAlpha = 1;
+      continue;
+    }
+    if (isShape(mark)) {
+      drawShape(ctx, mark);
+      continue;
+    }
     if (!isClip(mark)) {
       drawStroke(ctx, mark);
       continue;

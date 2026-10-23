@@ -10,6 +10,7 @@ import {
   penScale,
   resizeFrom,
   stampCenters,
+  transformMark,
   transformStroke,
 } from "./drawing.ts";
 import { MAX_IMAGE_EDGE } from "./shrinkImage.ts";
@@ -182,5 +183,46 @@ describe("crops", () => {
     // Cut to an area with none of its ink: nothing shows.
     const away = { x: 500, y: 500, width: 10, height: 10 };
     expect(markBounds([{ clip: away, marks: [stroke] }])).toBeNull();
+  });
+});
+
+describe("shapes and fills", () => {
+  it("moves a shape's corners and widens its outline", () => {
+    const shape = {
+      shape: "rect" as const,
+      points: [
+        [0, 0],
+        [10, 20],
+      ] as [number, number][],
+      width: 4,
+      color: "#000",
+    };
+    const moved = transformMark(shape, { scale: 2, dx: 5, dy: 0 });
+    expect(moved).toEqual({
+      ...shape,
+      width: 8,
+      points: [
+        [5, 0],
+        [25, 40],
+      ],
+    });
+    expect(markBounds([shape])).toEqual({
+      x: -2,
+      y: -2,
+      width: 14,
+      height: 24,
+    });
+  });
+
+  it("gives a fill its own box, and moves it with the layer", () => {
+    const fill = {
+      image: {} as CanvasImageSource,
+      at: { x: 1, y: 2, width: 3, height: 4 },
+    };
+    expect(markBounds([fill])).toEqual(fill.at);
+    expect(transformMark(fill, { scale: 2, dx: 0, dy: 1 })).toEqual({
+      ...fill,
+      at: { x: 2, y: 5, width: 6, height: 8 },
+    });
   });
 });

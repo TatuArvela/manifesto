@@ -285,7 +285,7 @@ describe("DrawingPad", () => {
   });
 
   it("draws with the tip, size and opacity of the pen", async () => {
-    button(t("drawing.pen"))?.click();
+    button(t("drawing.penSettings"))?.click();
     await settled();
     button(t("drawing.tipSquare"))?.click();
     const size = host.querySelector<HTMLInputElement>(
@@ -400,6 +400,101 @@ describe("DrawingPad", () => {
     button(t("editor.undo"))?.click();
     await settled();
     expect(canvas().width).toBe(DRAWING_WIDTH);
+  });
+
+  it("draws a straight line, a box, and fills the box", async () => {
+    button(t("drawing.shapes"))?.click();
+    await settled();
+    button(t("drawing.line"))?.click();
+    await settled();
+    drawLine([0.1, 0.1], [0.9, 0.1]);
+    await settled();
+    expect(inkAt(0.5, 0.1)).toBe("23,23,23");
+
+    button(t("drawing.shapes"))?.click();
+    await settled();
+    button(t("drawing.rect"))?.click();
+    await settled();
+    drawLine([0.2, 0.3], [0.6, 0.7]);
+    await settled();
+    expect(inkAt(0.2, 0.5)).toBe("23,23,23");
+    expect(inkAt(0.4, 0.5)).toBe(PAPER);
+
+    button("Red")?.click();
+    button(t("drawing.fill"))?.click();
+    await settled();
+    drawLine([0.4, 0.5], [0.4, 0.5]);
+    await settled();
+    expect(inkAt(0.4, 0.5)).toBe("220,38,38");
+    // The fill stops at the outline.
+    expect(inkAt(0.8, 0.5)).toBe(PAPER);
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(inkAt(0.4, 0.5)).toBe(PAPER);
+  });
+
+  it("fills a shape with the background ink, and swaps the inks", async () => {
+    button(t("drawing.penSettings"))?.click();
+    await settled();
+    button(t("drawing.shapeFilled"))?.click();
+    button(t("drawing.shapes"))?.click();
+    await settled();
+    button(t("drawing.ellipse"))?.click();
+    await settled();
+    host
+      .querySelector<HTMLButtonElement>('button[aria-label="Blue"]')
+      ?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+    await settled();
+    drawLine([0.2, 0.2], [0.6, 0.8]);
+    await settled();
+    expect(inkAt(0.4, 0.5)).toBe("37,99,235");
+    // A box corner is outside the ellipse.
+    expect(inkAt(0.21, 0.21)).toBe(PAPER);
+
+    button(t("drawing.swapColors"))?.click();
+    await settled();
+    const field = host.querySelector<HTMLInputElement>(
+      `input[aria-label="${t("drawing.foreground")}"]`,
+    );
+    expect(field?.value).toBe("#2563eb");
+  });
+
+  it("closes a polygon on its first corner", async () => {
+    button(t("drawing.shapes"))?.click();
+    await settled();
+    button(t("drawing.polygon"))?.click();
+    await settled();
+    for (const corner of [
+      [0.2, 0.2],
+      [0.8, 0.2],
+      [0.5, 0.8],
+      [0.2, 0.2],
+    ] as [number, number][]) {
+      drawLine(corner, corner);
+      await settled();
+    }
+    expect(inkAt(0.5, 0.2)).toBe("23,23,23");
+    expect(inkAt(0.35, 0.5)).toBe("23,23,23");
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.2)).toBe(PAPER);
+  });
+
+  it("zooms in and back to the size of the screen", async () => {
+    const before = canvas().getBoundingClientRect().width;
+    button(t("drawing.zoomIn"))?.click();
+    await settled();
+    await settled();
+    expect(canvas().getBoundingClientRect().width).toBeCloseTo(
+      before * 1.25,
+      0,
+    );
+    // The paper keeps its own size: only the view changes.
+    expect(canvas().width).toBe(DRAWING_WIDTH);
+    button(t("drawing.zoomFit"))?.click();
+    await settled();
+    await settled();
+    expect(canvas().getBoundingClientRect().width).toBeCloseTo(before, 0);
   });
 
   it("hands the drawing over as a PNG with the ink in it", async () => {

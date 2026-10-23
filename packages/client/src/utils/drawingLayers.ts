@@ -8,7 +8,6 @@ import {
   type Mark,
   markBounds,
   type Rect,
-  type Stroke,
   type Transform,
   transformMark,
 } from "./drawing.ts";
@@ -99,20 +98,17 @@ export const activeLayer = (sketch: Sketch): Layer | undefined =>
   sketch.layers.find((layer) => layer.id === sketch.active);
 
 /**
- * A stroke on the active layer. A hidden layer shows again: a line that you
+ * A mark on the active layer. A hidden layer shows again: a line that you
  * cannot see is not one you meant to draw.
  */
-export function addStroke(
-  history: SketchHistory,
-  stroke: Stroke,
-): SketchHistory {
+export function addMark(history: SketchHistory, mark: Mark): SketchHistory {
   const sketch = history.present;
   return record(
     history,
     changeLayer(sketch, sketch.active, (layer) => ({
       ...layer,
       visible: true,
-      marks: [...layer.marks, stroke],
+      marks: [...layer.marks, mark],
     })),
   );
 }
