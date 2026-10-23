@@ -279,7 +279,7 @@ export function DrawingToolbar({
         />
       </div>
 
-      <div class="[grid-area:options] relative md:px-2 md:pb-2">
+      <div class="[grid-area:options] relative md:flex md:items-center md:justify-center md:px-2">
         <DrawingPen
           tool={tool}
           pen={pen}

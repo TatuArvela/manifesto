@@ -75,10 +75,12 @@ const hex = (r: number, g: number, b: number) =>
 /**
  * The areas of the pad. On a phone: the paper, then the rows of controls under
  * it. On a wide screen: the tools at the left, the inks at the right, and the
- * options of the tool over the paper.
+ * options of the tool over the paper. The rows of the options and of the hint
+ * keep their height when they are empty: the paper does not change size when
+ * a tool with no options, or with no hint, is chosen.
  */
 const padGrid =
-  "grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto_auto_auto_auto] [grid-template-areas:'top'_'stage'_'hint'_'options'_'inks'_'tools'] md:grid-cols-[auto_minmax(0,1fr)_auto] md:grid-rows-[auto_auto_minmax(0,1fr)_auto] md:[grid-template-areas:'top_top_top'_'tools_options_inks'_'tools_stage_inks'_'tools_hint_inks']";
+  "grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_minmax(2.75rem,auto)_auto_auto_auto] [grid-template-areas:'top'_'stage'_'hint'_'options'_'inks'_'tools'] md:grid-cols-[auto_minmax(0,1fr)_auto] md:grid-rows-[auto_3rem_minmax(0,1fr)_2.75rem] md:[grid-template-areas:'top_top_top'_'tools_options_inks'_'tools_stage_inks'_'tools_hint_inks']";
 
 const selectionButton =
   "flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 cursor-pointer disabled:cursor-default";
@@ -915,7 +917,7 @@ export function DrawingPad() {
       </div>
 
       {tool === "select" && (
-        <div class="[grid-area:hint] flex items-center justify-center gap-2 flex-wrap px-2 pt-2 md:pb-2 text-sm">
+        <div class="[grid-area:hint] flex items-center justify-center gap-2 flex-wrap px-2 text-sm">
           {selection ? (
             <>
               <button
@@ -952,7 +954,7 @@ export function DrawingPad() {
         </div>
       )}
       {tool === "polygon" && (
-        <p class="[grid-area:hint] px-2 pt-2 md:pb-2 text-center text-sm text-neutral-300">
+        <p class="[grid-area:hint] self-center px-2 text-center text-sm text-neutral-300">
           {t("drawing.polygonHint")}
         </p>
       )}
