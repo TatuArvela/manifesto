@@ -26,17 +26,39 @@ pad: a sheet of white paper. You draw on it with a finger, a pen or a mouse. Don
 the note as a PNG image, through the same path as an attached picture. Thus, the app stores, shows,
 shares and exports it as a picture, and it uses one of the image slots of the note.
 
-- There are twelve inks, a field to choose any other ink, and an eye dropper. The eye dropper takes
-  the ink from where you press on the drawing, as it shows with all layers and the image, and then
-  the pen draws with it.
-- **Pen**, in the bottom bar, sets the tip (round, square, or a tilted oval as a broad nib), the
-  size (three sizes or a field from 1 to 200), and the opacity of the ink (5 to 100 percent). A
-  square or oval tip presses its shape along the line. The shapes make one area, so a transparent
-  ink does not become darker where they overlap. The eraser is always round, and four times the
-  size of the pen.
-- A shape in the size and tip of the pen or the eraser follows the pointer, and a finger while it
-  touches. Thus, you see where a stroke will apply before you draw it.
-- There are an eraser, undo, redo, and clear. A tap makes a dot.
+- **Inks**: there are two inks, a foreground ink and a background ink. Each one shows as a color
+  field that takes any other ink. A press on one of the twelve colors sets the foreground ink, and a
+  right click sets the background ink. **Swap inks** exchanges them. Lines, outlines and fills use
+  the foreground ink. The inside of a shape uses the background ink.
+- **Tools** in the bottom bar:
+  - **Pen** draws a free line. A tap makes a dot.
+  - **Eraser** takes ink away from the current layer only. The layers under it, and the image under
+    the drawing, stay. It is always round, and four times the size of the pen.
+  - **Fill** fills the area around the press that has the color there, as the drawing shows it,
+    with the foreground ink, on the current layer. It stops at a line, and covers the soft edge of
+    the line. Hidden layers do not count. A fill is a picture of its area. Thus, a large resize of
+    it is less sharp than a line.
+  - **Eye dropper** takes the foreground ink from where you press on the drawing, as it shows with
+    all layers and the image. Then the tool from before comes back.
+  - **Shapes** opens four tools: **Line**, **Rectangle**, **Ellipse** and **Polygon**. A drag
+    draws a line, or a box or an ellipse in the box of the drag. With Shift, a line goes in steps
+    of 15 degrees, and a box or an ellipse has equal sides. A polygon gets a corner at each press.
+    A press on the first corner, or a double click, closes it, and Escape discards it. A shape with
+    no size draws nothing.
+  - **Select**, **Move** and **Pan** are described below. Pan drags the view of a zoomed drawing.
+- **Pen settings** sets the tip (round, square, or a tilted oval as a broad nib), the size (three
+  sizes or a field from 1 to 200), the opacity of the ink (5 to 100 percent), and what a shape draws
+  (its outline, its inside, or both). The size and the opacity apply to all tools. The tip applies
+  to the pen and the line. A square or oval tip presses its shape along the line. The shapes make
+  one area, so a transparent ink does not become darker where they overlap.
+- A shape in the size and tip of the pen, the line or the eraser follows the pointer, and a finger
+  while it touches. Thus, you see where a stroke will apply before you draw it.
+- **Zoom**: the buttons in the top bar zoom out and in, from a quarter to 16 times the size that
+  fits the screen. Ctrl or Cmd with the mouse wheel zooms at the pointer. The number between the
+  buttons is the size of the paper on the screen, and a press on it fits the paper to the screen
+  again. A zoom keeps the point at the middle, or under the pointer, in place. A zoom changes the
+  view only, not the picture.
+- Undo, redo, and clear are in the top bar.
 - The drawing has layers. **Layers**, in the bottom bar, opens the list, the top layer first. Press
   the name of a layer to draw on it. Each layer has buttons to hide or show it, to move it up or
   down, and to delete it (not the last layer). **Add layer** puts a new layer over the current one,
@@ -50,25 +72,26 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   of the current layer to the area: the rest no longer shows, but lines that you draw after it are
   not cut. **Crop image** makes the picture the area, and Done saves only that part. A second crop
   stays inside the first. Escape, or a tap, removes the area. Each crop is one step for undo.
-- Clear empties the current layer. The eraser takes ink away from the current layer only. The layers
-  under it, and the image under the drawing, stay.
-- Each stroke, clear, and change to a layer is one step that undo takes back and redo does again.
+- Clear empties the current layer.
+- Each stroke, shape, fill, clear, and change to a layer is one step that undo takes back and redo does again.
   The choice of the layer to draw on is not a step. A new change after an undo removes the steps to
   redo.
 - The layers and the steps are only for the open pad. Done flattens the layers that show into one
   picture. Hidden layers are not in it.
 - The paper is 1600 by 1200 and opaque. Thus, a drawing looks the same on a note of any color and in
-  both themes. It shows as large as possible, and keeps its shape.
+  both themes. At the zoom that fits, it shows as large as possible, and keeps its shape.
 - Only one pointer draws at a time, the first one down. The pad ignores a second finger or a palm
   that rests on the screen.
   - No gesture of the page takes a stroke away (only the paper has `touch-action: none`).
   - The stroke follows the pointer past the edge of the paper.
   - When the system cancels a touch, the pad keeps what you drew.
 - If the pad has a drawing, it asks before it closes, from the close button, Escape or Back. If you
-  do not discard, Back stays with the pad. Done with no ink that shows adds nothing. Done, or a close while
-  the pen is still down, includes the line that you draw.
+  do not discard, Back stays with the pad. Done with no ink that shows adds nothing. Done, or a close
+  while the pen is still down, includes the line that you draw, and a polygon in progress.
 - If the app cannot make the picture, the pad tells you, and stays open with the drawing on it.
 - The pad is not available on a note that you cannot change (shared to view, or an auto-note).
+- The pad and all of its drawing code load the first time that it opens. The board does not load
+  them.
 
 ### Drawing over an image
 

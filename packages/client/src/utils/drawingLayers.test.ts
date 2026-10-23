@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isClip, type Mark, type Stroke } from "./drawing.ts";
+import { isClip, isFill, type Mark, type Stroke } from "./drawing.ts";
 import {
   activeLayer,
   addLayer,
-  addStroke,
+  addMark,
   clearLayer,
   cropImage,
   cropLayer,
@@ -33,7 +33,7 @@ const line = (x: number): Stroke => ({
 
 /** The first point of a mark that is a stroke. */
 const firstPoint = (mark: Mark | undefined) =>
-  mark && !isClip(mark) ? mark.points[0] : undefined;
+  mark && !isClip(mark) && !isFill(mark) ? mark.points[0] : undefined;
 
 const ids = (history: ReturnType<typeof newSketchHistory>) =>
   history.present.layers.map((layer) => layer.id);
@@ -47,9 +47,9 @@ describe("drawing layers", () => {
   });
 
   it("puts a stroke on the active layer only", () => {
-    let history = addStroke(newSketchHistory(), line(1));
+    let history = addMark(newSketchHistory(), line(1));
     history = addLayer(history);
-    history = addStroke(history, line(2));
+    history = addMark(history, line(2));
     const [bottom, top] = history.present.layers;
     expect(bottom?.marks).toEqual([line(1)]);
     expect(top?.marks).toEqual([line(2)]);
@@ -90,17 +90,17 @@ describe("drawing layers", () => {
   });
 
   it("hides a layer, and shows it again when the pen draws on it", () => {
-    let history = addStroke(newSketchHistory(), line(1));
+    let history = addMark(newSketchHistory(), line(1));
     history = toggleLayer(history, 1);
     expect(hasVisibleStrokes(history.present)).toBe(false);
     expect(hasStrokes(history.present)).toBe(true);
-    history = addStroke(history, line(2));
+    history = addMark(history, line(2));
     expect(activeLayer(history.present)?.visible).toBe(true);
   });
 
   it("clears the active layer only", () => {
-    let history = addStroke(newSketchHistory(), line(1));
-    history = addStroke(addLayer(history), line(2));
+    let history = addMark(newSketchHistory(), line(1));
+    history = addMark(addLayer(history), line(2));
     history = clearLayer(history);
     expect(history.present.layers.map((l) => l.marks.length)).toEqual([1, 0]);
     // An empty layer: nothing to clear, and no step to undo.
@@ -108,8 +108,8 @@ describe("drawing layers", () => {
   });
 
   it("undoes and redoes each change, a clear also", () => {
-    let history = addStroke(newSketchHistory(), line(1));
-    history = addStroke(history, line(2));
+    let history = addMark(newSketchHistory(), line(1));
+    history = addMark(history, line(2));
     history = clearLayer(history);
     history = undo(history);
     expect(activeLayer(history.present)?.marks).toEqual([line(1), line(2)]);
@@ -122,16 +122,16 @@ describe("drawing layers", () => {
   });
 
   it("forgets what was undone when a new change comes", () => {
-    let history = addStroke(newSketchHistory(), line(1));
+    let history = addMark(newSketchHistory(), line(1));
     history = undo(history);
-    history = addStroke(history, line(2));
+    history = addMark(history, line(2));
     expect(history.future).toEqual([]);
     expect(activeLayer(history.present)?.marks).toEqual([line(2)]);
   });
 
   it("undoes the removal of a layer with its strokes, and its place", () => {
-    let history = addStroke(newSketchHistory(), line(1));
-    history = addStroke(addLayer(history), line(2));
+    let history = addMark(newSketchHistory(), line(1));
+    history = addMark(addLayer(history), line(2));
     history = removeLayer(history, 1);
     history = undo(history);
     expect(ids(history)).toEqual([1, 2]);
@@ -147,7 +147,7 @@ describe("drawing layers", () => {
   });
 
   it("makes one slide of an opacity one step, and a new slide a new step", () => {
-    let history = addStroke(newSketchHistory(), line(1));
+    let history = addMark(newSketchHistory(), line(1));
     for (const value of [0.9, 0.7, 0.5]) {
       history = setLayerOpacity(history, 1, value);
     }
@@ -163,14 +163,14 @@ describe("drawing layers", () => {
 
   it("does not join a stroke to the slide before it", () => {
     let history = setLayerOpacity(newSketchHistory(), 1, 0.5);
-    history = addStroke(history, line(1));
+    history = addMark(history, line(1));
     history = setLayerOpacity(history, 1, 0.4);
     expect(history.past).toHaveLength(3);
   });
 
   it("moves the active layer only, as one step", () => {
-    let history = addStroke(newSketchHistory(), line(1));
-    history = addStroke(addLayer(history), line(2));
+    let history = addMark(newSketchHistory(), line(1));
+    history = addMark(addLayer(history), line(2));
     history = transformLayer(history, { scale: 1, dx: 5, dy: 0 });
     const [bottom, top] = history.present.layers;
     expect(firstPoint(bottom?.marks[0])).toEqual([1, 0]);
@@ -186,10 +186,10 @@ describe("drawing layers", () => {
   });
 
   it("cuts the marks of a layer to an area, and leaves later lines whole", () => {
-    let history = addStroke(newSketchHistory(), line(1));
+    let history = addMark(newSketchHistory(), line(1));
     const area = { x: 0, y: 0, width: 5, height: 5 };
     history = cropLayer(history, area);
-    history = addStroke(history, line(2));
+    history = addMark(history, line(2));
     expect(activeLayer(history.present)?.marks).toEqual([
       { clip: area, marks: [line(1)] },
       line(2),
@@ -200,7 +200,7 @@ describe("drawing layers", () => {
   });
 
   it("moves a cut group with its area", () => {
-    let history = addStroke(newSketchHistory(), line(1));
+    let history = addMark(newSketchHistory(), line(1));
     history = cropLayer(history, { x: 0, y: 0, width: 5, height: 5 });
     history = transformLayer(history, { scale: 2, dx: 10, dy: 0 });
     const [group] = activeLayer(history.present)?.marks ?? [];
