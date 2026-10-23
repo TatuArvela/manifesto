@@ -179,6 +179,8 @@ export function remindersCalendar(
       ...(description ? [`DESCRIPTION:${escapeText(description)}`] : []),
       ...(options.appUrl ? [`URL:${options.appUrl}`] : []),
       ...(rrule ? [`RRULE:${rrule}`] : []),
+      // RFC 5545: 1 is the highest priority.
+      ...(reminder.urgent ? ["PRIORITY:1"] : []),
       "BEGIN:VALARM",
       "ACTION:DISPLAY",
       "TRIGGER:PT0S",

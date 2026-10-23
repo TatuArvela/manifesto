@@ -50,6 +50,8 @@ in the scope of the guide.
 - The words of a note go to the server only through the `Sealer` (`storage/sealing.ts`), sealed. Add a
   new field of them in `shared/src/crypto/noteSeal.ts` and in the sealed schema together.
 - Quantifiers stay bounded in all code that a card render can reach.
+- A branch that goes to origin is named `<type>/<topic>` (for example `feat/urgent-reminders`), never
+  `worktree-...`.
 - Commit messages follow the `commit-message` skill. PR descriptions follow the `pr-description`
   skill.
 - When a change makes the text of an area guide incorrect, update the guide in the same commit. When

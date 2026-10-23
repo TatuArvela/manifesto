@@ -101,6 +101,7 @@ const reminderSchema = z.object({
   day: z.number().int().min(1).max(31).exactOptional(),
   timezone: z.string().max(64),
   lastFiredAt: z.string().max(40).exactOptional(),
+  urgent: z.literal(true).exactOptional(),
 });
 
 const autoNoteSourceSchema = z.object({

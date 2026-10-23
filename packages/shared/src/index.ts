@@ -361,16 +361,21 @@ export {
 } from "./noteFormat.ts";
 export {
   advanceReminder,
+  afterFire,
+  awaitsDone,
   currentTimezone,
   formatLocalISO,
   instantOf,
+  nextFireAt,
   nextOccurrence,
   parseLocalISO,
   pickedReminder,
   reminderAt,
+  reminderDone,
   repeatDay,
   snapReminderToFuture,
   snapToFuture,
+  URGENT_REPEAT_MS,
 } from "./reminderTime.ts";
 export {
   isTagWithin,

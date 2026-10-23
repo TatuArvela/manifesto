@@ -2,10 +2,11 @@ import type { NoteReminder } from "@manifesto/shared";
 import { reminderAt } from "@manifesto/shared";
 import { SHARE_CACHE } from "./shareTarget.ts";
 import { notes, updateNote } from "./state/notesStore.ts";
+import { markReminderDone } from "./state/reminderScheduler.ts";
 import { createUpdateReloader, pageIsIdle } from "./utils/updateReload.ts";
 
 interface SwMessage {
-  type: "reminder-fired" | "open-note";
+  type: "reminder-fired" | "reminder-done" | "open-note";
   noteId?: string;
   nextTime?: string | null;
 }
@@ -29,6 +30,8 @@ export function registerServiceWorker(): void {
         lastFiredAt: new Date().toISOString(),
       };
       void updateNote(note.id, { reminder: updated });
+    } else if (data.type === "reminder-done" && data.noteId) {
+      markReminderDone(data.noteId);
     } else if (data.type === "open-note" && data.noteId) {
       window.dispatchEvent(
         new CustomEvent("reminder:open-note", {

@@ -1,6 +1,12 @@
-import { formatLocalISO, parseLocalISO } from "@manifesto/shared";
-import { describe, expect, it } from "vitest";
 import {
+  formatLocalISO,
+  parseLocalISO,
+  URGENT_REPEAT_MS,
+} from "@manifesto/shared";
+import { describe, expect, it } from "vitest";
+import { defined } from "#/test/defined.ts";
+import {
+  afterDone,
   afterFiring,
   CATCHUP_WINDOW_MS,
   DEDUPE_WINDOW_MS,
@@ -117,5 +123,50 @@ describe("afterFiring", () => {
     expect(stored.time).toBe("2026-03-31T09:00:00");
     expect(stored.lastFiredAt).toBe(firedAt);
     expect(nextTime).toBe("2026-03-31T09:00:00");
+  });
+});
+
+describe("urgent reminders", () => {
+  const firedAt = new Date(dueMs).toISOString();
+
+  it("stay at their time when they fire, and tell the pages no next", () => {
+    const daily = reminder({ recurrence: "daily", urgent: true });
+    expect(afterFiring(daily, firedAt)).toEqual({
+      stored: { ...daily, lastFiredAt: firedAt },
+      nextTime: null,
+    });
+  });
+
+  it("fire again each URGENT_REPEAT_MS until done, also long after", () => {
+    const fired = reminder({ urgent: true, lastFiredAt: firedAt });
+    expect(stepFor(fired, dueMs + URGENT_REPEAT_MS - 1).kind).toBe("wait");
+    expect(stepFor(fired, dueMs + URGENT_REPEAT_MS).kind).toBe("fire");
+    expect(
+      stepFor(reminder({ urgent: true }), dueMs + CATCHUP_WINDOW_MS * 5),
+    ).toEqual({ kind: "fire" });
+  });
+
+  it("go to the next occurrence when done, or away when they do not repeat", () => {
+    const now = dueMs + 3 * 24 * 60 * 60_000 + 1;
+    const daily = reminder({
+      recurrence: "daily",
+      urgent: true,
+      lastFiredAt: firedAt,
+    });
+    const next = defined(afterDone(daily, now) ?? undefined);
+    expect(parseLocalISO(next.time).getTime()).toBeGreaterThan(now);
+    expect(next.lastFiredAt).toBeNull();
+    expect(next.urgent).toBe(true);
+    expect(
+      afterDone(reminder({ urgent: true, lastFiredAt: firedAt }), now),
+    ).toBeNull();
+  });
+
+  it("refuse an urgent flag or a label that is not what a page sends", () => {
+    expect(isValidStoredReminder(reminder({ urgent: true }))).toBe(true);
+    expect(isValidStoredReminder({ ...reminder(), urgent: "yes" })).toBe(false);
+    expect(
+      isValidStoredReminder({ ...reminder(), doneLabel: "x".repeat(41) }),
+    ).toBe(false);
   });
 });

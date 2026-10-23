@@ -321,6 +321,12 @@ export const en = {
   },
   "noteGrid.pinned": "Pinned",
   "noteGrid.others": "Others",
+  "noteGrid.reminders.overdue": "Overdue",
+  "noteGrid.reminders.today": "Today",
+  "noteGrid.reminders.tomorrow": "Tomorrow",
+  "noteGrid.reminders.week": "Next 7 days",
+  "noteGrid.reminders.later": "Later",
+  "noteGrid.reminders.past": "Fired",
   "noteGrid.moved": "Moved to {position} of {count}",
 
   // Tags view
@@ -1093,6 +1099,10 @@ export const en = {
   "reminder.openNote": "Open note",
   "reminder.dismiss": "Dismiss",
   "reminder.chip": "Reminder: {date}",
+  "reminder.chipUrgent": "Urgent reminder: {date}",
+  "reminder.urgent": "Urgent",
+  "reminder.urgentHelp": "Stays on screen and repeats until done",
+  "reminder.done": "Done",
 
   // The shared-note dialog, shown when the app opens on a #share=... link.
   "welcome.title": "This is {appName}",

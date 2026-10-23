@@ -51,8 +51,12 @@ export interface ReminderPush {
    */
   sealed?: SealedReminder;
   /**
-   * The next time of the reminder. Null for a reminder that does not repeat.
+   * The next time of the reminder. Null for a reminder that keeps its time: one
+   * that does not repeat, or an urgent one that waits until the user marks it
+   * done.
    */
   next: { time: string; day?: number } | null;
   firedAt: string;
+  /** The reminder is urgent: its notification stays until it is dismissed. */
+  urgent?: true;
 }

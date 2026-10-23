@@ -1,11 +1,14 @@
 import type { Note, NoteReminder } from "@manifesto/shared";
 import {
-  advanceReminder,
+  afterFire,
+  nextFireAt,
   parseLocalISO,
+  reminderDone,
   snapReminderToFuture,
 } from "@manifesto/shared";
 import { signal } from "@preact/signals";
 import { t } from "#/i18n/index.ts";
+import { urgentOptions } from "#/utils/reminderNotification.ts";
 import { showError } from "./ui.ts";
 
 export {
@@ -24,6 +27,7 @@ export const reminderBanner = signal<{
   noteId: string;
   title: string;
   body: string;
+  urgent: boolean;
 } | null>(null);
 
 // --- Internal state ---
@@ -34,8 +38,11 @@ const CATCHUP_WINDOW_MS = 60 * 60_000;
 
 // A back-reference to `updateNote`, injected at init to prevent a cycle.
 let updateNoteFn:
-  | ((id: string, changes: { reminder: NoteReminder }) => void)
+  | ((id: string, changes: { reminder: NoteReminder | null }) => void)
   | null = null;
+// A note whose reminder the user marked done from a notification, before the
+// note was loaded (the app started for that click).
+let pendingDoneId: string | null = null;
 // A back-reference to the current notes list.
 let getNotesFn: (() => Note[]) | null = null;
 
@@ -102,16 +109,19 @@ function fire(note: Note) {
   // would find the reminder still due, and fire it again.
   scheduleNext(note, reminder);
 
+  const urgent = reminder.urgent === true;
   const showBanner = () => {
-    reminderBanner.value = { noteId: note.id, title, body };
+    reminderBanner.value = { noteId: note.id, title, body, urgent };
   };
   if (
     typeof Notification !== "undefined" &&
     Notification.permission === "granted"
   ) {
-    void showReminderNotification(note.id, title, body).then((shown) => {
-      if (!shown) showBanner();
-    });
+    void showReminderNotification(note.id, title, body, urgent).then(
+      (shown) => {
+        if (!shown) showBanner();
+      },
+    );
   } else {
     showBanner();
   }
@@ -133,17 +143,16 @@ export async function showReminderNotification(
   noteId: string,
   title: string,
   body: string,
+  urgent = false,
 ): Promise<boolean> {
-  const registration =
-    typeof navigator !== "undefined" && navigator.serviceWorker
-      ? await navigator.serviceWorker.getRegistration().catch(() => undefined)
-      : undefined;
+  const registration = await workerRegistration();
   if (registration) {
     try {
       await registration.showNotification(title, {
         body,
         tag: noteId,
         data: { noteId },
+        ...urgentOptions(urgent, t("reminder.done")),
       });
       return true;
     } catch {
@@ -152,7 +161,11 @@ export async function showReminderNotification(
   }
   if (typeof Notification === "undefined") return false;
   try {
-    const n = new Notification(title, { body, tag: noteId });
+    const n = new Notification(title, {
+      body,
+      tag: noteId,
+      ...(urgent && { requireInteraction: true }),
+    });
     n.onclick = () => {
       window.focus();
       window.dispatchEvent(
@@ -166,11 +179,47 @@ export async function showReminderNotification(
   }
 }
 
+function workerRegistration(): Promise<ServiceWorkerRegistration | undefined> {
+  return typeof navigator !== "undefined" && navigator.serviceWorker
+    ? navigator.serviceWorker.getRegistration().catch(() => undefined)
+    : Promise.resolve(undefined);
+}
+
 function scheduleNext(note: Note, reminder: NoteReminder) {
-  const nowIso = new Date().toISOString();
-  const next = advanceReminder(reminder);
-  const updated: NoteReminder = { ...(next ?? reminder), lastFiredAt: nowIso };
+  const updated = afterFire(reminder, new Date().toISOString());
   updateNoteFn?.(note.id, { reminder: updated });
+}
+
+// --- Done ---
+
+/**
+ * Marks the reminder of a note done: an urgent reminder stops its repeats and
+ * goes to its next occurrence, or goes away when it does not repeat. The
+ * notification of the note closes too. Returns false when the note has no
+ * reminder.
+ */
+export function markReminderDone(noteId: string): boolean {
+  const note = getNotesFn?.().find((n) => n.id === noteId);
+  if (!note?.reminder) return false;
+  updateNoteFn?.(noteId, { reminder: reminderDone(note.reminder) });
+  if (reminderBanner.value?.noteId === noteId) reminderBanner.value = null;
+  void workerRegistration().then(async (registration) => {
+    try {
+      const shown = await registration?.getNotifications({ tag: noteId });
+      for (const notification of shown ?? []) notification.close();
+    } catch {
+      // Nothing to close.
+    }
+  });
+  return true;
+}
+
+/**
+ * Marks the reminder done when its note is loaded. The app started for the
+ * "Done" button of a notification, and the notes are not loaded yet.
+ */
+export function markReminderDoneWhenLoaded(noteId: string): void {
+  if (!markReminderDone(noteId)) pendingDoneId = noteId;
 }
 
 // --- Scheduling loop ---
@@ -186,15 +235,18 @@ function scheduleForNote(note: Note) {
   if (note.trashed) return;
 
   // Non-recurring reminders stay visible after they fire, but must not fire
-  // again.
-  if (reminder.recurrence === "none" && reminder.lastFiredAt) return;
+  // again. An urgent reminder that fired fires again each URGENT_REPEAT_MS
+  // until the user marks it done.
+  const fireAt = nextFireAt(reminder, (time) => parseLocalISO(time).getTime());
+  if (fireAt === null) return;
 
-  const dueMs = parseLocalISO(reminder.time).getTime() - Date.now();
+  const dueMs = fireAt - Date.now();
 
   if (dueMs <= 0) {
     // Overdue: catch up only within the last hour. Thus, after a long absence,
-    // the app does not show too many notifications.
-    if (dueMs > -CATCHUP_WINDOW_MS) {
+    // the app does not show too many notifications. An urgent reminder always
+    // fires: it waits for the user.
+    if (dueMs > -CATCHUP_WINDOW_MS || reminder.urgent) {
       queueMicrotask(() => fire(note));
     } else if (reminder.recurrence !== "none") {
       // A very old recurring reminder: move it forward, and do not fire.
@@ -215,6 +267,12 @@ function scheduleForNote(note: Note) {
 }
 
 function reschedule(all: Note[]) {
+  if (pendingDoneId && all.some((n) => n.id === pendingDoneId)) {
+    const noteId = pendingDoneId;
+    pendingDoneId = null;
+    // After this pass, because the write notifies the subscribers again.
+    queueMicrotask(() => markReminderDone(noteId));
+  }
   clearAllTimers();
   for (const note of all) {
     if (note.reminder && !note.trashed) scheduleForNote(note);
@@ -241,6 +299,10 @@ function syncToServiceWorker(all: Note[]) {
         title: n.title.trim() || t("reminder.untitled"),
         body: n.content.replace(/\s+/g, " ").trim().slice(0, 140),
         lastFiredAt: n.reminder.lastFiredAt ?? null,
+        ...(n.reminder.urgent && {
+          urgent: true,
+          doneLabel: t("reminder.done"),
+        }),
       },
     ];
   });
@@ -255,7 +317,7 @@ function syncToServiceWorker(all: Note[]) {
 export interface SchedulerDeps {
   notes: () => Note[];
   subscribe: (listener: (notes: Note[]) => void) => () => void;
-  updateNote: (id: string, changes: { reminder: NoteReminder }) => void;
+  updateNote: (id: string, changes: { reminder: NoteReminder | null }) => void;
 }
 
 let initialized = false;

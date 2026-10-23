@@ -10,6 +10,7 @@ import {
 } from "#/state/views.ts";
 import { boardLabel } from "./boardCard.ts";
 import { EmptyBoard } from "./EmptyBoard.tsx";
+import { ReminderSections } from "./ReminderSections.tsx";
 import { ReorderableGrid } from "./ReorderableGrid.tsx";
 
 export function NoteGrid() {
@@ -26,6 +27,8 @@ export function NoteGrid() {
       activeView.value === "active" ? notesHiddenByTag.value : 0;
     return <EmptyBoard view={activeView.value} hiddenByTag={hiddenByTag} />;
   }
+
+  if (activeView.value === "reminders") return <ReminderSections />;
 
   return (
     <div class="mt-4">

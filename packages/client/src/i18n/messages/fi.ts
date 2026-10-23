@@ -325,6 +325,12 @@ export const fi: Messages = {
   },
   "noteGrid.pinned": "Kiinnitetyt",
   "noteGrid.others": "Muut",
+  "noteGrid.reminders.overdue": "Myöhässä",
+  "noteGrid.reminders.today": "Tänään",
+  "noteGrid.reminders.tomorrow": "Huomenna",
+  "noteGrid.reminders.week": "Seuraavat 7 päivää",
+  "noteGrid.reminders.later": "Myöhemmin",
+  "noteGrid.reminders.past": "Muistutetut",
   "noteGrid.moved": "Siirretty kohtaan {position}/{count}",
 
   // Tags view
@@ -1113,6 +1119,10 @@ export const fi: Messages = {
   "reminder.openNote": "Avaa muistiinpano",
   "reminder.dismiss": "Sulje",
   "reminder.chip": "Muistutus: {date}",
+  "reminder.chipUrgent": "Kiireellinen muistutus: {date}",
+  "reminder.urgent": "Kiireellinen",
+  "reminder.urgentHelp": "Pysyy näytöllä ja toistuu, kunnes se on tehty",
+  "reminder.done": "Tehty",
 
   // The shared-note dialog, shown when the app opens on a #share=... link.
   "welcome.title": "Tämä on {appName}",

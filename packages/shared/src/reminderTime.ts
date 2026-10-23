@@ -213,6 +213,68 @@ export function snapReminderToFuture<T extends Repeating>(
   );
 }
 
+/** How long an urgent reminder waits before it fires again. */
+export const URGENT_REPEAT_MS = 5 * 60_000;
+
+type Firing = Repeating & Pick<NoteReminder, "lastFiredAt" | "urgent">;
+
+/**
+ * If an urgent reminder fired and the user did not mark it done yet. It then
+ * stays at the occurrence that fired, and fires again each `URGENT_REPEAT_MS`.
+ */
+export function awaitsDone(
+  reminder: Pick<NoteReminder, "urgent"> & {
+    lastFiredAt?: string | null | undefined;
+  },
+): boolean {
+  return reminder.urgent === true && typeof reminder.lastFiredAt === "string";
+}
+
+/**
+ * The epoch milliseconds of the next fire, or null for a reminder that does
+ * not fire again (it does not repeat, and it fired). `instant` reads `time` as
+ * a moment: the zone of the device on a client, the zone of the reminder on
+ * the server.
+ */
+export function nextFireAt(
+  reminder: Pick<NoteReminder, "recurrence" | "urgent"> & {
+    time: string;
+    lastFiredAt?: string | null | undefined;
+  },
+  instant: (time: string) => number,
+): number | null {
+  if (awaitsDone(reminder)) {
+    const last = Date.parse(reminder.lastFiredAt ?? "");
+    return Number.isFinite(last) ? last + URGENT_REPEAT_MS : null;
+  }
+  if (reminder.recurrence === "none" && reminder.lastFiredAt) return null;
+  return instant(reminder.time);
+}
+
+/**
+ * The reminder after it fired at `firedAt`. A normal reminder goes to its next
+ * occurrence (or keeps its time, when it does not repeat). An urgent reminder
+ * stays where it is until the user marks it done.
+ */
+export function afterFire<T extends Firing>(reminder: T, firedAt: string): T {
+  if (reminder.urgent) return { ...reminder, lastFiredAt: firedAt };
+  return { ...(advanceReminder(reminder) ?? reminder), lastFiredAt: firedAt };
+}
+
+/**
+ * The reminder after the user marked it done: the next occurrence after now
+ * for one that repeats, or null (no reminder) for one that does not.
+ */
+export function reminderDone<T extends Firing>(
+  reminder: T,
+  now: Date = new Date(),
+): T | null {
+  const next = advanceReminder(reminder);
+  if (next === null) return null;
+  const { lastFiredAt: _done, ...rest } = snapReminderToFuture(next, now);
+  return rest as T;
+}
+
 /**
  * What the picker saves for a date, hour and recurrence. A reminder that a
  * short month clamped (the 31st shown as 28 February) keeps the day on which it

@@ -97,6 +97,23 @@ describe("isDueForPush", () => {
       isDueForPush({ ...daily, lastFiredAt: "2026-10-02T11:58:01.000Z" }, NOW),
     ).toBe(true);
   });
+
+  it("fires an urgent reminder again until it is done, and never gives up", () => {
+    const urgent = reminder({ urgent: true });
+    // Fired four minutes ago: the repeat is at five, then the grace time.
+    expect(
+      isDueForPush({ ...urgent, lastFiredAt: "2026-10-03T11:56:00.000Z" }, NOW),
+    ).toBe(false);
+    expect(
+      isDueForPush({ ...urgent, lastFiredAt: "2026-10-03T11:54:00.000Z" }, NOW),
+    ).toBe(true);
+    // A day old, and still waiting for the user.
+    const old = reminder({ urgent: true, time: "2026-10-02T09:00:00" });
+    expect(isDueForPush(old, NOW)).toBe(true);
+    expect(
+      isDueForPush({ ...old, lastFiredAt: "2026-10-02T09:00:01.000Z" }, NOW),
+    ).toBe(true);
+  });
 });
 
 describe("push reminders", () => {
@@ -194,6 +211,30 @@ describe("push reminders", () => {
   afterEach(async () => {
     await service.close();
     await storage.close();
+  });
+
+  it("keeps an urgent repeating reminder at its time, says it is urgent, and sends it again after the repeat", async () => {
+    const note = await addNote({
+      reminder: reminder({ recurrence: "daily", urgent: true }),
+    });
+    await subscribe();
+    await pass();
+
+    const first = JSON.parse(
+      browser.decrypt(service.received[0]?.body as Buffer),
+    ) as ReminderPush;
+    expect(first.urgent).toBe(true);
+    expect(first.next).toBeNull();
+    expect(await reminderOf(note.id)).toEqual({
+      ...reminder({ recurrence: "daily", urgent: true }),
+      lastFiredAt: "2026-10-03T12:00:00.000Z",
+    });
+
+    // Not again within the repeat time, then again after it and the grace.
+    await pass(NOW + 60_000);
+    expect(service.received).toHaveLength(1);
+    await pass(NOW + 6 * 60_000);
+    expect(service.received).toHaveLength(2);
   });
 
   it("sends a due reminder nobody fired, its words sealed for the account's own devices, and marks it fired", async () => {

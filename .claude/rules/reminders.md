@@ -10,6 +10,8 @@ paths:
   - "packages/client/src/swReminders.ts"
   - "packages/client/src/state/pushSubscription.ts"
   - "packages/shared/src/reminderTime.ts"
+  - "packages/client/src/utils/reminderNotification.ts"
+  - "packages/client/src/components/ReminderSections.tsx"
 ---
 
 # Reminders and the Service Worker
@@ -39,13 +41,33 @@ A reminder moves only through `advanceReminder`, `snapReminderToFuture`, `remind
 month that the code clamps to the 28th makes the 28th the day for all of the subsequent months. The
 calendar feed (`rruleOf` in `calendar/ics.ts`) gives the same months.
 
+## Urgent reminders
+
+An urgent reminder (`NoteReminder.urgent`) does not move on when it fires. The three places agree
+through the shared functions in `reminderTime.ts`. Never test `recurrence === "none" &&
+lastFiredAt` again by hand.
+
+- `nextFireAt` tells when a reminder fires next: its time, `lastFiredAt + URGENT_REPEAT_MS` for an
+  urgent reminder that waits (`awaitsDone`), or null.
+- `afterFire` is the write after a fire, for all three places. `reminderDone` is the write of
+  "Done".
+- The one-hour catch-up limit does not apply to an urgent reminder.
+- The notification options are in `utils/reminderNotification.ts`, because the page and the worker
+  both show one. The worker has no catalogue. Thus, the page sends the "Done" label in each urgent
+  item of `sync-reminders` (`doneLabel`).
+- "Done" on a notification goes to a page as `reminder-done`, or starts the app with
+  `?reminderDone=<id>` (`useNoteFromReminder`, `markReminderDoneWhenLoaded`).
+
+`state/reminderSections.ts` puts the notes of the Reminders view in sections. It is pure, and the
+component gives it the clock.
+
 ## Server
 
 The server part is `jobs/pushReminders.ts`. Each 30 seconds, it examines the accounts that have a
 push subscription. For each reminder that is due for longer than `PUSH_GRACE_MS`, and that no client
 fired, it does these steps:
 
-1. It moves the reminder on (the same `advanceReminder`, and `lastFiredAt`).
+1. It moves the reminder on (the same `afterFire`, which sets `lastFiredAt`).
 2. It sends the reminder through `push/sender.ts`.
 
 The grace time prevents a race with an open client. An open client fires on time and writes
