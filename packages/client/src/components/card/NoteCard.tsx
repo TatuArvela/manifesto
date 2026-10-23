@@ -217,6 +217,9 @@ export const NoteCard = memo(function NoteCard({
       <div
         class={clsx(
           "relative group note-draggable-wrapper",
+          // Not under a card that shows only as a ghost, or that is lifted
+          // (held) with its own shadow.
+          !open && !held && "note-curl",
           pinSettling && "note-pin-settle",
           leaving && "note-leaving",
           noteSize.value === "square" &&
@@ -224,6 +227,9 @@ export const NoteCard = memo(function NoteCard({
             "w-full max-w-sm mx-auto",
         )}
         data-leaving={leaving}
+        // On the wrapper, not the card. Thus, the shadows of the corners
+        // (`note-curl`) read the same angle as the card.
+        style={{ "--note-tilt": `${noteTilt(note.id)}deg` }}
         // A card with one of its menus open keeps the look of a hovered card.
         // The backdrop of the menu covers the card. Thus, the pointer is not
         // over it now, and its buttons faded out under the menu that they
@@ -234,6 +240,7 @@ export const NoteCard = memo(function NoteCard({
           if (e.target === e.currentTarget) setPinSettling(false);
         }}
       >
+        <span class="note-curl-shadow" aria-hidden="true" />
         <CardSelectButton
           isSelected={isSelected}
           isSelectMode={isSelectMode}
@@ -286,7 +293,6 @@ export const NoteCard = memo(function NoteCard({
           )}
           style={{
             aspectRatio: noteSize.value === "square" ? "1/1" : "auto",
-            "--note-tilt": `${noteTilt(note.id)}deg`,
             transitionDelay:
               closing && morphing ? `${MORPH_MS - CARD_FADE_MS}ms` : undefined,
           }}
