@@ -665,6 +665,23 @@ ALTER TABLE notes ADD COLUMN format INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE note_versions ADD COLUMN format INTEGER NOT NULL DEFAULT 1;
 `;
 
+/**
+ * Links that a signed-in device shows as a QR code, for the sign-in of a second
+ * device. The same shape as `sign_in_links`, in a table of its own. Thus, a link
+ * of one type cannot be used as the other, and one type does not start the
+ * cooldown of the other.
+ */
+const DEVICE_LINKS = `
+CREATE TABLE device_links (
+  token_hash TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used_at    TEXT
+);
+CREATE INDEX device_links_user ON device_links(user_id, created_at);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -708,6 +725,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0036-oauth-keys", sql: OAUTH_KEYS },
   { id: "0037-attachment-keys", sql: ATTACHMENT_KEYS },
   { id: "0038-note-format", sql: NOTE_FORMAT },
+  { id: "0039-device-links", sql: DEVICE_LINKS },
 ];
 
 export function runMigrations(

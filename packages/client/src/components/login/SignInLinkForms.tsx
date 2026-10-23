@@ -102,10 +102,20 @@ export function SignInLinkForm({ onBack }: { onBack: () => void }) {
 export function SignInLinkLanding({
   token,
   onDone,
+  signIn = signInWithLink,
+  readyKey = "login.link.ready",
+  expiredKey = "login.link.expired",
 }: {
   token: string;
   /** Back to the usual sign-in form, because the link is of no more use. */
   onDone: () => void;
+  /**
+   * The request that spends the token. A scanned device code has its own
+   * route, with the same answers.
+   */
+  signIn?: typeof signInWithLink | undefined;
+  readyKey?: MessageKey | undefined;
+  expiredKey?: MessageKey | undefined;
 }) {
   const [step, setStep] = useState<
     "ready" | "working" | "twoFactor" | "expired"
@@ -126,7 +136,7 @@ export function SignInLinkLanding({
     setError(null);
     setSubmitting(true);
     try {
-      await signInWithLink(token, code, passkey);
+      await signIn(token, code, passkey);
     } catch (err) {
       if (err instanceof TwoFactorRequiredError) {
         setSecondFactor({
@@ -145,7 +155,7 @@ export function SignInLinkLanding({
         );
         // That challenge is used. The link again brings a new one.
         try {
-          await signInWithLink(token);
+          await signIn(token);
         } catch (again) {
           if (again instanceof TwoFactorRequiredError) {
             setSecondFactor({
@@ -215,7 +225,7 @@ export function SignInLinkLanding({
     return (
       <div class="space-y-4">
         <p class="text-sm text-center text-neutral-600 dark:text-neutral-300">
-          {t("login.link.ready")}
+          {t(readyKey)}
         </p>
         <button
           type="button"
@@ -243,7 +253,7 @@ export function SignInLinkLanding({
         role={step === "expired" ? "alert" : "status"}
       >
         {step === "expired"
-          ? (error ?? t("login.link.expired"))
+          ? (error ?? t(expiredKey))
           : t("login.link.signingIn")}
       </p>
       {step === "expired" && (

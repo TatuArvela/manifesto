@@ -41,6 +41,7 @@ export type {
   AuthSuccessResponse,
   AuthUser,
   CapabilitiesResponse,
+  DeviceLinkResponse,
   DirectoryUser,
   ErrorCode,
   ErrorResponse,

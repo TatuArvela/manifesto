@@ -58,6 +58,7 @@ export function createSqliteStorage(
     prefs: createSqlitePrefsRepo(db),
     passwordResets: createSqliteMailedLinksRepo(db, "password_resets"),
     signInLinks: createSqliteMailedLinksRepo(db, "sign_in_links"),
+    deviceLinks: createSqliteMailedLinksRepo(db, "device_links"),
     comments: createSqliteCommentsRepo(db),
     audit: createSqliteAuditRepo(db),
     maintenance: createSqliteMaintenanceRepo(db),

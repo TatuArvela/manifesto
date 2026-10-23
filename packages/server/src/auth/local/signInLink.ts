@@ -14,7 +14,7 @@ import type { Mailer } from "#/mail/mailer.ts";
 import { signInLinkMail } from "#/mail/templates.ts";
 import type { AuthContext } from "#/middleware/authBearer.ts";
 import { HttpError } from "#/middleware/error.ts";
-import type { StorageDriver, User } from "#/storage/types.ts";
+import type { MailedLinksRepo, StorageDriver, User } from "#/storage/types.ts";
 import {
   signInLinkConfirmSchema,
   signInLinkRequestSchema,
@@ -81,7 +81,7 @@ export function registerSignInLinkRoutes(
     secondFactor: SecondFactorCheck;
   },
 ) {
-  const { storage, loginAttempts } = deps;
+  const { storage } = deps;
   const link = mailedLinks(deps, {
     links: storage.signInLinks,
     fragment: "signin",
@@ -108,70 +108,101 @@ export function registerSignInLinkRoutes(
     zValidator("json", signInLinkConfirmSchema, validatorHook),
     async (c) => {
       link.requireMail();
-      const { token, otp, passkey } = c.req.valid("json");
-      const tokenHash = hashToken(token);
-      const gone = () =>
-        new HttpError(410, "This link has expired or was used already");
-      const userId = await storage.signInLinks.find(tokenHash, nowIso());
-      const user = userId ? await storage.users.findById(userId) : null;
-      // Made before the account lost its password or got a temporary password.
-      // The link does not open it now.
-      if (!user || !opensByLink(user)) throw gone();
-      // The budget protects what a person can guess, which here is only the
-      // second factor. An account without one does not use the budget. All
-      // persons can use up the budget with wrong passwords, and the link is
-      // then the way in for its owner.
-      const refuseIfLocked = () => {
-        const wait = loginAttempts.retryAfter(user.username);
-        if (wait > 0) {
-          c.header("Retry-After", String(wait));
-          throw new HttpError(429, "Too many sign-in attempts");
-        }
-      };
-      // An answer to the second factor uses the link before the code looks at
-      // the answer, atomically. If two requests have the same link, one
-      // continues. A link that expired in the meantime costs no code. A wrong
-      // answer gives the link back.
-      const answering = otp !== undefined || passkey !== undefined;
-      const spend = async () => {
-        if ((await storage.signInLinks.consume(tokenHash, nowIso())) === null) {
-          throw gone();
-        }
-      };
-      if (answering) {
-        refuseIfLocked();
-        await spend();
-      }
-      // The code in there refuses a wrong answer, and counts and audits its
-      // attempt. Here, the code only gives the link back.
-      const second = await deps
-        .secondFactor(c, user, otp, passkey)
-        .catch(async (err: unknown) => {
-          if (answering) await storage.signInLinks.release(tokenHash);
-          throw err;
-        });
-      if ("challenge" in second) {
-        refuseIfLocked();
-        return c.json(second.challenge, 403);
-      }
-      if (!answering) await spend();
-      // Only a second factor that passed clears the count. A link alone proves
-      // nothing about who guessed at the password.
-      if (second.with !== null) loginAttempts.succeed(user.username);
-      const session = await issueSession(storage, deps.cfg, user.id);
-      audit(storage, c, {
-        action: "auth.signed_in",
-        actorId: user.id,
-        detail: {
-          method: "link",
-          ...(second.with && { twoFactor: second.with }),
-        },
+      return signInWithLink(c, deps, c.req.valid("json"), {
+        links: storage.signInLinks,
+        // Made before the account lost its password or got a temporary
+        // password. The link does not open it now.
+        opens: opensByLink,
+        method: "link",
       });
-      const body: AuthSuccessResponse = {
-        token: session.token,
-        user: toAuthUser(user),
-      };
-      return c.json(body, 200);
     },
   );
+}
+
+/**
+ * The second step of each one-time link that signs in: a mailed link, and the
+ * QR code for a second device. It finds the link, asks for the second factor,
+ * spends the link, and makes the session. Thus, both types have the same rules
+ * for the second factor and its budget.
+ */
+export async function signInWithLink(
+  c: Context,
+  deps: {
+    storage: StorageDriver;
+    cfg: ServerConfig;
+    loginAttempts: LoginAttempts;
+    secondFactor: SecondFactorCheck;
+  },
+  body: { token: string; otp?: string; passkey?: unknown },
+  kind: {
+    links: MailedLinksRepo;
+    /** If the account can still open by this link. */
+    opens(user: User): boolean;
+    /** The `method` of the audit entry. */
+    method: "link" | "device";
+  },
+) {
+  const { storage, loginAttempts } = deps;
+  const { token, otp, passkey } = body;
+  const tokenHash = hashToken(token);
+  const gone = () =>
+    new HttpError(410, "This link has expired or was used already");
+  const userId = await kind.links.find(tokenHash, nowIso());
+  const user = userId ? await storage.users.findById(userId) : null;
+  if (!user || !kind.opens(user)) throw gone();
+  // The budget protects what a person can guess, which here is only the second
+  // factor. An account without one does not use the budget. All persons can use
+  // up the budget with wrong passwords, and the link is then the way in for its
+  // owner.
+  const refuseIfLocked = () => {
+    const wait = loginAttempts.retryAfter(user.username);
+    if (wait > 0) {
+      c.header("Retry-After", String(wait));
+      throw new HttpError(429, "Too many sign-in attempts");
+    }
+  };
+  // An answer to the second factor uses the link before the code looks at the
+  // answer, atomically. If two requests have the same link, one continues. A
+  // link that expired in the meantime costs no code. A wrong answer gives the
+  // link back.
+  const answering = otp !== undefined || passkey !== undefined;
+  const spend = async () => {
+    if ((await kind.links.consume(tokenHash, nowIso())) === null) {
+      throw gone();
+    }
+  };
+  if (answering) {
+    refuseIfLocked();
+    await spend();
+  }
+  // The code in there refuses a wrong answer, and counts and audits its
+  // attempt. Here, the code only gives the link back.
+  const second = await deps
+    .secondFactor(c, user, otp, passkey)
+    .catch(async (err: unknown) => {
+      if (answering) await kind.links.release(tokenHash);
+      throw err;
+    });
+  if ("challenge" in second) {
+    refuseIfLocked();
+    return c.json(second.challenge, 403);
+  }
+  if (!answering) await spend();
+  // Only a second factor that passed clears the count. A link alone proves
+  // nothing about who guessed at the password.
+  if (second.with !== null) loginAttempts.succeed(user.username);
+  const session = await issueSession(storage, deps.cfg, user.id);
+  audit(storage, c, {
+    action: "auth.signed_in",
+    actorId: user.id,
+    detail: {
+      method: kind.method,
+      ...(second.with && { twoFactor: second.with }),
+    },
+  });
+  const success: AuthSuccessResponse = {
+    token: session.token,
+    user: toAuthUser(user),
+  };
+  return c.json(success, 200);
 }

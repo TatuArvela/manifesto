@@ -3,6 +3,8 @@ import {
   authLocaleSchema,
   authMeDeleteSchema,
   authMeUpdateSchema,
+  deviceLinkConfirmSchema,
+  deviceLinkRequestSchema,
   loginSchema,
   passwordChangeSchema,
   passwordResetConfirmSchema,
@@ -210,6 +212,45 @@ export const AUTH_OPERATIONS: Operation[] = [
     limits: ["sign-in"],
     feature: "magicLinks",
     body: signInLinkConfirmSchema,
+    responses: {
+      ...ok("AuthSuccess"),
+      "401": { description: "Wrong second factor", schema: "Error" },
+      "403": {
+        description: "A second factor is required",
+        schema: "TwoFactorRequired",
+      },
+      "410": { description: "Expired or used", schema: "Error" },
+      "429": {
+        description:
+          "Too many failed sign-ins for the account; Retry-After says how long",
+        schema: "Error",
+      },
+    },
+    provider: "local",
+  },
+  {
+    method: "post",
+    path: "/api/v1/auth/device-link",
+    tag: "Auth",
+    summary:
+      "Make a one-time token that signs in a second device, with the password",
+    auth: "session",
+    limits: ["sign-in"],
+    feature: "deviceLinks",
+    body: deviceLinkRequestSchema,
+    responses: ok("DeviceLinkResponse"),
+    provider: "local",
+  },
+  {
+    method: "post",
+    path: "/api/v1/auth/device-link/confirm",
+    tag: "Auth",
+    summary:
+      "Sign in a second device with its token, and the second factor if the account has one",
+    auth: "none",
+    limits: ["sign-in"],
+    feature: "deviceLinks",
+    body: deviceLinkConfirmSchema,
     responses: {
       ...ok("AuthSuccess"),
       "401": { description: "Wrong second factor", schema: "Error" },

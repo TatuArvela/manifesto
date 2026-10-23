@@ -7,6 +7,10 @@ import { APP_LOGO, APP_NAME, INSTANCE_NAME, PRIVACY_URL } from "#/config.ts";
 import { type MessageKey, t } from "#/i18n/index.ts";
 import { fetchCapabilities, SERVER_ORIGIN } from "#/state/account/auth.ts";
 import {
+  signInWithDeviceLink,
+  takeDeviceLinkToken,
+} from "#/state/account/deviceLinks.ts";
+import {
   takeResetToken,
   takeSignInLinkToken,
 } from "#/state/account/mailedLinks.ts";
@@ -131,6 +135,9 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
   const [signInToken, setSignInToken] = useState<string | null>(() =>
     takeSignInLinkToken(),
   );
+  const [deviceToken, setDeviceToken] = useState<string | null>(() =>
+    takeDeviceLinkToken(),
+  );
   const [forgot, setForgot] = useState(false);
   const [byLink, setByLink] = useState(false);
   const [recovering, setRecovering] = useState(false);
@@ -149,6 +156,17 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
       <SignInLinkLanding
         token={signInToken}
         onDone={() => setSignInToken(null)}
+      />
+    );
+  }
+  if (deviceToken && local) {
+    return (
+      <SignInLinkLanding
+        token={deviceToken}
+        onDone={() => setDeviceToken(null)}
+        signIn={signInWithDeviceLink}
+        readyKey="login.device.ready"
+        expiredKey="login.device.expired"
       />
     );
   }

@@ -331,6 +331,38 @@ A person who reads the mail of the account can already take the account with a r
 adds a shorter way in, not a new party to trust. If a host must never let a mailbox alone open an
 account, set `MAGIC_LINKS=off`, and think about reset by mail in the same way.
 
+## Signing in another device
+
+With `DEVICE_LINKS` on (the default; see [Server Deployment](../server/deployment.md)), a local
+account that is signed in on one device can sign in a second device, for example a phone, from a QR
+code. **Settings > Sign-in > Sign in another device** asks for the password, and then shows the code.
+The camera of the second device opens `APP_URL/#device=<token>&key=<secret key>`. The page has a
+**Sign in** button. A press on the button signs in.
+
+- The code needs the password (or, for an account without one, a recent sign-in), as the other
+  [confirmed changes](#confirming-a-change-from-a-session). A session that stays open on a device
+  must not be sufficient to make a new session somewhere else.
+- A code works one time, for 5 minutes. Settings shows the time that is left, and a button for a new
+  code when it expires.
+  - The server stores its token as a SHA-256 hash, in its own table (`device_links`). Thus, you
+    cannot use it as a mailed link, and it does not start the wait between two mailed links.
+  - The token is in the URL fragment. The client removes it from the address bar before it uses it.
+    A browser that is already signed in also removes it, and does not use it.
+- The code also carries the [secret key](encryption.md) when the first device holds it. Thus, the
+  notes open on the second device immediately. The key is only in the fragment, and the server never
+  sees it. The server checks the password a second time before the client puts the key in the code,
+  as for the key code of Settings.
+- The code replaces the password, and nothing else. An account with two-factor sign-in gives its code
+  or passkey on the second device, with the same rules and budget as a
+  [mailed link](#signing-in-with-a-link).
+- A code stops when the sessions of the account end: a password change or reset, a new secret key, or
+  an admin who ends them.
+- The account must sign in locally. The routes are not there under single sign-on only.
+- The sign-in ends no other session. The audit log records the code as "QR code made to sign in a
+  device", and the sign-in with `method: "device"`.
+
+Anyone who sees the screen while the code shows can use it. Settings says so next to the code.
+
 ## Admins and sign-up under single sign-on
 
 With single sign-on, admin rights can follow a group at the identity provider (`OIDC_ADMIN_GROUP`).

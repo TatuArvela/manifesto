@@ -20,7 +20,8 @@ export type ServerFeatures = Record<ServerFeature, boolean> & {
  * these switches offered. Thus, a server that does not report a feature
  * continues to show it. The optional features (webhooks, public links, MCP, an
  * export by an admin) show only after the server said that they are on. So does
- * the sign-in by a mailed link, which an older server does not have.
+ * the sign-in by a mailed link and by a QR code, which an older server does
+ * not have.
  */
 export const DEFAULT_SERVER_FEATURES: ServerFeatures = {
   sharing: true,
@@ -33,6 +34,7 @@ export const DEFAULT_SERVER_FEATURES: ServerFeatures = {
   webhooks: false,
   passkeys: true,
   magicLinks: false,
+  deviceLinks: false,
   pushReminders: false,
   twoFactor: true,
   mcpSignIn: false,

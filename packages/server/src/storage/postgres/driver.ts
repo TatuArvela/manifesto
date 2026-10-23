@@ -75,6 +75,7 @@ export async function createPostgresStorage(
     prefs: createPostgresPrefsRepo(pool),
     passwordResets: createPostgresMailedLinksRepo(pool, "password_resets"),
     signInLinks: createPostgresMailedLinksRepo(pool, "sign_in_links"),
+    deviceLinks: createPostgresMailedLinksRepo(pool, "device_links"),
     comments: createPostgresCommentsRepo(pool),
     audit: createPostgresAuditRepo(pool),
     maintenance: createPostgresMaintenanceRepo(pool),

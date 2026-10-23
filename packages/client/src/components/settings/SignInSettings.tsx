@@ -2,13 +2,16 @@ import { useState } from "preact/hooks";
 import { buttonClass } from "#/components/buttonClasses.ts";
 import { t } from "#/i18n/index.ts";
 import { changePassword } from "#/state/account/auth.ts";
+import { serverFeature } from "#/state/serverFeatures.ts";
 import { showSuccess } from "#/state/ui.ts";
 import { Field, inputClass, Section } from "./AccountSettings.tsx";
+import { DeviceLinkSettings } from "./DeviceLinkSettings.tsx";
 import { showsTwoFactor } from "./SettingsNav.tsx";
 import { TwoFactorSettings } from "./TwoFactorSettings.tsx";
 
 /**
- * The ways into a local account, together: its password, and the second factor
+ * The ways into a local account, together: its password, a QR code that signs
+ * in a second device, and the second factor
  * that the server offers or that the account already has (`showsTwoFactor`).
  * Single sign-on has neither here. Thus, the page is only for an account with
  * its own password.
@@ -35,6 +38,12 @@ export function SignInSettings() {
           </div>
         )}
       </Section>
+
+      {serverFeature("deviceLinks") && (
+        <Section title={t("deviceLink.title")}>
+          <DeviceLinkSettings />
+        </Section>
+      )}
 
       {showsTwoFactor() && (
         <Section title={t("twoFactor.title")}>
