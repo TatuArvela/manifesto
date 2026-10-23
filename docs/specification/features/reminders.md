@@ -13,8 +13,11 @@ time. It can repeat on a recurrence.
   "Urgent" switch (see [Urgent reminders](#urgent-reminders)).
 - A reminder chip on the card shows the next fire time. Reminders that are past due are highlighted.
   The chip of an urgent reminder has a bold border and a ringing bell.
-- The "Reminders" view in the sidebar lists all notes with an active reminder, sorted by the next
-  fire time.
+- The "Reminders" view in the sidebar lists all notes with an active reminder in sections: Overdue,
+  Today, Tomorrow, Next 7 days, Later, and Fired (one-time reminders that fired). In each section,
+  urgent reminders come first, then the next fire time. An urgent reminder that waits for "Done" is
+  in Overdue. The sections follow the clock of the device, and the view looks at it again each
+  minute.
 - Archived notes still fire their reminders. Trashed notes do not.
 
 ## Urgent reminders

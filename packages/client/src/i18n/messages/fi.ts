@@ -325,6 +325,12 @@ export const fi: Messages = {
   },
   "noteGrid.pinned": "Kiinnitetyt",
   "noteGrid.others": "Muut",
+  "noteGrid.reminders.overdue": "Myöhässä",
+  "noteGrid.reminders.today": "Tänään",
+  "noteGrid.reminders.tomorrow": "Huomenna",
+  "noteGrid.reminders.week": "Seuraavat 7 päivää",
+  "noteGrid.reminders.later": "Myöhemmin",
+  "noteGrid.reminders.past": "Muistutetut",
   "noteGrid.moved": "Siirretty kohtaan {position}/{count}",
 
   // Tags view

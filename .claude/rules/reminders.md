@@ -11,6 +11,7 @@ paths:
   - "packages/client/src/state/pushSubscription.ts"
   - "packages/shared/src/reminderTime.ts"
   - "packages/client/src/utils/reminderNotification.ts"
+  - "packages/client/src/components/ReminderSections.tsx"
 ---
 
 # Reminders and the Service Worker
@@ -56,6 +57,9 @@ lastFiredAt` again by hand.
   item of `sync-reminders` (`doneLabel`).
 - "Done" on a notification goes to a page as `reminder-done`, or starts the app with
   `?reminderDone=<id>` (`useNoteFromReminder`, `markReminderDoneWhenLoaded`).
+
+`state/reminderSections.ts` puts the notes of the Reminders view in sections. It is pure, and the
+component gives it the clock.
 
 ## Server
 

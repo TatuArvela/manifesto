@@ -321,6 +321,12 @@ export const en = {
   },
   "noteGrid.pinned": "Pinned",
   "noteGrid.others": "Others",
+  "noteGrid.reminders.overdue": "Overdue",
+  "noteGrid.reminders.today": "Today",
+  "noteGrid.reminders.tomorrow": "Tomorrow",
+  "noteGrid.reminders.week": "Next 7 days",
+  "noteGrid.reminders.later": "Later",
+  "noteGrid.reminders.past": "Fired",
   "noteGrid.moved": "Moved to {position} of {count}",
 
   // Tags view
