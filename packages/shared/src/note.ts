@@ -232,6 +232,12 @@ export interface NoteReminder {
    * prevent duplicates.
    */
   lastFiredAt?: string;
+  /**
+   * An urgent reminder does not move on when it fires. Its notification stays
+   * until the user dismisses it, and it fires again each `URGENT_REPEAT_MS`
+   * until the user marks it done (`reminderDone`). Present only as `true`.
+   */
+  urgent?: true;
 }
 
 /** Identifies a note that a plugin made. The user did not write it. */

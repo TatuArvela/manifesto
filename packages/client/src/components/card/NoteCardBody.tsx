@@ -14,6 +14,7 @@ import { toggleCheckbox } from "#/state/actions.ts";
 import { drawnWithoutImages } from "#/state/autoNotes.ts";
 import { updateNote } from "#/state/notesStore.ts";
 import { checklistProgress as showChecklistProgress } from "#/state/prefs.ts";
+import { markReminderDone } from "#/state/reminderScheduler.ts";
 import { checklistProgress } from "#/utils/markdown.ts";
 
 /**
@@ -193,6 +194,7 @@ export function NoteCardBody({
                   onClick={onToggleReminder}
                   expanded={reminderOpen}
                   onClear={() => updateNote(note.id, { reminder: null })}
+                  onDone={() => markReminderDone(note.id)}
                 />
               )}
               {note.tags.map((tag) => (

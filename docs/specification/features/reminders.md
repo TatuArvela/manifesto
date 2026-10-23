@@ -9,11 +9,33 @@ time. It can repeat on a recurrence.
 - To set a reminder, use the bell button. It is the second button (after the color) on the toolbar of
   the note editor and on the toolbar of the card. On a card that has a reminder, you can also use the
   chip of the reminder.
-- The picker has a date, a time, and a recurrence (none, daily, weekly, monthly, yearly).
+- The picker has a date, a time, a recurrence (none, daily, weekly, monthly, yearly), and an
+  "Urgent" switch (see [Urgent reminders](#urgent-reminders)).
 - A reminder chip on the card shows the next fire time. Reminders that are past due are highlighted.
+  The chip of an urgent reminder has a bold border and a ringing bell.
 - The "Reminders" view in the sidebar lists all notes with an active reminder, sorted by the next
   fire time.
 - Archived notes still fire their reminders. Trashed notes do not.
+
+## Urgent reminders
+
+An urgent reminder is for something that the user must not miss.
+
+- Its notification stays on the screen until the user acts on it (`requireInteraction`). It has a
+  "Done" button.
+- When it fires, it does not move on to its next occurrence. It stays at its time (with a pulsing
+  bell on its chip), and fires again each 5 minutes (`URGENT_REPEAT_MS`).
+- "Done" stops it. A repeating reminder goes to its next occurrence after now. A one-time reminder
+  goes away. "Done" is on the notification, on the chip, in the picker and on the in-app banner.
+- An urgent reminder is never too old to fire. The one-hour catch-up limit does not apply to it.
+- If the user switches "Urgent" off while it waits, a repeating reminder goes to its next
+  occurrence, and a one-time reminder stays as one that fired.
+- The calendar feed gives it `PRIORITY:1`.
+
+The "Done" button of a notification works also when no window is open. The service worker stops its
+own copy at once. Only a page can write the note, so the worker opens the app with
+`?reminderDone=<id>`, and the app marks it done when the note is loaded. Until a page writes it, the
+server push (in connected mode) continues.
 
 ## Delivery
 

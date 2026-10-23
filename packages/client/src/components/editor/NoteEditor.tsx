@@ -1,8 +1,9 @@
-import type {
-  LinkPreview,
-  NoteColor,
-  NoteFont,
-  NoteReminder,
+import {
+  type LinkPreview,
+  type NoteColor,
+  type NoteFont,
+  type NoteReminder,
+  reminderDone,
 } from "@manifesto/shared";
 import type { Editor } from "@milkdown/kit/core";
 import { ArrowLeft, Pin, PinOff } from "lucide-preact";
@@ -464,6 +465,11 @@ function EditorChips({
             expanded={pickerOpen}
             onClear={
               onReminderChange ? () => onReminderChange(null) : undefined
+            }
+            onDone={
+              onReminderChange
+                ? () => onReminderChange(reminderDone(reminder))
+                : undefined
             }
           />
           {picker.shown && onReminderChange && (

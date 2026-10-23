@@ -1,8 +1,11 @@
 import {
-  advanceReminder,
+  afterFire,
+  awaitsDone,
+  nextFireAt,
   parseLocalISO,
   REMINDER_RECURRENCES,
   type ReminderRecurrence,
+  reminderDone,
   snapReminderToFuture,
 } from "@manifesto/shared";
 
@@ -22,6 +25,13 @@ export interface StoredReminder {
   title: string;
   body: string;
   lastFiredAt: string | null;
+  /** `NoteReminder.urgent`. */
+  urgent?: true;
+  /**
+   * The words of the "Done" button of an urgent notification, in the language
+   * of the page. The worker has no catalogue.
+   */
+  doneLabel?: string;
 }
 
 export const DEDUPE_WINDOW_MS = 60_000;
@@ -67,6 +77,13 @@ export function isValidStoredReminder(value: unknown): value is StoredReminder {
   ) {
     return false;
   }
+  if (reminder.urgent !== undefined && reminder.urgent !== true) return false;
+  if (
+    reminder.doneLabel !== undefined &&
+    !(typeof reminder.doneLabel === "string" && reminder.doneLabel.length <= 40)
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -85,17 +102,20 @@ export function stepFor(item: StoredReminder, now: number): ReminderStep {
   // null for it. Thus, its `time` stays in the past forever. Because
   // DEDUPE_WINDOW_MS is equal to POLL_INTERVAL_MS, the dedupe check below can
   // never stop the *next* poll. Without this guard, a dismissed reminder came
-  // back each 60s forever. The same as in reminderScheduler.ts.
-  if (item.recurrence === "none" && item.lastFiredAt) return { kind: "wait" };
-
-  const dueMs = parseLocalISO(item.time).getTime() - now;
+  // back each 60s forever. The same as in reminderScheduler.ts. An urgent
+  // reminder that fired waits for the user, and fires again each
+  // URGENT_REPEAT_MS until they mark it done.
+  const fireAt = nextFireAt(item, (time) => parseLocalISO(time).getTime());
+  if (fireAt === null) return { kind: "wait" };
+  const dueMs = fireAt - now;
   if (dueMs > 0) return { kind: "wait" };
+  if (awaitsDone(item)) return { kind: "fire" };
 
   // A long absence (the device was asleep, the tab was closed for days):
   // silently move a recurring reminder past each missed occurrence, and do not
   // play them again one for each poll. A stale one-time reminder is dropped, as
   // on the client.
-  if (dueMs < -CATCHUP_WINDOW_MS) {
+  if (dueMs < -CATCHUP_WINDOW_MS && !item.urgent) {
     return item.recurrence === "none"
       ? { kind: "wait" }
       : { kind: "skip", next: snapReminderToFuture(item, new Date(now)) };
@@ -112,16 +132,31 @@ export function stepFor(item: StoredReminder, now: number): ReminderStep {
 
 /**
  * The reminder as stored after it fired at `firedAt`: moved to its next
- * occurrence, or marked fired when it does not repeat. The pages get
- * `nextTime`.
+ * occurrence, or marked fired when it does not repeat or is urgent. The pages
+ * get `nextTime`.
  */
 export function afterFiring(
   item: StoredReminder,
   firedAt: string,
 ): { stored: StoredReminder; nextTime: string | null } {
-  const next = advanceReminder(item);
+  const { lastFiredAt: _previous, ...rest } = item;
+  const fired = afterFire(rest, firedAt);
   return {
-    stored: { ...(next ?? item), lastFiredAt: firedAt },
-    nextTime: next?.time ?? null,
+    stored: { ...fired, lastFiredAt: firedAt },
+    nextTime: fired.time === item.time ? null : fired.time,
   };
+}
+
+/**
+ * The copy of the worker after the user marked the reminder done from its
+ * notification: its next occurrence, or null (remove it) when it does not
+ * repeat.
+ */
+export function afterDone(
+  item: StoredReminder,
+  now: number,
+): StoredReminder | null {
+  const { lastFiredAt: _done, ...rest } = item;
+  const next = reminderDone(rest, new Date(now));
+  return next && { ...next, lastFiredAt: null };
 }

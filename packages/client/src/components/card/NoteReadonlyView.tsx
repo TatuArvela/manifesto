@@ -40,6 +40,7 @@ import { getColorPickerColors, t } from "#/i18n/index.ts";
 import { addTag, togglePin } from "#/state/actions.ts";
 import { drawnWithoutImages, refreshAutoNotes } from "#/state/autoNotes.ts";
 import { ensureImages, updateNote } from "#/state/notesStore.ts";
+import { markReminderDone } from "#/state/reminderScheduler.ts";
 import { renderMarkdown } from "#/utils/remarkRenderer.ts";
 import { withoutImages } from "#/utils/stripImages.ts";
 import { menuPanelClass, NoteMenu } from "./NoteMenu.tsx";
@@ -178,6 +179,7 @@ export function NoteReadonlyView({
                   }
                   expanded={showReminderChipPicker}
                   onClear={() => updateNote(note.id, { reminder: null })}
+                  onDone={() => markReminderDone(note.id)}
                 />
                 {reminderChipPicker.shown && (
                   <CardPopover

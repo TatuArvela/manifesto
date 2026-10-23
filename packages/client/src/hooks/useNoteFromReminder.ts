@@ -1,4 +1,5 @@
 import { useEffect } from "preact/hooks";
+import { markReminderDoneWhenLoaded } from "#/state/reminderScheduler.ts";
 import { editingNoteId } from "#/state/ui.ts";
 
 /**
@@ -21,6 +22,13 @@ export function useNoteFromReminder(): void {
     if (launchNoteId) {
       editingNoteId.value = launchNoteId;
       launchUrl.searchParams.delete("note");
+      history.replaceState(history.state, "", launchUrl.href);
+    }
+    // The "Done" button of an urgent notification, with no window open.
+    const doneNoteId = launchUrl.searchParams.get("reminderDone");
+    if (doneNoteId) {
+      markReminderDoneWhenLoaded(doneNoteId);
+      launchUrl.searchParams.delete("reminderDone");
       history.replaceState(history.state, "", launchUrl.href);
     }
     return () => {

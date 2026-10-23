@@ -1113,6 +1113,10 @@ export const fi: Messages = {
   "reminder.openNote": "Avaa muistiinpano",
   "reminder.dismiss": "Sulje",
   "reminder.chip": "Muistutus: {date}",
+  "reminder.chipUrgent": "Kiireellinen muistutus: {date}",
+  "reminder.urgent": "Kiireellinen",
+  "reminder.urgentHelp": "Pysyy näytöllä ja toistuu, kunnes se on tehty",
+  "reminder.done": "Tehty",
 
   // The shared-note dialog, shown when the app opens on a #share=... link.
   "welcome.title": "Tämä on {appName}",

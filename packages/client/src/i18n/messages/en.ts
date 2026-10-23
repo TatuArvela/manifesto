@@ -1093,6 +1093,10 @@ export const en = {
   "reminder.openNote": "Open note",
   "reminder.dismiss": "Dismiss",
   "reminder.chip": "Reminder: {date}",
+  "reminder.chipUrgent": "Urgent reminder: {date}",
+  "reminder.urgent": "Urgent",
+  "reminder.urgentHelp": "Stays on screen and repeats until done",
+  "reminder.done": "Done",
 
   // The shared-note dialog, shown when the app opens on a #share=... link.
   "welcome.title": "This is {appName}",

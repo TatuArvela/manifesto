@@ -1,8 +1,10 @@
 import {
-  advanceReminder,
+  afterFire,
+  awaitsDone,
   instantOf,
   MAX_NOTES_PAGE_SIZE,
   type NoteReminder,
+  nextFireAt,
   type ReminderPush,
   type SealedNote,
 } from "@manifesto/shared";
@@ -75,13 +77,19 @@ function withSealed(message: ReminderPush, note: SealedNote): ReminderPush {
 
 /**
  * If the server must fire this reminder now: due for longer than the grace
- * time, not too old yet, and not already fired for this occurrence.
+ * time, not too old yet, and not already fired for this occurrence. An urgent
+ * reminder is never too old. It fires again each `URGENT_REPEAT_MS` (and the
+ * grace time) until the user marks it done.
  */
 export function isDueForPush(reminder: NoteReminder, now: number): boolean {
-  if (reminder.recurrence === "none" && reminder.lastFiredAt) return false;
-  const due = instantOf(reminder.time, reminder.timezone);
+  const due = nextFireAt(reminder, (time) =>
+    instantOf(time, reminder.timezone),
+  );
+  if (due === null) return false;
   const overdue = now - due;
-  if (overdue < PUSH_GRACE_MS || overdue > CATCHUP_WINDOW_MS) return false;
+  if (overdue < PUSH_GRACE_MS) return false;
+  if (awaitsDone(reminder)) return true;
+  if (overdue > CATCHUP_WINDOW_MS && !reminder.urgent) return false;
   const lastFired = reminder.lastFiredAt
     ? Date.parse(reminder.lastFiredAt)
     : Number.NaN;
@@ -126,12 +134,9 @@ export async function pushDueReminders(deps: PushRemindersDeps): Promise<void> {
         const reminder = note.reminder;
         if (!reminder || note.trashed || !isDueForPush(reminder, now)) continue;
 
-        const next = advanceReminder(reminder);
         const firedAt = new Date(now).toISOString();
-        const moved: NoteReminder = {
-          ...(next ?? reminder),
-          lastFiredAt: firedAt,
-        };
+        const moved = afterFire(reminder, firedAt);
+        const next = moved.time === reminder.time ? null : moved;
         // Written before anything is sent. A pass that stops halfway must not
         // leave a reminder that the next pass pushes again. The write occurs
         // only if the note is still as this pass read it. The sends below can
@@ -164,6 +169,7 @@ export async function pushDueReminders(deps: PushRemindersDeps): Promise<void> {
                 }
               : null,
             firedAt,
+            ...(reminder.urgent && { urgent: true }),
           },
           note,
         );

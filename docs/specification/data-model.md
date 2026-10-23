@@ -198,6 +198,7 @@ A scheduled reminder, attached to a note. See [Reminders](features/reminders.md)
 | `day`         | `number`              | No       | 1 to 31: the day of the month on which a monthly or yearly reminder repeats. It is present only while a shorter month clamped `time` to a different day ([Recurrence](features/reminders.md#recurrence)) |
 | `timezone`    | `string`              | Yes      | The IANA timezone, recorded at creation          |
 | `lastFiredAt` | `string`              | No       | ISO 8601 time of the last real fire. The tabs and the service worker use it to prevent duplicates |
+| `urgent`      | `true`                | No       | An urgent reminder stays at its time when it fires, and fires again until the user marks it done ([Urgent reminders](features/reminders.md#urgent-reminders)). Present only as `true` |
 
 ## NoteVersion
 

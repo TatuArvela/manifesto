@@ -1,14 +1,19 @@
 import type { NoteReminder } from "@manifesto/shared";
 import {
   advanceReminder,
+  afterFire,
+  awaitsDone,
   formatLocalISO,
   instantOf,
+  nextFireAt,
   nextOccurrence,
   parseLocalISO,
   pickedReminder,
   reminderAt,
+  reminderDone,
   snapReminderToFuture,
   snapToFuture,
+  URGENT_REPEAT_MS,
 } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
 import { defined } from "#/test/defined.ts";
@@ -380,5 +385,56 @@ describe("instantOf", () => {
     expect(instantOf("2026-07-15T08:00:00", "Mars/Olympus")).toBe(
       new Date(2026, 6, 15, 8).getTime(),
     );
+  });
+});
+
+describe("urgent reminders", () => {
+  const local = (time: string) => parseLocalISO(time).getTime();
+  const firedAt = "2026-10-03T09:00:00.000Z";
+
+  it("stay at their time when they fire, where others move on", () => {
+    const daily = { time: "2026-10-03T09:00:00", recurrence: "daily" as const };
+    expect(afterFire({ ...daily, urgent: true as const }, firedAt)).toEqual({
+      ...daily,
+      urgent: true,
+      lastFiredAt: firedAt,
+    });
+    expect(afterFire(daily, firedAt).time).toBe("2026-10-04T09:00:00");
+  });
+
+  it("fire next URGENT_REPEAT_MS after their last fire, until done", () => {
+    const fired = {
+      time: "2026-10-03T09:00:00",
+      recurrence: "none" as const,
+      urgent: true as const,
+      lastFiredAt: firedAt,
+    };
+    expect(awaitsDone(fired)).toBe(true);
+    expect(nextFireAt(fired, local)).toBe(
+      Date.parse(firedAt) + URGENT_REPEAT_MS,
+    );
+    const { urgent: _plain, ...plain } = fired;
+    expect(nextFireAt(plain, local)).toBeNull();
+  });
+
+  it("go past now to the next occurrence when done, or away", () => {
+    const now = new Date(2026, 9, 6, 12);
+    const done = reminderDone(
+      {
+        time: "2026-10-03T09:00:00",
+        recurrence: "daily",
+        urgent: true,
+        lastFiredAt: firedAt,
+      },
+      now,
+    );
+    expect(done).toEqual({
+      time: "2026-10-07T09:00:00",
+      recurrence: "daily",
+      urgent: true,
+    });
+    expect(
+      reminderDone({ time: "2026-10-03T09:00:00", recurrence: "none" }, now),
+    ).toBeNull();
   });
 });

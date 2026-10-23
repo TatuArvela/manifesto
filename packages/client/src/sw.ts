@@ -14,12 +14,14 @@ import {
 import { loadDeviceKeys } from "./storage/deviceKeys.ts";
 import { afterPush, readReminderPush, wordedPush } from "./swPush.ts";
 import {
+  afterDone,
   afterFiring,
   isValidStoredReminder,
   POLL_INTERVAL_MS,
   type StoredReminder,
   stepFor,
 } from "./swReminders.ts";
+import { DONE_ACTION, urgentOptions } from "./utils/reminderNotification.ts";
 
 declare const self: ServiceWorkerGlobalScope & {
   registration: ServiceWorkerRegistration & {
@@ -191,6 +193,7 @@ async function fireDue(): Promise<void> {
         body: item.body,
         tag: item.noteId,
         data: { noteId: item.noteId },
+        ...urgentOptions(item.urgent === true, item.doneLabel),
       });
     } catch {
       // The browser can reject if permission is not really given. Skip
@@ -200,6 +203,18 @@ async function fireDue(): Promise<void> {
     const { stored, nextTime } = afterFiring(item, new Date().toISOString());
     await putOne(stored);
     broadcast({ type: "reminder-fired", noteId: item.noteId, nextTime });
+  }
+}
+
+async function markDoneHere(noteId: string): Promise<void> {
+  try {
+    const held = (await getAll()).find((item) => item.noteId === noteId);
+    if (!held) return;
+    const next = afterDone(held, Date.now());
+    if (next) await putOne(next);
+    else await deleteOne(noteId);
+  } catch {
+    // The page writes the note, and its next sync replaces this list.
   }
 }
 
@@ -309,13 +324,16 @@ async function receivePush(payload: unknown): Promise<void> {
   // Opened here, with the account key that this device keeps while signed in.
   // The server sent the title and text sealed, and cannot read them.
   const worded = await wordedPush(push, await loadDeviceKeys());
+  const held = await getAll()
+    .then((items) => items.find((item) => item.noteId === push.noteId))
+    .catch(() => undefined);
   await self.registration.showNotification(worded.title, {
     body: worded.body,
     tag: push.noteId,
     data: { noteId: push.noteId },
+    ...urgentOptions(push.urgent === true, held?.doneLabel),
   });
   try {
-    const held = (await getAll()).find((item) => item.noteId === push.noteId);
     if (held) await putOne(afterPush(held, push));
   } catch {
     // The list is only a convenience here. The notification is already up.
@@ -347,8 +365,11 @@ async function installedName(): Promise<string> {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const noteId = (event.notification.data as { noteId?: string })?.noteId;
+  const done = event.action === DONE_ACTION;
   event.waitUntil(
     (async () => {
+      // The own copy stops at once. A page writes the note.
+      if (done && noteId) await markDoneHere(noteId);
       const clientList = await self.clients.matchAll({
         type: "window",
         includeUncontrolled: true,
@@ -359,6 +380,10 @@ self.addEventListener("notificationclick", (event) => {
       const scope = self.registration.scope;
       for (const client of clientList) {
         if ("focus" in client && client.url.startsWith(scope)) {
+          if (done) {
+            client.postMessage({ type: "reminder-done", noteId });
+            return;
+          }
           client.postMessage({ type: "open-note", noteId });
           await client.focus();
           return;
@@ -367,9 +392,12 @@ self.addEventListener("notificationclick", (event) => {
       if (self.clients.openWindow) {
         // Against the scope, not the origin. An instance served from a subpath
         // (`/manifesto/` on GitHub Pages) is not at `/`. `App` opens the note
-        // named in `?note=` after it starts.
+        // named in `?note=` after it starts. With `done`, it marks the
+        // reminder done in place of that, because only a page can write the
+        // note (and the server pushes it again until one does).
         const url = new URL(self.registration.scope);
-        if (noteId) url.searchParams.set("note", noteId);
+        if (noteId)
+          url.searchParams.set(done ? "reminderDone" : "note", noteId);
         await self.clients.openWindow(url.href);
       }
     })(),

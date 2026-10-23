@@ -1,8 +1,15 @@
-import type { NoteReminder, ReminderRecurrence } from "@manifesto/shared";
+import {
+  awaitsDone,
+  type NoteReminder,
+  type ReminderRecurrence,
+  reminderDone,
+} from "@manifesto/shared";
 import {
   ArrowLeft,
   Bell,
+  BellRing,
   Calendar,
+  Check,
   ChevronDown,
   Clock,
   Repeat,
@@ -117,6 +124,7 @@ export function ReminderPickerPanel({
   );
   const [repeatOpen, setRepeatOpen] = useState(false);
   const [triedSave, setTriedSave] = useState(false);
+  const [urgent, setUrgent] = useState(reminder?.urgent === true);
 
   const chosenISO = composeISO(date, hour, minute);
   const isPast = parseLocalISO(chosenISO).getTime() <= Date.now();
@@ -138,9 +146,57 @@ export function ReminderPickerPanel({
     // Possibly just permitted. In connected mode, the server can now reach this
     // browser while the app is closed.
     else if (isServerMode) void ensurePushSubscription();
-    onChange({ ...settled, timezone: currentTimezone() });
+    onChange({
+      ...settled,
+      timezone: currentTimezone(),
+      ...(urgent && { urgent: true }),
+    });
     onDone();
   };
+
+  const markDone = () => {
+    if (reminder) onChange(reminderDone(reminder));
+    onDone();
+  };
+
+  // On a reminder that exists, the switch saves at once. On a new one, the
+  // choice goes with the time that the user picks next.
+  const toggleUrgent = (next: boolean) => {
+    setUrgent(next);
+    if (!reminder) return;
+    if (next) {
+      onChange({ ...reminder, urgent: true });
+      return;
+    }
+    // A repeating reminder that waits for "Done" goes on to its next time. A
+    // one-time reminder stays as one that fired.
+    const settled =
+      awaitsDone(reminder) && reminder.recurrence !== "none"
+        ? (reminderDone(reminder) ?? reminder)
+        : reminder;
+    const { urgent: _off, ...rest } = settled;
+    onChange(rest);
+  };
+
+  const urgentRow = (
+    <label class="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer">
+      <BellRing class="w-4 h-4 opacity-70 shrink-0" aria-hidden="true" />
+      <span class="flex-1">
+        <span class="block">{t("reminder.urgent")}</span>
+        <span class="block text-xs text-neutral-500 dark:text-neutral-400">
+          {t("reminder.urgentHelp")}
+        </span>
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        aria-checked={urgent}
+        class="w-4 h-4 accent-red-600 cursor-pointer"
+        checked={urgent}
+        onChange={(e) => toggleUrgent((e.target as HTMLInputElement).checked)}
+      />
+    </label>
+  );
 
   const saveCustom = () => {
     if (!savable) {
@@ -175,6 +231,16 @@ export function ReminderPickerPanel({
         <div class="px-3 pt-1 pb-2 text-sm font-medium select-none">
           {t("reminder.header")}
         </div>
+        {reminder && awaitsDone(reminder) && (
+          <button
+            type="button"
+            class={`${rowClass} gap-2 justify-start font-medium`}
+            onClick={markDone}
+          >
+            <Check class="w-4 h-4" aria-hidden="true" />
+            <span>{t("reminder.done")}</span>
+          </button>
+        )}
         <button type="button" class={rowClass} onClick={saveTomorrow}>
           <span>{t("reminder.tomorrow")}</span>
           <span class="text-neutral-500 dark:text-neutral-400 text-xs">
@@ -199,6 +265,8 @@ export function ReminderPickerPanel({
           <Calendar class="w-4 h-4 opacity-70" />
           <span>{t("reminder.pickDate")}</span>
         </button>
+        <div class="my-1 border-t border-neutral-200 dark:border-neutral-700" />
+        {urgentRow}
         {reminder && (
           <>
             <div class="my-1 border-t border-neutral-200 dark:border-neutral-700" />
@@ -319,6 +387,8 @@ export function ReminderPickerPanel({
           </>
         )}
       </div>
+
+      {urgentRow}
 
       {triedSave && !savable && (
         <div class="text-xs text-red-600 dark:text-red-400 px-2 pt-1">
