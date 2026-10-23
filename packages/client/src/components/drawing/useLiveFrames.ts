@@ -1,0 +1,129 @@
+import { useEffect, useRef } from "preact/hooks";
+import {
+  drawMarks,
+  type Mark,
+  type PaperSize,
+  paintLayer,
+  type Rect,
+  renderDrawing,
+  reusedCanvas,
+  type Transform,
+} from "#/utils/drawing.ts";
+import { activeLayer, type Sketch } from "#/utils/drawingLayers.ts";
+
+/** What the frames of a gesture read, each time that they paint. */
+export interface LiveSource {
+  context: () => CanvasRenderingContext2D | null;
+  sketch: () => Sketch;
+  /** The part of the paper that the picture shows. */
+  view: () => Rect;
+  paper: PaperSize;
+  base: HTMLImageElement | null;
+  /** While the move tool drags the active layer: how far it moved it. */
+  moving: () => Transform | null;
+  /** Marks that the frame shows on the active layer, not yet in the sketch. */
+  preview: () => Mark[];
+}
+
+/**
+ * The frames of a gesture. At its start, `cacheAround` keeps the picture under
+ * the active layer, that layer alone, and the picture over it. Then each frame
+ * paints only the change in progress between them. The canvases stay for the
+ * next gesture while the view keeps its size: a canvas of a large photo holds
+ * tens of megabytes.
+ */
+export function useLiveFrames(source: LiveSource) {
+  const live = useRef<{
+    under: HTMLCanvasElement;
+    layer: HTMLCanvasElement;
+    over: HTMLCanvasElement;
+    scratch: HTMLCanvasElement;
+  } | null>(null);
+  const kept = useRef<typeof live.current>(null);
+  const frame = useRef(0);
+
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+
+  /**
+   * The change in progress over the drawing under it, one time in each frame.
+   * If the code drew a line on top of itself at each move, its soft edge would
+   * become solid, and the line would become thinner at the release.
+   */
+  const paintActive = () => {
+    frame.current = 0;
+    const ctx = source.context();
+    const canvases = live.current;
+    if (!ctx || !canvases) return;
+    const { under, layer, over, scratch } = canvases;
+    const scratchCtx = scratch.getContext("2d");
+    if (!scratchCtx) return;
+    scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
+    scratchCtx.clearRect(0, 0, scratch.width, scratch.height);
+    const { x, y } = source.view();
+    const by = source.moving();
+    if (by) {
+      // The layer as a picture while it moves. The marks themselves move at
+      // the release, and lines stay sharp at any size. The cached layer starts
+      // at the corner of the view, not of the paper.
+      const { scale, dx, dy } = by;
+      scratchCtx.setTransform(
+        scale,
+        0,
+        0,
+        scale,
+        x * scale + dx - x,
+        y * scale + dy - y,
+      );
+      scratchCtx.drawImage(layer, 0, 0);
+    } else {
+      scratchCtx.drawImage(layer, 0, 0);
+      scratchCtx.setTransform(1, 0, 0, 1, -x, -y);
+      drawMarks(scratchCtx, source.preview());
+    }
+    scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(under, 0, 0);
+    ctx.globalAlpha = activeLayer(source.sketch())?.opacity ?? 1;
+    ctx.drawImage(scratch, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.drawImage(over, 0, 0);
+  };
+
+  const schedule = () => {
+    frame.current ||= requestAnimationFrame(paintActive);
+  };
+
+  /**
+   * The picture under the active layer, that layer alone, and the picture over
+   * it, for the frames of a gesture.
+   */
+  const cacheAround = () => {
+    const { layers, active } = source.sketch();
+    const index = layers.findIndex((layer) => layer.id === active);
+    const shown = source.view();
+    const reused = kept.current;
+    const under = reusedCanvas(reused?.under, shown);
+    const over = reusedCanvas(reused?.over, shown);
+    const layer = reusedCanvas(reused?.layer, shown);
+    const underCtx = under.getContext("2d");
+    const overCtx = over.getContext("2d");
+    const { paper, base } = source;
+    if (underCtx) {
+      const below = layers.slice(0, index);
+      renderDrawing(underCtx, below, paper, base, false, shown);
+    }
+    if (overCtx) {
+      renderDrawing(overCtx, layers.slice(index + 1), paper, null, true, shown);
+    }
+    paintLayer(layer, layers[index]?.marks ?? [], shown);
+    const scratch = reusedCanvas(reused?.scratch, shown);
+    live.current = kept.current = { under, layer, over, scratch };
+  };
+
+  const endFrames = () => {
+    live.current = null;
+    cancelAnimationFrame(frame.current);
+    frame.current = 0;
+  };
+
+  return { paintActive, schedule, cacheAround, endFrames };
+}

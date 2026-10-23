@@ -1,31 +1,21 @@
-import { isStoredImageRef } from "@manifesto/shared";
-import { Crop, SquareDashed, X } from "lucide-preact";
-import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import { useBackToClose } from "#/hooks/useBackToClose.ts";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
 import { isTypingTarget } from "#/hooks/useShortcut.ts";
 import { t } from "#/i18n/index.ts";
-import { attachmentObjectUrl } from "#/state/attachments.ts";
 import { askConfirmation } from "#/state/confirm.ts";
 import { closeDrawing, drawingRequest } from "#/state/drawing.ts";
-import { showError } from "#/state/ui.ts";
 import {
-  BLANK_PAPER,
   drawingPoint,
-  drawMarks,
   encodeDrawing,
   type Mark,
   PAPER,
-  type PaperSize,
   type Point,
-  paintLayer,
-  paperSizeFor,
   penScale,
   type Rect,
   renderDrawing,
   resizeFrom,
-  reusedCanvas,
   type Shape,
   type Stroke,
   type Transform,
@@ -50,15 +40,15 @@ import {
 } from "#/utils/drawingLayers.ts";
 import { fillPicture, floodFill, growArea } from "#/utils/floodFill.ts";
 import { closesPolygon, snapLine, snapSquare } from "#/utils/shapes.ts";
+import { DrawingHints } from "./DrawingHints.tsx";
 import { DrawingOverlay, HANDLE, useCanvasBox } from "./DrawingOverlay.tsx";
-import { type PenSettings, tipStyle, WIDTHS } from "./DrawingPen.tsx";
-import {
-  barButton,
-  DrawingToolbar,
-  INKS,
-  type Tool,
-} from "./DrawingToolbar.tsx";
+import { type PenSettings, WIDTHS } from "./DrawingPen.tsx";
+import { DrawingToolbar, INKS, type Tool } from "./DrawingToolbar.tsx";
 import { DrawingTopBar } from "./DrawingTopBar.tsx";
+import { type Gesture, UNCHANGED } from "./gesture.ts";
+import { placePenCursor } from "./penCursor.ts";
+import { useBaseImage } from "./useBaseImage.ts";
+import { useLiveFrames } from "./useLiveFrames.ts";
 import { useStageZoom } from "./useStageZoom.ts";
 
 /** The eraser is wider than the pen, wide enough to rub with. */
@@ -66,8 +56,6 @@ const ERASER_SCALE = 4;
 
 /** A drag shorter than this, in paper pixels, is a tap, not an area. */
 const MIN_SELECTION = 4;
-
-const UNCHANGED: Transform = { scale: 1, dx: 0, dy: 0 };
 
 /** A color of the canvas as `#rrggbb`, which a color field accepts. */
 const hex = (r: number, g: number, b: number) =>
@@ -82,29 +70,6 @@ const hex = (r: number, g: number, b: number) =>
  */
 const padGrid =
   "grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_minmax(2.75rem,auto)_auto_auto_auto] [grid-template-areas:'top'_'stage'_'hint'_'options'_'inks'_'tools'] md:grid-cols-[auto_minmax(0,1fr)_auto] md:grid-rows-[auto_3rem_minmax(0,1fr)_2.75rem] md:[grid-template-areas:'top_top_top'_'tools_options_inks'_'tools_stage_inks'_'tools_hint_inks']";
-
-const selectionButton =
-  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 cursor-pointer disabled:cursor-default";
-
-/** What the pointer that is down is doing. One at a time. */
-type Gesture =
-  | { kind: "stroke"; pointerId: number; mark: Stroke }
-  | { kind: "shape"; pointerId: number; start: Point; mark: Stroke | Shape }
-  | {
-      kind: "drag";
-      pointerId: number;
-      resize: boolean;
-      start: Point;
-      bounds: Rect;
-      by: Transform;
-    }
-  | { kind: "select"; pointerId: number; start: Point }
-  | {
-      kind: "pan";
-      pointerId: number;
-      client: Point;
-      scroll: Point;
-    };
 
 /**
  * The drawing pad: a sheet of paper on which you draw with a finger, a pen or a
@@ -131,18 +96,6 @@ export function DrawingPad() {
   const historyRef = useRef<SketchHistory>(newSketchHistory());
   const [history, setHistory] = useState(historyRef.current);
   const gesture = useRef<Gesture | null>(null);
-  // While a gesture lasts: the picture under the active layer, that layer as
-  // it was, the picture over it, and a canvas to put the change on the layer.
-  // Then the frame that will next show it.
-  const live = useRef<{
-    under: HTMLCanvasElement;
-    layer: HTMLCanvasElement;
-    over: HTMLCanvasElement;
-    scratch: HTMLCanvasElement;
-  } | null>(null);
-  // The same canvases for the next gesture, while the view keeps its size.
-  const kept = useRef<typeof live.current>(null);
-  const frame = useRef(0);
   // The corners of a polygon in progress, and where the pointer is.
   const polygon = useRef<{ corners: Point[]; hover: Point | null } | null>(
     null,
@@ -165,11 +118,7 @@ export function DrawingPad() {
   const erasing = tool === "eraser";
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [paper, setPaper] = useState<PaperSize>(BLANK_PAPER);
-  const baseSrc = request?.base;
-  const base = useRef<HTMLImageElement | null>(null);
-  // Nothing is drawn until the image to draw over is available.
-  const [ready, setReady] = useState(baseSrc === undefined);
+  const { base, paper, ready } = useBaseImage(request?.base);
   const dialogRef = useFocusTrap<HTMLDivElement>(true);
 
   const context = () => canvasRef.current?.getContext("2d") ?? null;
@@ -217,48 +166,6 @@ export function DrawingPad() {
     view.height,
   ]);
 
-  useEffect(() => {
-    if (baseSrc === undefined) return;
-    let live = true;
-    const fail = () => {
-      if (!live) return;
-      showError(t("drawing.openFailed"));
-      closeDrawing();
-    };
-    const url = isStoredImageRef(baseSrc)
-      ? attachmentObjectUrl(baseSrc)
-      : Promise.resolve(baseSrc);
-    void url.then((src) => {
-      if (!live) return;
-      if (src === null) {
-        fail();
-        return;
-      }
-      const image = new Image();
-      image.onload = () => {
-        if (!live) return;
-        const size = paperSizeFor({
-          width: image.naturalWidth,
-          height: image.naturalHeight,
-        });
-        if (!size) {
-          fail();
-          return;
-        }
-        base.current = image;
-        setPaper(size);
-        setReady(true);
-      };
-      image.onerror = fail;
-      image.src = src;
-    });
-    return () => {
-      live = false;
-    };
-  }, [baseSrc]);
-
-  useEffect(() => () => cancelAnimationFrame(frame.current), []);
-
   /** Marks that the frame shows on the active layer, not yet in the sketch. */
   const previewMarks = (): Mark[] => {
     const now = gesture.current;
@@ -271,85 +178,16 @@ export function DrawingPad() {
     return [];
   };
 
-  /**
-   * The change in progress over the drawing under it, one time in each frame.
-   * If the code drew a line on top of itself at each move, its soft edge would
-   * become solid, and the line would become thinner at the release.
-   */
-  const paintActive = () => {
-    frame.current = 0;
-    const ctx = context();
-    const canvases = live.current;
-    if (!ctx || !canvases) return;
-    const { under, layer, over, scratch } = canvases;
-    const scratchCtx = scratch.getContext("2d");
-    if (!scratchCtx) return;
-    scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
-    scratchCtx.clearRect(0, 0, scratch.width, scratch.height);
-    const { x, y } = currentView();
-    const now = gesture.current;
-    if (now?.kind === "drag") {
-      // The layer as a picture while it moves. The marks themselves move at
-      // the release, and lines stay sharp at any size. The cached layer starts
-      // at the corner of the view, not of the paper.
-      const { scale, dx, dy } = now.by;
-      scratchCtx.setTransform(
-        scale,
-        0,
-        0,
-        scale,
-        x * scale + dx - x,
-        y * scale + dy - y,
-      );
-      scratchCtx.drawImage(layer, 0, 0);
-    } else {
-      scratchCtx.drawImage(layer, 0, 0);
-      scratchCtx.setTransform(1, 0, 0, 1, -x, -y);
-      drawMarks(scratchCtx, previewMarks());
-    }
-    scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(under, 0, 0);
-    ctx.globalAlpha = activeLayer(historyRef.current.present)?.opacity ?? 1;
-    ctx.drawImage(scratch, 0, 0);
-    ctx.globalAlpha = 1;
-    ctx.drawImage(over, 0, 0);
-  };
-
-  const schedule = () => {
-    frame.current ||= requestAnimationFrame(paintActive);
-  };
-
-  /**
-   * The picture under the active layer, that layer alone, and the picture over
-   * it, for the frames of a gesture.
-   */
-  const cacheAround = () => {
-    const { layers, active } = historyRef.current.present;
-    const index = layers.findIndex((layer) => layer.id === active);
-    const shown = currentView();
-    const reused = kept.current;
-    const under = reusedCanvas(reused?.under, shown);
-    const over = reusedCanvas(reused?.over, shown);
-    const layer = reusedCanvas(reused?.layer, shown);
-    const underCtx = under.getContext("2d");
-    const overCtx = over.getContext("2d");
-    if (underCtx) {
-      const below = layers.slice(0, index);
-      renderDrawing(underCtx, below, paper, base.current, false, shown);
-    }
-    if (overCtx) {
-      renderDrawing(overCtx, layers.slice(index + 1), paper, null, true, shown);
-    }
-    paintLayer(layer, layers[index]?.marks ?? [], shown);
-    const scratch = reusedCanvas(reused?.scratch, shown);
-    live.current = kept.current = { under, layer, over, scratch };
-  };
-
-  const endFrames = () => {
-    live.current = null;
-    cancelAnimationFrame(frame.current);
-    frame.current = 0;
-  };
+  const { paintActive, schedule, cacheAround, endFrames } = useLiveFrames({
+    context,
+    sketch: () => historyRef.current.present,
+    view: currentView,
+    paper,
+    base: base.current,
+    moving: () =>
+      gesture.current?.kind === "drag" ? gesture.current.by : null,
+    preview: () => previewMarks(),
+  });
 
   /** The width of the pen, the eraser or an outline, on this paper. */
   const strokeWidth = () =>
@@ -801,37 +639,20 @@ export function DrawingPad() {
     if (event.pointerType === "touch") hideCursor();
   };
 
-  /**
-   * The shape that the next stroke will fill, at the pointer, in the width and
-   * the tip of the pen or the eraser as the paper shows it. Set on the element
-   * itself: a render at each move of the pointer would cost a frame.
-   */
   const showCursor = (event: PointerEvent) => {
     const cursor = cursorRef.current;
-    const element = stageRef.current;
+    const stage = stageRef.current;
     const canvas = canvasRef.current;
-    if (!cursor || !element || !canvas || !ready) return;
+    if (!cursor || !stage || !canvas || !ready) return;
     if (tool !== "pen" && tool !== "eraser" && tool !== "line") {
       hideCursor();
       return;
     }
-    const shown = canvas.getBoundingClientRect();
-    const around = element.getBoundingClientRect();
-    const size = Math.max(
-      4,
-      (strokeWidth() * shown.width) / currentView().width,
-    );
-    // The eraser has the tip of the pen too.
-    const look = tipStyle(pen.tip, size);
-    const height = Number.parseFloat(look.height);
-    // The cursor is in the scrolled area, with the paper.
-    const left = event.clientX - around.left + element.scrollLeft - size / 2;
-    const top = event.clientY - around.top + element.scrollTop - height / 2;
-    cursor.style.display = "block";
-    cursor.style.width = look.width;
-    cursor.style.height = look.height;
-    cursor.style.borderRadius = look.borderRadius;
-    cursor.style.transform = `translate(${left}px, ${top}px) ${look.transform ?? ""}`;
+    placePenCursor(cursor, stage, canvas, event, {
+      tip: pen.tip,
+      width: strokeWidth(),
+      viewWidth: currentView().width,
+    });
   };
 
   const hideCursor = () => {
@@ -934,48 +755,13 @@ export function DrawingPad() {
         />
       </div>
 
-      {tool === "select" && (
-        <div class="[grid-area:hint] flex items-center justify-center gap-2 flex-wrap px-2 text-sm">
-          {selection ? (
-            <>
-              <button
-                type="button"
-                class={selectionButton}
-                onClick={() => cropTo("image")}
-              >
-                <Crop class="w-4 h-4" />
-                {t("drawing.cropImage")}
-              </button>
-              <button
-                type="button"
-                class={selectionButton}
-                onClick={() => cropTo("layer")}
-                disabled={!layerHasInk}
-              >
-                <SquareDashed class="w-4 h-4" />
-                {t("drawing.cropLayer")}
-              </button>
-              <button
-                type="button"
-                class={barButton}
-                onClick={() => setSelection(null)}
-                aria-label={t("drawing.clearSelection")}
-              >
-                <X class="w-4 h-4" />
-              </button>
-            </>
-          ) : (
-            <span class="py-1.5 text-neutral-300">
-              {t("drawing.selectHint")}
-            </span>
-          )}
-        </div>
-      )}
-      {tool === "polygon" && (
-        <p class="[grid-area:hint] self-center px-2 text-center text-sm text-neutral-300">
-          {t("drawing.polygonHint")}
-        </p>
-      )}
+      <DrawingHints
+        tool={tool}
+        selected={selection !== null}
+        canCropLayer={layerHasInk}
+        onCrop={cropTo}
+        onClearSelection={() => setSelection(null)}
+      />
       <DrawingToolbar
         tool={tool}
         onTool={chooseTool}
