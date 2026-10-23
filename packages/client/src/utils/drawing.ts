@@ -267,7 +267,9 @@ export function renderDrawing(
     if (!layer.visible || layer.strokes.length === 0) continue;
     scratch ??= blankCanvas(paper);
     paintLayer(scratch, layer.strokes);
+    ctx.globalAlpha = layer.opacity ?? 1;
     ctx.drawImage(scratch, 0, 0);
+    ctx.globalAlpha = 1;
   }
 }
 

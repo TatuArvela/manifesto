@@ -40,7 +40,8 @@ shares and exports it as a picture, and it uses one of the image slots of the no
 - The drawing has layers. **Layers**, in the bottom bar, opens the list, the top layer first. Press
   the name of a layer to draw on it. Each layer has buttons to hide or show it, to move it up or
   down, and to delete it (not the last layer). **Add layer** puts a new layer over the current one,
-  to a maximum of eight. A line that you draw on a hidden layer shows that layer again.
+  to a maximum of eight. A line that you draw on a hidden layer shows that layer again. A slider
+  under the list sets the opacity of the current layer. One slide is one step for undo.
 - Clear empties the current layer. The eraser takes ink away from the current layer only. The layers
   under it, and the image under the drawing, stay.
 - Each stroke, clear, and change to a layer is one step that undo takes back and redo does again.

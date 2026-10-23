@@ -220,7 +220,9 @@ export function DrawingPad() {
     scratchCtx.drawImage(layer, 0, 0);
     drawStroke(scratchCtx, active.stroke);
     ctx.drawImage(under, 0, 0);
+    ctx.globalAlpha = activeLayer(historyRef.current.present)?.opacity ?? 1;
     ctx.drawImage(scratch, 0, 0);
+    ctx.globalAlpha = 1;
     ctx.drawImage(over, 0, 0);
   };
 

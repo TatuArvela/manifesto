@@ -169,6 +169,7 @@ export const fi: Messages = {
   "drawing.size": "Koko",
   "drawing.customSize": "Kynän koko",
   "drawing.inkOpacity": "Peittävyys",
+  "drawing.layerOpacity": "Peittävyys: {name}",
   "drawing.eraser": "Pyyhekumi",
   "drawing.black": "Musta",
   "drawing.width": "Kynän leveys {n}",

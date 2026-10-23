@@ -5,6 +5,7 @@ import {
   addLayer,
   addStroke,
   clearLayer,
+  endJoin,
   hasStrokes,
   hasVisibleStrokes,
   MAX_LAYERS,
@@ -13,6 +14,7 @@ import {
   redo,
   removeLayer,
   selectLayer,
+  setLayerOpacity,
   toggleLayer,
   undo,
 } from "./drawingLayers.ts";
@@ -135,5 +137,27 @@ describe("drawing layers", () => {
     expect(chosen.past).toBe(history.past);
     expect(chosen.present.active).toBe(1);
     expect(selectLayer(history, 99)).toBe(history);
+  });
+
+  it("makes one slide of an opacity one step, and a new slide a new step", () => {
+    let history = addStroke(newSketchHistory(), line(1));
+    for (const value of [0.9, 0.7, 0.5]) {
+      history = setLayerOpacity(history, 1, value);
+    }
+    expect(history.past).toHaveLength(2);
+    expect(activeLayer(history.present)?.opacity).toBe(0.5);
+    history = setLayerOpacity(endJoin(history), 1, 0.2);
+    expect(history.past).toHaveLength(3);
+    history = undo(history);
+    expect(activeLayer(history.present)?.opacity).toBe(0.5);
+    history = undo(history);
+    expect(activeLayer(history.present)?.opacity).toBeUndefined();
+  });
+
+  it("does not join a stroke to the slide before it", () => {
+    let history = setLayerOpacity(newSketchHistory(), 1, 0.5);
+    history = addStroke(history, line(1));
+    history = setLayerOpacity(history, 1, 0.4);
+    expect(history.past).toHaveLength(3);
   });
 });
