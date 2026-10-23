@@ -203,7 +203,7 @@ export async function endUserSessions(
   );
   if (!options.keepApiTokens) await storage.apiTokens.deleteByUser(userId);
   await storage.signInLinks.deleteByUser(userId);
-  await storage.deviceLinks.deleteByUser(userId);
+  await storage.deviceSignIns.deleteByUser(userId);
   await storage.passwordResets.deleteByUser(userId);
   revocations.revoke({ userId, keepToken });
 }

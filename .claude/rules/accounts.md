@@ -8,7 +8,9 @@ paths:
   - "packages/server/src/storage/contracts/adminContract.ts"
   - "packages/server/src/sharing/deleteAccount.ts"
   - "packages/client/src/state/account/signOut.ts"
-  - "packages/client/src/state/account/deviceLinks.ts"
+  - "packages/client/src/state/account/deviceSignIn.ts"
+  - "packages/client/src/components/login/DeviceSignIn*.tsx"
+  - "packages/shared/src/crypto/deviceSeal.ts"
   - "packages/client/src/state/account/auth.ts"
   - "packages/client/src/state/admin.ts"
   - "packages/client/src/components/settings/**"
@@ -152,20 +154,25 @@ password.
   on mount (a mail scanner also loads the page). `App` removes the token from the address when a
   user is already signed in.
 
-## Device links
+## Signing in a new device
 
-A QR code in Settings (`auth/local/deviceLink.ts`, `DEVICE_LINKS`) signs in a second device.
+A new device shows a QR code, and a signed-in device approves it (`auth/deviceSignIn.ts`,
+`DEVICE_SIGN_IN`, mounted with the shared routes for both providers).
 
-- The session asks for it with `requireConfirmation`. The token goes into its own `device_links`
-  table, which has the same repository shape as the mailed links (`deviceLinks`).
-- The second device spends it through `signInWithLink` (`signInLink.ts`), the same function as a
-  mailed link. Thus, the second factor and its budget apply in the same way. A new type of one-time
-  link uses that function too.
-- `endUserSessions` cancels the device links of the account with the other links.
-- On the client (`state/account/deviceLinks.ts`), the address is `#device=<token>&key=<secret key>`.
-  The client adds the key only after `revealSecretKey` passed. The landing is `SignInLinkLanding`
-  with `signInWithDeviceLink`, and it also waits for a press. `holdScannedSecretKey`
-  (`accountKeys.ts`) keeps the key in memory until the sign-in asks for it.
+- The id in the code and the wait token on the new device are two tokens. Only the wait token
+  collects the session. Never let the id do it, because the code is on a screen.
+- The approval calls `requireConfirmation`. It does not go through `secondFactor`: the approving
+  session already passed it. This is the one way to sign in that does not, and this is the reason.
+- The approval carries the secret key, wrapped to the public key in the code
+  (`shared/src/crypto/deviceSeal.ts`). The approving client takes that public key from the code,
+  never from the server. The server stores the wrap and cannot open it.
+- The matching code (`deviceMatchCode`) comes from the id and the public key. The approving person
+  types it. Keep it a typed value, not a button that says "the codes match", because a button is
+  pressed without a look.
+- `endUserSessions` deletes the approvals that were not collected (`deviceSignIns.deleteByUser`).
+- On the client, `state/account/deviceSignIn.ts` has both sides. The new device puts the key that it
+  opened in `holdScannedSecretKey` before `adoptSession`. Thus, the check that follows unlocks with
+  it. `#approve=` is taken from the address one time, and waits in a signal through a sign-in.
 
 ## Passwords
 

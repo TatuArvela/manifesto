@@ -1,4 +1,5 @@
 import type { CapabilitiesResponse } from "@manifesto/shared";
+import { QrCode } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { BrandLogo } from "#/components/BrandLogo.tsx";
 import { buttonClass } from "#/components/buttonClasses.ts";
@@ -6,10 +7,6 @@ import { OrgCredit } from "#/components/OrgCredit.tsx";
 import { APP_LOGO, APP_NAME, INSTANCE_NAME, PRIVACY_URL } from "#/config.ts";
 import { type MessageKey, t } from "#/i18n/index.ts";
 import { fetchCapabilities, SERVER_ORIGIN } from "#/state/account/auth.ts";
-import {
-  signInWithDeviceLink,
-  takeDeviceLinkToken,
-} from "#/state/account/deviceLinks.ts";
 import {
   takeResetToken,
   takeSignInLinkToken,
@@ -20,8 +17,11 @@ import {
   oidcLoginUrl,
   oidcRefusal,
 } from "#/state/account/oidcSignIn.ts";
+import { serverFeature } from "#/state/serverFeatures.ts";
 import { passkeysSupported } from "#/utils/webauthn.ts";
+import { DeviceSignInPanel } from "./DeviceSignInPanel.tsx";
 import { LocalLoginForm } from "./LocalLoginForm.tsx";
+import { quietClass } from "./loginFormClasses.ts";
 import {
   ForgotPasswordForm,
   ResetPasswordForm,
@@ -135,12 +135,10 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
   const [signInToken, setSignInToken] = useState<string | null>(() =>
     takeSignInLinkToken(),
   );
-  const [deviceToken, setDeviceToken] = useState<string | null>(() =>
-    takeDeviceLinkToken(),
-  );
   const [forgot, setForgot] = useState(false);
   const [byLink, setByLink] = useState(false);
   const [recovering, setRecovering] = useState(false);
+  const [byDevice, setByDevice] = useState(false);
   const oidc = providers.includes("oidc");
   const local = providers.includes("local");
   if (resetToken && local) {
@@ -159,17 +157,7 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
       />
     );
   }
-  if (deviceToken && local) {
-    return (
-      <SignInLinkLanding
-        token={deviceToken}
-        onDone={() => setDeviceToken(null)}
-        signIn={signInWithDeviceLink}
-        readyKey="login.device.ready"
-        expiredKey="login.device.expired"
-      />
-    );
-  }
+  if (byDevice) return <DeviceSignInPanel onBack={() => setByDevice(false)} />;
   if (forgot) return <ForgotPasswordForm onBack={() => setForgot(false)} />;
   if (byLink) return <SignInLinkForm onBack={() => setByLink(false)} />;
   if (recovering && local) {
@@ -203,6 +191,16 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
             {t("login.withPassword")}
           </button>
         ))}
+      {serverFeature("deviceSignIn") && (
+        <button
+          type="button"
+          class={`${quietClass} mt-3 inline-flex items-center justify-center gap-1.5`}
+          onClick={() => setByDevice(true)}
+        >
+          <QrCode class="w-4 h-4" />
+          {t("login.device.open")}
+        </button>
+      )}
     </>
   );
 }

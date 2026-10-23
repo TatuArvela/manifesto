@@ -10,6 +10,7 @@ import {
   type PgPool,
   type PostgresOpenOptions,
 } from "./database.ts";
+import { createPostgresDeviceSignInsRepo } from "./deviceSignInsRepo.ts";
 import { createPostgresMailedLinksRepo } from "./mailedLinksRepo.ts";
 import { createPostgresMaintenanceRepo } from "./maintenanceRepo.ts";
 import { runMigrations } from "./migrations.ts";
@@ -75,7 +76,7 @@ export async function createPostgresStorage(
     prefs: createPostgresPrefsRepo(pool),
     passwordResets: createPostgresMailedLinksRepo(pool, "password_resets"),
     signInLinks: createPostgresMailedLinksRepo(pool, "sign_in_links"),
-    deviceLinks: createPostgresMailedLinksRepo(pool, "device_links"),
+    deviceSignIns: createPostgresDeviceSignInsRepo(pool),
     comments: createPostgresCommentsRepo(pool),
     audit: createPostgresAuditRepo(pool),
     maintenance: createPostgresMaintenanceRepo(pool),

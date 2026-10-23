@@ -557,15 +557,21 @@ ALTER TABLE note_versions ADD COLUMN image_refs TEXT;
 `;
 
 /** See the SQLite copy. */
-const DEVICE_LINKS = `
-CREATE TABLE device_links (
-  token_hash TEXT PRIMARY KEY,
-  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at TEXT NOT NULL,
-  expires_at TEXT NOT NULL,
-  used_at    TEXT
+const DEVICE_SIGN_INS = `
+CREATE TABLE device_sign_ins (
+  id_hash       TEXT PRIMARY KEY,
+  wait_hash     TEXT NOT NULL UNIQUE,
+  user_agent    TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  expires_at    TEXT NOT NULL,
+  user_id       TEXT REFERENCES users(id) ON DELETE CASCADE,
+  key_ephemeral TEXT,
+  key_wrapped   TEXT,
+  approved_at   TEXT,
+  used_at       TEXT
 );
-CREATE INDEX device_links_user ON device_links(user_id, created_at);
+CREATE INDEX device_sign_ins_user ON device_sign_ins(user_id);
+CREATE INDEX device_sign_ins_expiry ON device_sign_ins(expires_at);
 `;
 
 export const MIGRATIONS: readonly Migration[] = [
@@ -612,7 +618,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0037-attachment-keys", sql: ATTACHMENT_KEYS },
   { id: "0038-note-format", sql: NOTE_FORMAT },
   { id: "0039-version-images", sql: VERSION_IMAGES },
-  { id: "0040-device-links", sql: DEVICE_LINKS },
+  { id: "0040-device-sign-ins", sql: DEVICE_SIGN_INS },
 ];
 
 /**

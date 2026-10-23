@@ -142,8 +142,9 @@ A prefix tells it from the recovery key.
   - A sign-out deletes them.
 - **At each sign-in**, the user enters the secret key again. The user types it, pastes it from where
   they keep it, or scans it as a QR code from Settings on a signed-in device. Settings shows it after
-  a confirmation. The QR code that [signs in another device](accounts.md#signing-in-another-device)
-  also carries it. In both codes, the key is in the URL fragment. Thus, it never goes to the server.
+  a confirmation. A new device that [signs in from a signed-in device](accounts.md#signing-in-a-new-device)
+  gets it from the approval, wrapped to a key pair that the new device made for the request. The
+  server carries the wrap and cannot open it.
 - **A new one**: you can make one in Settings, after a confirmation. It wraps the account key again,
   which is one small write. All other devices are signed out, and ask for the new key.
 

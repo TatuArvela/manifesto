@@ -28,7 +28,6 @@ import {
   registerSchema,
 } from "#/validation/accountSchemas.ts";
 import { validatorHook } from "#/validation/zValidator.ts";
-import { registerDeviceLinkRoutes } from "./deviceLink.ts";
 import { createLoginAttempts, type LoginAttempts } from "./loginAttempts.ts";
 import {
   createPasskeyChallenges,
@@ -344,12 +343,6 @@ export function createLocalAuthRouter(
     storage: deps.storage,
     cfg: deps.cfg,
     mailer: deps.mailer ?? null,
-    loginAttempts,
-    secondFactor,
-  });
-  registerDeviceLinkRoutes(auth, {
-    storage: deps.storage,
-    cfg: deps.cfg,
     loginAttempts,
     secondFactor,
   });
