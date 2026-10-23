@@ -4,13 +4,14 @@ import {
   DRAWING_HEIGHT,
   DRAWING_WIDTH,
   drawingPoint,
+  intersect,
+  markBounds,
   paperSizeFor,
   penScale,
   placedImageAlts,
   placeImages,
   resizeFrom,
   stampCenters,
-  strokeBounds,
   transformStroke,
 } from "./drawing.ts";
 import { MAX_IMAGE_EDGE } from "./shrinkImage.ts";
@@ -159,13 +160,13 @@ describe("moving and resizing strokes", () => {
   };
 
   it("finds the box of the ink, the width of the tip included", () => {
-    expect(strokeBounds([stroke])).toEqual({
+    expect(markBounds([stroke])).toEqual({
       x: 5,
       y: 15,
       width: 30,
       height: 30,
     });
-    expect(strokeBounds([])).toBeNull();
+    expect(markBounds([])).toBeNull();
   });
 
   it("moves the points, and scales the width with them", () => {
@@ -187,5 +188,40 @@ describe("moving and resizing strokes", () => {
     // Never to nothing, and never past its limit.
     expect(resizeFrom(box, [0, 0]).scale).toBe(0.05);
     expect(resizeFrom(box, [99999, 0]).scale).toBe(20);
+  });
+});
+
+describe("crops", () => {
+  const stroke = {
+    color: "#000",
+    width: 10,
+    points: [
+      [10, 20],
+      [30, 40],
+    ] as [number, number][],
+  };
+
+  it("finds the area two boxes share", () => {
+    const a = { x: 0, y: 0, width: 10, height: 10 };
+    expect(intersect(a, { x: 5, y: 5, width: 10, height: 10 })).toEqual({
+      x: 5,
+      y: 5,
+      width: 5,
+      height: 5,
+    });
+    expect(intersect(a, { x: 20, y: 0, width: 5, height: 5 })).toBeNull();
+  });
+
+  it("gives a cut group only the box that still shows", () => {
+    const clip = { x: 0, y: 0, width: 20, height: 100 };
+    expect(markBounds([{ clip, marks: [stroke] }])).toEqual({
+      x: 5,
+      y: 15,
+      width: 15,
+      height: 30,
+    });
+    // Cut to an area with none of its ink: nothing shows.
+    const away = { x: 500, y: 500, width: 10, height: 10 };
+    expect(markBounds([{ clip: away, marks: [stroke] }])).toBeNull();
   });
 });

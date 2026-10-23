@@ -1,6 +1,6 @@
 import type { RefObject } from "preact";
 import { useLayoutEffect, useState } from "preact/hooks";
-import type { PaperSize, Rect } from "#/utils/drawing.ts";
+import type { Rect } from "#/utils/drawing.ts";
 
 /** Where the canvas is in the area around it, in CSS pixels. */
 export interface CanvasBox {
@@ -48,24 +48,25 @@ export const HANDLE = 14;
  */
 export function DrawingOverlay({
   box,
-  paper,
+  view,
   rect,
   handle = false,
 }: {
   box: CanvasBox;
-  paper: PaperSize;
+  /** The part of the paper that the canvas shows. */
+  view: Rect;
   rect: Rect;
   handle?: boolean;
 }) {
-  const sx = box.width / paper.width;
-  const sy = box.height / paper.height;
+  const sx = box.width / view.width;
+  const sy = box.height / view.height;
   return (
     <div
       aria-hidden="true"
       class="absolute pointer-events-none border border-dashed border-blue-400 shadow-[0_0_0_1px_rgba(0,0,0,0.4)]"
       style={{
-        left: `${box.left + rect.x * sx}px`,
-        top: `${box.top + rect.y * sy}px`,
+        left: `${box.left + (rect.x - view.x) * sx}px`,
+        top: `${box.top + (rect.y - view.y) * sy}px`,
         width: `${rect.width * sx}px`,
         height: `${rect.height * sy}px`,
       }}

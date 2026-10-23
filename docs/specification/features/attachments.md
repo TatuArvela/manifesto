@@ -46,6 +46,10 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   the handle at the bottom right corner makes it larger or smaller, from its top left corner, with
   the same scale on both axes (from 0.05 to 20 times). The strokes move as lines, not as a picture.
   Thus, they stay sharp at any size, and a pen width grows with them. A drag is one step.
+- **Select** marks an area with a drag. With an area, two buttons show. **Crop layer** cuts the ink
+  of the current layer to the area: the rest no longer shows, but lines that you draw after it are
+  not cut. **Crop image** makes the picture the area, and Done saves only that part. A second crop
+  stays inside the first. Escape, or a tap, removes the area. Each crop is one step for undo.
 - Clear empties the current layer. The eraser takes ink away from the current layer only. The layers
   under it, and the image under the drawing, stay.
 - Each stroke, clear, and change to a layer is one step that undo takes back and redo does again.

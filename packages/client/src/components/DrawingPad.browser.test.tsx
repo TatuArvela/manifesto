@@ -363,6 +363,45 @@ describe("DrawingPad", () => {
     expect(inkAt(0.65, 0.6)).toBe("23,23,23");
   });
 
+  it("crops a layer and the picture to a selected area", async () => {
+    drawLine([0.1, 0.5], [0.9, 0.5]);
+    await settled();
+    button(t("drawing.select"))?.click();
+    await settled();
+    drawLine([0.4, 0.3], [0.6, 0.7]);
+    await settled();
+    host.querySelectorAll<HTMLButtonElement>("button").forEach((each) => {
+      if (each.textContent === t("drawing.cropLayer")) each.click();
+    });
+    await settled();
+    expect(inkAt(0.2, 0.5)).toBe(PAPER);
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+
+    drawLine([0.4, 0.4], [0.6, 0.6]);
+    await settled();
+    host.querySelectorAll<HTMLButtonElement>("button").forEach((each) => {
+      if (each.textContent === t("drawing.cropImage")) each.click();
+    });
+    await settled();
+    expect([canvas().width, canvas().height]).toEqual([
+      Math.round(0.2 * DRAWING_WIDTH),
+      Math.round(0.2 * DRAWING_HEIGHT),
+    ]);
+    // The middle of the crop is the middle of the line.
+    const ctx = canvas().getContext("2d") as CanvasRenderingContext2D;
+    const [r = 0] = ctx.getImageData(
+      canvas().width / 2,
+      canvas().height / 2,
+      1,
+      1,
+    ).data;
+    expect(r).toBe(23);
+
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(canvas().width).toBe(DRAWING_WIDTH);
+  });
+
   it("hands the drawing over as a PNG with the ink in it", async () => {
     drawLine([0.2, 0.5], [0.8, 0.5]);
     await settled();

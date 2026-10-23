@@ -91,6 +91,31 @@ export interface Transform {
   dy: number;
 }
 
+/**
+ * The marks that were on a layer when it was cropped, and the area that they
+ * still show in. Marks drawn after the crop are outside the group, and are not
+ * cut. A group in a group is a second crop.
+ */
+export interface Clip {
+  clip: Rect;
+  marks: readonly Mark[];
+}
+
+/** What a layer contains: strokes, and groups of them cut to an area. */
+export type Mark = Stroke | Clip;
+
+export const isClip = (mark: Mark): mark is Clip => "clip" in mark;
+
+/** The area that two boxes share, or null when they do not touch. */
+export function intersect(a: Rect, b: Rect): Rect | null {
+  const x = Math.max(a.x, b.x);
+  const y = Math.max(a.y, b.y);
+  const right = Math.min(a.x + a.width, b.x + b.width);
+  const bottom = Math.min(a.y + a.height, b.y + b.height);
+  if (right <= x || bottom <= y) return null;
+  return { x, y, width: right - x, height: bottom - y };
+}
+
 export function transformStroke(stroke: Stroke, by: Transform): Stroke {
   return {
     ...stroke,
@@ -108,23 +133,44 @@ export const transformRect = (rect: Rect, by: Transform): Rect => ({
   height: rect.height * by.scale,
 });
 
+export function transformMark(mark: Mark, by: Transform): Mark {
+  if (!isClip(mark)) return transformStroke(mark, by);
+  return {
+    clip: transformRect(mark.clip, by),
+    marks: mark.marks.map((each) => transformMark(each, by)),
+  };
+}
+
 /**
  * The box that the ink of the strokes covers, the width of the tip included.
  * A square tip reaches further at its corners. Null when there is no stroke.
  */
-export function strokeBounds(strokes: readonly Stroke[]): Rect | null {
+export function markBounds(marks: readonly Mark[]): Rect | null {
   let left = Number.POSITIVE_INFINITY;
   let top = Number.POSITIVE_INFINITY;
   let right = Number.NEGATIVE_INFINITY;
   let bottom = Number.NEGATIVE_INFINITY;
-  for (const stroke of strokes) {
-    const reach =
-      (stroke.width / 2) * (stroke.tip === "square" ? Math.SQRT2 : 1);
-    for (const [x, y] of stroke.points) {
-      left = Math.min(left, x - reach);
-      top = Math.min(top, y - reach);
-      right = Math.max(right, x + reach);
-      bottom = Math.max(bottom, y + reach);
+  const include = (box: Rect) => {
+    left = Math.min(left, box.x);
+    top = Math.min(top, box.y);
+    right = Math.max(right, box.x + box.width);
+    bottom = Math.max(bottom, box.y + box.height);
+  };
+  for (const mark of marks) {
+    if (isClip(mark)) {
+      const inner = markBounds(mark.marks);
+      const shown = inner && intersect(inner, mark.clip);
+      if (shown) include(shown);
+      continue;
+    }
+    const reach = (mark.width / 2) * (mark.tip === "square" ? Math.SQRT2 : 1);
+    for (const [x, y] of mark.points) {
+      include({
+        x: x - reach,
+        y: y - reach,
+        width: reach * 2,
+        height: reach * 2,
+      });
     }
   }
   if (left > right) return null;
@@ -295,26 +341,58 @@ export function drawStroke(
   ctx.globalAlpha = 1;
 }
 
-/** An empty, transparent canvas the size of the paper. */
-export function blankCanvas(paper: PaperSize): HTMLCanvasElement {
+/** The full paper, as the part of it that a drawing shows. */
+export const wholePaper = (paper: PaperSize): Rect => ({
+  x: 0,
+  y: 0,
+  width: paper.width,
+  height: paper.height,
+});
+
+/** An empty, transparent canvas of a size. */
+export function blankCanvas(size: PaperSize): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
-  canvas.width = paper.width;
-  canvas.height = paper.height;
+  canvas.width = size.width;
+  canvas.height = size.height;
   return canvas;
 }
 
+/** Marks in order. A group is cut to its area, and its marks only. */
+export function drawMarks(
+  ctx: CanvasRenderingContext2D,
+  marks: readonly Mark[],
+): void {
+  for (const mark of marks) {
+    if (!isClip(mark)) {
+      drawStroke(ctx, mark);
+      continue;
+    }
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(mark.clip.x, mark.clip.y, mark.clip.width, mark.clip.height);
+    ctx.clip();
+    drawMarks(ctx, mark.marks);
+    ctx.restore();
+  }
+}
+
 /**
- * The strokes of one layer on `scratch`, from nothing. On its own canvas, an
- * eraser takes away only the ink of that layer.
+ * The marks of one layer on `scratch`, from nothing, with `view` as the part
+ * of the paper that the canvas shows. On its own canvas, an eraser takes away
+ * only the ink of that layer.
  */
 export function paintLayer(
   scratch: HTMLCanvasElement,
-  strokes: readonly Stroke[],
+  marks: readonly Mark[],
+  view: Pick<Rect, "x" | "y"> = { x: 0, y: 0 },
 ): void {
   const ctx = scratch.getContext("2d");
   if (!ctx) return;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, scratch.width, scratch.height);
-  for (const stroke of strokes) drawStroke(ctx, stroke);
+  ctx.setTransform(1, 0, 0, 1, -view.x, -view.y);
+  drawMarks(ctx, marks);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 /**
@@ -322,7 +400,9 @@ export function paintLayer(
  * one, then each layer that shows, from the bottom up. The paper stays under
  * the image. Thus, an image with transparent parts is as opaque as all other
  * drawings. With `onlyLayers`, it is the given layers alone, on a transparent
- * ground: the pad keeps those under and over the line in progress.
+ * ground: the pad keeps those under and over the line in progress. The canvas
+ * is the size of `view`, the part of the paper that the picture keeps after a
+ * crop.
  */
 export function renderDrawing(
   ctx: CanvasRenderingContext2D,
@@ -330,19 +410,23 @@ export function renderDrawing(
   paper: PaperSize = BLANK_PAPER,
   base: CanvasImageSource | null = null,
   onlyLayers = false,
+  view: Rect = wholePaper(paper),
 ): void {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (onlyLayers) {
-    ctx.clearRect(0, 0, paper.width, paper.height);
+    ctx.clearRect(0, 0, view.width, view.height);
   } else {
     ctx.fillStyle = PAPER;
-    ctx.fillRect(0, 0, paper.width, paper.height);
-    if (base) ctx.drawImage(base, 0, 0, paper.width, paper.height);
+    ctx.fillRect(0, 0, view.width, view.height);
+    if (base) {
+      ctx.drawImage(base, -view.x, -view.y, paper.width, paper.height);
+    }
   }
   let scratch: HTMLCanvasElement | null = null;
   for (const layer of layers) {
-    if (!layer.visible || layer.strokes.length === 0) continue;
-    scratch ??= blankCanvas(paper);
-    paintLayer(scratch, layer.strokes);
+    if (!layer.visible || layer.marks.length === 0) continue;
+    scratch ??= blankCanvas(view);
+    paintLayer(scratch, layer.marks, view);
     ctx.globalAlpha = layer.opacity ?? 1;
     ctx.drawImage(scratch, 0, 0);
     ctx.globalAlpha = 1;
