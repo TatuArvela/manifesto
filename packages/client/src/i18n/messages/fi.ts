@@ -850,23 +850,30 @@ export const fi: Messages = {
   "login.link.signingIn": "Kirjaudutaan...",
   "login.link.expired":
     "Kirjautumislinkki on vanhentunut tai jo käytetty. Pyydä uusi.",
-  "login.device.ready": "Tämä koodi kirjaa sinut sisään tällä laitteella.",
-  "login.device.expired":
-    "Koodi on vanhentunut tai jo käytetty. Luo uusi toisella laitteellasi.",
-  "deviceLink.title": "Kirjaa toinen laite sisään",
-  "deviceLink.hint":
-    "Näytä QR-koodi, joka kirjaa puhelimen tai toisen tietokoneen sisään ilman, että kirjoitat salasanaasi siellä.",
-  "deviceLink.open": "Näytä koodi",
-  "deviceLink.confirmHint":
-    "Vahvista salasanallasi luodaksesi koodin. Se toimii kerran, 5 minuutin ajan.",
-  "deviceLink.show": "Näytä koodi",
-  "deviceLink.failed": "Koodia ei voitu luoda. Yritä uudelleen.",
-  "deviceLink.qrLabel": "QR-koodi, joka kirjaa toisen laitteen sisään",
-  "deviceLink.scanHint":
-    "Skannaa se toisen laitteen kameralla. Se sisältää myös salaisen avaimesi, joten muistiinpanosi avautuvat siellä. Kuka tahansa, joka näkee tämän näytön, voi käyttää sitä.",
-  "deviceLink.expiresIn": "Toimii vielä {time}.",
-  "deviceLink.expired": "Koodi on vanhentunut.",
-  "deviceLink.again": "Luo uusi koodi",
+  "login.device.open": "Kirjaudu toisella laitteella",
+  "login.device.title": "Kirjaudu toisella laitteella",
+  "login.device.hint":
+    "Skannaa tämä koodi sellaisen puhelimen tai tietokoneen kameralla, jolla olet kirjautuneena, ja hyväksy se siellä. Muistiinpanosi avautuvat myös täällä.",
+  "login.device.qrLabel": "QR-koodi hyväksyttäväksi toisella laitteellasi",
+  "login.device.matchHint": "Kirjoita tämä koodi toisella laitteella:",
+  "login.device.expiresIn": "Toimii vielä {time}.",
+  "login.device.starting": "Luodaan koodia...",
+  "login.device.expired": "Koodi on vanhentunut.",
+  "login.device.again": "Luo uusi koodi",
+  "deviceSignIn.title": "Kirjataanko uusi laite sisään?",
+  "deviceSignIn.loading": "Haetaan pyyntöä...",
+  "deviceSignIn.gone":
+    "Pyyntö on vanhentunut tai jo käytetty. Luo uusi koodi toisella laitteella.",
+  "deviceSignIn.failed": "Pyyntöä ei voitu hyväksyä. Yritä uudelleen.",
+  "deviceSignIn.asked": "Selain pyysi kello {time} kirjautumista tilillesi:",
+  "deviceSignIn.warning":
+    "Hyväksy vain edessäsi oleva näyttö. Jos joku lähetti sinulle tämän koodin, älä hyväksy sitä: hän saisi tilisi ja muistiinpanosi.",
+  "deviceSignIn.code": "Toisen näytön koodi",
+  "deviceSignIn.wrongCode":
+    "Koodi ei ole sama kuin toisella näytöllä. Tarkista se, tai luo siellä uusi koodi.",
+  "deviceSignIn.deny": "En minä",
+  "deviceSignIn.approve": "Hyväksy",
+  "deviceSignIn.approved": "Toinen laite on kirjautunut sisään",
   "login.or": "tai",
   "login.withPassword": "Kirjaudu mieluummin salasanalla",
   "login.twoFactor.title": "Vahvista henkilöllisyytesi",
@@ -1006,8 +1013,8 @@ export const fi: Messages = {
     "Salasanan vaihtolinkki lähetetty",
   "audit.action.auth.password_reset": "Salasana vaihdettu linkillä",
   "audit.action.auth.sign_in_link_requested": "Kirjautumislinkki lähetetty",
-  "audit.action.auth.device_link_created":
-    "QR-koodi laitteen kirjautumiseen luotu",
+  "audit.action.auth.device_sign_in_approved":
+    "Hyväksyi kirjautumisen uudella laitteella",
   "audit.action.auth.two_factor_enabled":
     "Kaksivaiheinen kirjautuminen otettu käyttöön",
   "audit.action.auth.two_factor_disabled":

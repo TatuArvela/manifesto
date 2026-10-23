@@ -666,20 +666,26 @@ ALTER TABLE note_versions ADD COLUMN format INTEGER NOT NULL DEFAULT 1;
 `;
 
 /**
- * Links that a signed-in device shows as a QR code, for the sign-in of a second
- * device. The same shape as `sign_in_links`, in a table of its own. Thus, a link
- * of one type cannot be used as the other, and one type does not start the
- * cooldown of the other.
+ * Requests to sign in a new device, by a QR code that it shows and a signed-in
+ * device approves. `user_id` and the wrapped key are null until the approval.
+ * The wrapped key is the secret key of the account, which only the new device
+ * can open.
  */
-const DEVICE_LINKS = `
-CREATE TABLE device_links (
-  token_hash TEXT PRIMARY KEY,
-  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at TEXT NOT NULL,
-  expires_at TEXT NOT NULL,
-  used_at    TEXT
+const DEVICE_SIGN_INS = `
+CREATE TABLE device_sign_ins (
+  id_hash       TEXT PRIMARY KEY,
+  wait_hash     TEXT NOT NULL UNIQUE,
+  user_agent    TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  expires_at    TEXT NOT NULL,
+  user_id       TEXT REFERENCES users(id) ON DELETE CASCADE,
+  key_ephemeral TEXT,
+  key_wrapped   TEXT,
+  approved_at   TEXT,
+  used_at       TEXT
 );
-CREATE INDEX device_links_user ON device_links(user_id, created_at);
+CREATE INDEX device_sign_ins_user ON device_sign_ins(user_id);
+CREATE INDEX device_sign_ins_expiry ON device_sign_ins(expires_at);
 `;
 
 export const MIGRATIONS: readonly Migration[] = [
@@ -725,7 +731,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0036-oauth-keys", sql: OAUTH_KEYS },
   { id: "0037-attachment-keys", sql: ATTACHMENT_KEYS },
   { id: "0038-note-format", sql: NOTE_FORMAT },
-  { id: "0039-device-links", sql: DEVICE_LINKS },
+  { id: "0039-device-sign-ins", sql: DEVICE_SIGN_INS },
 ];
 
 export function runMigrations(

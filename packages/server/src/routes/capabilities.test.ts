@@ -24,7 +24,6 @@ describe("GET /api/v1/capabilities", () => {
       passwordReset: false,
       magicLink: false,
       passkeys: true,
-      deviceLink: true,
     });
     expect(body.features).toEqual({
       sharing: true,
@@ -37,7 +36,7 @@ describe("GET /api/v1/capabilities", () => {
       webhooks: false,
       passkeys: true,
       magicLinks: true,
-      deviceLinks: true,
+      deviceSignIn: true,
       pushReminders: true,
       twoFactor: true,
       mcpSignIn: false,

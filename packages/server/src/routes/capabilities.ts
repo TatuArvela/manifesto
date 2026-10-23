@@ -52,7 +52,6 @@ export function createCapabilitiesRoutes(cfg: ServerConfig) {
           signsInLocally(cfg) &&
           isFeatureOn(cfg, "magicLinks"),
         passkeys: signsInLocally(cfg) && isFeatureOn(cfg, "passkeys"),
-        deviceLink: signsInLocally(cfg) && isFeatureOn(cfg, "deviceLinks"),
       },
       features: {
         ...featureStates(cfg),

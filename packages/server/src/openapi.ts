@@ -303,9 +303,21 @@ function components() {
         token: { type: "string" },
         user: { type: "object" },
       }),
-      DeviceLinkResponse: exact({
-        token: { type: "string" },
+      DeviceSignInStarted: exact({
+        id: { type: "string" },
+        waitToken: { type: "string" },
         expiresAt: { type: "string" },
+      }),
+      DeviceSignInRequest: exact({
+        userAgent: { type: "string" },
+        createdAt: { type: "string" },
+        expiresAt: { type: "string" },
+      }),
+      DeviceSignInPending: exact({ pending: { const: true } }),
+      DeviceSignInDone: shape({
+        token: { type: "string" },
+        user: { type: "object" },
+        key: { type: ["object", "null"] },
       }),
       TwoFactorRequired: shape({
         error: { type: "string" },
@@ -326,9 +338,8 @@ function components() {
             passwordReset: { type: "boolean" },
             magicLink: { type: "boolean" },
             passkeys: { type: "boolean" },
-            deviceLink: { type: "boolean" },
           },
-          ["magicLink", "deviceLink"],
+          ["magicLink"],
         ),
         // One boolean for each feature, and `userLookup`, which is a word.
         // Features are added over time. Thus, they are not listed one by one.

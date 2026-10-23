@@ -107,11 +107,11 @@ export const FEATURES: Record<ServerFeature, FeatureSpec> = {
     description:
       "Signing in to a local account from a link sent to its address, with no password. It needs outgoing mail (`SMTP_URL`) and is absent without it. Off, no link is sent and links already sent are refused; a second factor is asked for either way.",
   },
-  deviceLinks: {
-    env: "DEVICE_LINKS",
+  deviceSignIn: {
+    env: "DEVICE_SIGN_IN",
     default: "on",
     description:
-      "Signing in a second device to a local account from a QR code that a signed-in device shows, after the password confirms it. Off, no code is made and codes already shown are refused; a second factor is asked for either way.",
+      "Signing in a new device from a QR code that it shows, which a device already signed in approves with the password. The approval also carries the secret key, encrypted to the new device. Off, no request can be made or approved, and requests already made are refused.",
   },
   pushReminders: {
     env: "WEB_PUSH",

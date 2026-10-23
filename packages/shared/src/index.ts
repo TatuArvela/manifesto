@@ -41,7 +41,11 @@ export type {
   AuthSuccessResponse,
   AuthUser,
   CapabilitiesResponse,
-  DeviceLinkResponse,
+  DeviceSignInApproveRequest,
+  DeviceSignInKey,
+  DeviceSignInRequestResponse,
+  DeviceSignInStartedResponse,
+  DeviceSignInWaitResponse,
   DirectoryUser,
   ErrorCode,
   ErrorResponse,
@@ -180,6 +184,13 @@ export {
   utf8,
   wipe,
 } from "./crypto/bytes.ts";
+export type { DeviceRequestKeys } from "./crypto/deviceSeal.ts";
+export {
+  deviceMatchCode,
+  newDeviceRequestKeys,
+  openOnDevice,
+  wrapForDevice,
+} from "./crypto/deviceSeal.ts";
 export type {
   ImageKey,
   ImageKeySource,

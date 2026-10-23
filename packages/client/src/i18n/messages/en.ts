@@ -837,23 +837,30 @@ export const en = {
   "login.link.signingIn": "Signing you in...",
   "login.link.expired":
     "This sign-in link has expired or was used already. Ask for a new one.",
-  "login.device.ready": "This code signs you in on this device.",
-  "login.device.expired":
-    "This code has expired or was used already. Make a new one on your other device.",
-  "deviceLink.title": "Sign in another device",
-  "deviceLink.hint":
-    "Show a QR code that signs in a phone or another computer, without typing your password there.",
-  "deviceLink.open": "Show a code",
-  "deviceLink.confirmHint":
-    "Confirm with your password to make a code. It works once, for 5 minutes.",
-  "deviceLink.show": "Show the code",
-  "deviceLink.failed": "The code could not be made. Try again.",
-  "deviceLink.qrLabel": "QR code that signs in another device",
-  "deviceLink.scanHint":
-    "Scan it with the camera of the other device. It also carries your secret key, so your notes open there. Anyone who sees this screen can use it.",
-  "deviceLink.expiresIn": "Works for {time} more.",
-  "deviceLink.expired": "The code has expired.",
-  "deviceLink.again": "Make a new code",
+  "login.device.open": "Sign in with another device",
+  "login.device.title": "Sign in with another device",
+  "login.device.hint":
+    "Scan this code with the camera of a phone or computer where you are signed in, and approve it there. Your notes open here too.",
+  "login.device.qrLabel": "QR code to approve on your other device",
+  "login.device.matchHint": "Type this code on the other device:",
+  "login.device.expiresIn": "Works for {time} more.",
+  "login.device.starting": "Making a code...",
+  "login.device.expired": "The code has expired.",
+  "login.device.again": "Make a new code",
+  "deviceSignIn.title": "Sign in a new device?",
+  "deviceSignIn.loading": "Looking up the request...",
+  "deviceSignIn.gone":
+    "This request has expired or was used already. Make a new code on the other device.",
+  "deviceSignIn.failed": "The request could not be approved. Try again.",
+  "deviceSignIn.asked": "A browser asked at {time} to sign in to your account:",
+  "deviceSignIn.warning":
+    "Approve only a screen that is in front of you. If somebody sent you this code, do not approve it: they get your account and your notes.",
+  "deviceSignIn.code": "The code on the other screen",
+  "deviceSignIn.wrongCode":
+    "That is not the code on the other screen. Look again, or make a new code there.",
+  "deviceSignIn.deny": "Not me",
+  "deviceSignIn.approve": "Approve",
+  "deviceSignIn.approved": "The other device is signed in",
   "login.or": "or",
   "login.withPassword": "Sign in with a password instead",
   "login.twoFactor.title": "Confirm it is you",
@@ -989,7 +996,8 @@ export const en = {
   "audit.action.auth.password_reset_requested": "Password reset link sent",
   "audit.action.auth.password_reset": "Password reset by link",
   "audit.action.auth.sign_in_link_requested": "Sign-in link sent",
-  "audit.action.auth.device_link_created": "QR code made to sign in a device",
+  "audit.action.auth.device_sign_in_approved":
+    "Approved a sign-in on a new device",
   "audit.action.auth.two_factor_enabled": "Two-factor sign-in turned on",
   "audit.action.auth.two_factor_disabled": "Two-factor sign-in turned off",
   "audit.action.auth.passkey_added": "Passkey added",

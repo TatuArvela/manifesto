@@ -272,19 +272,30 @@ export const signInLinkConfirmSchema = z.object({
   passkey: passkeyAuthenticationSchema.exactOptional(),
 });
 
-/** `POST /api/v1/auth/device-link`: the password that confirms it. */
-export const deviceLinkRequestSchema = z.object({
-  password: confirmationPassword,
-});
-
-/**
- * `POST /api/v1/auth/device-link/confirm`: the same as the confirmation of a
- * mailed link.
- */
-export const deviceLinkConfirmSchema = signInLinkConfirmSchema;
-
 /** `POST /api/v1/auth/password-reset/confirm`. */
 export const passwordResetConfirmSchema = z.object({
   token: z.string().min(1).max(200),
   newPassword: passwordSchema,
+});
+
+/** The id of a request to sign in a new device, or its wait token. */
+const deviceSignInToken = z.string().regex(/^[0-9a-f]{64}$/);
+
+/** `POST /api/v1/auth/device-sign-in/inspect`: the id from the QR code. */
+export const deviceSignInInspectSchema = z.object({ id: deviceSignInToken });
+
+/**
+ * `POST /api/v1/auth/device-sign-in/approve`: the id from the QR code, the
+ * secret key wrapped to the new device (absent when the approving device does
+ * not hold it), and the password that confirms it.
+ */
+export const deviceSignInApproveSchema = z.object({
+  id: deviceSignInToken,
+  key: z.object({ ephemeral: publicKey, wrapped: wrappedKey }).exactOptional(),
+  password: confirmationPassword,
+});
+
+/** `POST /api/v1/auth/device-sign-in/wait`: the token that the new device kept. */
+export const deviceSignInWaitSchema = z.object({
+  waitToken: deviceSignInToken,
 });

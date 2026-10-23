@@ -37,7 +37,7 @@ export const TEST_CONFIG: ServerConfig = {
   mcp: true,
   passkeys: true,
   magicLinks: true,
-  deviceLinks: true,
+  deviceSignIn: true,
   pushReminders: true,
   twoFactor: true,
   appUrl: null,
