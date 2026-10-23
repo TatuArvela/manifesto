@@ -31,6 +31,7 @@ export function startSessionCleanup(deps: {
     }
     await storage.passwordResets.deleteExpired(now);
     await storage.signInLinks.deleteExpired(now);
+    await storage.deviceLinks.deleteExpired(now);
     await storage.audit.deleteBefore(
       new Date(Date.parse(now) - auditRetentionDays * DAY_MS).toISOString(),
     );

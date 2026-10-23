@@ -25,6 +25,7 @@ export const SERVER_FEATURES = [
   "webhooks",
   "passkeys",
   "magicLinks",
+  "deviceLinks",
   "pushReminders",
   "twoFactor",
 ] as const;
@@ -57,6 +58,11 @@ export interface CapabilitiesResponse {
      * from a server older than the feature.
      */
     magicLink?: boolean;
+    /**
+     * If a signed-in local account can show a QR code that signs in a second
+     * device. Absent from a server older than the feature.
+     */
+    deviceLink?: boolean;
     /** If a local account can sign in with only a passkey. */
     passkeys: boolean;
   };

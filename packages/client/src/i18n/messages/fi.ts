@@ -972,6 +972,23 @@ export const fi: Messages = {
   "login.link.signingIn": "Kirjaudutaan...",
   "login.link.expired":
     "Kirjautumislinkki on vanhentunut tai jo käytetty. Pyydä uusi.",
+  "login.device.ready": "Tämä koodi kirjaa sinut sisään tällä laitteella.",
+  "login.device.expired":
+    "Koodi on vanhentunut tai jo käytetty. Luo uusi toisella laitteellasi.",
+  "deviceLink.title": "Kirjaa toinen laite sisään",
+  "deviceLink.hint":
+    "Näytä QR-koodi, joka kirjaa puhelimen tai toisen tietokoneen sisään ilman, että kirjoitat salasanaasi siellä.",
+  "deviceLink.open": "Näytä koodi",
+  "deviceLink.confirmHint":
+    "Vahvista salasanallasi luodaksesi koodin. Se toimii kerran, 5 minuutin ajan.",
+  "deviceLink.show": "Näytä koodi",
+  "deviceLink.failed": "Koodia ei voitu luoda. Yritä uudelleen.",
+  "deviceLink.qrLabel": "QR-koodi, joka kirjaa toisen laitteen sisään",
+  "deviceLink.scanHint":
+    "Skannaa se toisen laitteen kameralla. Se sisältää myös salaisen avaimesi, joten muistiinpanosi avautuvat siellä. Kuka tahansa, joka näkee tämän näytön, voi käyttää sitä.",
+  "deviceLink.expiresIn": "Toimii vielä {time}.",
+  "deviceLink.expired": "Koodi on vanhentunut.",
+  "deviceLink.again": "Luo uusi koodi",
   "login.or": "tai",
   "login.withPassword": "Kirjaudu mieluummin salasanalla",
   "login.twoFactor.title": "Vahvista henkilöllisyytesi",
@@ -1111,6 +1128,8 @@ export const fi: Messages = {
     "Salasanan vaihtolinkki lähetetty",
   "audit.action.auth.password_reset": "Salasana vaihdettu linkillä",
   "audit.action.auth.sign_in_link_requested": "Kirjautumislinkki lähetetty",
+  "audit.action.auth.device_link_created":
+    "QR-koodi laitteen kirjautumiseen luotu",
   "audit.action.auth.two_factor_enabled":
     "Kaksivaiheinen kirjautuminen otettu käyttöön",
   "audit.action.auth.two_factor_disabled":

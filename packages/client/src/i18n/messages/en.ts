@@ -959,6 +959,23 @@ export const en = {
   "login.link.signingIn": "Signing you in...",
   "login.link.expired":
     "This sign-in link has expired or was used already. Ask for a new one.",
+  "login.device.ready": "This code signs you in on this device.",
+  "login.device.expired":
+    "This code has expired or was used already. Make a new one on your other device.",
+  "deviceLink.title": "Sign in another device",
+  "deviceLink.hint":
+    "Show a QR code that signs in a phone or another computer, without typing your password there.",
+  "deviceLink.open": "Show a code",
+  "deviceLink.confirmHint":
+    "Confirm with your password to make a code. It works once, for 5 minutes.",
+  "deviceLink.show": "Show the code",
+  "deviceLink.failed": "The code could not be made. Try again.",
+  "deviceLink.qrLabel": "QR code that signs in another device",
+  "deviceLink.scanHint":
+    "Scan it with the camera of the other device. It also carries your secret key, so your notes open there. Anyone who sees this screen can use it.",
+  "deviceLink.expiresIn": "Works for {time} more.",
+  "deviceLink.expired": "The code has expired.",
+  "deviceLink.again": "Make a new code",
   "login.or": "or",
   "login.withPassword": "Sign in with a password instead",
   "login.twoFactor.title": "Confirm it is you",
@@ -1094,6 +1111,7 @@ export const en = {
   "audit.action.auth.password_reset_requested": "Password reset link sent",
   "audit.action.auth.password_reset": "Password reset by link",
   "audit.action.auth.sign_in_link_requested": "Sign-in link sent",
+  "audit.action.auth.device_link_created": "QR code made to sign in a device",
   "audit.action.auth.two_factor_enabled": "Two-factor sign-in turned on",
   "audit.action.auth.two_factor_disabled": "Two-factor sign-in turned off",
   "audit.action.auth.passkey_added": "Passkey added",

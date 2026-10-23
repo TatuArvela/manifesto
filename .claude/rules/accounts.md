@@ -8,6 +8,7 @@ paths:
   - "packages/server/src/storage/contracts/adminContract.ts"
   - "packages/server/src/sharing/deleteAccount.ts"
   - "packages/client/src/state/account/signOut.ts"
+  - "packages/client/src/state/account/deviceLinks.ts"
   - "packages/client/src/state/account/auth.ts"
   - "packages/client/src/state/admin.ts"
   - "packages/client/src/components/settings/**"
@@ -150,6 +151,21 @@ password.
 - On the client (`state/account/mailedLinks.ts`), the landing step spends the link on a press, never
   on mount (a mail scanner also loads the page). `App` removes the token from the address when a
   user is already signed in.
+
+## Device links
+
+A QR code in Settings (`auth/local/deviceLink.ts`, `DEVICE_LINKS`) signs in a second device.
+
+- The session asks for it with `requireConfirmation`. The token goes into its own `device_links`
+  table, which has the same repository shape as the mailed links (`deviceLinks`).
+- The second device spends it through `signInWithLink` (`signInLink.ts`), the same function as a
+  mailed link. Thus, the second factor and its budget apply in the same way. A new type of one-time
+  link uses that function too.
+- `endUserSessions` cancels the device links of the account with the other links.
+- On the client (`state/account/deviceLinks.ts`), the address is `#device=<token>&key=<secret key>`.
+  The client adds the key only after `revealSecretKey` passed. The landing is `SignInLinkLanding`
+  with `signInWithDeviceLink`, and it also waits for a press. `holdScannedSecretKey`
+  (`accountKeys.ts`) keeps the key in memory until the sign-in asks for it.
 
 ## Passwords
 

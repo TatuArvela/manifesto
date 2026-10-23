@@ -272,6 +272,17 @@ export const signInLinkConfirmSchema = z.object({
   passkey: passkeyAuthenticationSchema.exactOptional(),
 });
 
+/** `POST /api/v1/auth/device-link`: the password that confirms it. */
+export const deviceLinkRequestSchema = z.object({
+  password: confirmationPassword,
+});
+
+/**
+ * `POST /api/v1/auth/device-link/confirm`: the same as the confirmation of a
+ * mailed link.
+ */
+export const deviceLinkConfirmSchema = signInLinkConfirmSchema;
+
 /** `POST /api/v1/auth/password-reset/confirm`. */
 export const passwordResetConfirmSchema = z.object({
   token: z.string().min(1).max(200),

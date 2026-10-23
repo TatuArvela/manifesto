@@ -24,6 +24,7 @@ import {
   takeSecretKeyFromAddress,
 } from "#/state/account/accountKeys.ts";
 import { authToken, isServerMode } from "#/state/account/auth.ts";
+import { takeDeviceLinkToken } from "#/state/account/deviceLinks.ts";
 import { takeSignInLinkToken } from "#/state/account/mailedLinks.ts";
 import { takeConsentPage } from "#/state/account/oauth.ts";
 import { consumeOidcRedirect } from "#/state/account/oidcSignIn.ts";
@@ -99,10 +100,14 @@ export function App() {
   const lockedScreen = locked && keys !== "checking" && keys !== "none";
   useEffect(() => {
     if (signIn || lockedScreen) revealApp();
-    // A mailed link that opens where a user is already signed in has nothing to
-    // do, and `LoginScreen` is not there to take its token. If it stayed in the
-    // address, it would sign them in again immediately after a sign-out.
-    if (ready && !signIn) takeSignInLinkToken();
+    // A mailed link or a device code that opens where a user is already signed
+    // in has nothing to do, and `LoginScreen` is not there to take its token.
+    // If it stayed in the address, it would sign them in again immediately
+    // after a sign-out.
+    if (ready && !signIn) {
+      takeSignInLinkToken();
+      takeDeviceLinkToken({ holdKey: false });
+    }
   }, [signIn, lockedScreen, ready]);
   useEffect(() => {
     // A secret key scanned from the Settings of a different device arrives in

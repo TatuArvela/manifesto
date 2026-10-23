@@ -54,6 +54,15 @@ export interface AuthMeResponse {
   user: AuthUser;
 }
 
+/**
+ * `POST /api/v1/auth/device-link`: a one-time token that signs in a second
+ * device, which the client shows as a QR code until `expiresAt`.
+ */
+export interface DeviceLinkResponse {
+  token: string;
+  expiresAt: string;
+}
+
 export interface AuthSuccessResponse {
   token: string;
   user: AuthUser;

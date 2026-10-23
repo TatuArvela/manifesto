@@ -53,6 +53,8 @@ export interface StorageDriver {
   accountKeys: AccountKeysRepo;
   passwordResets: MailedLinksRepo;
   signInLinks: MailedLinksRepo;
+  /** Not mailed: shown as a QR code to a second device. The same shape. */
+  deviceLinks: MailedLinksRepo;
   comments: CommentsRepo;
   audit: AuditRepo;
   prefs: PrefsRepo;

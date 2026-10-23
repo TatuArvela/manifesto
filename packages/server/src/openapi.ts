@@ -303,6 +303,10 @@ function components() {
         token: { type: "string" },
         user: { type: "object" },
       }),
+      DeviceLinkResponse: exact({
+        token: { type: "string" },
+        expiresAt: { type: "string" },
+      }),
       TwoFactorRequired: shape({
         error: { type: "string" },
         code: { const: "two_factor_required" },
@@ -322,8 +326,9 @@ function components() {
             passwordReset: { type: "boolean" },
             magicLink: { type: "boolean" },
             passkeys: { type: "boolean" },
+            deviceLink: { type: "boolean" },
           },
-          ["magicLink"],
+          ["magicLink", "deviceLink"],
         ),
         // One boolean for each feature, and `userLookup`, which is a word.
         // Features are added over time. Thus, they are not listed one by one.

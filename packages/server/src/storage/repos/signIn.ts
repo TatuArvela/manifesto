@@ -143,8 +143,14 @@ export interface PasskeysRepo {
   deleteByUser(userId: string): Promise<number>;
 }
 
-/** The two tables of links sent by mail, the same in all but the name. */
-export type MailedLinksTable = "password_resets" | "sign_in_links";
+/**
+ * The tables of one-time links, the same in all but the name: the two that are
+ * sent by mail, and the device links that a QR code carries.
+ */
+export type MailedLinksTable =
+  | "password_resets"
+  | "sign_in_links"
+  | "device_links";
 
 /**
  * Links sent by mail, with the SHA-256 of the token as the key. One shape for
