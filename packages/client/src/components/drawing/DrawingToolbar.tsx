@@ -83,8 +83,10 @@ const TOOLS = [
   { tool: "fill", Icon: PaintBucket, label: "drawing.fill" },
 ] as const;
 
+// The browser gives a color field a border and padding of its own, with square
+// corners behind the round swatch.
 const colorField =
-  "absolute w-7 h-7 rounded-md cursor-pointer bg-transparent ring-2 ring-neutral-900 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-0";
+  "absolute w-7 h-7 appearance-none overflow-hidden rounded-md border-0 p-0 cursor-pointer bg-transparent ring-2 ring-neutral-900 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-0 [&::-moz-color-swatch]:rounded-md [&::-moz-color-swatch]:border-0";
 
 const inkLabel = (name: (typeof INKS)[number]["name"]) =>
   name === null
