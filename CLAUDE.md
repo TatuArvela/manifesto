@@ -52,6 +52,12 @@ in the scope of the guide.
 - Quantifiers stay bounded in all code that a card render can reach.
 - A branch that goes to origin is named `<type>/<topic>` (for example `feat/urgent-reminders`), never
   `worktree-...`.
+- Before you add a dependency, state its transitive size. If it is large for a small use, write the
+  part that you need by hand (the MCP server in `mcp/` is the example).
+- When a security measure makes server search slower, take the measure and state the cost.
+- Do not name other apps in commits, PRs or documents to justify a decision. Argue the decision on
+  its own terms. An app that is the subject of a feature (an importer, an integration) is an
+  exception.
 - Commit messages follow the `commit-message` skill. PR descriptions follow the `pr-description`
   skill.
 - When a change makes the text of an area guide incorrect, update the guide in the same commit. When
@@ -66,7 +72,8 @@ license. The full specification is in `docs/specification/`. What it decided not
 
 `docs/specification/server/deployment.md` documents the server env vars, and
 `docs/specification/custom-instances.md` documents rebranding. Both are the source of truth. Thus,
-configure from them, and do not derive the values again from `src/config.ts`.
+configure from them, and do not derive the values again from `src/config.ts`. The configuration of
+a real instance (its hosting, compose files, secrets) does not go in this repository.
 
 ## Commands
 
@@ -180,10 +187,17 @@ files.
   (`state/account/auth.ts` is mocked in this way). If it is, the original imports the mocked module
   back while its factory still runs. The browser project then stops with no error. Only files that
   never report show the problem.
+- In a browser test, set the caret through the editor (`editorViewCtx`, `Selection.atEnd`), not with
+  `ControlOrMeta` navigation keys, unless the key is what the test is about. `ControlOrMeta+End` is
+  Ctrl+End on the Linux of CI and Cmd+End on a Mac, which does not move the caret. Thus, the test
+  passes in CI and fails on a Mac.
 
 ## Code Style
 
 - Biome for linting and formatting (not ESLint/Prettier).
+- Keep a drawn asset (an SVG, a pattern) static, and apply its color and opacity with CSS: a mask
+  over a layer whose `background-color` and `opacity` are custom properties, or `currentColor`.
+  Never draw data URIs again for each change. That flickers.
 - The import direction between source folders is a lint rule.
   - The `overrides` in `biome.json` give each folder a `noRestrictedImports` list of the folders that
     it must not import, with the reason as the message.
