@@ -2,7 +2,6 @@
 // canvas. Kept separate from the pad that collects them. Thus, the geometry can
 // be tested without a pointer.
 
-import { carriedImageAlts, type Note } from "@manifesto/shared";
 import type { Layer } from "./drawingLayers.ts";
 import { MAX_IMAGE_EDGE } from "./shrinkImage.ts";
 
@@ -457,42 +456,4 @@ export async function encodeDrawing(
   return jpeg && jpeg.type === "image/jpeg" && jpeg.size < png.size
     ? jpeg
     : png;
-}
-
-/**
- * The images of a note with `added` put in: in place of `replaces` where the
- * note still has it, and at the end otherwise. Thus, a drawing made over an
- * image that was removed in the meantime is kept, not dropped.
- */
-export function placeImages(
-  images: readonly string[],
-  added: readonly string[],
-  replaces?: string,
-): string[] {
-  if (replaces === undefined || !images.includes(replaces)) {
-    return [...images, ...added];
-  }
-  return images.flatMap((image) => (image === replaces ? added : [image]));
-}
-
-/**
- * The descriptions for the answer of `placeImages`. Each image keeps its own,
- * and a drawing made over an image takes the description of that image, which
- * still tells what is under the lines. Empty when no image has one.
- */
-export function placedImageAlts(
-  before: Pick<Note, "images" | "imageAlts">,
-  placed: readonly string[],
-  added: readonly string[],
-  replaces?: string,
-): string[] {
-  const alts = carriedImageAlts(before, placed);
-  const under =
-    replaces === undefined
-      ? ""
-      : (before.imageAlts?.[before.images.indexOf(replaces)] ?? "");
-  if (!under) return alts;
-  return placed.map((image, i) =>
-    added.includes(image) ? under : (alts[i] ?? ""),
-  );
 }
