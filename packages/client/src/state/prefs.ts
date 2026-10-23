@@ -112,6 +112,7 @@ export const inlineCalculations = pref("inlineCalculations");
 export const decimalSeparator = pref("decimalSeparator");
 export const noteCorners = pref("noteCorners");
 export const noteTilt = pref("noteTilt");
+export const complexShadows = pref("complexShadows");
 export const animations = pref("animations");
 export const lightHue = pref("lightHue");
 export const darkHue = pref("darkHue");

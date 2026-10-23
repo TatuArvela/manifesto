@@ -399,6 +399,9 @@ export const PREF_PARSERS = {
   decimalSeparator: oneOf(DECIMAL_SEPARATOR_VALUES, "auto"),
   noteCorners: oneOf<NoteCorners>(["straight", "rounded"], "straight"),
   noteTilt: oneOf<NoteTilt>(["tidy", "messy"], "tidy"),
+  // The curled shadow of a sheet of paper under each card. Off, a card has a
+  // plain, even shadow.
+  complexShadows: flag(true),
   // The default on the first run follows the OS setting. After the user changes
   // the toggle, their choice wins.
   animations: (value: unknown): boolean =>

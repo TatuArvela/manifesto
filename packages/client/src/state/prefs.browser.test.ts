@@ -365,6 +365,18 @@ describe("lightHue", () => {
   });
 });
 
+describe("complexShadows", () => {
+  it("defaults to on", () => {
+    expect(parsePrefs(null).complexShadows).toBe(true);
+    expect(parsePrefs("{}").complexShadows).toBe(true);
+  });
+
+  it("honours an explicitly persisted choice", () => {
+    expect(parsePrefs('{"complexShadows":false}').complexShadows).toBe(false);
+    expect(parsePrefs('{"complexShadows":true}').complexShadows).toBe(true);
+  });
+});
+
 describe("noteQuips", () => {
   it("defaults to on", () => {
     expect(parsePrefs(null).noteQuips).toBe(true);
