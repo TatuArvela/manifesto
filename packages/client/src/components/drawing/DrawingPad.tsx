@@ -966,6 +966,7 @@ export function DrawingPad() {
         pen={pen}
         onPen={setPen}
         history={history}
+        view={view}
         onHistory={applyControl}
       />
     </div>

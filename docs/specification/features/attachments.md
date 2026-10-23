@@ -64,11 +64,12 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   again. A zoom keeps the point at the middle, or under the pointer, in place. A zoom changes the
   view only, not the picture.
 - Undo, redo, and clear are in the top bar.
-- The drawing has layers. **Layers**, in the bottom bar, opens the list, the top layer first. Press
-  the name of a layer to draw on it. Each layer has buttons to hide or show it, to move it up or
-  down, and to delete it (not the last layer). **Add layer** puts a new layer over the current one,
-  to a maximum of eight. A line that you draw on a hidden layer shows that layer again. A slider
-  under the list sets the opacity of the current layer. One slide is one step for undo.
+- The drawing has layers. The **Layers** panel lists them, the top layer first. At the top, a slider
+  with an eye icon sets the opacity of the current layer. One slide is one step for undo. Each row
+  has an eye that hides or shows the layer, a small picture of its ink, and its name. Press a row
+  to draw on that layer. The buttons at the bottom add a layer over the current one (to a maximum
+  of eight), move the current layer up or down, and delete it (not the last layer). A line that
+  you draw on a hidden layer shows that layer again.
 - **Move** shows a dashed box around the ink of the current layer. A drag moves the ink. A drag of
   the handle at the bottom right corner makes it larger or smaller, from its top left corner, with
   the same scale on both axes (from 0.05 to 20 times). The strokes move as lines, not as a picture.

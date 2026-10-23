@@ -226,9 +226,7 @@ describe("DrawingPad", () => {
     drawLine([0.2, 0.5], [0.8, 0.5]);
     button(t("drawing.layers"))?.click();
     await settled();
-    host.querySelectorAll<HTMLButtonElement>("button").forEach((each) => {
-      if (each.textContent === t("drawing.addLayer")) each.click();
-    });
+    button(t("drawing.addLayer"))?.click();
     await settled();
     const second = t("drawing.layerName", { n: 2 });
     button(t("drawing.hideLayer", { name: second }))?.click();
@@ -306,7 +304,9 @@ describe("DrawingPad", () => {
       "23,23,23",
     );
 
-    const opacity = host.querySelector<HTMLInputElement>('input[type="range"]');
+    const opacity = host.querySelector<HTMLInputElement>(
+      `fieldset[aria-label="${t("drawing.penSettings")}"] input[type="range"]`,
+    );
     if (opacity) {
       opacity.value = "50";
       opacity.dispatchEvent(new Event("input", { bubbles: true }));

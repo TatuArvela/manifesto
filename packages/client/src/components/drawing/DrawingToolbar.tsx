@@ -20,6 +20,7 @@ import { useState } from "preact/hooks";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { getColorLabel, t } from "#/i18n/index.ts";
+import type { Rect } from "#/utils/drawing.ts";
 import type { SketchHistory } from "#/utils/drawingLayers.ts";
 import { DrawingLayers } from "./DrawingLayers.tsx";
 import {
@@ -176,6 +177,7 @@ export function DrawingToolbar({
   pen,
   onPen,
   history,
+  view,
   onHistory,
 }: {
   tool: Tool;
@@ -187,6 +189,8 @@ export function DrawingToolbar({
   pen: PenSettings;
   onPen: (pen: PenSettings) => void;
   history: SketchHistory;
+  /** The part of the paper that the picture shows, for the layer pictures. */
+  view: Rect;
   onHistory: (next: SketchHistory) => void;
 }) {
   const [panel, setPanel] = useState<"pen" | "layers" | "shapes" | null>(null);
@@ -269,6 +273,7 @@ export function DrawingToolbar({
         <DrawingLayers
           open={panel === "layers"}
           history={history}
+          view={view}
           onChange={onHistory}
           onClose={close}
         />
