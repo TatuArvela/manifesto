@@ -63,7 +63,8 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   buttons is the size of the paper on the screen, and a press on it fits the paper to the screen
   again. A zoom keeps the point at the middle, or under the pointer, in place. A zoom changes the
   view only, not the picture.
-- Undo, redo, and clear are in the top bar.
+- Undo, redo, and clear are in the top bar. Ctrl or Cmd with Z undoes, and with Y, or with Shift
+  and Z, redoes. In a text field, the keys undo the typing.
 - The drawing has layers. The **Layers** panel lists them, the top layer first. At the top, a slider
   with an eye icon sets the opacity of the current layer. One slide is one step for undo. Each row
   has an eye that hides or shows the layer, a small picture of its ink, and its name. Press a row

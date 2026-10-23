@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { useBackToClose } from "#/hooks/useBackToClose.ts";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
+import { isTypingTarget } from "#/hooks/useShortcut.ts";
 import { t } from "#/i18n/index.ts";
 import { attachmentObjectUrl } from "#/state/attachments.ts";
 import { askConfirmation } from "#/state/confirm.ts";
@@ -442,6 +443,25 @@ export function DrawingPad() {
     apply(next);
   };
 
+  // Undo takes back a polygon in progress first, as Escape does.
+  const undoStep = () =>
+    polygon.current ? cancelPolygon() : apply(undo(historyRef.current));
+  const redoStep = () => applyControl(redo(historyRef.current));
+
+  /**
+   * Ctrl or Cmd with Z undoes, and with Y or Shift and Z redoes. Not in a text
+   * field: there, the keys undo the typing.
+   */
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+    if (isTypingTarget(event.target)) return;
+    const key = event.key.toLowerCase();
+    if (key !== "z" && key !== "y") return;
+    event.preventDefault();
+    if (key === "y" || event.shiftKey) redoStep();
+    else undoStep();
+  };
+
   const discard = async () => {
     const confirmed = await askConfirmation({
       title: t("drawing.discardConfirm"),
@@ -837,6 +857,7 @@ export function DrawingPad() {
       role="dialog"
       aria-modal="true"
       aria-label={t("drawing.title")}
+      onKeyDown={onKeyDown}
       class={`fixed inset-0 layer-drawing ${padGrid} bg-neutral-900 text-neutral-100 animate-fade-in`}
     >
       <DrawingTopBar
@@ -848,11 +869,8 @@ export function DrawingPad() {
         onZoomIn={() => zoomTo(zoom * ZOOM_STEP)}
         canZoomOut={zoom > MIN_ZOOM}
         canZoomIn={zoom < MAX_ZOOM}
-        // Undo takes back a polygon in progress first, as Escape does.
-        onUndo={() =>
-          polygon.current ? cancelPolygon() : apply(undo(historyRef.current))
-        }
-        onRedo={() => applyControl(redo(historyRef.current))}
+        onUndo={undoStep}
+        onRedo={redoStep}
         canUndo={history.past.length > 0 || drawingPolygon}
         canRedo={history.future.length > 0}
         onClear={() => applyControl(clearLayer(historyRef.current))}

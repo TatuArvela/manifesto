@@ -523,6 +523,31 @@ describe("DrawingPad", () => {
     expect(inkAt(0.25, 0.2)).toBe("23,23,23");
   });
 
+  it("undoes with Ctrl+Z, and redoes with Ctrl+Y and Ctrl+Shift+Z", async () => {
+    const press = (key: string, shiftKey = false) =>
+      canvas().dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key,
+          shiftKey,
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    await settled();
+    press("z");
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe(PAPER);
+    press("y");
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    press("z");
+    press("Z", true);
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+  });
+
   it("zooms in and back to the size of the screen", async () => {
     const before = canvas().getBoundingClientRect().width;
     button(t("drawing.zoomIn"))?.click();
