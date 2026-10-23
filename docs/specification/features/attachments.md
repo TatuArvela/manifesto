@@ -42,6 +42,10 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   down, and to delete it (not the last layer). **Add layer** puts a new layer over the current one,
   to a maximum of eight. A line that you draw on a hidden layer shows that layer again. A slider
   under the list sets the opacity of the current layer. One slide is one step for undo.
+- **Move** shows a dashed box around the ink of the current layer. A drag moves the ink. A drag of
+  the handle at the bottom right corner makes it larger or smaller, from its top left corner, with
+  the same scale on both axes (from 0.05 to 20 times). The strokes move as lines, not as a picture.
+  Thus, they stay sharp at any size, and a pen width grows with them. A drag is one step.
 - Clear empties the current layer. The eraser takes ink away from the current layer only. The layers
   under it, and the image under the drawing, stay.
 - Each stroke, clear, and change to a layer is one step that undo takes back and redo does again.

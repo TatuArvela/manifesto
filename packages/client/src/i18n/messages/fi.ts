@@ -170,6 +170,7 @@ export const fi: Messages = {
   "drawing.customSize": "Kynän koko",
   "drawing.inkOpacity": "Peittävyys",
   "drawing.layerOpacity": "Peittävyys: {name}",
+  "drawing.move": "Siirrä tasoa tai muuta sen kokoa",
   "drawing.eraser": "Pyyhekumi",
   "drawing.black": "Musta",
   "drawing.width": "Kynän leveys {n}",

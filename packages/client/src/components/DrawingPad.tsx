@@ -3,6 +3,7 @@ import {
   Check,
   Eraser,
   Layers,
+  Move,
   Pipette,
   Redo,
   Trash2,
@@ -26,11 +27,16 @@ import {
   encodeDrawing,
   PAPER,
   type PaperSize,
+  type Point,
   paintLayer,
   paperSizeFor,
   penScale,
+  type Rect,
   renderDrawing,
+  resizeFrom,
   type Stroke,
+  type Transform,
+  transformRect,
 } from "#/utils/drawing.ts";
 import {
   activeLayer,
@@ -38,12 +44,15 @@ import {
   clearLayer,
   hasStrokes,
   hasVisibleStrokes,
+  layerBounds,
   newSketchHistory,
   redo,
   type SketchHistory,
+  transformLayer,
   undo,
 } from "#/utils/drawingLayers.ts";
 import { DrawingLayers } from "./DrawingLayers.tsx";
+import { DrawingOverlay, HANDLE, useCanvasBox } from "./DrawingOverlay.tsx";
 import {
   DrawingPen,
   type PenSettings,
@@ -69,7 +78,18 @@ const INKS = [
 const ERASER_SCALE = 4;
 
 /** What a press on the paper does. */
-type Tool = "pen" | "eraser" | "dropper";
+type Tool = "pen" | "eraser" | "dropper" | "move";
+
+/** A drag of the move tool: of the ink of a layer, or of its corner. */
+interface Drag {
+  pointerId: number;
+  resize: boolean;
+  start: Point;
+  bounds: Rect;
+  by: Transform;
+}
+
+const UNCHANGED: Transform = { scale: 1, dx: 0, dy: 0 };
 
 /** A color of the canvas as `#rrggbb`, which a color field accepts. */
 const hex = (r: number, g: number, b: number) =>
@@ -113,6 +133,10 @@ export function DrawingPad() {
   } | null>(null);
   const frame = useRef(0);
   const stageRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<Drag | null>(null);
+  // The drag as the box over the ink shows it. The canvas follows `dragRef`.
+  const [dragBy, setDragBy] = useState<Transform | null>(null);
+  const box = useCanvasBox(canvasRef);
   const cursorRef = useRef<HTMLDivElement>(null);
   const [ink, setInk] = useState<string>(INKS[0].color);
   const [pen, setPen] = useState<PenSettings>({
@@ -211,14 +235,24 @@ export function DrawingPad() {
     frame.current = 0;
     const ctx = context();
     const active = drawing.current;
+    const drag = dragRef.current;
     const canvases = live.current;
-    if (!ctx || !active || !canvases) return;
+    if (!ctx || (!active && !drag) || !canvases) return;
     const { under, layer, over, scratch } = canvases;
     const scratchCtx = scratch.getContext("2d");
     if (!scratchCtx) return;
     scratchCtx.clearRect(0, 0, scratch.width, scratch.height);
-    scratchCtx.drawImage(layer, 0, 0);
-    drawStroke(scratchCtx, active.stroke);
+    if (drag) {
+      // The layer as a picture while it moves. The strokes themselves move at
+      // the release, and stay sharp at any size.
+      const { scale, dx, dy } = drag.by;
+      scratchCtx.setTransform(scale, 0, 0, scale, dx, dy);
+      scratchCtx.drawImage(layer, 0, 0);
+      scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
+    } else if (active) {
+      scratchCtx.drawImage(layer, 0, 0);
+      drawStroke(scratchCtx, active.stroke);
+    }
     ctx.drawImage(under, 0, 0);
     ctx.globalAlpha = activeLayer(historyRef.current.present)?.opacity ?? 1;
     ctx.drawImage(scratch, 0, 0);
@@ -228,6 +262,18 @@ export function DrawingPad() {
 
   /** Makes the current line, if there is one, part of the drawing. */
   const commitStroke = () => {
+    const drag = dragRef.current;
+    if (drag) {
+      dragRef.current = null;
+      live.current = null;
+      cancelAnimationFrame(frame.current);
+      frame.current = 0;
+      setDragBy(null);
+      apply(transformLayer(historyRef.current, drag.by));
+      // Nothing moved: the canvas still shows the cached layer.
+      redraw();
+      return;
+    }
     const active = drawing.current;
     if (!active) return;
     drawing.current = null;
@@ -300,7 +346,8 @@ export function DrawingPad() {
   const onPointerDown = (event: PointerEvent) => {
     const canvas = canvasRef.current;
     // One line at a time. A second finger, or a palm, is not a second pen.
-    if (!canvas || !ready || drawing.current || !event.isPrimary) return;
+    if (!canvas || !ready || drawing.current || dragRef.current) return;
+    if (!event.isPrimary) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     event.preventDefault();
     try {
@@ -309,9 +356,14 @@ export function DrawingPad() {
       // A pointer that the browser does not know now: the stroke still starts.
       // It only stops to follow past the edge of the paper.
     }
-    const at = drawingPoint(event, canvas.getBoundingClientRect(), paper);
+    const shown = canvas.getBoundingClientRect();
+    const at = drawingPoint(event, shown, paper);
     if (tool === "dropper") {
       pickColor(at);
+      return;
+    }
+    if (tool === "move") {
+      startDrag(event, shown);
       return;
     }
     const stroke: Stroke = {
@@ -322,6 +374,17 @@ export function DrawingPad() {
       ...(pen.tip === "round" ? {} : { tip: pen.tip }),
       ...(pen.opacity < 1 ? { opacity: pen.opacity } : {}),
     };
+    cacheAround();
+    drawing.current = { pointerId: event.pointerId, stroke };
+    paintActive();
+    showCursor(event);
+  };
+
+  /**
+   * The picture under the active layer, that layer alone, and the picture over
+   * it, for the frames of a stroke or a drag.
+   */
+  const cacheAround = () => {
     const { layers, active } = historyRef.current.present;
     const index = layers.findIndex((layer) => layer.id === active);
     const under = blankCanvas(paper);
@@ -337,14 +400,60 @@ export function DrawingPad() {
     }
     paintLayer(layer, layers[index]?.strokes ?? []);
     live.current = { under, layer, over, scratch: blankCanvas(paper) };
-    drawing.current = { pointerId: event.pointerId, stroke };
+  };
+
+  /** Where a pointer is on the paper, also past its edge: a drag goes there. */
+  const paperPoint = (
+    event: { clientX: number; clientY: number },
+    shown: DOMRect,
+  ): Point => [
+    ((event.clientX - shown.left) / shown.width) * paper.width,
+    ((event.clientY - shown.top) / shown.height) * paper.height,
+  ];
+
+  /**
+   * The move tool: a press on the corner handle of the box of the ink changes
+   * its size, and a press at any other place moves it. Nothing happens on an
+   * empty layer.
+   */
+  const startDrag = (event: PointerEvent, shown: DOMRect) => {
+    const layer = activeLayer(historyRef.current.present);
+    const bounds = layer ? layerBounds(layer) : null;
+    if (!bounds) return;
+    const start = paperPoint(event, shown);
+    // The handle, with some room around it for a finger, in paper pixels.
+    const reach = ((HANDLE * 1.5) / shown.width) * paper.width;
+    const resize =
+      Math.abs(start[0] - (bounds.x + bounds.width)) <= reach &&
+      Math.abs(start[1] - (bounds.y + bounds.height)) <= reach;
+    cacheAround();
+    dragRef.current = {
+      pointerId: event.pointerId,
+      resize,
+      start,
+      bounds,
+      by: UNCHANGED,
+    };
+    setDragBy(UNCHANGED);
     paintActive();
-    showCursor(event);
   };
 
   const onPointerMove = (event: PointerEvent) => {
     if (event.isPrimary) showCursor(event);
     const canvas = canvasRef.current;
+    const drag = dragRef.current;
+    if (canvas && drag?.pointerId === event.pointerId) {
+      const to = paperPoint(event, canvas.getBoundingClientRect());
+      drag.by = drag.resize
+        ? resizeFrom(drag.bounds, [
+            to[0] + drag.bounds.x + drag.bounds.width - drag.start[0],
+            to[1] + drag.bounds.y + drag.bounds.height - drag.start[1],
+          ])
+        : { scale: 1, dx: to[0] - drag.start[0], dy: to[1] - drag.start[1] };
+      setDragBy(drag.by);
+      frame.current ||= requestAnimationFrame(paintActive);
+      return;
+    }
     const active = drawing.current;
     if (!canvas || active?.pointerId !== event.pointerId) return;
     const shown = canvas.getBoundingClientRect();
@@ -378,7 +487,12 @@ export function DrawingPad() {
   };
 
   const endStroke = (event: PointerEvent) => {
-    if (drawing.current?.pointerId === event.pointerId) commitStroke();
+    if (
+      drawing.current?.pointerId === event.pointerId ||
+      dragRef.current?.pointerId === event.pointerId
+    ) {
+      commitStroke();
+    }
     // A finger leaves the screen: there is no place to show the pen at.
     if (event.pointerType === "touch") hideCursor();
   };
@@ -395,7 +509,7 @@ export function DrawingPad() {
     if (!cursor || !stage || !canvas || !ready) return;
     const shown = canvas.getBoundingClientRect();
     const around = stage.getBoundingClientRect();
-    if (tool === "dropper") {
+    if (tool === "dropper" || tool === "move") {
       hideCursor();
       return;
     }
@@ -416,6 +530,10 @@ export function DrawingPad() {
   const hideCursor = () => {
     if (cursorRef.current) cursorRef.current.style.display = "none";
   };
+
+  const shownLayer = activeLayer(history.present);
+  const inkBox = shownLayer ? layerBounds(shownLayer) : null;
+  const moveBox = inkBox && transformRect(inkBox, dragBy ?? UNCHANGED);
 
   return (
     <div
@@ -491,7 +609,12 @@ export function DrawingPad() {
           class="max-w-full max-h-full rounded-lg shadow-lg touch-none select-none"
           style={{
             aspectRatio: `${paper.width} / ${paper.height}`,
-            cursor: tool === "dropper" ? "crosshair" : "none",
+            cursor:
+              tool === "dropper"
+                ? "crosshair"
+                : tool === "move"
+                  ? "move"
+                  : "none",
           }}
           aria-label={t("drawing.paper")}
           onPointerDown={onPointerDown}
@@ -500,6 +623,9 @@ export function DrawingPad() {
           onPointerCancel={endStroke}
           onPointerLeave={hideCursor}
         />
+        {tool === "move" && box && moveBox && (
+          <DrawingOverlay box={box} paper={paper} rect={moveBox} handle />
+        )}
         {/* Light and dark rings: it shows over any ink and over a photo. */}
         <div
           ref={cursorRef}
@@ -571,6 +697,15 @@ export function DrawingPad() {
           <span class="w-5 h-5 flex items-center justify-center">
             <span class="bg-neutral-100" style={tipStyle(pen.tip, 12)} />
           </span>
+        </button>
+        <button
+          type="button"
+          class={`${barButton} ${tool === "move" ? "bg-white/20" : ""}`}
+          onClick={() => setTool(tool === "move" ? "pen" : "move")}
+          aria-label={t("drawing.move")}
+          aria-pressed={tool === "move"}
+        >
+          <Move class="w-5 h-5" />
         </button>
         <button
           type="button"

@@ -335,6 +335,34 @@ describe("DrawingPad", () => {
     expect(inkAt(0.5, 0.2)).toBe("220,38,38");
   });
 
+  it("moves the ink of a layer, and makes it larger from its corner", async () => {
+    drawLine([0.2, 0.2], [0.3, 0.2]);
+    await settled();
+    button(t("drawing.move"))?.click();
+    await settled();
+    // A drag from inside the ink to the right moves the line there.
+    drawLine([0.25, 0.2], [0.65, 0.6]);
+    await settled();
+    expect(inkAt(0.25, 0.2)).toBe(PAPER);
+    expect(inkAt(0.65, 0.6)).toBe("23,23,23");
+
+    // A drag of the corner handle makes it twice as long.
+    const box = host.querySelector<HTMLElement>(".border-dashed");
+    expect(box).not.toBeNull();
+    const rect = canvas().getBoundingClientRect();
+    const right = (box?.getBoundingClientRect().right ?? 0) - rect.left;
+    const bottom = (box?.getBoundingClientRect().bottom ?? 0) - rect.top;
+    const corner: [number, number] = [right / rect.width, bottom / rect.height];
+    drawLine(corner, [corner[0] + 0.12, corner[1] + 0.02]);
+    await settled();
+    expect(inkAt(0.78, 0.6)).not.toBe(PAPER);
+
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(inkAt(0.78, 0.6)).toBe(PAPER);
+    expect(inkAt(0.65, 0.6)).toBe("23,23,23");
+  });
+
   it("hands the drawing over as a PNG with the ink in it", async () => {
     drawLine([0.2, 0.5], [0.8, 0.5]);
     await settled();

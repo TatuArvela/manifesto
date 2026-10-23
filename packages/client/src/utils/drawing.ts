@@ -77,6 +77,82 @@ export interface Stroke {
   opacity?: number;
 }
 
+export interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A change of size and place: a point goes to `point * scale + (dx, dy)`. */
+export interface Transform {
+  scale: number;
+  dx: number;
+  dy: number;
+}
+
+export function transformStroke(stroke: Stroke, by: Transform): Stroke {
+  return {
+    ...stroke,
+    width: stroke.width * by.scale,
+    points: stroke.points.map(
+      ([x, y]): Point => [x * by.scale + by.dx, y * by.scale + by.dy],
+    ),
+  };
+}
+
+export const transformRect = (rect: Rect, by: Transform): Rect => ({
+  x: rect.x * by.scale + by.dx,
+  y: rect.y * by.scale + by.dy,
+  width: rect.width * by.scale,
+  height: rect.height * by.scale,
+});
+
+/**
+ * The box that the ink of the strokes covers, the width of the tip included.
+ * A square tip reaches further at its corners. Null when there is no stroke.
+ */
+export function strokeBounds(strokes: readonly Stroke[]): Rect | null {
+  let left = Number.POSITIVE_INFINITY;
+  let top = Number.POSITIVE_INFINITY;
+  let right = Number.NEGATIVE_INFINITY;
+  let bottom = Number.NEGATIVE_INFINITY;
+  for (const stroke of strokes) {
+    const reach =
+      (stroke.width / 2) * (stroke.tip === "square" ? Math.SQRT2 : 1);
+    for (const [x, y] of stroke.points) {
+      left = Math.min(left, x - reach);
+      top = Math.min(top, y - reach);
+      right = Math.max(right, x + reach);
+      bottom = Math.max(bottom, y + reach);
+    }
+  }
+  if (left > right) return null;
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+/**
+ * The size change that keeps the top left corner of `box` in place, and takes
+ * its bottom right corner to `to`. The same scale on both axes, so that a
+ * circle stays a circle: the axis that moved further sets it.
+ */
+export function resizeFrom(
+  box: Rect,
+  to: Point,
+  min = 0.05,
+  max = 20,
+): Transform {
+  const scale = Math.min(
+    max,
+    Math.max(
+      min,
+      (to[0] - box.x) / Math.max(1, box.width),
+      (to[1] - box.y) / Math.max(1, box.height),
+    ),
+  );
+  return { scale, dx: box.x * (1 - scale), dy: box.y * (1 - scale) };
+}
+
 /**
  * Where a pointer is on the drawing, from where it is on the screen. The canvas
  * shows smaller than it is. Thus, both axes scale by that ratio.

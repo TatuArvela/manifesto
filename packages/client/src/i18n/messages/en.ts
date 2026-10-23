@@ -167,6 +167,7 @@ export const en = {
   "drawing.customSize": "Pen size",
   "drawing.inkOpacity": "Opacity",
   "drawing.layerOpacity": "Opacity of {name}",
+  "drawing.move": "Move or resize the layer",
   "drawing.eraser": "Eraser",
   "drawing.black": "Black",
   "drawing.width": "Pen width {n}",

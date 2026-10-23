@@ -8,7 +8,10 @@ import {
   penScale,
   placedImageAlts,
   placeImages,
+  resizeFrom,
   stampCenters,
+  strokeBounds,
+  transformStroke,
 } from "./drawing.ts";
 import { MAX_IMAGE_EDGE } from "./shrinkImage.ts";
 
@@ -142,5 +145,47 @@ describe("stampCenters", () => {
   it("presses one shape for a tap, and none for no points", () => {
     expect(stampCenters([[5, 5]], 10)).toEqual([[5, 5]]);
     expect(stampCenters([], 10)).toEqual([]);
+  });
+});
+
+describe("moving and resizing strokes", () => {
+  const stroke = {
+    color: "#000",
+    width: 10,
+    points: [
+      [10, 20],
+      [30, 40],
+    ] as [number, number][],
+  };
+
+  it("finds the box of the ink, the width of the tip included", () => {
+    expect(strokeBounds([stroke])).toEqual({
+      x: 5,
+      y: 15,
+      width: 30,
+      height: 30,
+    });
+    expect(strokeBounds([])).toBeNull();
+  });
+
+  it("moves the points, and scales the width with them", () => {
+    const moved = transformStroke(stroke, { scale: 2, dx: 1, dy: -1 });
+    expect(moved.points).toEqual([
+      [21, 39],
+      [61, 79],
+    ]);
+    expect(moved.width).toBe(20);
+  });
+
+  it("resizes from the top left corner, the same on both axes", () => {
+    const box = { x: 10, y: 10, width: 100, height: 50 };
+    const by = resizeFrom(box, [210, 20]);
+    expect(by.scale).toBe(2);
+    // The corner stays.
+    expect(10 * by.scale + by.dx).toBe(10);
+    expect(10 * by.scale + by.dy).toBe(10);
+    // Never to nothing, and never past its limit.
+    expect(resizeFrom(box, [0, 0]).scale).toBe(0.05);
+    expect(resizeFrom(box, [99999, 0]).scale).toBe(20);
   });
 });
