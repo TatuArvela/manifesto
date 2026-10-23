@@ -303,6 +303,22 @@ function components() {
         token: { type: "string" },
         user: { type: "object" },
       }),
+      DeviceSignInStarted: exact({
+        id: { type: "string" },
+        waitToken: { type: "string" },
+        expiresAt: { type: "string" },
+      }),
+      DeviceSignInRequest: exact({
+        userAgent: { type: "string" },
+        createdAt: { type: "string" },
+        expiresAt: { type: "string" },
+      }),
+      DeviceSignInPending: exact({ pending: { const: true } }),
+      DeviceSignInDone: shape({
+        token: { type: "string" },
+        user: { type: "object" },
+        key: { type: ["object", "null"] },
+      }),
       TwoFactorRequired: shape({
         error: { type: "string" },
         code: { const: "two_factor_required" },

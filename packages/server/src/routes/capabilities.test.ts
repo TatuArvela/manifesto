@@ -36,6 +36,7 @@ describe("GET /api/v1/capabilities", () => {
       webhooks: false,
       passkeys: true,
       magicLinks: true,
+      deviceSignIn: true,
       pushReminders: true,
       twoFactor: true,
       mcpSignIn: false,

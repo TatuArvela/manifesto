@@ -6,6 +6,7 @@ import { createSqliteAttachmentsRepo } from "./attachmentsRepo.ts";
 import { createSqliteAuditRepo } from "./auditRepo.ts";
 import { createSqliteCommentsRepo } from "./commentsRepo.ts";
 import { openDatabase, type SqliteDB } from "./database.ts";
+import { createSqliteDeviceSignInsRepo } from "./deviceSignInsRepo.ts";
 import { createSqliteMailedLinksRepo } from "./mailedLinksRepo.ts";
 import { createSqliteMaintenanceRepo } from "./maintenanceRepo.ts";
 import { createSqliteNotesRepo } from "./notesRepo.ts";
@@ -58,6 +59,7 @@ export function createSqliteStorage(
     prefs: createSqlitePrefsRepo(db),
     passwordResets: createSqliteMailedLinksRepo(db, "password_resets"),
     signInLinks: createSqliteMailedLinksRepo(db, "sign_in_links"),
+    deviceSignIns: createSqliteDeviceSignInsRepo(db),
     comments: createSqliteCommentsRepo(db),
     audit: createSqliteAuditRepo(db),
     maintenance: createSqliteMaintenanceRepo(db),

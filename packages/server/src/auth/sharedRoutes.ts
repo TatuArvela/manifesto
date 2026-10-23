@@ -27,6 +27,7 @@ import { validatorHook } from "#/validation/zValidator.ts";
 import type { Broadcaster } from "#/ws/broadcaster.ts";
 import { registerAccountKeyRoutes } from "./accountKeys.ts";
 import { requireConfirmation } from "./confirmation.ts";
+import { registerDeviceSignInRoutes } from "./deviceSignIn.ts";
 import type { LoginAttempts } from "./local/loginAttempts.ts";
 import type { SessionRevocations } from "./revocations.ts";
 import type { AuthProviderRouter } from "./types.ts";
@@ -207,6 +208,7 @@ export function createAuthSharedRoutes(
   );
 
   registerAccountKeyRoutes(router, deps);
+  registerDeviceSignInRoutes(router, deps);
 
   return router;
 }

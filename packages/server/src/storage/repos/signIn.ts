@@ -184,3 +184,66 @@ export interface MailedLinksRepo {
   deleteByUser(userId: string): Promise<number>;
   deleteExpired(now: string): Promise<number>;
 }
+
+/** A request to sign in a new device, while it waits for an approval. */
+export interface PendingDeviceSignIn {
+  /** What the new device said that it is, for the approving person to read. */
+  userAgent: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+/**
+ * The secret key of the account, wrapped to the key that the new device made
+ * for the request. The server cannot open it.
+ */
+export interface DeviceSignInKey {
+  ephemeral: string;
+  wrapped: string;
+}
+
+/**
+ * Requests to sign in a new device by a QR code that it shows. The key is the
+ * SHA-256 of the id in the code. The new device holds a second token, the wait
+ * token, which the code does not carry. Only that token collects the session.
+ * Thus, a person who sees the code cannot.
+ */
+export interface DeviceSignInsRepo {
+  create(input: {
+    idHash: string;
+    waitHash: string;
+    userAgent: string;
+    createdAt: string;
+    expiresAt: string;
+  }): Promise<void>;
+  /** A request that is not approved, not used and not expired at `now`. */
+  find(idHash: string, now: string): Promise<PendingDeviceSignIn | null>;
+  /**
+   * Gives a request to the account, with its wrapped key, atomically. False
+   * for a request that is gone, or that was approved before.
+   */
+  approve(
+    idHash: string,
+    userId: string,
+    key: DeviceSignInKey | null,
+    now: string,
+  ): Promise<boolean>;
+  /**
+   * Ends a pending request that its person refused. False for a request that
+   * is gone, or that was approved before.
+   */
+  deny(idHash: string, now: string): Promise<boolean>;
+  /**
+   * Uses an approved request, atomically, and tells for which account it is.
+   * `pending` while it waits for an approval. Null when it is gone.
+   */
+  claim(
+    waitHash: string,
+    now: string,
+  ): Promise<
+    { userId: string; key: DeviceSignInKey | null } | "pending" | null
+  >;
+  /** Cancels the approved requests that the account did not collect yet. */
+  deleteByUser(userId: string): Promise<number>;
+  deleteExpired(now: string): Promise<number>;
+}

@@ -14,6 +14,7 @@ import type {
 } from "./repos/sharing.ts";
 import type {
   AccountKeysRepo,
+  DeviceSignInsRepo,
   MailedLinksRepo,
   PasskeysRepo,
   TwoFactorRepo,
@@ -53,6 +54,7 @@ export interface StorageDriver {
   accountKeys: AccountKeysRepo;
   passwordResets: MailedLinksRepo;
   signInLinks: MailedLinksRepo;
+  deviceSignIns: DeviceSignInsRepo;
   comments: CommentsRepo;
   audit: AuditRepo;
   prefs: PrefsRepo;

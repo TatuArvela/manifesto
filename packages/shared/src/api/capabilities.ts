@@ -25,6 +25,7 @@ export const SERVER_FEATURES = [
   "webhooks",
   "passkeys",
   "magicLinks",
+  "deviceSignIn",
   "pushReminders",
   "twoFactor",
 ] as const;

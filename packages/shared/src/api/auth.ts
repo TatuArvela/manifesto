@@ -54,6 +54,44 @@ export interface AuthMeResponse {
   user: AuthUser;
 }
 
+/** `POST /api/v1/auth/device-sign-in`: a new request, for the new device. */
+export interface DeviceSignInStartedResponse {
+  /** Goes into the QR code. */
+  id: string;
+  /** Stays on the new device. Only it collects the session. */
+  waitToken: string;
+  expiresAt: string;
+}
+
+/** `GET /api/v1/auth/device-sign-in/:id`: what the approving person reads. */
+export interface DeviceSignInRequestResponse {
+  userAgent: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+/** The secret key of the account, wrapped to the key of the new device. */
+export interface DeviceSignInKey {
+  ephemeral: string;
+  wrapped: string;
+}
+
+/** `POST /api/v1/auth/device-sign-in/approve`. */
+export interface DeviceSignInApproveRequest {
+  id: string;
+  key?: DeviceSignInKey;
+  password?: string;
+}
+
+/**
+ * `POST /api/v1/auth/device-sign-in/wait`: `pending` until a device approves,
+ * then the session and the wrapped key (null when the approving device did not
+ * hold the secret key).
+ */
+export type DeviceSignInWaitResponse =
+  | { pending: true }
+  | (AuthSuccessResponse & { key: DeviceSignInKey | null });
+
 export interface AuthSuccessResponse {
   token: string;
   user: AuthUser;

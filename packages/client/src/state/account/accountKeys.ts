@@ -328,7 +328,15 @@ export function takeSecretKeyFromAddress(): void {
     "",
     `${window.location.pathname}${window.location.search}`,
   );
-  const key = parseUserKey(match[1] ?? "", "secret");
+  holdScannedSecretKey(match[1] ?? "");
+}
+
+/**
+ * Keeps a secret key that a QR code brought (the key code, or the code that
+ * signs in a device), in memory only. It unlocks when the account waits for it.
+ */
+export function holdScannedSecretKey(raw: string): void {
+  const key = parseUserKey(raw, "secret");
   if (key === null) return;
   scannedSecretKey = key;
   if (keyState.value === "locked") void unlock(key);
