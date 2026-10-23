@@ -4,11 +4,13 @@
 // change. Pure: the pad draws it, and the tests need no canvas.
 
 import {
+  intersect,
+  type Mark,
+  markBounds,
   type Rect,
   type Stroke,
-  strokeBounds,
   type Transform,
-  transformStroke,
+  transformMark,
 } from "./drawing.ts";
 
 export interface Layer {
@@ -17,7 +19,7 @@ export interface Layer {
   visible: boolean;
   /** From 0 to 1. Opaque when absent. */
   opacity?: number;
-  strokes: readonly Stroke[];
+  marks: readonly Mark[];
 }
 
 export interface Sketch {
@@ -26,6 +28,11 @@ export interface Sketch {
   /** The id of the layer on which the pen draws. */
   active: number;
   nextId: number;
+  /**
+   * The part of the paper that the picture keeps, after a crop of the image.
+   * The full paper when absent. Marks outside it stay, and show again on undo.
+   */
+  frame?: Rect;
 }
 
 export interface SketchHistory {
@@ -46,7 +53,7 @@ export function newSketchHistory(): SketchHistory {
   return {
     past: [],
     present: {
-      layers: [{ id: 1, visible: true, strokes: [] }],
+      layers: [{ id: 1, visible: true, marks: [] }],
       active: 1,
       nextId: 2,
     },
@@ -105,7 +112,7 @@ export function addStroke(
     changeLayer(sketch, sketch.active, (layer) => ({
       ...layer,
       visible: true,
-      strokes: [...layer.strokes, stroke],
+      marks: [...layer.marks, stroke],
     })),
   );
 }
@@ -113,10 +120,10 @@ export function addStroke(
 /** Empties the active layer. The other layers stay. */
 export function clearLayer(history: SketchHistory): SketchHistory {
   const sketch = history.present;
-  if (!activeLayer(sketch)?.strokes.length) return history;
+  if (!activeLayer(sketch)?.marks.length) return history;
   return record(
     history,
-    changeLayer(sketch, sketch.active, (layer) => ({ ...layer, strokes: [] })),
+    changeLayer(sketch, sketch.active, (layer) => ({ ...layer, marks: [] })),
   );
 }
 
@@ -125,7 +132,7 @@ export function addLayer(history: SketchHistory): SketchHistory {
   const sketch = history.present;
   if (sketch.layers.length >= MAX_LAYERS) return history;
   const at = sketch.layers.findIndex((layer) => layer.id === sketch.active) + 1;
-  const layer: Layer = { id: sketch.nextId, visible: true, strokes: [] };
+  const layer: Layer = { id: sketch.nextId, visible: true, marks: [] };
   return record(history, {
     layers: [...sketch.layers.slice(0, at), layer, ...sketch.layers.slice(at)],
     active: layer.id,
@@ -182,7 +189,7 @@ export const endJoin = (history: SketchHistory): SketchHistory =>
 
 /** The box of the ink of a layer, or null for an empty layer. */
 export const layerBounds = (layer: Layer): Rect | null =>
-  strokeBounds(layer.strokes);
+  markBounds(layer.marks);
 
 /** Moves, or makes larger or smaller, all that is on the active layer. */
 export function transformLayer(
@@ -191,14 +198,52 @@ export function transformLayer(
 ): SketchHistory {
   const sketch = history.present;
   if (by.scale === 1 && by.dx === 0 && by.dy === 0) return history;
-  if (!activeLayer(sketch)?.strokes.length) return history;
+  if (!activeLayer(sketch)?.marks.length) return history;
   return record(
     history,
     changeLayer(sketch, sketch.active, (layer) => ({
       ...layer,
-      strokes: layer.strokes.map((stroke) => transformStroke(stroke, by)),
+      marks: layer.marks.map((mark) => transformMark(mark, by)),
     })),
   );
+}
+
+/**
+ * Cuts the marks of the active layer to `area`: the part outside it no longer
+ * shows. Lines drawn later are not cut. Nothing when the layer is empty.
+ */
+export function cropLayer(history: SketchHistory, area: Rect): SketchHistory {
+  const sketch = history.present;
+  if (!activeLayer(sketch)?.marks.length) return history;
+  return record(
+    history,
+    changeLayer(sketch, sketch.active, (layer) => ({
+      ...layer,
+      marks: [{ clip: area, marks: layer.marks }],
+    })),
+  );
+}
+
+/**
+ * Makes the picture the part of it in `area`. Nothing when the area is outside
+ * the picture.
+ */
+export function cropImage(
+  history: SketchHistory,
+  area: Rect,
+  paper: Rect,
+): SketchHistory {
+  const sketch = history.present;
+  const frame = intersect(area, sketch.frame ?? paper);
+  if (!frame) return history;
+  const whole = (value: number) => Math.round(value);
+  const rounded = {
+    x: whole(frame.x),
+    y: whole(frame.y),
+    width: Math.max(1, whole(frame.width)),
+    height: Math.max(1, whole(frame.height)),
+  };
+  return record(history, { ...sketch, frame: rounded });
 }
 
 /** Moves a layer one place up (+1) or down (-1). Nothing past the top or the bottom. */
@@ -244,10 +289,18 @@ export function redo(history: SketchHistory): SketchHistory {
   return { past: [...history.past, history.present], present: next, future };
 }
 
-/** True when a layer has a stroke, shown or not: a drawing to lose on close. */
+/**
+ * True when a layer has a mark, shown or not, or the image is cropped: a
+ * drawing to lose on close.
+ */
 export const hasStrokes = (sketch: Sketch): boolean =>
-  sketch.layers.some((layer) => layer.strokes.length > 0);
+  sketch.frame !== undefined ||
+  sketch.layers.some((layer) => layer.marks.length > 0);
 
-/** True when the picture differs from the paper: something to save on Done. */
+/**
+ * True when the picture differs from the paper, or from the image under it:
+ * something to save on Done.
+ */
 export const hasVisibleStrokes = (sketch: Sketch): boolean =>
-  sketch.layers.some((layer) => layer.visible && layer.strokes.length > 0);
+  sketch.frame !== undefined ||
+  sketch.layers.some((layer) => layer.visible && layer.marks.length > 0);
