@@ -1,7 +1,7 @@
 import type { NoteColor, NoteFont } from "@manifesto/shared";
 import { useCallback, useState } from "preact/hooks";
 import type { ComposerDraft } from "#/state/composerDraft.ts";
-import { placedImageAlts, placeImages } from "#/utils/drawing.ts";
+import { placedImageAlts, placeImages } from "#/utils/placeImages.ts";
 import {
   type DraftLinkPreviews,
   useDraftLinkPreviews,

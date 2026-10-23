@@ -35,8 +35,8 @@ import {
 } from "#/state/notesStore.ts";
 import { showError } from "#/state/ui.ts";
 import { recordVersion } from "#/state/versions.ts";
-import { placedImageAlts, placeImages } from "#/utils/drawing.ts";
 import { isPhoneLayout } from "#/utils/phoneSheets.ts";
+import { placedImageAlts, placeImages } from "#/utils/placeImages.ts";
 import { getEditorMarkdown } from "./MilkdownEditor.tsx";
 import { NoteEditor } from "./NoteEditor.tsx";
 

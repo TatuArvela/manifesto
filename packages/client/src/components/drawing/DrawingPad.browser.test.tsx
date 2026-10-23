@@ -205,6 +205,339 @@ describe("DrawingPad", () => {
     expect(inkAt(0.25, 0.5)).toBe(PAPER);
   });
 
+  it("redoes what was undone, a clear also", async () => {
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    await settled();
+    button(t("drawing.clear"))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe(PAPER);
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe(PAPER);
+    button(t("editor.redo"))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+  });
+
+  it("draws on layers that hide, move, and keep the eraser to themselves", async () => {
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    button(t("drawing.layers"))?.click();
+    await settled();
+    host.querySelectorAll<HTMLButtonElement>("button").forEach((each) => {
+      if (each.textContent === t("drawing.addLayer")) each.click();
+    });
+    await settled();
+    const second = t("drawing.layerName", { n: 2 });
+    button(t("drawing.hideLayer", { name: second }))?.click();
+    await settled();
+
+    // A red line over the black one, on the new layer.
+    button("Red")?.click();
+    await settled();
+    drawLine([0.5, 0.3], [0.5, 0.7]);
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("220,38,38");
+
+    // Hidden, the layer leaves the black line under it.
+    button(t("drawing.hideLayer", { name: second }))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    button(t("drawing.showLayer", { name: second }))?.click();
+    await settled();
+
+    // Under the first layer, the red line goes under the black one.
+    button(t("drawing.layerDown", { name: second }))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    expect(inkAt(0.5, 0.35)).toBe("220,38,38");
+
+    // The eraser on the red layer leaves the black line.
+    button(t("drawing.eraser"))?.click();
+    await settled();
+    drawLine([0.4, 0.5], [0.6, 0.5]);
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    drawLine([0.5, 0.3], [0.5, 0.4]);
+    await settled();
+    expect(inkAt(0.5, 0.35)).toBe(PAPER);
+
+    // Undo brings it all back, one step at a time.
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.35)).toBe("220,38,38");
+  });
+
+  it("saves only the layers that show, and nothing when none do", async () => {
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    button(t("drawing.layers"))?.click();
+    await settled();
+    button(
+      t("drawing.hideLayer", { name: t("drawing.layerName", { n: 1 }) }),
+    )?.click();
+    await settled();
+    button(t("editor.done"))?.click();
+    await settled();
+    expect(saved).toEqual([]);
+    expect(drawingRequest.value).toBeNull();
+  });
+
+  it("draws with the tip, size and opacity of the pen", async () => {
+    button(t("drawing.penSettings"))?.click();
+    await settled();
+    button(t("drawing.tipSquare"))?.click();
+    // Each change builds on the pen of the last render.
+    await settled();
+    const size = host.querySelector<HTMLInputElement>(
+      `input[aria-label="${t("drawing.customSize")}"]`,
+    );
+    if (size) {
+      size.value = "60";
+      size.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    await settled();
+    // A square tip of 60 reaches the corner of its square; a round one would not.
+    drawLine([0.5, 0.5], [0.5, 0.5]);
+    await settled();
+    const corner = (fx: number, fy: number) => inkAt(fx, fy);
+    expect(corner(0.5 + 27 / DRAWING_WIDTH, 0.5 + 27 / DRAWING_HEIGHT)).toBe(
+      "23,23,23",
+    );
+
+    const opacity = host.querySelector<HTMLInputElement>('input[type="range"]');
+    if (opacity) {
+      opacity.value = "50";
+      opacity.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    await settled();
+    drawLine([0.2, 0.2], [0.4, 0.2]);
+    await settled();
+    // Half the black over white paper, and no darker where the squares overlap.
+    const [r = 0] = inkAt(0.3, 0.2).split(",").map(Number);
+    expect(r).toBeGreaterThan(120);
+    expect(r).toBeLessThan(150);
+  });
+
+  it("picks an ink from the drawing with the eye dropper", async () => {
+    button("Red")?.click();
+    await settled();
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    button("Black")?.click();
+    button(t("drawing.dropper"))?.click();
+    await settled();
+    drawLine([0.5, 0.5], [0.5, 0.5]);
+    await settled();
+    const field = host.querySelector<HTMLInputElement>('input[type="color"]');
+    expect(field?.value).toBe("#dc2626");
+    // The pen draws with it again.
+    drawLine([0.2, 0.2], [0.8, 0.2]);
+    await settled();
+    expect(inkAt(0.5, 0.2)).toBe("220,38,38");
+  });
+
+  it("moves the ink of a layer, and makes it larger from its corner", async () => {
+    drawLine([0.2, 0.2], [0.3, 0.2]);
+    await settled();
+    button(t("drawing.move"))?.click();
+    await settled();
+    // A drag from inside the ink to the right moves the line there.
+    drawLine([0.25, 0.2], [0.65, 0.6]);
+    await settled();
+    expect(inkAt(0.25, 0.2)).toBe(PAPER);
+    expect(inkAt(0.65, 0.6)).toBe("23,23,23");
+
+    // A drag of the corner handle makes it twice as long.
+    const box = host.querySelector<HTMLElement>(".border-dashed");
+    expect(box).not.toBeNull();
+    const rect = canvas().getBoundingClientRect();
+    const right = (box?.getBoundingClientRect().right ?? 0) - rect.left;
+    const bottom = (box?.getBoundingClientRect().bottom ?? 0) - rect.top;
+    const corner: [number, number] = [right / rect.width, bottom / rect.height];
+    drawLine(corner, [corner[0] + 0.12, corner[1] + 0.02]);
+    await settled();
+    expect(inkAt(0.78, 0.6)).not.toBe(PAPER);
+
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(inkAt(0.78, 0.6)).toBe(PAPER);
+    expect(inkAt(0.65, 0.6)).toBe("23,23,23");
+  });
+
+  it("crops a layer and the picture to a selected area", async () => {
+    drawLine([0.1, 0.5], [0.9, 0.5]);
+    await settled();
+    button(t("drawing.select"))?.click();
+    await settled();
+    drawLine([0.4, 0.3], [0.6, 0.7]);
+    await settled();
+    host.querySelectorAll<HTMLButtonElement>("button").forEach((each) => {
+      if (each.textContent === t("drawing.cropLayer")) each.click();
+    });
+    await settled();
+    expect(inkAt(0.2, 0.5)).toBe(PAPER);
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+
+    drawLine([0.4, 0.4], [0.6, 0.6]);
+    await settled();
+    host.querySelectorAll<HTMLButtonElement>("button").forEach((each) => {
+      if (each.textContent === t("drawing.cropImage")) each.click();
+    });
+    await settled();
+    expect([canvas().width, canvas().height]).toEqual([
+      Math.round(0.2 * DRAWING_WIDTH),
+      Math.round(0.2 * DRAWING_HEIGHT),
+    ]);
+    // The middle of the crop is the middle of the line.
+    const ctx = canvas().getContext("2d") as CanvasRenderingContext2D;
+    const [r = 0] = ctx.getImageData(
+      canvas().width / 2,
+      canvas().height / 2,
+      1,
+      1,
+    ).data;
+    expect(r).toBe(23);
+
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(canvas().width).toBe(DRAWING_WIDTH);
+  });
+
+  it("draws a straight line, a box, and fills the box", async () => {
+    button(t("drawing.shapes"))?.click();
+    await settled();
+    button(t("drawing.line"))?.click();
+    await settled();
+    drawLine([0.1, 0.1], [0.9, 0.1]);
+    await settled();
+    expect(inkAt(0.5, 0.1)).toBe("23,23,23");
+
+    button(t("drawing.shapes"))?.click();
+    await settled();
+    button(t("drawing.rect"))?.click();
+    await settled();
+    drawLine([0.2, 0.3], [0.6, 0.7]);
+    await settled();
+    expect(inkAt(0.2, 0.5)).toBe("23,23,23");
+    expect(inkAt(0.4, 0.5)).toBe(PAPER);
+
+    button("Red")?.click();
+    button(t("drawing.fill"))?.click();
+    await settled();
+    drawLine([0.4, 0.5], [0.4, 0.5]);
+    await settled();
+    expect(inkAt(0.4, 0.5)).toBe("220,38,38");
+    // The fill stops at the outline.
+    expect(inkAt(0.8, 0.5)).toBe(PAPER);
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(inkAt(0.4, 0.5)).toBe(PAPER);
+  });
+
+  it("fills a shape with the background ink, and swaps the inks", async () => {
+    button(t("drawing.penSettings"))?.click();
+    await settled();
+    button(t("drawing.shapeFilled"))?.click();
+    button(t("drawing.shapes"))?.click();
+    await settled();
+    button(t("drawing.ellipse"))?.click();
+    await settled();
+    host
+      .querySelector<HTMLButtonElement>('button[aria-label="Blue"]')
+      ?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+    await settled();
+    drawLine([0.2, 0.2], [0.6, 0.8]);
+    await settled();
+    expect(inkAt(0.4, 0.5)).toBe("37,99,235");
+    // A box corner is outside the ellipse.
+    expect(inkAt(0.21, 0.21)).toBe(PAPER);
+
+    button(t("drawing.swapColors"))?.click();
+    await settled();
+    const field = host.querySelector<HTMLInputElement>(
+      `input[aria-label="${t("drawing.foreground")}"]`,
+    );
+    expect(field?.value).toBe("#2563eb");
+  });
+
+  it("closes a polygon on its first corner", async () => {
+    button(t("drawing.shapes"))?.click();
+    await settled();
+    button(t("drawing.polygon"))?.click();
+    await settled();
+    for (const corner of [
+      [0.2, 0.2],
+      [0.8, 0.2],
+      [0.5, 0.8],
+      [0.2, 0.2],
+    ] as [number, number][]) {
+      drawLine(corner, corner);
+      await settled();
+    }
+    expect(inkAt(0.5, 0.2)).toBe("23,23,23");
+    expect(inkAt(0.35, 0.5)).toBe("23,23,23");
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.2)).toBe(PAPER);
+  });
+
+  it("discards a polygon in progress on Undo, and keeps the drawing under it", async () => {
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    await settled();
+    button(t("drawing.shapes"))?.click();
+    await settled();
+    button(t("drawing.polygon"))?.click();
+    await settled();
+    drawLine([0.3, 0.2], [0.3, 0.2]);
+    drawLine([0.7, 0.2], [0.7, 0.2]);
+    await settled();
+    button(t("editor.undo"))?.click();
+    await settled();
+    // The line drawn before the polygon stays, and the polygon is gone.
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    expect(inkAt(0.5, 0.2)).toBe(PAPER);
+  });
+
+  it("does not move a hidden layer", async () => {
+    drawLine([0.2, 0.2], [0.3, 0.2]);
+    button(t("drawing.layers"))?.click();
+    await settled();
+    button(
+      t("drawing.hideLayer", { name: t("drawing.layerName", { n: 1 }) }),
+    )?.click();
+    await settled();
+    button(t("drawing.move"))?.click();
+    await settled();
+    expect(host.querySelector(".border-dashed")).toBeNull();
+    drawLine([0.25, 0.2], [0.65, 0.6]);
+    await settled();
+    expect(inkAt(0.65, 0.6)).toBe(PAPER);
+    // Shown again from the list, which stays open, the ink is where it was.
+    button(
+      t("drawing.showLayer", { name: t("drawing.layerName", { n: 1 }) }),
+    )?.click();
+    await settled();
+    expect(inkAt(0.25, 0.2)).toBe("23,23,23");
+  });
+
+  it("zooms in and back to the size of the screen", async () => {
+    const before = canvas().getBoundingClientRect().width;
+    button(t("drawing.zoomIn"))?.click();
+    await settled();
+    await settled();
+    expect(canvas().getBoundingClientRect().width).toBeCloseTo(
+      before * 1.25,
+      0,
+    );
+    // The paper keeps its own size: only the view changes.
+    expect(canvas().width).toBe(DRAWING_WIDTH);
+    button(t("drawing.zoomFit"))?.click();
+    await settled();
+    await settled();
+    expect(canvas().getBoundingClientRect().width).toBeCloseTo(before, 0);
+  });
+
   it("hands the drawing over as a PNG with the ink in it", async () => {
     drawLine([0.2, 0.5], [0.8, 0.5]);
     await settled();
