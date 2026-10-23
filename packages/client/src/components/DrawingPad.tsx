@@ -1,5 +1,5 @@
 import { isStoredImageRef, NoteColor } from "@manifesto/shared";
-import { Check, Eraser, Trash2, Undo, X } from "lucide-preact";
+import { Check, Eraser, Layers, Redo, Trash2, Undo, X } from "lucide-preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { useBackToClose } from "#/hooks/useBackToClose.ts";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
@@ -11,16 +11,30 @@ import { closeDrawing, drawingRequest } from "#/state/drawing.ts";
 import { showError } from "#/state/ui.ts";
 import {
   BLANK_PAPER,
+  blankCanvas,
   drawingPoint,
   drawStroke,
   encodeDrawing,
   PAPER,
   type PaperSize,
+  paintLayer,
   paperSizeFor,
   penScale,
   renderDrawing,
   type Stroke,
 } from "#/utils/drawing.ts";
+import {
+  activeLayer,
+  addStroke,
+  clearLayer,
+  hasStrokes,
+  hasVisibleStrokes,
+  newSketchHistory,
+  redo,
+  type SketchHistory,
+  undo,
+} from "#/utils/drawingLayers.ts";
+import { DrawingLayers } from "./DrawingLayers.tsx";
 
 const INKS = [
   { color: "#171717", name: null },
@@ -48,17 +62,28 @@ const barButton =
  * because only the canvas has `touch-action: none`. The stroke follows the
  * pointer through a capture. Thus, it continues past the edge of the paper, and
  * ends cleanly when the system cancels the touch.
+ *
+ * The drawing has layers, and each change is a step that undo takes back and
+ * redo does again. All of it is for this session: Done flattens what shows into
+ * one picture.
  */
 export function DrawingPad() {
   const request = drawingRequest.value;
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const strokesRef = useRef<Stroke[]>([]);
+  const historyRef = useRef<SketchHistory>(newSketchHistory());
+  const [history, setHistory] = useState(historyRef.current);
+  const [layersOpen, setLayersOpen] = useState(false);
   const drawing = useRef<{ pointerId: number; stroke: Stroke } | null>(null);
-  // The drawing as it was when the current line started, and the frame that
-  // will next put that line over it.
-  const beneath = useRef<HTMLCanvasElement | null>(null);
+  // While a line is drawn: the picture under its layer, that layer as it was,
+  // the picture over it, and a canvas to put the line on the layer. Then the
+  // frame that will next show it.
+  const live = useRef<{
+    under: HTMLCanvasElement;
+    layer: HTMLCanvasElement;
+    over: HTMLCanvasElement;
+    scratch: HTMLCanvasElement;
+  } | null>(null);
   const frame = useRef(0);
-  const [count, setCount] = useState(0);
   const [ink, setInk] = useState<string>(INKS[0].color);
   const [width, setWidth] = useState<number>(WIDTHS[1]);
   const [erasing, setErasing] = useState(false);
@@ -75,7 +100,22 @@ export function DrawingPad() {
 
   const redraw = () => {
     const ctx = context();
-    if (ctx) renderDrawing(ctx, strokesRef.current, paper, base.current);
+    if (ctx) {
+      renderDrawing(
+        ctx,
+        historyRef.current.present.layers,
+        paper,
+        base.current,
+      );
+    }
+  };
+
+  /** The drawing after a change, on the canvas and in the controls. */
+  const apply = (next: SketchHistory) => {
+    if (next === historyRef.current) return;
+    historyRef.current = next;
+    setHistory(next);
+    redraw();
   };
 
   // The paper, before anything is drawn on it and before the first frame. A
@@ -135,9 +175,17 @@ export function DrawingPad() {
     frame.current = 0;
     const ctx = context();
     const active = drawing.current;
-    if (!ctx || !active) return;
-    if (beneath.current) ctx.drawImage(beneath.current, 0, 0);
-    drawStroke(ctx, active.stroke);
+    const canvases = live.current;
+    if (!ctx || !active || !canvases) return;
+    const { under, layer, over, scratch } = canvases;
+    const scratchCtx = scratch.getContext("2d");
+    if (!scratchCtx) return;
+    scratchCtx.clearRect(0, 0, scratch.width, scratch.height);
+    scratchCtx.drawImage(layer, 0, 0);
+    drawStroke(scratchCtx, active.stroke);
+    ctx.drawImage(under, 0, 0);
+    ctx.drawImage(scratch, 0, 0);
+    ctx.drawImage(over, 0, 0);
   };
 
   /** Makes the current line, if there is one, part of the drawing. */
@@ -145,11 +193,10 @@ export function DrawingPad() {
     const active = drawing.current;
     if (!active) return;
     drawing.current = null;
+    live.current = null;
     cancelAnimationFrame(frame.current);
     frame.current = 0;
-    strokesRef.current = [...strokesRef.current, active.stroke];
-    setCount(strokesRef.current.length);
-    redraw();
+    apply(addStroke(historyRef.current, active.stroke));
   };
 
   const discard = async () => {
@@ -167,7 +214,7 @@ export function DrawingPad() {
   const cancel = (): boolean => {
     // A line that is still in progress is also a drawing to lose.
     commitStroke();
-    if (strokesRef.current.length === 0) {
+    if (!hasStrokes(historyRef.current.present)) {
       closeDrawing();
       return true;
     }
@@ -185,7 +232,8 @@ export function DrawingPad() {
     if (!canvas || !request || saving) return;
     // Done, pushed with the pen still down, keeps the current line.
     commitStroke();
-    if (strokesRef.current.length === 0) {
+    // Only what shows is the picture. Hidden layers alone change nothing.
+    if (!hasVisibleStrokes(historyRef.current.present)) {
       closeDrawing();
       return;
     }
@@ -227,11 +275,23 @@ export function DrawingPad() {
       color: erasing ? PAPER : ink,
       width: (erasing ? width * ERASER_SCALE : width) * penScale(paper),
       points: [drawingPoint(event, canvas.getBoundingClientRect(), paper)],
+      ...(erasing ? { erase: true } : {}),
     };
-    beneath.current ??= document.createElement("canvas");
-    beneath.current.width = paper.width;
-    beneath.current.height = paper.height;
-    beneath.current.getContext("2d")?.drawImage(canvas, 0, 0);
+    const { layers, active } = historyRef.current.present;
+    const at = layers.findIndex((layer) => layer.id === active);
+    const under = blankCanvas(paper);
+    const over = blankCanvas(paper);
+    const layer = blankCanvas(paper);
+    const underCtx = under.getContext("2d");
+    const overCtx = over.getContext("2d");
+    if (underCtx) {
+      renderDrawing(underCtx, layers.slice(0, at), paper, base.current);
+    }
+    if (overCtx) {
+      renderDrawing(overCtx, layers.slice(at + 1), paper, null, true);
+    }
+    paintLayer(layer, layers[at]?.strokes ?? []);
+    live.current = { under, layer, over, scratch: blankCanvas(paper) };
     drawing.current = { pointerId: event.pointerId, stroke };
     paintActive();
   };
@@ -252,18 +312,6 @@ export function DrawingPad() {
 
   const endStroke = (event: PointerEvent) => {
     if (drawing.current?.pointerId === event.pointerId) commitStroke();
-  };
-
-  const undo = () => {
-    strokesRef.current = strokesRef.current.slice(0, -1);
-    setCount(strokesRef.current.length);
-    redraw();
-  };
-
-  const clear = () => {
-    strokesRef.current = [];
-    setCount(0);
-    redraw();
   };
 
   return (
@@ -293,8 +341,8 @@ export function DrawingPad() {
         <button
           type="button"
           class={barButton}
-          onClick={undo}
-          disabled={count === 0}
+          onClick={() => apply(undo(historyRef.current))}
+          disabled={history.past.length === 0}
           aria-label={t("editor.undo")}
         >
           <Undo class="w-5 h-5" />
@@ -302,8 +350,17 @@ export function DrawingPad() {
         <button
           type="button"
           class={barButton}
-          onClick={clear}
-          disabled={count === 0}
+          onClick={() => apply(redo(historyRef.current))}
+          disabled={history.future.length === 0}
+          aria-label={t("editor.redo")}
+        >
+          <Redo class="w-5 h-5" />
+        </button>
+        <button
+          type="button"
+          class={barButton}
+          onClick={() => apply(clearLayer(historyRef.current))}
+          disabled={!activeLayer(history.present)?.strokes.length}
           aria-label={t("drawing.clear")}
         >
           <Trash2 class="w-5 h-5" />
@@ -335,7 +392,7 @@ export function DrawingPad() {
         />
       </div>
 
-      <div class="flex items-center justify-center gap-1 flex-wrap px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div class="relative flex items-center justify-center gap-1 flex-wrap px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {INKS.map(({ color, name }) => (
           <button
             key={color}
@@ -369,6 +426,15 @@ export function DrawingPad() {
         <span class="w-px h-6 mx-1 bg-white/20" aria-hidden="true" />
         <button
           type="button"
+          class={`${barButton} ${layersOpen ? "bg-white/20" : ""}`}
+          onClick={() => setLayersOpen(!layersOpen)}
+          aria-label={t("drawing.layers")}
+          aria-expanded={layersOpen}
+        >
+          <Layers class="w-5 h-5" />
+        </button>
+        <button
+          type="button"
           class={`${barButton} ${erasing ? "bg-white/20" : ""}`}
           onClick={() => setErasing(!erasing)}
           aria-label={t("drawing.eraser")}
@@ -376,6 +442,13 @@ export function DrawingPad() {
         >
           <Eraser class="w-5 h-5" />
         </button>
+        {layersOpen && (
+          <DrawingLayers
+            history={history}
+            onChange={apply}
+            onClose={() => setLayersOpen(false)}
+          />
+        )}
       </div>
     </div>
   );
