@@ -130,6 +130,7 @@ export function addLayer(history: SketchHistory): SketchHistory {
   const at = sketch.layers.findIndex((layer) => layer.id === sketch.active) + 1;
   const layer: Layer = { id: sketch.nextId, visible: true, marks: [] };
   return record(history, {
+    ...sketch,
     layers: [...sketch.layers.slice(0, at), layer, ...sketch.layers.slice(at)],
     active: layer.id,
     nextId: sketch.nextId + 1,

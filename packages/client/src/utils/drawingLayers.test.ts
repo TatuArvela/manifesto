@@ -212,6 +212,14 @@ describe("drawing layers", () => {
     });
   });
 
+  it("keeps the crop when a layer is added", () => {
+    const paper = { x: 0, y: 0, width: 100, height: 100 };
+    const area = { x: 10, y: 20, width: 30, height: 40 };
+    const history = addLayer(cropImage(newSketchHistory(), area, paper));
+    expect(history.present.frame).toEqual(area);
+    expect(history.present.layers).toHaveLength(2);
+  });
+
   it("crops the picture inside what it shows, in whole pixels", () => {
     const paper = { x: 0, y: 0, width: 100, height: 100 };
     let history = cropImage(
