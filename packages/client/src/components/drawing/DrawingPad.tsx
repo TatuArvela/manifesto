@@ -166,14 +166,24 @@ export function DrawingPad() {
     view.height,
   ]);
 
+  /**
+   * A new mark, cut to the selected area while there is one: as in a picture
+   * editor, the selection limits where the pen, the eraser, the shapes and the
+   * fill apply. The area stays with the mark, also after the selection ends.
+   */
+  const inSelection = (mark: Mark): Mark =>
+    selection ? { clip: selection, marks: [mark] } : mark;
+
   /** Marks that the frame shows on the active layer, not yet in the sketch. */
   const previewMarks = (): Mark[] => {
     const now = gesture.current;
-    if (now?.kind === "stroke" || now?.kind === "shape") return [now.mark];
+    if (now?.kind === "stroke" || now?.kind === "shape") {
+      return [inSelection(now.mark)];
+    }
     const open = polygon.current;
     if (open) {
       const corners = open.hover ? [...open.corners, open.hover] : open.corners;
-      return [shapeMark("polygon", corners)];
+      return [inSelection(shapeMark("polygon", corners))];
     }
     return [];
   };
@@ -242,7 +252,7 @@ export function DrawingPad() {
         return;
       }
     }
-    apply(addMark(historyRef.current, now.mark));
+    apply(addMark(historyRef.current, inSelection(now.mark)));
   };
 
   /** Closes the polygon in progress and keeps it, with three corners or more. */
@@ -259,7 +269,9 @@ export function DrawingPad() {
       );
     });
     if (corners.length >= 3) {
-      apply(addMark(historyRef.current, shapeMark("polygon", corners)));
+      apply(
+        addMark(historyRef.current, inSelection(shapeMark("polygon", corners))),
+      );
     } else {
       redraw();
     }
@@ -448,11 +460,14 @@ export function DrawingPad() {
     if (!image) return;
     const { bounds } = area;
     apply(
-      addMark(historyRef.current, {
-        image,
-        at: { ...bounds, x: bounds.x + shown.x, y: bounds.y + shown.y },
-        ...(pen.opacity < 1 ? { opacity: pen.opacity } : {}),
-      }),
+      addMark(
+        historyRef.current,
+        inSelection({
+          image,
+          at: { ...bounds, x: bounds.x + shown.x, y: bounds.y + shown.y },
+          ...(pen.opacity < 1 ? { opacity: pen.opacity } : {}),
+        }),
+      ),
     );
   };
 
@@ -736,7 +751,8 @@ export function DrawingPad() {
         {tool === "move" && box && moveBox && (
           <DrawingOverlay box={box} view={view} rect={moveBox} handle />
         )}
-        {tool === "select" && box && selection && (
+        {/* The selected area shows with every tool, as it limits them all. */}
+        {box && selection && tool !== "move" && (
           <DrawingOverlay box={box} view={view} rect={selection} />
         )}
         {/* Light and dark rings: it shows over any ink and over a photo. */}

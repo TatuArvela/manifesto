@@ -40,7 +40,7 @@ shares and exports it as a picture, and it uses one of the image slots of the no
     it is less sharp than a line.
   - **Eyedropper** takes the foreground ink from where you press on the drawing, as it shows with
     all layers and the image. Then the tool from before comes back.
-  - **Shapes** opens four tools: **Line**, **Rectangle**, **Ellipse** and **Polygon**. A drag
+  - **Shapes** opens a menu of four tools, which a press outside it closes: **Line**, **Rectangle**, **Ellipse** and **Polygon**. A drag
     draws a line, or a box or an ellipse in the box of the drag. With Shift, a line goes in steps
     of 15 degrees, and a box or an ellipse has equal sides. A polygon gets a corner at each press.
     A press on the first corner, or a double click, closes it. Escape or Undo discards it, and so
@@ -79,7 +79,11 @@ shares and exports it as a picture, and it uses one of the image slots of the no
 - **Select** marks an area with a drag. With an area, two buttons show. **Crop layer** cuts the ink
   of the current layer to the area: the rest no longer shows, but lines that you draw after it are
   not cut. **Crop image** makes the picture the area, and Done saves only that part. A second crop
-  stays inside the first. Escape, or a tap, removes the area. Each crop is one step for undo.
+  stays inside the first. Escape, a tap with Select, or the close button removes the area. Each
+  crop is one step for undo.
+- The area stays when you change the tool, and limits where the pen, the eraser, the shapes and the
+  fill apply. A line that crosses its edge stops there. The line keeps that limit after the area is
+  removed.
 - Clear empties the current layer.
 - Each stroke, shape, fill, clear, and change to a layer is one step that undo takes back and redo does again.
   The choice of the layer to draw on is not a step. A new change after an undo removes the steps to

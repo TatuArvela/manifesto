@@ -15,8 +15,8 @@ import {
   Square,
   SquareDashedMousePointer,
 } from "lucide-preact";
-import type { ComponentType } from "preact";
-import { useState } from "preact/hooks";
+import type { ComponentType, RefObject } from "preact";
+import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { getColorLabel, t } from "#/i18n/index.ts";
@@ -127,17 +127,32 @@ function ToolButton({
   );
 }
 
-/** The four shape tools, in a panel. A choice closes it. */
+/**
+ * The four shape tools, in a panel. A choice, Escape or a press outside closes
+ * it.
+ */
 function ShapePicker({
   tool,
+  within,
   onTool,
   onClose,
 }: {
   tool: Tool;
+  /** The picker with its button. A press anywhere else closes the picker. */
+  within: RefObject<HTMLElement | null>;
   onTool: (tool: Tool) => void;
   onClose: () => void;
 }) {
   useEscapeStack(true, onClose);
+  useEffect(() => {
+    const outside = (event: PointerEvent) => {
+      const area = within.current;
+      if (area && !area.contains(event.target as Node)) onClose();
+    };
+    // Capture: the canvas takes its pointer events, and they do not bubble.
+    document.addEventListener("pointerdown", outside, true);
+    return () => document.removeEventListener("pointerdown", outside, true);
+  }, [within, onClose]);
   return (
     <fieldset
       class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 flex gap-1 rounded-lg bg-neutral-800 p-1 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0 md:left-full md:top-0 md:bottom-auto md:translate-x-0 md:mb-0 md:ml-2"
@@ -198,7 +213,8 @@ export function DrawingToolbar({
   const [panel, setPanel] = useState<"pen" | "layers" | "shapes" | null>(null);
   const toggle = (next: "pen" | "layers" | "shapes") =>
     setPanel(panel === next ? null : next);
-  const close = () => setPanel(null);
+  const close = useCallback(() => setPanel(null), []);
+  const shapesArea = useRef<HTMLSpanElement>(null);
   const shape = SHAPES.find((each) => each.tool === tool) ?? null;
   const ShapeIcon = shape?.Icon ?? Shapes;
   /** A color does not take the place of a tool, except of one with no ink. */
@@ -301,7 +317,7 @@ export function DrawingToolbar({
             label={t(label)}
           />
         ))}
-        <span class="relative">
+        <span class="relative" ref={shapesArea}>
           <Tooltip label={t("drawing.shapes")}>
             <button
               type="button"
@@ -314,7 +330,12 @@ export function DrawingToolbar({
             </button>
           </Tooltip>
           {panel === "shapes" && (
-            <ShapePicker tool={tool} onTool={onTool} onClose={close} />
+            <ShapePicker
+              tool={tool}
+              within={shapesArea}
+              onTool={onTool}
+              onClose={close}
+            />
           )}
         </span>
         <ToolButton

@@ -548,6 +548,37 @@ describe("DrawingPad", () => {
     expect(inkAt(0.5, 0.5)).toBe("23,23,23");
   });
 
+  it("draws only inside the selected area, with any tool", async () => {
+    button(t("drawing.select"))?.click();
+    await settled();
+    drawLine([0.4, 0.3], [0.6, 0.7]);
+    await settled();
+    button(t("drawing.penTool"))?.click();
+    await settled();
+    drawLine([0.1, 0.5], [0.9, 0.5]);
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    expect(inkAt(0.2, 0.5)).toBe(PAPER);
+    // The area stays with the line after the selection ends.
+    button(t("drawing.clearSelection"))?.click();
+    await settled();
+    expect(inkAt(0.2, 0.5)).toBe(PAPER);
+    drawLine([0.1, 0.2], [0.9, 0.2]);
+    await settled();
+    expect(inkAt(0.2, 0.2)).toBe("23,23,23");
+  });
+
+  it("closes the shapes menu on a press outside it", async () => {
+    button(t("drawing.shapes"))?.click();
+    await settled();
+    expect(button(t("drawing.ellipse"))).not.toBeNull();
+    canvas().dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, pointerId: 2 }),
+    );
+    await settled();
+    expect(button(t("drawing.ellipse"))).toBeNull();
+  });
+
   it("zooms in and back to the size of the screen", async () => {
     const before = canvas().getBoundingClientRect().width;
     button(t("drawing.zoomIn"))?.click();
