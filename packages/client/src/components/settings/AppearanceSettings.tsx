@@ -2,6 +2,7 @@ import { Switch } from "#/components/ToggleSwitch.tsx";
 import { t } from "#/i18n/index.ts";
 import {
   animations,
+  complexShadows,
   noteCorners,
   noteQuips,
   stickyTopBar,
@@ -31,6 +32,16 @@ export function AppearanceSettings() {
               noteCorners.value = checked ? "rounded" : "straight";
             }}
             label={t("settings.noteCorners")}
+          />
+        </SettingsRow>
+
+        <SettingsRow label={t("settings.complexShadows")}>
+          <Switch
+            checked={complexShadows.value}
+            onChange={(checked) => {
+              complexShadows.value = checked;
+            }}
+            label={t("settings.complexShadows")}
           />
         </SettingsRow>
       </SettingsGroup>

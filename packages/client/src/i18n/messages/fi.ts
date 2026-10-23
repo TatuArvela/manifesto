@@ -413,6 +413,7 @@ export const fi: Messages = {
   "settings.noteTilt.tidy": "Siisti",
   "settings.noteTilt.messy": "Sotkuinen",
   "settings.noteCorners": "Pyöristetyt kulmat",
+  "settings.complexShadows": "Monimutkaiset varjot",
   "settings.animations": "Animaatiot",
   "settings.boardBackground": "Taulun tausta",
   "settings.boardBackground.colors": "Värit",

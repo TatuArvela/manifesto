@@ -35,6 +35,96 @@
 }
 
 /*
+ * The shadow of a card on the board: a sheet of paper whose bottom corners
+ * curl a little up off the page. The card itself has a very faint shadow on
+ * all sides, and a thin, darker one along its bottom edge, where the middle
+ * of the paper still lies on the page. Behind its lower part, the wrapper
+ * (`note-curl`) has a dark sheet (`.note-curl-shadow`), narrower than the card
+ * at its top and wider at its bottom, longer at the bottom, and blurred. Thus,
+ * only the sides near the bottom get any of it.
+ * Its bottom edge is a curve: an elliptical mask takes the middle away. Thus,
+ * the shadow is deepest and longest under the corners, almost clear under the
+ * middle, and comes a little up the sides near the corners.
+ *
+ * Two boxes, because a filter applies before the mask of the same element: the
+ * mask cuts the shape in the `::before`, and the element blurs the cut shape.
+ * On the wrapper, not the card, because the card clips its content
+ * (`overflow-hidden`). `isolation` keeps it above the board and behind the
+ * card. A hovered card, or one with its menu open, curls more.
+ */
+@utility note-shadow {
+  box-shadow:
+    0 0 1px rgb(0 0 0 / 0.08),
+    0 0 6px rgb(0 0 0 / 0.04),
+    0 3px 3px -2px rgb(0 0 0 / 0.16);
+}
+
+/*
+ * Registered as a length. Thus, the depth animates when a card is hovered: an
+ * unregistered custom property only jumps from one value to the other.
+ */
+@property --curl-depth {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 42px;
+}
+
+@utility note-curl {
+  --curl-depth: 42px;
+  isolation: isolate;
+  transition: --curl-depth 150ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:is(:hover, [data-popover-open]) {
+    --curl-depth: 50px;
+  }
+
+  /*
+   * The box of the card. Thus, it turns about the centre of the card when the
+   * card leans (below).
+   */
+  & > .note-curl-shadow {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    pointer-events: none;
+    filter: blur(5px);
+    transition: rotate 200ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 40%;
+      right: -7px;
+      bottom: calc(-1 * var(--curl-depth));
+      left: -7px;
+      /*
+       * Narrower than the card at the top, wider at the bottom. Thus, the
+       * sides stay almost clean, and the curls reach out past the corners.
+       */
+      clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 100%, 0 100%);
+      background: rgb(0 0 0 / 0.18);
+      mask: radial-gradient(
+        ellipse 70% calc(var(--curl-depth) + 2px) at 50% 100%,
+        transparent 86%,
+        black
+      );
+    }
+  }
+
+  /* While the card is dragged, the card is hidden. Thus, its shadow too. */
+  &:has(> .note-dragging) > .note-curl-shadow {
+    visibility: hidden;
+  }
+
+  /* The card leans on a messy board (preferences.css), and its shadow with it. */
+  :root.notes-messy
+    &:has(> .note-tilt):not(:hover, :focus-within)
+    > .note-curl-shadow {
+    rotate: var(--note-tilt, 0deg);
+  }
+}
+
+/*
  * The sticky note stack.
  *
  * The stack is a pad of paper: two full sheets (`-next` behind `-top`) on a

@@ -119,7 +119,7 @@ sets most frequently:
 | `noteTilt` | `tidy` (default), `messy` |
 | `defaultNoteColor` | `default` (default), `red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple`, `pink`, `brown`, `gray`, `random` |
 | `defaultEditMode` | `normal` (default), `raw` |
-| `confirmBeforeDelete`, `inlineCalculations`, `noteQuips`, `formattingToolbar`, `checkedItemsLast`, `checklistProgress`, `linkPreviewCards` | `true` or `false` |
+| `confirmBeforeDelete`, `complexShadows`, `inlineCalculations`, `noteQuips`, `formattingToolbar`, `checkedItemsLast`, `checklistProgress`, `linkPreviewCards` | `true` or `false` |
 | `boardColor`, `boardGradient` | `none` (default), `white`, `gray`, `black`, a board color, `custom`, `random` |
 | `boardCustomColor`, `boardGradientCustomColor`, `boardInkColor` | a `#rrggbb` color |
 | `boardGradientDirection` | `top`, `top-right`, `right`, `bottom-right` (default), `bottom`, `bottom-left`, `left`, `top-left`, `random` |

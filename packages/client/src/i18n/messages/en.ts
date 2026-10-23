@@ -406,6 +406,7 @@ export const en = {
   "settings.noteTilt.tidy": "Tidy",
   "settings.noteTilt.messy": "Messy",
   "settings.noteCorners": "Rounded Corners",
+  "settings.complexShadows": "Complex Shadows",
   "settings.animations": "Animations",
   "settings.boardBackground": "Board Background",
   "settings.boardBackground.colors": "Colors",

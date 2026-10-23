@@ -127,7 +127,7 @@ The state is in `packages/client/src/state/`. It is reactive through `@preact/si
 - **`prefs.ts`**: user preferences, kept in `localStorage` under `manifesto:prefs` through a debounced
   `effect()`. It contains `viewMode`, `noteSize`, `noteScale`, `sortMode`, `theme`, `lightHue`,
   `darkHue`, `defaultNoteColor`, `defaultNoteFont`, `noteQuips`, `formattingToolbar`, `stickyTopBar`,
-  `defaultEditMode`, `noteCorners`, `animations`, `boardColor`, `boardCustomColor`, `boardGradient`,
+  `defaultEditMode`, `noteCorners`, `complexShadows`, `animations`, `boardColor`, `boardCustomColor`, `boardGradient`,
   `boardGradientCustomColor`, `boardGradientDirection`, `boardTexture`, `boardInk`, `boardInkColor`,
   `boardTextureOpacity`, `boardUsePicture`, `boardImageStamp`, `inlineCalculations`,
   `decimalSeparator`, and `locale`.
