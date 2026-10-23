@@ -1,3 +1,6 @@
+import { Diameter, Eye, PenTool, Shapes } from "lucide-preact";
+import type { ComponentType } from "preact";
+import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { t } from "#/i18n/index.ts";
 import type { PenTip } from "#/utils/drawing.ts";
@@ -56,6 +59,27 @@ export function penOptions(tool: Tool) {
 export const hasPenOptions = (tool: Tool) =>
   Object.values(penOptions(tool)).some(Boolean);
 
+/**
+ * The name of an option: an icon, with the name on hover. In the panel of a
+ * phone, there is room for the name as text too.
+ */
+function OptionName({
+  Icon,
+  name,
+}: {
+  Icon: ComponentType<{ class?: string }>;
+  name: string;
+}) {
+  return (
+    <span class="flex-1 flex items-center gap-2 md:flex-none md:pr-1">
+      <Tooltip label={name}>
+        <Icon class="w-4 h-4 text-neutral-400" />
+      </Tooltip>
+      <span class="md:sr-only">{name}</span>
+    </span>
+  );
+}
+
 const choice = (on: boolean) =>
   `w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer ${on ? "bg-white/20" : "hover:bg-white/10"}`;
 
@@ -93,7 +117,7 @@ export function DrawingPen({
     >
       {shows.tip && (
         <div class="flex items-center gap-1">
-          <span class="flex-1 md:pr-1">{t("drawing.tip")}</span>
+          <OptionName Icon={PenTool} name={t("drawing.tip")} />
           {TIPS.map(({ tip, label }) => (
             <button
               key={tip}
@@ -110,7 +134,7 @@ export function DrawingPen({
       )}
       {shows.size && (
         <div class="flex items-center gap-1">
-          <span class="flex-1 md:pr-1">{t("drawing.size")}</span>
+          <OptionName Icon={Diameter} name={t("drawing.size")} />
           {WIDTHS.map((each, i) => (
             <button
               key={each}
@@ -144,7 +168,7 @@ export function DrawingPen({
       )}
       {shows.opacity && (
         <label class="flex items-center gap-2">
-          <span class="flex-1 md:pr-1">{t("drawing.inkOpacity")}</span>
+          <OptionName Icon={Eye} name={t("drawing.inkOpacity")} />
           <input
             type="range"
             class="w-28 accent-blue-500"
@@ -166,7 +190,7 @@ export function DrawingPen({
       )}
       {shows.shapes && (
         <div class="flex items-center gap-1">
-          <span class="flex-1 md:pr-1">{t("drawing.shapeStyle")}</span>
+          <OptionName Icon={Shapes} name={t("drawing.shapeStyle")} />
           {SHAPE_STYLES.map(({ style, label }) => (
             <button
               key={style}
