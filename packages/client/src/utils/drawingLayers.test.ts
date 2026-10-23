@@ -16,6 +16,7 @@ import {
   selectLayer,
   setLayerOpacity,
   toggleLayer,
+  transformLayer,
   undo,
 } from "./drawingLayers.ts";
 
@@ -159,5 +160,22 @@ describe("drawing layers", () => {
     history = addStroke(history, line(1));
     history = setLayerOpacity(history, 1, 0.4);
     expect(history.past).toHaveLength(3);
+  });
+
+  it("moves the active layer only, as one step", () => {
+    let history = addStroke(newSketchHistory(), line(1));
+    history = addStroke(addLayer(history), line(2));
+    history = transformLayer(history, { scale: 1, dx: 5, dy: 0 });
+    const [bottom, top] = history.present.layers;
+    expect(bottom?.strokes[0]?.points[0]).toEqual([1, 0]);
+    expect(top?.strokes[0]?.points[0]).toEqual([7, 0]);
+    expect(undo(history).present.layers[1]?.strokes[0]?.points[0]).toEqual([
+      2, 0,
+    ]);
+    // No move, or an empty layer: no step.
+    const still = transformLayer(history, { scale: 1, dx: 0, dy: 0 });
+    expect(still).toBe(history);
+    const empty = addLayer(history);
+    expect(transformLayer(empty, { scale: 2, dx: 0, dy: 0 })).toBe(empty);
   });
 });

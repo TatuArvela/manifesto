@@ -3,7 +3,13 @@
 // only move between sketches, and a sketch shares the strokes it did not
 // change. Pure: the pad draws it, and the tests need no canvas.
 
-import type { Stroke } from "./drawing.ts";
+import {
+  type Rect,
+  type Stroke,
+  strokeBounds,
+  type Transform,
+  transformStroke,
+} from "./drawing.ts";
 
 export interface Layer {
   /** Also the number in its name. A deleted layer does not give its number to a new one. */
@@ -173,6 +179,27 @@ export function setLayerOpacity(
 /** Ends a change that joins: the next one is a step of its own. */
 export const endJoin = (history: SketchHistory): SketchHistory =>
   history.joins === undefined ? history : { ...history, joins: undefined };
+
+/** The box of the ink of a layer, or null for an empty layer. */
+export const layerBounds = (layer: Layer): Rect | null =>
+  strokeBounds(layer.strokes);
+
+/** Moves, or makes larger or smaller, all that is on the active layer. */
+export function transformLayer(
+  history: SketchHistory,
+  by: Transform,
+): SketchHistory {
+  const sketch = history.present;
+  if (by.scale === 1 && by.dx === 0 && by.dy === 0) return history;
+  if (!activeLayer(sketch)?.strokes.length) return history;
+  return record(
+    history,
+    changeLayer(sketch, sketch.active, (layer) => ({
+      ...layer,
+      strokes: layer.strokes.map((stroke) => transformStroke(stroke, by)),
+    })),
+  );
+}
 
 /** Moves a layer one place up (+1) or down (-1). Nothing past the top or the bottom. */
 export function moveLayer(
