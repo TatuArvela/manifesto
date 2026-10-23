@@ -288,6 +288,8 @@ describe("DrawingPad", () => {
     button(t("drawing.penSettings"))?.click();
     await settled();
     button(t("drawing.tipSquare"))?.click();
+    // Each change builds on the pen of the last render.
+    await settled();
     const size = host.querySelector<HTMLInputElement>(
       `input[aria-label="${t("drawing.customSize")}"]`,
     );
