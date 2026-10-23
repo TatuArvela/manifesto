@@ -210,10 +210,13 @@ export function CardActions({
     /* biome-ignore lint/a11y/useKeyWithClickEvents: event stop container */
     <div
       class={clsx(
-        "flex items-center gap-1 transition-[opacity,visibility]",
+        // A narrow card or screen has less room than the buttons. Thus, the row
+        // scrolls sideways (with no bar), and does not cut off the last ones.
+        "flex items-center gap-1 overflow-x-auto [scrollbar-width:none] *:shrink-0 transition-[opacity,visibility]",
         overlay
           ? "absolute bottom-0 left-0 right-0 px-2.5 py-2 bg-gradient-to-t from-black/60 to-transparent text-white"
-          : "mt-auto pt-3 -ml-1.5",
+          : // The padding keeps the focus ring (4px out) inside the scroll box.
+            "mt-auto pt-3 pb-1 -mb-1 pl-1 -ml-2.5 pr-1 -mr-1",
         isSelectMode
           ? "invisible opacity-0"
           : "opacity-0 group-hover:opacity-100 group-data-popover-open:opacity-100 group-has-[:focus-visible]:opacity-100 touch:opacity-100",
