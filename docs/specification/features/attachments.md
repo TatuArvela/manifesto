@@ -26,8 +26,17 @@ pad: a sheet of white paper. You draw on it with a finger, a pen or a mouse. Don
 the note as a PNG image, through the same path as an attached picture. Thus, the app stores, shows,
 shares and exports it as a picture, and it uses one of the image slots of the note.
 
-- There are four inks (black, red, blue, green), three pen widths, an eraser, undo, redo, and clear.
-  A tap makes a dot.
+- There are twelve inks, a field to choose any other ink, and an eye dropper. The eye dropper takes
+  the ink from where you press on the drawing, as it shows with all layers and the image, and then
+  the pen draws with it.
+- **Pen**, in the bottom bar, sets the tip (round, square, or a tilted oval as a broad nib), the
+  size (three sizes or a field from 1 to 200), and the opacity of the ink (5 to 100 percent). A
+  square or oval tip presses its shape along the line. The shapes make one area, so a transparent
+  ink does not become darker where they overlap. The eraser is always round, and four times the
+  size of the pen.
+- A shape in the size and tip of the pen or the eraser follows the pointer, and a finger while it
+  touches. Thus, you see where a stroke will apply before you draw it.
+- There are an eraser, undo, redo, and clear. A tap makes a dot.
 - The drawing has layers. **Layers**, in the bottom bar, opens the list, the top layer first. Press
   the name of a layer to draw on it. Each layer has buttons to hide or show it, to move it up or
   down, and to delete it (not the last layer). **Add layer** puts a new layer over the current one,

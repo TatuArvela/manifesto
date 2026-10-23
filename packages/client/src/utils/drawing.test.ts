@@ -8,6 +8,7 @@ import {
   penScale,
   placedImageAlts,
   placeImages,
+  stampCenters,
 } from "./drawing.ts";
 import { MAX_IMAGE_EDGE } from "./shrinkImage.ts";
 
@@ -117,5 +118,29 @@ describe("placedImageAlts", () => {
 
   it("is empty when no image has a description", () => {
     expect(placedImageAlts({ images: ["a"] }, ["a", "b"], ["b"])).toEqual([]);
+  });
+});
+
+describe("stampCenters", () => {
+  it("presses the tip at steps short enough to join into a line", () => {
+    const centers = stampCenters(
+      [
+        [0, 0],
+        [60, 0],
+      ],
+      12,
+    );
+    expect(centers.at(0)).toEqual([0, 0]);
+    expect(centers.at(-1)).toEqual([60, 0]);
+    // A sixth of the width at most between two shapes.
+    for (const [i, center] of centers.slice(1).entries()) {
+      const before = centers[i] ?? center;
+      expect(center[0] - before[0]).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it("presses one shape for a tap, and none for no points", () => {
+    expect(stampCenters([[5, 5]], 10)).toEqual([[5, 5]]);
+    expect(stampCenters([], 10)).toEqual([]);
   });
 });

@@ -1,5 +1,14 @@
 import { isStoredImageRef, NoteColor } from "@manifesto/shared";
-import { Check, Eraser, Layers, Redo, Trash2, Undo, X } from "lucide-preact";
+import {
+  Check,
+  Eraser,
+  Layers,
+  Pipette,
+  Redo,
+  Trash2,
+  Undo,
+  X,
+} from "lucide-preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { useBackToClose } from "#/hooks/useBackToClose.ts";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
@@ -35,17 +44,36 @@ import {
   undo,
 } from "#/utils/drawingLayers.ts";
 import { DrawingLayers } from "./DrawingLayers.tsx";
+import {
+  DrawingPen,
+  type PenSettings,
+  tipStyle,
+  WIDTHS,
+} from "./DrawingPen.tsx";
 
 const INKS = [
   { color: "#171717", name: null },
+  { color: "#ffffff", name: "white" },
+  { color: "#737373", name: NoteColor.Gray },
   { color: "#dc2626", name: NoteColor.Red },
-  { color: "#2563eb", name: NoteColor.Blue },
+  { color: "#ea580c", name: NoteColor.Orange },
+  { color: "#facc15", name: NoteColor.Yellow },
   { color: "#16a34a", name: NoteColor.Green },
+  { color: "#0d9488", name: NoteColor.Teal },
+  { color: "#2563eb", name: NoteColor.Blue },
+  { color: "#9333ea", name: NoteColor.Purple },
+  { color: "#db2777", name: NoteColor.Pink },
+  { color: "#92400e", name: NoteColor.Brown },
 ] as const;
-/** Pen widths, in the own pixels of a new drawing. */
-const WIDTHS = [4, 10, 22] as const;
-/** The eraser is ink in the color of the paper, wide enough to rub with. */
+/** The eraser is wider than the pen, wide enough to rub with. */
 const ERASER_SCALE = 4;
+
+/** What a press on the paper does. */
+type Tool = "pen" | "eraser" | "dropper";
+
+/** A color of the canvas as `#rrggbb`, which a color field accepts. */
+const hex = (r: number, g: number, b: number) =>
+  `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
 
 const barButton =
   "p-2 rounded-lg text-neutral-100 hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer disabled:cursor-default";
@@ -87,8 +115,14 @@ export function DrawingPad() {
   const stageRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
   const [ink, setInk] = useState<string>(INKS[0].color);
-  const [width, setWidth] = useState<number>(WIDTHS[1]);
-  const [erasing, setErasing] = useState(false);
+  const [pen, setPen] = useState<PenSettings>({
+    width: WIDTHS[1],
+    tip: "round",
+    opacity: 1,
+  });
+  const [tool, setTool] = useState<Tool>("pen");
+  const [penOpen, setPenOpen] = useState(false);
+  const erasing = tool === "eraser";
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
   const [paper, setPaper] = useState<PaperSize>(BLANK_PAPER);
@@ -273,26 +307,33 @@ export function DrawingPad() {
       // A pointer that the browser does not know now: the stroke still starts.
       // It only stops to follow past the edge of the paper.
     }
+    const at = drawingPoint(event, canvas.getBoundingClientRect(), paper);
+    if (tool === "dropper") {
+      pickColor(at);
+      return;
+    }
     const stroke: Stroke = {
       color: erasing ? PAPER : ink,
-      width: (erasing ? width * ERASER_SCALE : width) * penScale(paper),
-      points: [drawingPoint(event, canvas.getBoundingClientRect(), paper)],
+      width: strokeWidth() * penScale(paper),
+      points: [at],
       ...(erasing ? { erase: true } : {}),
+      ...(pen.tip === "round" ? {} : { tip: pen.tip }),
+      ...(pen.opacity < 1 ? { opacity: pen.opacity } : {}),
     };
     const { layers, active } = historyRef.current.present;
-    const at = layers.findIndex((layer) => layer.id === active);
+    const index = layers.findIndex((layer) => layer.id === active);
     const under = blankCanvas(paper);
     const over = blankCanvas(paper);
     const layer = blankCanvas(paper);
     const underCtx = under.getContext("2d");
     const overCtx = over.getContext("2d");
     if (underCtx) {
-      renderDrawing(underCtx, layers.slice(0, at), paper, base.current);
+      renderDrawing(underCtx, layers.slice(0, index), paper, base.current);
     }
     if (overCtx) {
-      renderDrawing(overCtx, layers.slice(at + 1), paper, null, true);
+      renderDrawing(overCtx, layers.slice(index + 1), paper, null, true);
     }
-    paintLayer(layer, layers[at]?.strokes ?? []);
+    paintLayer(layer, layers[index]?.strokes ?? []);
     live.current = { under, layer, over, scratch: blankCanvas(paper) };
     drawing.current = { pointerId: event.pointerId, stroke };
     paintActive();
@@ -314,6 +355,26 @@ export function DrawingPad() {
     frame.current ||= requestAnimationFrame(paintActive);
   };
 
+  const strokeWidth = () => (erasing ? pen.width * ERASER_SCALE : pen.width);
+
+  /**
+   * The eye dropper: the ink becomes the color of the drawing where it was
+   * pressed, as it shows, with all layers and the image under them. Then the
+   * pen draws with it.
+   */
+  const pickColor = (at: readonly [number, number]) => {
+    const ctx = context();
+    if (!ctx) return;
+    const [r = 0, g = 0, b = 0] = ctx.getImageData(
+      Math.min(paper.width - 1, Math.floor(at[0])),
+      Math.min(paper.height - 1, Math.floor(at[1])),
+      1,
+      1,
+    ).data;
+    setInk(hex(r, g, b));
+    setTool("pen");
+  };
+
   const endStroke = (event: PointerEvent) => {
     if (drawing.current?.pointerId === event.pointerId) commitStroke();
     // A finger leaves the screen: there is no place to show the pen at.
@@ -332,13 +393,22 @@ export function DrawingPad() {
     if (!cursor || !stage || !canvas || !ready) return;
     const shown = canvas.getBoundingClientRect();
     const around = stage.getBoundingClientRect();
-    const strokeWidth =
-      (erasing ? width * ERASER_SCALE : width) * penScale(paper);
-    const size = Math.max(4, (strokeWidth * shown.width) / paper.width);
+    if (tool === "dropper") {
+      hideCursor();
+      return;
+    }
+    const size = Math.max(
+      4,
+      (strokeWidth() * penScale(paper) * shown.width) / paper.width,
+    );
+    // The eraser is round, whatever the tip of the pen.
+    const look = tipStyle(erasing ? "round" : pen.tip, size);
+    const height = Number.parseFloat(look.height);
     cursor.style.display = "block";
-    cursor.style.width = `${size}px`;
-    cursor.style.height = `${size}px`;
-    cursor.style.transform = `translate(${event.clientX - around.left - size / 2}px, ${event.clientY - around.top - size / 2}px)`;
+    cursor.style.width = look.width;
+    cursor.style.height = look.height;
+    cursor.style.borderRadius = look.borderRadius;
+    cursor.style.transform = `translate(${event.clientX - around.left - size / 2}px, ${event.clientY - around.top - height / 2}px) ${look.transform ?? ""}`;
   };
 
   const hideCursor = () => {
@@ -416,8 +486,11 @@ export function DrawingPad() {
           ref={canvasRef}
           width={paper.width}
           height={paper.height}
-          class="max-w-full max-h-full rounded-lg shadow-lg cursor-none touch-none select-none"
-          style={{ aspectRatio: `${paper.width} / ${paper.height}` }}
+          class="max-w-full max-h-full rounded-lg shadow-lg touch-none select-none"
+          style={{
+            aspectRatio: `${paper.width} / ${paper.height}`,
+            cursor: tool === "dropper" ? "crosshair" : "none",
+          }}
           aria-label={t("drawing.paper")}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -429,8 +502,15 @@ export function DrawingPad() {
         <div
           ref={cursorRef}
           aria-hidden="true"
-          class={`absolute left-0 top-0 hidden rounded-full pointer-events-none shadow-[0_0_0_1px_rgba(0,0,0,0.6),inset_0_0_0_1px_rgba(255,255,255,0.9)] ${erasing ? "border border-dashed border-neutral-500" : ""}`}
-          style={erasing ? undefined : { backgroundColor: `${ink}66` }}
+          class={`absolute left-0 top-0 hidden pointer-events-none shadow-[0_0_0_1px_rgba(0,0,0,0.6),inset_0_0_0_1px_rgba(255,255,255,0.9)] ${erasing ? "border border-dashed border-neutral-500" : ""}`}
+          style={
+            erasing
+              ? undefined
+              : {
+                  backgroundColor: ink,
+                  opacity: Math.max(0.15, pen.opacity * 0.5),
+                }
+          }
         />
       </div>
 
@@ -439,37 +519,64 @@ export function DrawingPad() {
           <button
             key={color}
             type="button"
-            class={`w-8 h-8 rounded-full border-2 ring-1 ring-white/30 cursor-pointer ${!erasing && ink === color ? "border-white" : "border-transparent"}`}
+            class={`w-7 h-7 rounded-full border-2 ring-1 ring-white/30 cursor-pointer ${tool === "pen" && ink === color ? "border-blue-400" : "border-transparent"}`}
             style={{ backgroundColor: color }}
             onClick={() => {
               setInk(color);
-              setErasing(false);
+              setTool("pen");
             }}
-            aria-label={name ? getColorLabel(name) : t("drawing.black")}
-            aria-pressed={!erasing && ink === color}
+            aria-label={
+              name === null
+                ? t("drawing.black")
+                : name === "white"
+                  ? t("drawing.white")
+                  : getColorLabel(name)
+            }
+            aria-pressed={tool === "pen" && ink === color}
           />
         ))}
-        <span class="w-px h-6 mx-1 bg-white/20" aria-hidden="true" />
-        {WIDTHS.map((each, i) => (
-          <button
-            key={each}
-            type="button"
-            class={`w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer ${width === each ? "bg-white/20" : "hover:bg-white/10"}`}
-            onClick={() => setWidth(each)}
-            aria-label={t("drawing.width", { n: i + 1 })}
-            aria-pressed={width === each}
-          >
-            <span
-              class="rounded-full bg-neutral-100"
-              style={{ width: `${4 + i * 5}px`, height: `${4 + i * 5}px` }}
-            />
-          </button>
-        ))}
+        {/* Any other ink. The field shows the ink in use, also one picked. */}
+        <input
+          type="color"
+          class="w-7 h-7 rounded-full cursor-pointer bg-transparent ring-1 ring-white/30 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0"
+          value={ink}
+          onInput={(event) => {
+            setInk(event.currentTarget.value);
+            setTool("pen");
+          }}
+          aria-label={t("drawing.customColor")}
+        />
+        <button
+          type="button"
+          class={`${barButton} ${tool === "dropper" ? "bg-white/20" : ""}`}
+          onClick={() => setTool(tool === "dropper" ? "pen" : "dropper")}
+          aria-label={t("drawing.dropper")}
+          aria-pressed={tool === "dropper"}
+        >
+          <Pipette class="w-5 h-5" />
+        </button>
         <span class="w-px h-6 mx-1 bg-white/20" aria-hidden="true" />
         <button
           type="button"
+          class={`${barButton} ${penOpen ? "bg-white/20" : ""}`}
+          onClick={() => {
+            setPenOpen(!penOpen);
+            setLayersOpen(false);
+          }}
+          aria-label={t("drawing.pen")}
+          aria-expanded={penOpen}
+        >
+          <span class="w-5 h-5 flex items-center justify-center">
+            <span class="bg-neutral-100" style={tipStyle(pen.tip, 12)} />
+          </span>
+        </button>
+        <button
+          type="button"
           class={`${barButton} ${layersOpen ? "bg-white/20" : ""}`}
-          onClick={() => setLayersOpen(!layersOpen)}
+          onClick={() => {
+            setLayersOpen(!layersOpen);
+            setPenOpen(false);
+          }}
           aria-label={t("drawing.layers")}
           aria-expanded={layersOpen}
         >
@@ -478,12 +585,19 @@ export function DrawingPad() {
         <button
           type="button"
           class={`${barButton} ${erasing ? "bg-white/20" : ""}`}
-          onClick={() => setErasing(!erasing)}
+          onClick={() => setTool(erasing ? "pen" : "eraser")}
           aria-label={t("drawing.eraser")}
           aria-pressed={erasing}
         >
           <Eraser class="w-5 h-5" />
         </button>
+        {penOpen && (
+          <DrawingPen
+            pen={pen}
+            onChange={setPen}
+            onClose={() => setPenOpen(false)}
+          />
+        )}
         {layersOpen && (
           <DrawingLayers
             history={history}
