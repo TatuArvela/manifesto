@@ -39,7 +39,7 @@ export function DrawingLayers({
 
   return (
     <fieldset
-      class="absolute right-2 bottom-full mb-1 w-64 max-w-[calc(100vw-1rem)] rounded-lg bg-neutral-800 p-1 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0"
+      class="absolute right-0 bottom-full mb-1 w-64 max-w-[calc(100vw-1rem)] md:left-full md:right-auto md:bottom-0 md:mb-0 md:ml-2 rounded-lg bg-neutral-800 p-1 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0"
       aria-label={t("drawing.layers")}
     >
       <ul class="flex flex-col gap-0.5">

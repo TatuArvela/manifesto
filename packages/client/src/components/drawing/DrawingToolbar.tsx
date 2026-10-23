@@ -17,11 +17,17 @@ import {
 } from "lucide-preact";
 import type { ComponentType } from "preact";
 import { useState } from "preact/hooks";
+import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { getColorLabel, t } from "#/i18n/index.ts";
 import type { SketchHistory } from "#/utils/drawingLayers.ts";
 import { DrawingLayers } from "./DrawingLayers.tsx";
-import { DrawingPen, type PenSettings, tipStyle } from "./DrawingPen.tsx";
+import {
+  DrawingPen,
+  hasPenOptions,
+  type PenSettings,
+  tipStyle,
+} from "./DrawingPen.tsx";
 
 /** What a press on the paper does. */
 export type Tool =
@@ -85,6 +91,12 @@ const inkLabel = (name: (typeof INKS)[number]["name"]) =>
       ? t("drawing.white")
       : getColorLabel(name);
 
+const toolOn =
+  "p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 cursor-pointer";
+
+/** A divider between groups: across the bar on a phone, along the rail on a wide screen. */
+const divider = "w-px h-6 mx-1 bg-white/20 md:w-6 md:h-px md:mx-0 md:my-1";
+
 function ToolButton({
   on,
   onClick,
@@ -97,15 +109,17 @@ function ToolButton({
   label: string;
 }) {
   return (
-    <button
-      type="button"
-      class={`${barButton} ${on ? "bg-white/20" : ""}`}
-      onClick={onClick}
-      aria-label={label}
-      aria-pressed={on}
-    >
-      <Icon class="w-5 h-5" />
-    </button>
+    <Tooltip label={label}>
+      <button
+        type="button"
+        class={on ? toolOn : barButton}
+        onClick={onClick}
+        aria-label={label}
+        aria-pressed={on}
+      >
+        <Icon class="w-5 h-5" />
+      </button>
+    </Tooltip>
   );
 }
 
@@ -122,7 +136,7 @@ function ShapePicker({
   useEscapeStack(true, onClose);
   return (
     <fieldset
-      class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 flex gap-1 rounded-lg bg-neutral-800 p-1 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0"
+      class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 flex gap-1 rounded-lg bg-neutral-800 p-1 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0 md:left-full md:top-0 md:bottom-auto md:translate-x-0 md:mb-0 md:ml-2"
       aria-label={t("drawing.shapes")}
     >
       {SHAPES.map(({ tool: each, Icon, label }) => (
@@ -142,10 +156,14 @@ function ShapePicker({
 }
 
 /**
- * The bottom bar of the pad: the two inks and the colors to choose them from,
- * the tools, and the panels of the pen and of the layers. A color sets the
- * foreground ink; with a right click, the background ink. Lines, outlines and
- * fills use the foreground ink, and the inside of a shape the background ink.
+ * The controls around the paper, as three areas of the grid of the pad: the
+ * inks, the options of the current tool, and the tools. On a phone, they are
+ * rows under the paper. On a wide screen, the tools are a rail at the left,
+ * the inks a rail at the right, and the options a bar over the paper.
+ *
+ * A color sets the foreground ink; with a right click, the background ink.
+ * Lines, outlines and fills use the foreground ink, and the inside of a shape
+ * the background ink.
  */
 export function DrawingToolbar({
   tool,
@@ -183,109 +201,138 @@ export function DrawingToolbar({
   };
 
   return (
-    <div class="relative flex items-center justify-center gap-1 flex-wrap px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-      {/* The two inks: the foreground over the background. Each one is a color
-          field for any other ink, and shows the ink in use. */}
-      <span class="relative w-11 h-11 shrink-0">
-        <input
-          type="color"
-          class={`${colorField} left-0 top-0 z-1`}
-          value={ink}
-          onInput={(event) => useInk(event.currentTarget.value)}
-          aria-label={t("drawing.foreground")}
-        />
-        <input
-          type="color"
-          class={`${colorField} right-0 bottom-0`}
-          value={backInk}
-          onInput={(event) => onBackInk(event.currentTarget.value)}
-          aria-label={t("drawing.background")}
-        />
-      </span>
-      <button
-        type="button"
-        class={barButton}
-        onClick={() => {
-          onInk(backInk);
-          onBackInk(ink);
-        }}
-        aria-label={t("drawing.swapColors")}
-      >
-        <ArrowLeftRight class="w-4 h-4" />
-      </button>
-      {INKS.map(({ color, name }) => (
-        <button
-          key={color}
-          type="button"
-          class={`w-7 h-7 rounded-full border-2 ring-1 ring-white/30 cursor-pointer ${ink === color ? "border-blue-400" : "border-transparent"}`}
-          style={{ backgroundColor: color }}
-          onClick={() => useInk(color)}
-          onContextMenu={(event) => {
-            event.preventDefault();
-            onBackInk(color);
-          }}
-          aria-label={inkLabel(name)}
-          aria-pressed={ink === color}
-        />
-      ))}
-      <span class="w-px h-6 mx-1 bg-white/20" aria-hidden="true" />
-      {TOOLS.map(({ tool: each, Icon, label }) => (
-        <ToolButton
-          key={each}
-          on={tool === each}
-          onClick={() => onTool(tool === each ? "pen" : each)}
-          Icon={Icon}
-          label={t(label)}
-        />
-      ))}
-      <button
-        type="button"
-        class={`${barButton} ${shape ? "bg-white/20" : ""}`}
-        onClick={() => toggle("shapes")}
-        aria-label={t("drawing.shapes")}
-        aria-expanded={panel === "shapes"}
-      >
-        <ShapeIcon class="w-5 h-5" />
-      </button>
-      {VIEW_TOOLS.map(({ tool: each, Icon, label }) => (
-        <ToolButton
-          key={each}
-          on={tool === each}
-          onClick={() => onTool(tool === each ? "pen" : each)}
-          Icon={Icon}
-          label={t(label)}
-        />
-      ))}
-      <span class="w-px h-6 mx-1 bg-white/20" aria-hidden="true" />
-      <button
-        type="button"
-        class={`${barButton} ${panel === "pen" ? "bg-white/20" : ""}`}
-        onClick={() => toggle("pen")}
-        aria-label={t("drawing.penSettings")}
-        aria-expanded={panel === "pen"}
-      >
-        <span class="w-5 h-5 flex items-center justify-center">
-          <span class="bg-neutral-100" style={tipStyle(pen.tip, 12)} />
+    <>
+      <div class="[grid-area:inks] flex flex-wrap items-center justify-center gap-1 px-2 pt-2 md:flex-col md:flex-nowrap md:justify-start md:gap-2 md:overflow-y-auto md:p-2 md:pt-1">
+        {/* The two inks: the foreground over the background. Each one is a
+            color field for any other ink, and shows the ink in use. */}
+        <span class="relative w-11 h-11 shrink-0">
+          <input
+            type="color"
+            class={`${colorField} left-0 top-0 z-1`}
+            value={ink}
+            onInput={(event) => useInk(event.currentTarget.value)}
+            aria-label={t("drawing.foreground")}
+          />
+          <input
+            type="color"
+            class={`${colorField} right-0 bottom-0`}
+            value={backInk}
+            onInput={(event) => onBackInk(event.currentTarget.value)}
+            aria-label={t("drawing.background")}
+          />
         </span>
-      </button>
-      <button
-        type="button"
-        class={`${barButton} ${panel === "layers" ? "bg-white/20" : ""}`}
-        onClick={() => toggle("layers")}
-        aria-label={t("drawing.layers")}
-        aria-expanded={panel === "layers"}
-      >
-        <Layers class="w-5 h-5" />
-      </button>
-      {panel === "shapes" && (
-        <ShapePicker tool={tool} onTool={onTool} onClose={close} />
-      )}
-      {panel === "pen" && (
-        <DrawingPen pen={pen} onChange={onPen} onClose={close} />
-      )}
-      {panel === "layers" && (
-        <DrawingLayers history={history} onChange={onHistory} onClose={close} />
-      )}
-    </div>
+        <Tooltip label={t("drawing.swapColors")}>
+          <button
+            type="button"
+            class={barButton}
+            onClick={() => {
+              onInk(backInk);
+              onBackInk(ink);
+            }}
+            aria-label={t("drawing.swapColors")}
+          >
+            <ArrowLeftRight class="w-4 h-4" />
+          </button>
+        </Tooltip>
+        <div class="flex flex-wrap justify-center gap-1 md:grid md:grid-cols-2 md:gap-2">
+          {INKS.map(({ color, name }) => (
+            <button
+              key={color}
+              type="button"
+              class={`w-6 h-6 md:w-7 md:h-7 rounded-full cursor-pointer ${ink === color ? "ring-2 ring-blue-400 ring-offset-2 ring-offset-neutral-900" : "ring-1 ring-white/30"}`}
+              style={{ backgroundColor: color }}
+              onClick={() => useInk(color)}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                onBackInk(color);
+              }}
+              aria-label={inkLabel(name)}
+              aria-pressed={ink === color}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div class="[grid-area:options] relative md:px-2 md:pb-2">
+        <DrawingPen
+          tool={tool}
+          pen={pen}
+          open={panel === "pen"}
+          onChange={onPen}
+          onClose={close}
+        />
+      </div>
+
+      <div class="[grid-area:tools] flex flex-wrap items-center justify-center gap-1 px-2 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:flex-col md:flex-nowrap md:justify-start md:p-2 md:pt-1">
+        {TOOLS.map(({ tool: each, Icon, label }) => (
+          <ToolButton
+            key={each}
+            on={tool === each}
+            onClick={() => onTool(tool === each ? "pen" : each)}
+            Icon={Icon}
+            label={t(label)}
+          />
+        ))}
+        <span class="relative">
+          <Tooltip label={t("drawing.shapes")}>
+            <button
+              type="button"
+              class={shape ? toolOn : barButton}
+              onClick={() => toggle("shapes")}
+              aria-label={t("drawing.shapes")}
+              aria-expanded={panel === "shapes"}
+            >
+              <ShapeIcon class="w-5 h-5" />
+            </button>
+          </Tooltip>
+          {panel === "shapes" && (
+            <ShapePicker tool={tool} onTool={onTool} onClose={close} />
+          )}
+        </span>
+        {VIEW_TOOLS.map(({ tool: each, Icon, label }) => (
+          <ToolButton
+            key={each}
+            on={tool === each}
+            onClick={() => onTool(tool === each ? "pen" : each)}
+            Icon={Icon}
+            label={t(label)}
+          />
+        ))}
+        <span class={divider} aria-hidden="true" />
+        {/* On a wide screen, the options are always over the paper. */}
+        <button
+          type="button"
+          class={`${barButton} md:hidden ${panel === "pen" ? "bg-white/20" : ""}`}
+          onClick={() => toggle("pen")}
+          disabled={!hasPenOptions(tool)}
+          aria-label={t("drawing.penSettings")}
+          aria-expanded={panel === "pen"}
+        >
+          <span class="w-5 h-5 flex items-center justify-center">
+            <span class="bg-neutral-100" style={tipStyle(pen.tip, 12)} />
+          </span>
+        </button>
+        <span class="relative md:mt-auto">
+          <Tooltip label={t("drawing.layers")}>
+            <button
+              type="button"
+              class={`${barButton} ${panel === "layers" ? "bg-white/20" : ""}`}
+              onClick={() => toggle("layers")}
+              aria-label={t("drawing.layers")}
+              aria-expanded={panel === "layers"}
+            >
+              <Layers class="w-5 h-5" />
+            </button>
+          </Tooltip>
+          {panel === "layers" && (
+            <DrawingLayers
+              history={history}
+              onChange={onHistory}
+              onClose={close}
+            />
+          )}
+        </span>
+      </div>
+    </>
   );
 }

@@ -72,6 +72,14 @@ const UNCHANGED: Transform = { scale: 1, dx: 0, dy: 0 };
 const hex = (r: number, g: number, b: number) =>
   `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
 
+/**
+ * The areas of the pad. On a phone: the paper, then the rows of controls under
+ * it. On a wide screen: the tools at the left, the inks at the right, and the
+ * options of the tool over the paper.
+ */
+const padGrid =
+  "grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto_auto_auto_auto] [grid-template-areas:'top'_'stage'_'hint'_'options'_'inks'_'tools'] md:grid-cols-[auto_minmax(0,1fr)_auto] md:grid-rows-[auto_auto_minmax(0,1fr)_auto] md:[grid-template-areas:'top_top_top'_'tools_options_inks'_'tools_stage_inks'_'tools_hint_inks']";
+
 const selectionButton =
   "flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 cursor-pointer disabled:cursor-default";
 
@@ -827,7 +835,7 @@ export function DrawingPad() {
       role="dialog"
       aria-modal="true"
       aria-label={t("drawing.title")}
-      class="fixed inset-0 layer-drawing flex flex-col bg-neutral-900 text-neutral-100 animate-fade-in"
+      class={`fixed inset-0 layer-drawing ${padGrid} bg-neutral-900 text-neutral-100 animate-fade-in`}
     >
       <DrawingTopBar
         onCancel={() => void cancel()}
@@ -856,7 +864,7 @@ export function DrawingPad() {
           and keeps all of it in reach when it does not. */}
       <div
         ref={stageRef}
-        class="relative flex-1 min-h-0 flex overflow-auto p-2"
+        class="[grid-area:stage] relative min-h-0 min-w-0 flex overflow-auto p-2"
         onWheel={onWheel}
       >
         <canvas
@@ -907,7 +915,7 @@ export function DrawingPad() {
       </div>
 
       {tool === "select" && (
-        <div class="flex items-center justify-center gap-2 flex-wrap px-2 pt-2 text-sm">
+        <div class="[grid-area:hint] flex items-center justify-center gap-2 flex-wrap px-2 pt-2 md:pb-2 text-sm">
           {selection ? (
             <>
               <button
@@ -944,7 +952,7 @@ export function DrawingPad() {
         </div>
       )}
       {tool === "polygon" && (
-        <p class="px-2 pt-2 text-center text-sm text-neutral-300">
+        <p class="[grid-area:hint] px-2 pt-2 md:pb-2 text-center text-sm text-neutral-300">
           {t("drawing.polygonHint")}
         </p>
       )}

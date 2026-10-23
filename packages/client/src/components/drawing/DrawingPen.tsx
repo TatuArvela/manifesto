@@ -1,6 +1,7 @@
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { t } from "#/i18n/index.ts";
 import type { PenTip } from "#/utils/drawing.ts";
+import type { Tool } from "./DrawingToolbar.tsx";
 
 /** Pen widths, in the own pixels of a new drawing. */
 export const WIDTHS = [4, 10, 22] as const;
@@ -40,6 +41,21 @@ export function tipStyle(tip: PenTip, size: number) {
   };
 }
 
+/** The options that apply to a tool. A tool with none shows no panel. */
+export function penOptions(tool: Tool) {
+  const shape = tool === "rect" || tool === "ellipse" || tool === "polygon";
+  const lines = tool === "pen" || tool === "eraser" || tool === "line" || shape;
+  return {
+    tip: lines,
+    size: lines,
+    opacity: lines && tool !== "eraser" ? true : tool === "fill",
+    shapes: shape,
+  };
+}
+
+export const hasPenOptions = (tool: Tool) =>
+  Object.values(penOptions(tool)).some(Boolean);
+
 const choice = (on: boolean) =>
   `w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer ${on ? "bg-white/20" : "hover:bg-white/10"}`;
 
@@ -48,107 +64,125 @@ const choice = (on: boolean) =>
  * and the outlines of shapes, and what a shape draws. The width has three sizes to
  * press, and a field for any other, in the pixels of a new drawing. Thus, a
  * width looks the same on paper of any size.
+ *
+ * Only the options of the current tool show. On a wide screen they are a bar
+ * over the paper, always there. On a phone they are a panel that the pen
+ * button of the bottom bar opens.
  */
 export function DrawingPen({
+  tool,
   pen,
+  open,
   onChange,
   onClose,
 }: {
+  tool: Tool;
   pen: PenSettings;
+  open: boolean;
   onChange: (next: PenSettings) => void;
   onClose: () => void;
 }) {
-  useEscapeStack(true, onClose);
+  useEscapeStack(open, onClose);
+  const shows = penOptions(tool);
+  if (!hasPenOptions(tool)) return null;
 
   return (
     <fieldset
-      class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-64 max-w-[calc(100vw-1rem)] rounded-lg bg-neutral-800 p-2 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0 flex flex-col gap-2 text-sm"
+      class={`${open ? "flex" : "hidden"} absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-64 max-w-[calc(100vw-1rem)] flex-col gap-2 rounded-lg bg-neutral-800 p-2 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0 text-sm md:static md:flex md:translate-x-0 md:w-auto md:max-w-none md:flex-row md:flex-wrap md:items-center md:justify-center md:gap-x-6 md:gap-y-1 md:bg-transparent md:p-0 md:shadow-none md:ring-0`}
       aria-label={t("drawing.penSettings")}
     >
-      <div class="flex items-center gap-1">
-        <span class="flex-1">{t("drawing.tip")}</span>
-        {TIPS.map(({ tip, label }) => (
-          <button
-            key={tip}
-            type="button"
-            class={choice(pen.tip === tip)}
-            onClick={() => onChange({ ...pen, tip })}
-            aria-label={t(label)}
-            aria-pressed={pen.tip === tip}
-          >
-            <span class="bg-neutral-100" style={tipStyle(tip, 14)} />
-          </button>
-        ))}
-      </div>
-      <div class="flex items-center gap-1">
-        <span class="flex-1">{t("drawing.size")}</span>
-        {WIDTHS.map((each, i) => (
-          <button
-            key={each}
-            type="button"
-            class={choice(pen.width === each)}
-            onClick={() => onChange({ ...pen, width: each })}
-            aria-label={t("drawing.width", { n: i + 1 })}
-            aria-pressed={pen.width === each}
-          >
-            <span
-              class="rounded-full bg-neutral-100"
-              style={{ width: `${4 + i * 5}px`, height: `${4 + i * 5}px` }}
-            />
-          </button>
-        ))}
-        <input
-          type="number"
-          class="w-14 rounded-md bg-neutral-900 px-1.5 py-1 text-right ring-1 ring-white/20"
-          min={MIN_WIDTH}
-          max={MAX_WIDTH}
-          step={1}
-          value={pen.width}
-          onInput={(event) => {
-            const value = Number(event.currentTarget.value);
-            if (!Number.isFinite(value) || value < MIN_WIDTH) return;
-            onChange({ ...pen, width: Math.min(MAX_WIDTH, value) });
-          }}
-          aria-label={t("drawing.customSize")}
-        />
-      </div>
-      <label class="flex items-center gap-2">
-        <span class="flex-1">{t("drawing.inkOpacity")}</span>
-        <input
-          type="range"
-          class="w-28 accent-blue-500"
-          min={5}
-          max={100}
-          step={5}
-          value={Math.round(pen.opacity * 100)}
-          onInput={(event) =>
-            onChange({
-              ...pen,
-              opacity: Number(event.currentTarget.value) / 100,
-            })
-          }
-        />
-        <span class="w-9 text-right tabular-nums">
-          {Math.round(pen.opacity * 100)}%
-        </span>
-      </label>
-      <div class="flex items-center gap-1">
-        <span class="flex-1">{t("drawing.shapeStyle")}</span>
-        {SHAPE_STYLES.map(({ style, label }) => (
-          <button
-            key={style}
-            type="button"
-            class={choice(pen.shapes === style)}
-            onClick={() => onChange({ ...pen, shapes: style })}
-            aria-label={t(label)}
-            aria-pressed={pen.shapes === style}
-          >
-            <span
-              class={`w-4 h-4 rounded-sm ${style === "filled" ? "" : "border-2 border-neutral-100"} ${style === "outline" ? "" : "bg-neutral-400"}`}
-            />
-          </button>
-        ))}
-      </div>
+      {shows.tip && (
+        <div class="flex items-center gap-1">
+          <span class="flex-1 md:pr-1">{t("drawing.tip")}</span>
+          {TIPS.map(({ tip, label }) => (
+            <button
+              key={tip}
+              type="button"
+              class={choice(pen.tip === tip)}
+              onClick={() => onChange({ ...pen, tip })}
+              aria-label={t(label)}
+              aria-pressed={pen.tip === tip}
+            >
+              <span class="bg-neutral-100" style={tipStyle(tip, 14)} />
+            </button>
+          ))}
+        </div>
+      )}
+      {shows.size && (
+        <div class="flex items-center gap-1">
+          <span class="flex-1 md:pr-1">{t("drawing.size")}</span>
+          {WIDTHS.map((each, i) => (
+            <button
+              key={each}
+              type="button"
+              class={choice(pen.width === each)}
+              onClick={() => onChange({ ...pen, width: each })}
+              aria-label={t("drawing.width", { n: i + 1 })}
+              aria-pressed={pen.width === each}
+            >
+              <span
+                class="rounded-full bg-neutral-100"
+                style={{ width: `${4 + i * 5}px`, height: `${4 + i * 5}px` }}
+              />
+            </button>
+          ))}
+          <input
+            type="number"
+            class="w-14 rounded-md bg-neutral-900 px-1.5 py-1 text-right ring-1 ring-white/20"
+            min={MIN_WIDTH}
+            max={MAX_WIDTH}
+            step={1}
+            value={pen.width}
+            onInput={(event) => {
+              const value = Number(event.currentTarget.value);
+              if (!Number.isFinite(value) || value < MIN_WIDTH) return;
+              onChange({ ...pen, width: Math.min(MAX_WIDTH, value) });
+            }}
+            aria-label={t("drawing.customSize")}
+          />
+        </div>
+      )}
+      {shows.opacity && (
+        <label class="flex items-center gap-2">
+          <span class="flex-1 md:pr-1">{t("drawing.inkOpacity")}</span>
+          <input
+            type="range"
+            class="w-28 accent-blue-500"
+            min={5}
+            max={100}
+            step={5}
+            value={Math.round(pen.opacity * 100)}
+            onInput={(event) =>
+              onChange({
+                ...pen,
+                opacity: Number(event.currentTarget.value) / 100,
+              })
+            }
+          />
+          <span class="w-9 text-right tabular-nums">
+            {Math.round(pen.opacity * 100)}%
+          </span>
+        </label>
+      )}
+      {shows.shapes && (
+        <div class="flex items-center gap-1">
+          <span class="flex-1 md:pr-1">{t("drawing.shapeStyle")}</span>
+          {SHAPE_STYLES.map(({ style, label }) => (
+            <button
+              key={style}
+              type="button"
+              class={choice(pen.shapes === style)}
+              onClick={() => onChange({ ...pen, shapes: style })}
+              aria-label={t(label)}
+              aria-pressed={pen.shapes === style}
+            >
+              <span
+                class={`w-4 h-4 rounded-sm ${style === "filled" ? "" : "border-2 border-neutral-100"} ${style === "outline" ? "" : "bg-neutral-400"}`}
+              />
+            </button>
+          ))}
+        </div>
+      )}
     </fieldset>
   );
 }

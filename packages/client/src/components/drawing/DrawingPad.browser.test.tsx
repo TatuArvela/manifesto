@@ -436,12 +436,14 @@ describe("DrawingPad", () => {
   });
 
   it("fills a shape with the background ink, and swaps the inks", async () => {
-    button(t("drawing.penSettings"))?.click();
-    await settled();
-    button(t("drawing.shapeFilled"))?.click();
     button(t("drawing.shapes"))?.click();
     await settled();
     button(t("drawing.ellipse"))?.click();
+    await settled();
+    // The options of a shape show while a shape tool is in use.
+    button(t("drawing.penSettings"))?.click();
+    await settled();
+    button(t("drawing.shapeFilled"))?.click();
     await settled();
     host
       .querySelector<HTMLButtonElement>('button[aria-label="Blue"]')

@@ -47,7 +47,10 @@ shares and exports it as a picture, and it uses one of the image slots of the no
     does a change from the other controls of the top bar or the layer list. A shape with no size
     draws nothing.
   - **Select**, **Move** and **Pan** are described below. Pan drags the view of a zoomed drawing.
-- **Pen settings** sets the tip (round, square, or a tilted oval as a broad nib), the size (three
+- On a wide screen, the tools are a rail at the left of the paper, the inks a rail at the right, and
+  the options of the current tool a bar over the paper. On a phone, the inks and the tools are two
+  rows under the paper, and the options a panel from the pen button.
+- **Pen settings** shows only the options of the current tool. It sets the tip (round, square, or a tilted oval as a broad nib), the size (three
   sizes or a field from 1 to 200), the opacity of the ink (5 to 100 percent), and what a shape draws
   (its outline, its inside, or both). The size and the opacity apply to all tools. The tip applies
   to the pen, the line and the eraser. A square or oval tip presses its shape along the line. The shapes make
