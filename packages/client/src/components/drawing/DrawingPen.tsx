@@ -1,4 +1,4 @@
-import { Diameter, Eye, PenTool, Shapes } from "lucide-preact";
+import { Eye, PencilRuler, PenLine, SquarePen } from "lucide-preact";
 import type { ComponentType } from "preact";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
@@ -117,7 +117,7 @@ export function DrawingPen({
     >
       {shows.tip && (
         <div class="flex items-center gap-1">
-          <OptionName Icon={PenTool} name={t("drawing.tip")} />
+          <OptionName Icon={PenLine} name={t("drawing.tip")} />
           {TIPS.map(({ tip, label }) => (
             <button
               key={tip}
@@ -134,7 +134,7 @@ export function DrawingPen({
       )}
       {shows.size && (
         <div class="flex items-center gap-1">
-          <OptionName Icon={Diameter} name={t("drawing.size")} />
+          <OptionName Icon={PencilRuler} name={t("drawing.size")} />
           {WIDTHS.map((each, i) => (
             <button
               key={each}
@@ -152,7 +152,7 @@ export function DrawingPen({
           ))}
           <input
             type="number"
-            class="w-14 rounded-md bg-neutral-900 px-1.5 py-1 text-right ring-1 ring-white/20"
+            class="h-8 w-12 rounded-lg bg-white/10 px-1 text-center tabular-nums outline-none ring-1 ring-transparent hover:bg-white/15 focus-visible:ring-blue-400 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             min={MIN_WIDTH}
             max={MAX_WIDTH}
             step={1}
@@ -190,7 +190,7 @@ export function DrawingPen({
       )}
       {shows.shapes && (
         <div class="flex items-center gap-1">
-          <OptionName Icon={Shapes} name={t("drawing.shapeStyle")} />
+          <OptionName Icon={SquarePen} name={t("drawing.shapeStyle")} />
           {SHAPE_STYLES.map(({ style, label }) => (
             <button
               key={style}
