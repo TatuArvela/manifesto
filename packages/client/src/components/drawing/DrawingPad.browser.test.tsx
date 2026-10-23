@@ -482,6 +482,45 @@ describe("DrawingPad", () => {
     expect(inkAt(0.5, 0.2)).toBe(PAPER);
   });
 
+  it("discards a polygon in progress on Undo, and keeps the drawing under it", async () => {
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    await settled();
+    button(t("drawing.shapes"))?.click();
+    await settled();
+    button(t("drawing.polygon"))?.click();
+    await settled();
+    drawLine([0.3, 0.2], [0.3, 0.2]);
+    drawLine([0.7, 0.2], [0.7, 0.2]);
+    await settled();
+    button(t("editor.undo"))?.click();
+    await settled();
+    // The line drawn before the polygon stays, and the polygon is gone.
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    expect(inkAt(0.5, 0.2)).toBe(PAPER);
+  });
+
+  it("does not move a hidden layer", async () => {
+    drawLine([0.2, 0.2], [0.3, 0.2]);
+    button(t("drawing.layers"))?.click();
+    await settled();
+    button(
+      t("drawing.hideLayer", { name: t("drawing.layerName", { n: 1 }) }),
+    )?.click();
+    await settled();
+    button(t("drawing.move"))?.click();
+    await settled();
+    expect(host.querySelector(".border-dashed")).toBeNull();
+    drawLine([0.25, 0.2], [0.65, 0.6]);
+    await settled();
+    expect(inkAt(0.65, 0.6)).toBe(PAPER);
+    // Shown again from the list, which stays open, the ink is where it was.
+    button(
+      t("drawing.showLayer", { name: t("drawing.layerName", { n: 1 }) }),
+    )?.click();
+    await settled();
+    expect(inkAt(0.25, 0.2)).toBe("23,23,23");
+  });
+
   it("zooms in and back to the size of the screen", async () => {
     const before = canvas().getBoundingClientRect().width;
     button(t("drawing.zoomIn"))?.click();

@@ -61,6 +61,17 @@ describe("floodFill", () => {
     expect([...(area?.mask ?? [])]).toEqual([1, 1, 0, 1]);
   });
 
+  it("fills runs that join below a gap, and each pixel one time", () => {
+    const comb = picture([".......", "#.#.#.#", "#.#.#.#", "......."]);
+    const area = floodFill(comb.data, comb.width, comb.height, 1, 1);
+    expect(shown(area?.mask ?? new Uint8Array(), comb.width)).toEqual([
+      "ooooooo",
+      ".o.o.o.",
+      ".o.o.o.",
+      "ooooooo",
+    ]);
+  });
+
   it("finds nothing outside the picture", () => {
     expect(floodFill(ring.data, ring.width, ring.height, -1, 0)).toBeNull();
     expect(floodFill(ring.data, ring.width, ring.height, 7, 0)).toBeNull();

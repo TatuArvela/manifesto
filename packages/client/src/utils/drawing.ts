@@ -145,11 +145,15 @@ export function intersect(a: Rect, b: Rect): Rect | null {
   return { x, y, width: right - x, height: bottom - y };
 }
 
-export function transformStroke(stroke: Stroke, by: Transform): Stroke {
+/** A line or a shape, with its points and the width of its pen. */
+export function transformStroke<T extends Stroke | Shape>(
+  mark: T,
+  by: Transform,
+): T {
   return {
-    ...stroke,
-    width: stroke.width * by.scale,
-    points: stroke.points.map(
+    ...mark,
+    width: mark.width * by.scale,
+    points: mark.points.map(
       ([x, y]): Point => [x * by.scale + by.dx, y * by.scale + by.dy],
     ),
   };
@@ -164,15 +168,6 @@ export const transformRect = (rect: Rect, by: Transform): Rect => ({
 
 export function transformMark(mark: Mark, by: Transform): Mark {
   if (isFill(mark)) return { ...mark, at: transformRect(mark.at, by) };
-  if (isShape(mark)) {
-    return {
-      ...mark,
-      width: mark.width * by.scale,
-      points: mark.points.map(
-        ([x, y]): Point => [x * by.scale + by.dx, y * by.scale + by.dy],
-      ),
-    };
-  }
   if (!isClip(mark)) return transformStroke(mark, by);
   return {
     clip: transformRect(mark.clip, by),
@@ -182,7 +177,8 @@ export function transformMark(mark: Mark, by: Transform): Mark {
 
 /**
  * The box that the ink of the strokes covers, the width of the tip included.
- * A square tip reaches further at its corners. Null when there is no stroke.
+ * A square tip reaches further at its corners. Null when there is no ink: no
+ * marks, or only an eraser.
  */
 export function markBounds(marks: readonly Mark[]): Rect | null {
   let left = Number.POSITIVE_INFINITY;
@@ -206,6 +202,8 @@ export function markBounds(marks: readonly Mark[]): Rect | null {
       include(mark.at);
       continue;
     }
+    // An eraser takes ink away, and adds none.
+    if (!isShape(mark) && mark.erase) continue;
     const reach =
       isShape(mark) || mark.tip !== "square"
         ? mark.width / 2
@@ -262,11 +260,6 @@ export function drawingPoint(
   ];
 }
 
-/**
- * One stroke, as a line through the middle of each pair of points, with the
- * points themselves as the handles of the curve. A hand that moves fast leaves
- * points far apart, and straight segments between them show each corner.
- */
 /** The tilt of the oval tip, as a pen held in a right hand. */
 const OVAL_ANGLE = -Math.PI / 4;
 /** The oval tip is this much narrower than it is wide. */
@@ -402,6 +395,22 @@ export function blankCanvas(size: PaperSize): HTMLCanvasElement {
   canvas.height = size.height;
   return canvas;
 }
+
+/**
+ * `kept` again when it has the size, or a new canvas. A canvas of a large photo
+ * holds tens of megabytes, and a phone has a limit for all of them together.
+ * The contents stay: the caller paints over them.
+ */
+export const reusedCanvas = (
+  kept: HTMLCanvasElement | null | undefined,
+  size: PaperSize,
+): HTMLCanvasElement =>
+  kept && kept.width === size.width && kept.height === size.height
+    ? kept
+    : blankCanvas(size);
+
+/** The canvas on which `renderDrawing` paints each layer before it adds it. */
+let layerScratch: HTMLCanvasElement | null = null;
 
 /** The outline of a shape, as a path in progress. */
 export function shapePath(
@@ -541,7 +550,7 @@ export function renderDrawing(
   let scratch: HTMLCanvasElement | null = null;
   for (const layer of layers) {
     if (!layer.visible || layer.marks.length === 0) continue;
-    scratch ??= blankCanvas(view);
+    scratch ??= layerScratch = reusedCanvas(layerScratch, view);
     paintLayer(scratch, layer.marks, view);
     ctx.globalAlpha = layer.opacity ?? 1;
     ctx.drawImage(scratch, 0, 0);

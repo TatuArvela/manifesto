@@ -127,7 +127,9 @@ export function DrawingLayers({
                 ),
               )
             }
+            // A slide that ends where it started sends no change.
             onChange={() => onChange(endJoin(history))}
+            onPointerUp={() => onChange(endJoin(history))}
           />
           <span class="w-9 text-right tabular-nums">{opacity}%</span>
         </label>

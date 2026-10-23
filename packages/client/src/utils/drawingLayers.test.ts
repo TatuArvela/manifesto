@@ -161,6 +161,27 @@ describe("drawing layers", () => {
     expect(activeLayer(history.present)?.opacity).toBeUndefined();
   });
 
+  it("makes no step of a slide that ends where it started", () => {
+    let history = addMark(newSketchHistory(), line(1));
+    history = setLayerOpacity(history, 1, 0.4);
+    history = setLayerOpacity(history, 1, 1);
+    history = endJoin(history);
+    expect(history.past).toHaveLength(1);
+    expect(history.joins).toBeUndefined();
+    // A new slide is a step of its own, not a part of the old one.
+    history = endJoin(setLayerOpacity(history, 1, 0.5));
+    expect(undo(history).present.layers[0]?.opacity).toBe(1);
+  });
+
+  it("has nothing to save for an eraser alone, or a layer at no opacity", () => {
+    const rub: Stroke = { ...line(1), erase: true };
+    const erased = addMark(newSketchHistory(), rub);
+    expect(hasVisibleStrokes(erased.present)).toBe(false);
+    expect(hasStrokes(erased.present)).toBe(true);
+    const faded = setLayerOpacity(addMark(newSketchHistory(), line(1)), 1, 0);
+    expect(hasVisibleStrokes(faded.present)).toBe(false);
+  });
+
   it("does not join a stroke to the slide before it", () => {
     let history = setLayerOpacity(newSketchHistory(), 1, 0.5);
     history = addMark(history, line(1));

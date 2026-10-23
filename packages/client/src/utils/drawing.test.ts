@@ -129,6 +129,13 @@ describe("moving and resizing strokes", () => {
     expect(markBounds([])).toBeNull();
   });
 
+  it("finds no ink in an eraser", () => {
+    expect(markBounds([{ ...stroke, erase: true }])).toBeNull();
+    expect(markBounds([stroke, { ...stroke, erase: true }])).toEqual(
+      markBounds([stroke]),
+    );
+  });
+
   it("moves the points, and scales the width with them", () => {
     const moved = transformStroke(stroke, { scale: 2, dx: 1, dy: -1 });
     expect(moved.points).toEqual([

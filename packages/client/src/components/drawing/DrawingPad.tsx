@@ -11,7 +11,6 @@ import { closeDrawing, drawingRequest } from "#/state/drawing.ts";
 import { showError } from "#/state/ui.ts";
 import {
   BLANK_PAPER,
-  blankCanvas,
   drawingPoint,
   drawMarks,
   encodeDrawing,
@@ -25,6 +24,7 @@ import {
   type Rect,
   renderDrawing,
   resizeFrom,
+  reusedCanvas,
   type Shape,
   type Stroke,
   type Transform,
@@ -37,6 +37,7 @@ import {
   clearLayer,
   cropImage,
   cropLayer,
+  hasInk,
   hasStrokes,
   hasVisibleStrokes,
   layerBounds,
@@ -128,6 +129,8 @@ export function DrawingPad() {
     over: HTMLCanvasElement;
     scratch: HTMLCanvasElement;
   } | null>(null);
+  // The same canvases for the next gesture, while the view keeps its size.
+  const kept = useRef<typeof live.current>(null);
   const frame = useRef(0);
   // The corners of a polygon in progress, and where the pointer is.
   const polygon = useRef<{ corners: Point[]; hover: Point | null } | null>(
@@ -313,9 +316,10 @@ export function DrawingPad() {
     const { layers, active } = historyRef.current.present;
     const index = layers.findIndex((layer) => layer.id === active);
     const shown = currentView();
-    const under = blankCanvas(shown);
-    const over = blankCanvas(shown);
-    const layer = blankCanvas(shown);
+    const reused = kept.current;
+    const under = reusedCanvas(reused?.under, shown);
+    const over = reusedCanvas(reused?.over, shown);
+    const layer = reusedCanvas(reused?.layer, shown);
     const underCtx = under.getContext("2d");
     const overCtx = over.getContext("2d");
     if (underCtx) {
@@ -326,7 +330,8 @@ export function DrawingPad() {
       renderDrawing(overCtx, layers.slice(index + 1), paper, null, true, shown);
     }
     paintLayer(layer, layers[index]?.marks ?? [], shown);
-    live.current = { under, layer, over, scratch: blankCanvas(shown) };
+    const scratch = reusedCanvas(reused?.scratch, shown);
+    live.current = kept.current = { under, layer, over, scratch };
   };
 
   const endFrames = () => {
@@ -416,6 +421,15 @@ export function DrawingPad() {
     setDrawingPolygon(false);
     endFrames();
     redraw();
+  };
+
+  /**
+   * A change from the controls. A polygon in progress ends with no mark: its
+   * frames show the layers as they were before the change.
+   */
+  const applyControl = (next: SketchHistory) => {
+    if (polygon.current) cancelPolygon();
+    apply(next);
   };
 
   const discard = async () => {
@@ -581,7 +595,8 @@ export function DrawingPad() {
    */
   const startDrag = (pointerId: number, start: Point, shown: DOMRect) => {
     const layer = activeLayer(historyRef.current.present);
-    const bounds = layer ? layerBounds(layer) : null;
+    // A hidden layer does not move: you cannot see what you would move.
+    const bounds = layer?.visible ? layerBounds(layer) : null;
     if (!bounds) return;
     // The handle, with some room around it for a finger.
     const reach = onPaper(HANDLE * 1.5, shown);
@@ -776,8 +791,8 @@ export function DrawingPad() {
       4,
       (strokeWidth() * shown.width) / currentView().width,
     );
-    // The eraser is round, whatever the tip of the pen.
-    const look = tipStyle(erasing ? "round" : pen.tip, size);
+    // The eraser has the tip of the pen too.
+    const look = tipStyle(pen.tip, size);
     const height = Number.parseFloat(look.height);
     // The cursor is in the scrolled area, with the paper.
     const left = event.clientX - around.left + element.scrollLeft - size / 2;
@@ -794,7 +809,8 @@ export function DrawingPad() {
   };
 
   const shownLayer = activeLayer(history.present);
-  const inkBox = shownLayer ? layerBounds(shownLayer) : null;
+  const inkBox = shownLayer?.visible ? layerBounds(shownLayer) : null;
+  const layerHasInk = shownLayer !== undefined && hasInk(shownLayer);
   const moveBox = inkBox && transformRect(inkBox, dragBy ?? UNCHANGED);
   const canvasCursor =
     tool === "move"
@@ -822,12 +838,15 @@ export function DrawingPad() {
         onZoomIn={() => zoomTo(zoom * ZOOM_STEP)}
         canZoomOut={zoom > MIN_ZOOM}
         canZoomIn={zoom < MAX_ZOOM}
-        onUndo={() => apply(undo(historyRef.current))}
-        onRedo={() => apply(redo(historyRef.current))}
-        canUndo={history.past.length > 0}
+        // Undo takes back a polygon in progress first, as Escape does.
+        onUndo={() =>
+          polygon.current ? cancelPolygon() : apply(undo(historyRef.current))
+        }
+        onRedo={() => applyControl(redo(historyRef.current))}
+        canUndo={history.past.length > 0 || drawingPolygon}
         canRedo={history.future.length > 0}
-        onClear={() => apply(clearLayer(historyRef.current))}
-        canClear={Boolean(shownLayer?.marks.length)}
+        onClear={() => applyControl(clearLayer(historyRef.current))}
+        canClear={layerHasInk}
         onDone={done}
         saving={saving}
       />
@@ -903,7 +922,7 @@ export function DrawingPad() {
                 type="button"
                 class={selectionButton}
                 onClick={() => cropTo("layer")}
-                disabled={!shownLayer?.marks.length}
+                disabled={!layerHasInk}
               >
                 <SquareDashed class="w-4 h-4" />
                 {t("drawing.cropLayer")}
@@ -939,7 +958,7 @@ export function DrawingPad() {
         pen={pen}
         onPen={setPen}
         history={history}
-        onHistory={apply}
+        onHistory={applyControl}
       />
     </div>
   );
