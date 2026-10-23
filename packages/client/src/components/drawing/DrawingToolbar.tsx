@@ -1,6 +1,5 @@
 import { NoteColor } from "@manifesto/shared";
 import {
-  ArrowLeftRight,
   Circle,
   Eraser,
   Hand,
@@ -11,6 +10,7 @@ import {
   Pencil,
   Pentagon,
   Pipette,
+  Repeat2,
   Shapes,
   Square,
   SquareDashedMousePointer,
@@ -83,10 +83,12 @@ const TOOLS = [
   { tool: "fill", Icon: PaintBucket, label: "drawing.fill" },
 ] as const;
 
-// The browser gives a color field a border and padding of its own, with square
-// corners behind the round swatch.
+// A round ink with a light ring and a dark gap: a black ink shows on the dark
+// bar, and the two inks stay apart where they overlap. The browser gives a
+// color field a border and padding of its own, with square corners behind the
+// round swatch. Thus, both are removed.
 const colorField =
-  "absolute w-7 h-7 appearance-none overflow-hidden rounded-md border-0 p-0 cursor-pointer bg-transparent ring-2 ring-neutral-900 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-0 [&::-moz-color-swatch]:rounded-md [&::-moz-color-swatch]:border-0";
+  "absolute w-8 h-8 appearance-none overflow-hidden rounded-full border-0 p-0 cursor-pointer bg-transparent shadow-[0_0_0_2px_#737373,0_0_0_4px_#171717] [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-0";
 
 const inkLabel = (name: (typeof INKS)[number]["name"]) =>
   name === null
@@ -229,36 +231,36 @@ export function DrawingToolbar({
    * in use. On a phone in the row of colors, on a wide screen under the tools.
    */
   const inkPair = (where: string) => (
-    <span class={`${where} items-center gap-1 md:flex-col`}>
-      <span class="relative w-11 h-11 shrink-0">
-        <input
-          type="color"
-          class={`${colorField} left-0 top-0 z-1`}
-          value={ink}
-          onInput={(event) => useInk(event.currentTarget.value)}
-          aria-label={t("drawing.foreground")}
-        />
-        <input
-          type="color"
-          class={`${colorField} right-0 bottom-0`}
-          value={backInk}
-          onInput={(event) => onBackInk(event.currentTarget.value)}
-          aria-label={t("drawing.background")}
-        />
+    <span class={`${where} relative w-12 h-12 shrink-0`}>
+      <input
+        type="color"
+        class={`${colorField} left-0 top-0 z-1`}
+        value={ink}
+        onInput={(event) => useInk(event.currentTarget.value)}
+        aria-label={t("drawing.foreground")}
+      />
+      <input
+        type="color"
+        class={`${colorField} right-0 bottom-0`}
+        value={backInk}
+        onInput={(event) => onBackInk(event.currentTarget.value)}
+        aria-label={t("drawing.background")}
+      />
+      <span class="absolute right-0 top-0">
+        <Tooltip label={t("drawing.swapColors")}>
+          <button
+            type="button"
+            class="relative flex items-center justify-center w-4 h-4 rounded-sm text-neutral-300 hover:text-white cursor-pointer after:absolute after:-inset-1"
+            onClick={() => {
+              onInk(backInk);
+              onBackInk(ink);
+            }}
+            aria-label={t("drawing.swapColors")}
+          >
+            <Repeat2 class="w-4 h-4" />
+          </button>
+        </Tooltip>
       </span>
-      <Tooltip label={t("drawing.swapColors")}>
-        <button
-          type="button"
-          class={barButton}
-          onClick={() => {
-            onInk(backInk);
-            onBackInk(ink);
-          }}
-          aria-label={t("drawing.swapColors")}
-        >
-          <ArrowLeftRight class="w-4 h-4" />
-        </button>
-      </Tooltip>
     </span>
   );
 
