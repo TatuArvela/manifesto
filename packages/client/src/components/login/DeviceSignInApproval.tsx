@@ -11,6 +11,7 @@ import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
 import { t } from "#/i18n/index.ts";
 import {
   approveDeviceSignIn,
+  denyDeviceSignIn,
   inspectDeviceSignIn,
   type ScannedRequest,
   scannedDeviceRequest,
@@ -66,6 +67,11 @@ export function DeviceSignInApproval({ request }: { request: ScannedRequest }) {
 
   useEscapeStack(true, dismiss);
   const dialogRef = useFocusTrap<HTMLDivElement>(!closing);
+
+  const deny = () => {
+    void denyDeviceSignIn(request.id);
+    dismiss();
+  };
 
   const submit = async (event: Event) => {
     event.preventDefault();
@@ -166,7 +172,7 @@ export function DeviceSignInApproval({ request }: { request: ScannedRequest }) {
             <button
               type="button"
               class={buttonClass("secondary")}
-              onClick={dismiss}
+              onClick={ready ? deny : dismiss}
             >
               {t(ready ? "deviceSignIn.deny" : "confirm.cancel")}
             </button>

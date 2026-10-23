@@ -50,6 +50,15 @@ export function createPostgresDeviceSignInsRepo(
       );
       return result.rowCount === 1;
     },
+    async deny(idHash, now) {
+      const result = await pool.query(
+        `UPDATE device_sign_ins SET used_at = $2
+         WHERE id_hash = $1 AND approved_at IS NULL AND used_at IS NULL
+           AND expires_at > $2`,
+        [idHash, now],
+      );
+      return result.rowCount === 1;
+    },
     async claim(waitHash, now) {
       const result = await pool.query<{
         user_id: string;
@@ -74,7 +83,8 @@ export function createPostgresDeviceSignInsRepo(
       }
       const pending = await pool.query(
         `SELECT 1 FROM device_sign_ins
-         WHERE wait_hash = $1 AND approved_at IS NULL AND expires_at > $2`,
+         WHERE wait_hash = $1 AND approved_at IS NULL AND used_at IS NULL
+           AND expires_at > $2`,
         [waitHash, now],
       );
       return pending.rowCount ? "pending" : null;

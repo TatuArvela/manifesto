@@ -369,8 +369,11 @@ The rules:
   must not be sufficient to make a session somewhere else. It does not ask for a second factor again,
   because the approving session already gave it.
 - An approval that the new device did not collect yet stops when the sessions of the account end.
-- The audit log records the approval as "Approved a sign-in on a new device", and the sign-in with
-  `method: "device"`. The sign-in ends no other session.
+- **Not me** ends the request. The new device then says that its code expired.
+- The audit log records the approval as "Approved a sign-in on a new device", a refusal as
+  "Refused a sign-in on a new device", and the sign-in with `method: "device"`. Thus, a person who
+  refused a code that somebody sent them finds it again on the Activity page. The sign-in ends no
+  other session.
 
 A person who sees both the QR code and the matching code, and has an account here, can approve the
 request with their own account. The new device then signs in to that account, not to the account of

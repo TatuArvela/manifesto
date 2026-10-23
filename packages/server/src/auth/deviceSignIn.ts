@@ -43,7 +43,8 @@ const gone = () =>
  *   `requireConfirmation`, because a stolen session must not make a session of
  *   its own. The approval can carry the secret key of the account, wrapped to a
  *   key that only the new device holds (`shared/src/crypto/deviceSeal.ts`).
- * - The new device asks (`wait`) until the approval is there.
+ * - The new device asks (`wait`) until the approval is there. "Not me" on the
+ *   approving device ends the request (`deny`), and the log records it.
  *
  * The approval asks for no second factor. The approving session already passed
  * it, and its person confirms again with the password. The routes are the same
@@ -108,6 +109,26 @@ export function registerDeviceSignInRoutes(
         action: "auth.device_sign_in_approved",
         actorId: auth.userId,
         ...(key && { detail: { secretKey: "yes" } }),
+      });
+      return c.body(null, 204);
+    },
+  );
+
+  // "Not me" on the approving device. The request ends, and the log of the
+  // account keeps the refusal. Thus, a person who was sent a code by somebody
+  // else finds it again on the Activity page.
+  router.post(
+    "/device-sign-in/deny",
+    zValidator("json", deviceSignInInspectSchema, validatorHook),
+    async (c) => {
+      const auth = c.get("auth");
+      const { id } = c.req.valid("json");
+      if (!(await storage.deviceSignIns.deny(hashToken(id), nowIso()))) {
+        throw gone();
+      }
+      audit(storage, c, {
+        action: "auth.device_sign_in_denied",
+        actorId: auth.userId,
       });
       return c.body(null, 204);
     },
