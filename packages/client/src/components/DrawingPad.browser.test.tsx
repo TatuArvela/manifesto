@@ -284,6 +284,57 @@ describe("DrawingPad", () => {
     expect(drawingRequest.value).toBeNull();
   });
 
+  it("draws with the tip, size and opacity of the pen", async () => {
+    button(t("drawing.pen"))?.click();
+    await settled();
+    button(t("drawing.tipSquare"))?.click();
+    const size = host.querySelector<HTMLInputElement>(
+      `input[aria-label="${t("drawing.customSize")}"]`,
+    );
+    if (size) {
+      size.value = "60";
+      size.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    await settled();
+    // A square tip of 60 reaches the corner of its square; a round one would not.
+    drawLine([0.5, 0.5], [0.5, 0.5]);
+    await settled();
+    const corner = (fx: number, fy: number) => inkAt(fx, fy);
+    expect(corner(0.5 + 27 / DRAWING_WIDTH, 0.5 + 27 / DRAWING_HEIGHT)).toBe(
+      "23,23,23",
+    );
+
+    const opacity = host.querySelector<HTMLInputElement>('input[type="range"]');
+    if (opacity) {
+      opacity.value = "50";
+      opacity.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    await settled();
+    drawLine([0.2, 0.2], [0.4, 0.2]);
+    await settled();
+    // Half the black over white paper, and no darker where the squares overlap.
+    const [r = 0] = inkAt(0.3, 0.2).split(",").map(Number);
+    expect(r).toBeGreaterThan(120);
+    expect(r).toBeLessThan(150);
+  });
+
+  it("picks an ink from the drawing with the eye dropper", async () => {
+    button("Red")?.click();
+    await settled();
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    button("Black")?.click();
+    button(t("drawing.dropper"))?.click();
+    await settled();
+    drawLine([0.5, 0.5], [0.5, 0.5]);
+    await settled();
+    const field = host.querySelector<HTMLInputElement>('input[type="color"]');
+    expect(field?.value).toBe("#dc2626");
+    // The pen draws with it again.
+    drawLine([0.2, 0.2], [0.8, 0.2]);
+    await settled();
+    expect(inkAt(0.5, 0.2)).toBe("220,38,38");
+  });
+
   it("hands the drawing over as a PNG with the ink in it", async () => {
     drawLine([0.2, 0.5], [0.8, 0.5]);
     await settled();
