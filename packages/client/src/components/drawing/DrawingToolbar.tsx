@@ -23,6 +23,7 @@ import { getColorLabel, t } from "#/i18n/index.ts";
 import type { Rect } from "#/utils/drawing.ts";
 import type { SketchHistory } from "#/utils/drawingLayers.ts";
 import { DrawingLayers } from "./DrawingLayers.tsx";
+import { DrawingMoveOptions, type MoveTarget } from "./DrawingMoveOptions.tsx";
 import {
   DrawingPen,
   hasPenOptions,
@@ -198,6 +199,9 @@ export function DrawingToolbar({
   history,
   view,
   onHistory,
+  moveTarget,
+  onMoveTarget,
+  hasSelection,
 }: {
   tool: Tool;
   onTool: (tool: Tool) => void;
@@ -211,6 +215,9 @@ export function DrawingToolbar({
   /** The part of the paper that the picture shows, for the layer pictures. */
   view: Rect;
   onHistory: (next: SketchHistory) => void;
+  moveTarget: MoveTarget;
+  onMoveTarget: (next: MoveTarget) => void;
+  hasSelection: boolean;
 }) {
   const [panel, setPanel] = useState<"pen" | "layers" | "shapes" | null>(null);
   const toggle = (next: "pen" | "layers" | "shapes") =>
@@ -300,13 +307,23 @@ export function DrawingToolbar({
       </div>
 
       <div class="[grid-area:options] relative md:flex md:items-center md:justify-center md:px-2">
-        <DrawingPen
-          tool={tool}
-          pen={pen}
-          open={panel === "pen"}
-          onChange={onPen}
-          onClose={close}
-        />
+        {tool === "move" ? (
+          <DrawingMoveOptions
+            target={moveTarget}
+            hasSelection={hasSelection}
+            open={panel === "pen"}
+            onChange={onMoveTarget}
+            onClose={close}
+          />
+        ) : (
+          <DrawingPen
+            tool={tool}
+            pen={pen}
+            open={panel === "pen"}
+            onChange={onPen}
+            onClose={close}
+          />
+        )}
       </div>
 
       <div class="[grid-area:tools] flex flex-wrap items-center justify-center gap-1 px-2 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:flex-col md:flex-nowrap md:justify-start md:p-2 md:pt-0">
@@ -354,7 +371,7 @@ export function DrawingToolbar({
           type="button"
           class={`${barButton} md:hidden ${panel === "pen" ? "bg-white/20" : ""}`}
           onClick={() => toggle("pen")}
-          disabled={!hasPenOptions(tool)}
+          disabled={tool !== "move" && !hasPenOptions(tool)}
           aria-label={t("drawing.penSettings")}
           aria-expanded={panel === "pen"}
         >

@@ -7,6 +7,8 @@ export type Gesture =
   | {
       kind: "drag";
       pointerId: number;
+      /** The ink of the active layer, or the selected area alone. */
+      target: "layer" | "selection";
       resize: boolean;
       start: Point;
       bounds: Rect;

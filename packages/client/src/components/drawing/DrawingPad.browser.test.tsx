@@ -568,6 +568,33 @@ describe("DrawingPad", () => {
     expect(inkAt(0.2, 0.2)).toBe("23,23,23");
   });
 
+  it("moves the selected area, and not the ink, when Move is set to it", async () => {
+    drawLine([0.45, 0.5], [0.55, 0.5]);
+    button(t("drawing.select"))?.click();
+    await settled();
+    drawLine([0.4, 0.4], [0.6, 0.6]);
+    await settled();
+    button(t("drawing.move"))?.click();
+    await settled();
+    host.querySelectorAll<HTMLButtonElement>("button").forEach((each) => {
+      if (each.textContent === t("drawing.moveSelection")) each.click();
+    });
+    await settled();
+    drawLine([0.5, 0.5], [0.5, 0.2]);
+    await settled();
+    // The ink stayed.
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    // The pen now draws only in the area where it went.
+    button(t("drawing.penTool"))?.click();
+    await settled();
+    drawLine([0.1, 0.2], [0.9, 0.2]);
+    drawLine([0.1, 0.45], [0.9, 0.45]);
+    await settled();
+    expect(inkAt(0.5, 0.2)).toBe("23,23,23");
+    expect(inkAt(0.2, 0.2)).toBe(PAPER);
+    expect(inkAt(0.5, 0.45)).toBe(PAPER);
+  });
+
   it("closes the shapes menu on a press outside it", async () => {
     button(t("drawing.shapes"))?.click();
     await settled();

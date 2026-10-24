@@ -44,6 +44,13 @@ export function tipStyle(tip: PenTip, size: number) {
   };
 }
 
+/**
+ * The panel of the options of a tool: on a wide screen a bar over the paper,
+ * always there; on a phone a panel that the pen button opens.
+ */
+export const optionsPanel = (open: boolean) =>
+  `${open ? "flex" : "hidden"} absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-64 max-w-[calc(100vw-1rem)] flex-col gap-2 rounded-lg bg-neutral-800 p-2 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0 text-sm md:static md:flex md:translate-x-0 md:w-auto md:max-w-none md:flex-row md:flex-wrap md:items-center md:justify-center md:gap-x-6 md:gap-y-1 md:bg-transparent md:p-0 md:shadow-none md:ring-0`;
+
 /** The options that apply to a tool. A tool with none shows no panel. */
 export function penOptions(tool: Tool) {
   const shape = tool === "rect" || tool === "ellipse" || tool === "polygon";
@@ -111,10 +118,7 @@ export function DrawingPen({
   if (!hasPenOptions(tool)) return null;
 
   return (
-    <fieldset
-      class={`${open ? "flex" : "hidden"} absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-64 max-w-[calc(100vw-1rem)] flex-col gap-2 rounded-lg bg-neutral-800 p-2 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0 text-sm md:static md:flex md:translate-x-0 md:w-auto md:max-w-none md:flex-row md:flex-wrap md:items-center md:justify-center md:gap-x-6 md:gap-y-1 md:bg-transparent md:p-0 md:shadow-none md:ring-0`}
-      aria-label={t("drawing.penSettings")}
-    >
+    <fieldset class={optionsPanel(open)} aria-label={t("drawing.penSettings")}>
       {shows.tip && (
         <div class="flex items-center gap-1">
           <OptionName Icon={PenLine} name={t("drawing.tip")} />

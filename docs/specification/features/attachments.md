@@ -75,6 +75,9 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   the handle at the bottom right corner makes it larger or smaller, from its top left corner, with
   the same scale on both axes (from 0.05 to 20 times). The strokes move as lines, not as a picture.
   A hidden layer shows no box and does not move.
+- The options of **Move** choose what it moves: **Layer** (the ink of the current layer) or
+  **Selection** (the selected area alone, while there is one). A drag moves the area, and a drag of
+  its handle changes its size. The ink stays, and the area then limits the tools in its new place.
   Thus, they stay sharp at any size, and a pen width grows with them. A drag is one step.
 - **Select** marks an area with a drag. With an area, two buttons show. **Crop layer** cuts the ink
   of the current layer to the area: the rest no longer shows, but lines that you draw after it are

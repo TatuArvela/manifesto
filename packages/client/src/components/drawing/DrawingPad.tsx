@@ -41,6 +41,7 @@ import {
 import { fillPicture, floodFill, growArea } from "#/utils/floodFill.ts";
 import { closesPolygon, snapLine, snapSquare } from "#/utils/shapes.ts";
 import { DrawingHints } from "./DrawingHints.tsx";
+import type { MoveTarget } from "./DrawingMoveOptions.tsx";
 import { DrawingOverlay, HANDLE, useCanvasBox } from "./DrawingOverlay.tsx";
 import { type PenSettings, WIDTHS } from "./DrawingPen.tsx";
 import { DrawingToolbar, INKS, type Tool } from "./DrawingToolbar.tsx";
@@ -104,6 +105,9 @@ export function DrawingPad() {
   // The drag of the move tool as the box over the ink shows it.
   const [dragBy, setDragBy] = useState<Transform | null>(null);
   const [selection, setSelection] = useState<Rect | null>(null);
+  const [moveTarget, setMoveTarget] = useState<MoveTarget>("layer");
+  // The move tool moves the area only while there is one.
+  const movingSelection = moveTarget === "selection" && selection !== null;
   const box = useCanvasBox(canvasRef);
   const [ink, setInk] = useState<string>(INKS[0].color);
   const [backInk, setBackInk] = useState<string>(INKS[1].color);
@@ -238,6 +242,8 @@ export function DrawingPad() {
     if (now.kind === "pan") return;
     endFrames();
     if (now.kind === "drag") {
+      // The area is already where the drag left it.
+      if (now.target === "selection") return;
       setDragBy(null);
       apply(transformLayer(historyRef.current, now.by));
       // Nothing moved: the canvas still shows the cached layer.
@@ -477,24 +483,34 @@ export function DrawingPad() {
    * empty layer.
    */
   const startDrag = (pointerId: number, start: Point, shown: DOMRect) => {
+    const target: MoveTarget = movingSelection ? "selection" : "layer";
     const layer = activeLayer(historyRef.current.present);
     // A hidden layer does not move: you cannot see what you would move.
-    const bounds = layer?.visible ? layerBounds(layer) : null;
+    const bounds =
+      target === "selection"
+        ? selection
+        : layer?.visible
+          ? layerBounds(layer)
+          : null;
     if (!bounds) return;
     // The handle, with some room around it for a finger.
     const reach = onPaper(HANDLE * 1.5, shown);
     const resize =
       Math.abs(start[0] - (bounds.x + bounds.width)) <= reach &&
       Math.abs(start[1] - (bounds.y + bounds.height)) <= reach;
-    cacheAround();
-    gesture.current = {
-      kind: "drag",
+    const drag = {
+      kind: "drag" as const,
       pointerId,
+      target,
       resize,
       start,
       bounds,
       by: UNCHANGED,
     };
+    gesture.current = drag;
+    // The area moves alone: the drawing under it does not change.
+    if (target === "selection") return;
+    cacheAround();
     setDragBy(UNCHANGED);
     paintActive();
   };
@@ -620,6 +636,10 @@ export function DrawingPad() {
               to[1] + bounds.y + bounds.height - start[1],
             ])
           : { scale: 1, dx: to[0] - start[0], dy: to[1] - start[1] };
+        if (now.target === "selection") {
+          setSelection(transformRect(bounds, now.by));
+          return;
+        }
         setDragBy(now.by);
         schedule();
         return;
@@ -677,7 +697,9 @@ export function DrawingPad() {
   const shownLayer = activeLayer(history.present);
   const inkBox = shownLayer?.visible ? layerBounds(shownLayer) : null;
   const layerHasInk = shownLayer !== undefined && hasInk(shownLayer);
-  const moveBox = inkBox && transformRect(inkBox, dragBy ?? UNCHANGED);
+  const moveBox = movingSelection
+    ? selection
+    : inkBox && transformRect(inkBox, dragBy ?? UNCHANGED);
   const canvasCursor =
     tool === "move"
       ? "move"
@@ -790,6 +812,9 @@ export function DrawingPad() {
         history={history}
         view={view}
         onHistory={applyControl}
+        moveTarget={moveTarget}
+        onMoveTarget={setMoveTarget}
+        hasSelection={selection !== null}
       />
     </div>
   );
