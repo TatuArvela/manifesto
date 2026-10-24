@@ -30,7 +30,8 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   field that takes any other ink. A press on one of the twelve colors sets the foreground ink, and a
   right click sets the background ink. **Swap inks** exchanges them. Lines, outlines and fills use
   the foreground ink. The inside of a shape uses the background ink.
-- **Tools**, in this order: Move, Select, Eyedropper, Pen, Eraser, Fill, Shapes and Hand.
+- **Tools**, in this order: Move, Selection (a menu of Select and Lasso), Eyedropper, Pen, Eraser,
+  Fill, Shapes and Hand.
   - **Pen** draws a free line. A tap makes a dot.
   - **Eraser** takes ink away from the current layer only. The layers under it, and the image under
     the drawing, stay. It has the tip of the pen, and is four times the size of the pen.
@@ -46,7 +47,7 @@ shares and exports it as a picture, and it uses one of the image slots of the no
     A press on the first corner, or a double click, closes it. Escape or Undo discards it, and so
     does a change from the other controls of the top bar or the layer list. A shape with no size
     draws nothing.
-  - **Select** and **Move** are described below. **Hand** drags the view of a zoomed drawing.
+  - **Select**, **Lasso** and **Move** are described below. **Hand** drags the view of a zoomed drawing.
 - On a wide screen, the tools and the two inks are a rail at the left of the paper, the options of
   the current tool a bar over the paper, and the colors and the layers panels at the right. On a
   phone, the inks and the colors are one row under the paper, and the tools a row under that. The
@@ -75,11 +76,15 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   the handle at the bottom right corner makes it larger or smaller, from its top left corner, with
   the same scale on both axes (from 0.05 to 20 times). The strokes move as lines, not as a picture.
   A hidden layer shows no box and does not move.
-- The options of **Move** choose what it moves: **Layer** (the ink of the current layer) or
-  **Selection** (the selected area alone, while there is one). A drag moves the area, and a drag of
-  its handle changes its size. The ink stays, and the area then limits the tools in its new place.
   Thus, they stay sharp at any size, and a pen width grows with them. A drag is one step.
-- **Select** marks an area with a drag. With an area, two buttons show. **Crop layer** cuts the ink
+- **Selection** opens a menu of two tools. **Select** marks a rectangle with a drag, and **Lasso** a
+  freehand area along the path of the drag. The options choose what a new shape does: a new area,
+  added to the area, subtracted from it, or only the part that both share. For one drag, Shift
+  adds, Alt subtracts, and Shift and Alt together keep the shared part. Thus, the area can have any
+  shape, and holes. Its edge shows as black and white dashes.
+- A drag that starts inside the area moves it. The options choose what it moves: the area alone, or
+  the ink of the current layer in it. A move of the ink is one step for undo.
+- With an area, two buttons show. **Crop layer** cuts the ink
   of the current layer to the area: the rest no longer shows, but lines that you draw after it are
   not cut. **Crop image** makes the picture the area, and Done saves only that part. A second crop
   stays inside the first. Escape, a tap with Select, or the close button removes the area. Each

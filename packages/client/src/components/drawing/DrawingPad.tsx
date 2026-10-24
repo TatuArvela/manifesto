@@ -13,7 +13,6 @@ import {
   PAPER,
   type Point,
   penScale,
-  type Rect,
   renderDrawing,
   resizeFrom,
   type Shape,
@@ -32,6 +31,8 @@ import {
   hasStrokes,
   hasVisibleStrokes,
   layerBounds,
+  movedMarks,
+  moveSelected,
   newSketchHistory,
   redo,
   type SketchHistory,
@@ -39,10 +40,16 @@ import {
   undo,
 } from "#/utils/drawingLayers.ts";
 import { fillPicture, floodFill, growArea } from "#/utils/floodFill.ts";
+import { inArea } from "#/utils/selection.ts";
 import { closesPolygon, snapLine, snapSquare } from "#/utils/shapes.ts";
 import { DrawingHints } from "./DrawingHints.tsx";
-import type { MoveTarget } from "./DrawingMoveOptions.tsx";
-import { DrawingOverlay, HANDLE, useCanvasBox } from "./DrawingOverlay.tsx";
+import {
+  DrawingOverlay,
+  HANDLE,
+  SelectionDraft,
+  SelectionOutline,
+  useCanvasBox,
+} from "./DrawingOverlay.tsx";
 import { type PenSettings, WIDTHS } from "./DrawingPen.tsx";
 import { DrawingToolbar, INKS, type Tool } from "./DrawingToolbar.tsx";
 import { DrawingTopBar } from "./DrawingTopBar.tsx";
@@ -50,13 +57,11 @@ import { type Gesture, UNCHANGED } from "./gesture.ts";
 import { placePenCursor } from "./penCursor.ts";
 import { useBaseImage } from "./useBaseImage.ts";
 import { useLiveFrames } from "./useLiveFrames.ts";
+import { useSelectionTool } from "./useSelectionTool.ts";
 import { useStageZoom } from "./useStageZoom.ts";
 
 /** The eraser is wider than the pen, wide enough to rub with. */
 const ERASER_SCALE = 4;
-
-/** A drag shorter than this, in paper pixels, is a tap, not an area. */
-const MIN_SELECTION = 4;
 
 /** A color of the canvas as `#rrggbb`, which a color field accepts. */
 const hex = (r: number, g: number, b: number) =>
@@ -104,10 +109,6 @@ export function DrawingPad() {
   const [drawingPolygon, setDrawingPolygon] = useState(false);
   // The drag of the move tool as the box over the ink shows it.
   const [dragBy, setDragBy] = useState<Transform | null>(null);
-  const [selection, setSelection] = useState<Rect | null>(null);
-  const [moveTarget, setMoveTarget] = useState<MoveTarget>("layer");
-  // The move tool moves the area only while there is one.
-  const movingSelection = moveTarget === "selection" && selection !== null;
   const box = useCanvasBox(canvasRef);
   const [ink, setInk] = useState<string>(INKS[0].color);
   const [backInk, setBackInk] = useState<string>(INKS[1].color);
@@ -176,7 +177,7 @@ export function DrawingPad() {
    * fill apply. The area stays with the mark, also after the selection ends.
    */
   const inSelection = (mark: Mark): Mark =>
-    selection ? { clip: selection, marks: [mark] } : mark;
+    selection ? inArea(mark, selection) : mark;
 
   /** Marks that the frame shows on the active layer, not yet in the sketch. */
   const previewMarks = (): Mark[] => {
@@ -201,7 +202,32 @@ export function DrawingPad() {
     moving: () =>
       gesture.current?.kind === "drag" ? gesture.current.by : null,
     preview: () => previewMarks(),
+    replacing: () => {
+      const by = selectTool.pixelOffset();
+      const layer = activeLayer(historyRef.current.present);
+      if (!by || !selection || !layer) return null;
+      const { bounds, mask } = selection;
+      return movedMarks(layer.marks, bounds, mask, by[0], by[1]);
+    },
   });
+
+  const selectTool = useSelectionTool({
+    view: currentView,
+    onMovePixels: (area, dx, dy) =>
+      apply(moveSelected(historyRef.current, area.bounds, area.mask, dx, dy)),
+    onPixelFrames: (phase) => {
+      if (phase === "start") {
+        cacheAround();
+        paintActive();
+      } else if (phase === "frame") {
+        schedule();
+      } else {
+        endFrames();
+        redraw();
+      }
+    },
+  });
+  const { selection, setSelection } = selectTool;
 
   /** The width of the pen, the eraser or an outline, on this paper. */
   const strokeWidth = () =>
@@ -230,20 +256,9 @@ export function DrawingPad() {
     const now = gesture.current;
     if (!now) return;
     gesture.current = null;
-    if (now.kind === "select") {
-      // A tap, not a drag: no area, and a tap clears the one there was.
-      setSelection((area) =>
-        area && area.width >= MIN_SELECTION && area.height >= MIN_SELECTION
-          ? area
-          : null,
-      );
-      return;
-    }
     if (now.kind === "pan") return;
     endFrames();
     if (now.kind === "drag") {
-      // The area is already where the drag left it.
-      if (now.target === "selection") return;
       setDragBy(null);
       apply(transformLayer(historyRef.current, now.by));
       // Nothing moved: the canvas still shows the cached layer.
@@ -333,6 +348,7 @@ export function DrawingPad() {
   const cancel = (): boolean => {
     // A line that is still in progress is also a drawing to lose.
     commitGesture();
+    selectTool.end();
     if (polygon.current) finishPolygon();
     if (!hasStrokes(historyRef.current.present)) {
       closeDrawing();
@@ -354,6 +370,7 @@ export function DrawingPad() {
     if (!canvas || !request || saving) return;
     // Done, pushed with the pen still down, keeps the current line.
     commitGesture();
+    selectTool.end();
     if (polygon.current) finishPolygon();
     // Only what shows is the picture. Hidden layers alone change nothing.
     if (!hasVisibleStrokes(historyRef.current.present)) {
@@ -386,8 +403,8 @@ export function DrawingPad() {
     if (!selection) return;
     apply(
       crop === "image"
-        ? cropImage(historyRef.current, selection, wholePaper(paper))
-        : cropLayer(historyRef.current, selection),
+        ? cropImage(historyRef.current, selection.bounds, wholePaper(paper))
+        : cropLayer(historyRef.current, selection.bounds, selection.mask),
     );
     setSelection(null);
   };
@@ -483,34 +500,24 @@ export function DrawingPad() {
    * empty layer.
    */
   const startDrag = (pointerId: number, start: Point, shown: DOMRect) => {
-    const target: MoveTarget = movingSelection ? "selection" : "layer";
     const layer = activeLayer(historyRef.current.present);
     // A hidden layer does not move: you cannot see what you would move.
-    const bounds =
-      target === "selection"
-        ? selection
-        : layer?.visible
-          ? layerBounds(layer)
-          : null;
+    const bounds = layer?.visible ? layerBounds(layer) : null;
     if (!bounds) return;
     // The handle, with some room around it for a finger.
     const reach = onPaper(HANDLE * 1.5, shown);
     const resize =
       Math.abs(start[0] - (bounds.x + bounds.width)) <= reach &&
       Math.abs(start[1] - (bounds.y + bounds.height)) <= reach;
-    const drag = {
-      kind: "drag" as const,
+    cacheAround();
+    gesture.current = {
+      kind: "drag",
       pointerId,
-      target,
       resize,
       start,
       bounds,
       by: UNCHANGED,
     };
-    gesture.current = drag;
-    // The area moves alone: the drawing under it does not change.
-    if (target === "selection") return;
-    cacheAround();
     setDragBy(UNCHANGED);
     paintActive();
   };
@@ -541,8 +548,8 @@ export function DrawingPad() {
         startDrag(pointerId, paperPoint(event, shown), shown);
         return;
       case "select":
-        gesture.current = { kind: "select", pointerId, start: at };
-        setSelection({ x: at[0], y: at[1], width: 0, height: 0 });
+      case "lasso":
+        selectTool.begin(tool, pointerId, paperPoint(event, shown), event);
         return;
       case "hand": {
         const element = stageRef.current;
@@ -605,21 +612,14 @@ export function DrawingPad() {
       schedule();
       return;
     }
+    if (selectTool.dragging(event.pointerId)) {
+      selectTool.update(paperPoint(event, canvas.getBoundingClientRect()));
+      return;
+    }
     const now = gesture.current;
     if (now?.pointerId !== event.pointerId) return;
     const shown = canvas.getBoundingClientRect();
     switch (now.kind) {
-      case "select": {
-        const [x, y] = viewPoint(event, shown);
-        const [sx, sy] = now.start;
-        setSelection({
-          x: Math.min(x, sx),
-          y: Math.min(y, sy),
-          width: Math.abs(x - sx),
-          height: Math.abs(y - sy),
-        });
-        return;
-      }
       case "pan": {
         const element = stageRef.current;
         if (!element) return;
@@ -636,10 +636,6 @@ export function DrawingPad() {
               to[1] + bounds.y + bounds.height - start[1],
             ])
           : { scale: 1, dx: to[0] - start[0], dy: to[1] - start[1] };
-        if (now.target === "selection") {
-          setSelection(transformRect(bounds, now.by));
-          return;
-        }
         setDragBy(now.by);
         schedule();
         return;
@@ -670,6 +666,7 @@ export function DrawingPad() {
 
   const endGesture = (event: PointerEvent) => {
     if (gesture.current?.pointerId === event.pointerId) commitGesture();
+    if (selectTool.dragging(event.pointerId)) selectTool.end();
     // A finger leaves the screen: there is no place to show the pen at.
     if (event.pointerType === "touch") hideCursor();
   };
@@ -697,9 +694,7 @@ export function DrawingPad() {
   const shownLayer = activeLayer(history.present);
   const inkBox = shownLayer?.visible ? layerBounds(shownLayer) : null;
   const layerHasInk = shownLayer !== undefined && hasInk(shownLayer);
-  const moveBox = movingSelection
-    ? selection
-    : inkBox && transformRect(inkBox, dragBy ?? UNCHANGED);
+  const moveBox = inkBox && transformRect(inkBox, dragBy ?? UNCHANGED);
   const canvasCursor =
     tool === "move"
       ? "move"
@@ -775,7 +770,15 @@ export function DrawingPad() {
         )}
         {/* The selected area shows with every tool, as it limits them all. */}
         {box && selection && tool !== "move" && (
-          <DrawingOverlay box={box} view={view} rect={selection} />
+          <SelectionOutline
+            box={box}
+            view={view}
+            selection={selection}
+            offset={selectTool.offset}
+          />
+        )}
+        {box && selectTool.draft && (
+          <SelectionDraft box={box} view={view} shape={selectTool.draft} />
         )}
         {/* Light and dark rings: it shows over any ink and over a photo. */}
         <div
@@ -812,9 +815,10 @@ export function DrawingPad() {
         history={history}
         view={view}
         onHistory={applyControl}
-        moveTarget={moveTarget}
-        onMoveTarget={setMoveTarget}
-        hasSelection={selection !== null}
+        selectMode={selectTool.mode}
+        onSelectMode={selectTool.setMode}
+        selectionMove={selectTool.move}
+        onSelectionMove={selectTool.setMove}
       />
     </div>
   );

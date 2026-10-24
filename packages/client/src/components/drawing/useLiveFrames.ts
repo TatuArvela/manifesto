@@ -23,6 +23,11 @@ export interface LiveSource {
   moving: () => Transform | null;
   /** Marks that the frame shows on the active layer, not yet in the sketch. */
   preview: () => Mark[];
+  /**
+   * All the marks of the active layer in place of the cached layer, while a
+   * change applies to all of them: the move of the ink of a selected area.
+   */
+  replacing: () => Mark[] | null;
 }
 
 /**
@@ -61,7 +66,10 @@ export function useLiveFrames(source: LiveSource) {
     scratchCtx.clearRect(0, 0, scratch.width, scratch.height);
     const { x, y } = source.view();
     const by = source.moving();
-    if (by) {
+    const replaced = source.replacing();
+    if (replaced) {
+      paintLayer(scratch, replaced, { x, y });
+    } else if (by) {
       // The layer as a picture while it moves. The marks themselves move at
       // the release, and lines stay sharp at any size. The cached layer starts
       // at the corner of the view, not of the paper.

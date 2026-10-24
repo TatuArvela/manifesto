@@ -236,17 +236,59 @@ export function transformLayer(
  * Cuts the marks of the active layer to `area`: the part outside it no longer
  * shows. Lines drawn later are not cut. Nothing when the layer is empty.
  */
-export function cropLayer(history: SketchHistory, area: Rect): SketchHistory {
+export function cropLayer(
+  history: SketchHistory,
+  area: Rect,
+  mask?: CanvasImageSource,
+): SketchHistory {
   const sketch = history.present;
   if (!activeLayer(sketch)?.marks.length) return history;
   return record(
     history,
     changeLayer(sketch, sketch.active, (layer) => ({
       ...layer,
-      marks: [{ clip: area, marks: layer.marks }],
+      marks: [{ clip: area, ...(mask ? { mask } : {}), marks: layer.marks }],
     })),
   );
 }
+
+/**
+ * Moves the ink of the active layer that is inside an area (`area`, in the
+ * shape of `mask`) by `dx`, `dy`. The ink outside it stays. One step.
+ */
+export function moveSelected(
+  history: SketchHistory,
+  area: Rect,
+  mask: CanvasImageSource,
+  dx: number,
+  dy: number,
+): SketchHistory {
+  const sketch = history.present;
+  if (dx === 0 && dy === 0) return history;
+  if (!activeLayer(sketch)?.marks.length) return history;
+  return record(
+    history,
+    changeLayer(sketch, sketch.active, (layer) => ({
+      ...layer,
+      marks: movedMarks(layer.marks, area, mask, dx, dy),
+    })),
+  );
+}
+
+/**
+ * The marks of a layer after the ink inside an area moved: the ink outside it
+ * in place, and a moved copy of the ink inside it.
+ */
+export const movedMarks = (
+  marks: readonly Mark[],
+  area: Rect,
+  mask: CanvasImageSource,
+  dx: number,
+  dy: number,
+): Mark[] => [
+  { clip: area, mask, outside: true, marks },
+  transformMark({ clip: area, mask, marks }, { scale: 1, dx, dy }),
+];
 
 /**
  * Makes the picture the part of it in `area`. Nothing when the area is outside

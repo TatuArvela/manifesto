@@ -3,6 +3,7 @@ import {
   Circle,
   Eraser,
   Hand,
+  Lasso,
   Layers,
   Minus,
   Move,
@@ -15,21 +16,25 @@ import {
   Square,
   SquareDashedMousePointer,
 } from "lucide-preact";
-import type { ComponentType, RefObject } from "preact";
+import { type ComponentType, Fragment, type RefObject } from "preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { getColorLabel, t } from "#/i18n/index.ts";
 import type { Rect } from "#/utils/drawing.ts";
 import type { SketchHistory } from "#/utils/drawingLayers.ts";
+import type { SelectMode } from "#/utils/selection.ts";
 import { DrawingLayers } from "./DrawingLayers.tsx";
-import { DrawingMoveOptions, type MoveTarget } from "./DrawingMoveOptions.tsx";
 import {
   DrawingPen,
   hasPenOptions,
   type PenSettings,
   tipStyle,
 } from "./DrawingPen.tsx";
+import {
+  DrawingSelectOptions,
+  type SelectionMove,
+} from "./DrawingSelectOptions.tsx";
 
 /** What a press on the paper does. */
 export type Tool =
@@ -42,6 +47,7 @@ export type Tool =
   | "fill"
   | "dropper"
   | "select"
+  | "lasso"
   | "move"
   | "hand";
 
@@ -63,6 +69,12 @@ export const INKS = [
 export const barButton =
   "p-2 rounded-lg text-neutral-100 hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer disabled:cursor-default";
 
+/** The tools that select an area, in a menu of one button. */
+const SELECTIONS = [
+  { tool: "select", Icon: SquareDashedMousePointer, label: "drawing.select" },
+  { tool: "lasso", Icon: Lasso, label: "drawing.lasso" },
+] as const;
+
 const SHAPES = [
   { tool: "line", Icon: Minus, label: "drawing.line" },
   { tool: "rect", Icon: Square, label: "drawing.rect" },
@@ -77,7 +89,6 @@ const SHAPES = [
  */
 const TOOLS = [
   { tool: "move", Icon: Move, label: "drawing.move" },
-  { tool: "select", Icon: SquareDashedMousePointer, label: "drawing.select" },
   { tool: "dropper", Icon: Pipette, label: "drawing.dropper" },
   { tool: "pen", Icon: Pencil, label: "drawing.penTool" },
   { tool: "eraser", Icon: Eraser, label: "drawing.eraser" },
@@ -130,18 +141,75 @@ function ToolButton({
   );
 }
 
+type ToolItem = (typeof SHAPES | typeof SELECTIONS)[number];
+
 /**
- * The four shape tools, in a panel. A choice, Escape or a press outside closes
- * it.
+ * A button for a group of tools, with the icon of the tool of the group in
+ * use, and the menu of the group that it opens. A choice, Escape or a press
+ * outside the menu closes it.
  */
-function ShapePicker({
+function ToolGroup({
+  label,
+  items,
+  Fallback,
+  tool,
+  open,
+  onToggle,
+  onTool,
+  onClose,
+}: {
+  label: string;
+  items: readonly ToolItem[];
+  /** The icon while no tool of the group is in use. */
+  Fallback: ComponentType<{ class?: string }>;
+  tool: Tool;
+  open: boolean;
+  onToggle: () => void;
+  onTool: (tool: Tool) => void;
+  onClose: () => void;
+}) {
+  const area = useRef<HTMLSpanElement>(null);
+  const current = items.find((each) => each.tool === tool);
+  const Icon = current?.Icon ?? Fallback;
+  return (
+    <span class="relative" ref={area}>
+      <Tooltip label={label}>
+        <button
+          type="button"
+          class={current ? toolOn : barButton}
+          onClick={onToggle}
+          aria-label={label}
+          aria-expanded={open}
+        >
+          <Icon class="w-5 h-5" />
+        </button>
+      </Tooltip>
+      {open && (
+        <ToolMenu
+          label={label}
+          items={items}
+          tool={tool}
+          within={area}
+          onTool={onTool}
+          onClose={onClose}
+        />
+      )}
+    </span>
+  );
+}
+
+function ToolMenu({
+  label,
+  items,
   tool,
   within,
   onTool,
   onClose,
 }: {
+  label: string;
+  items: readonly ToolItem[];
   tool: Tool;
-  /** The picker with its button. A press anywhere else closes the picker. */
+  /** The menu with its button. A press anywhere else closes the menu. */
   within: RefObject<HTMLElement | null>;
   onTool: (tool: Tool) => void;
   onClose: () => void;
@@ -159,9 +227,9 @@ function ShapePicker({
   return (
     <fieldset
       class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 flex gap-1 rounded-lg bg-neutral-800 p-1 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0 md:left-full md:top-0 md:bottom-auto md:translate-x-0 md:mb-0 md:ml-2"
-      aria-label={t("drawing.shapes")}
+      aria-label={label}
     >
-      {SHAPES.map(({ tool: each, Icon, label }) => (
+      {items.map(({ tool: each, Icon, label: name }) => (
         <ToolButton
           key={each}
           on={tool === each}
@@ -170,7 +238,7 @@ function ShapePicker({
             onClose();
           }}
           Icon={Icon}
-          label={t(label)}
+          label={t(name)}
         />
       ))}
     </fieldset>
@@ -199,9 +267,10 @@ export function DrawingToolbar({
   history,
   view,
   onHistory,
-  moveTarget,
-  onMoveTarget,
-  hasSelection,
+  selectMode,
+  onSelectMode,
+  selectionMove,
+  onSelectionMove,
 }: {
   tool: Tool;
   onTool: (tool: Tool) => void;
@@ -215,17 +284,15 @@ export function DrawingToolbar({
   /** The part of the paper that the picture shows, for the layer pictures. */
   view: Rect;
   onHistory: (next: SketchHistory) => void;
-  moveTarget: MoveTarget;
-  onMoveTarget: (next: MoveTarget) => void;
-  hasSelection: boolean;
+  selectMode: SelectMode;
+  onSelectMode: (next: SelectMode) => void;
+  selectionMove: SelectionMove;
+  onSelectionMove: (next: SelectionMove) => void;
 }) {
-  const [panel, setPanel] = useState<"pen" | "layers" | "shapes" | null>(null);
-  const toggle = (next: "pen" | "layers" | "shapes") =>
-    setPanel(panel === next ? null : next);
+  type Panel = "pen" | "layers" | "shapes" | "selections";
+  const [panel, setPanel] = useState<Panel | null>(null);
+  const toggle = (next: Panel) => setPanel(panel === next ? null : next);
   const close = useCallback(() => setPanel(null), []);
-  const shapesArea = useRef<HTMLSpanElement>(null);
-  const shape = SHAPES.find((each) => each.tool === tool) ?? null;
-  const ShapeIcon = shape?.Icon ?? Shapes;
   /** A color does not take the place of a tool, except of one with no ink. */
   const useInk = (color: string) => {
     onInk(color);
@@ -307,12 +374,13 @@ export function DrawingToolbar({
       </div>
 
       <div class="[grid-area:options] relative md:flex md:items-center md:justify-center md:px-2">
-        {tool === "move" ? (
-          <DrawingMoveOptions
-            target={moveTarget}
-            hasSelection={hasSelection}
+        {tool === "select" || tool === "lasso" ? (
+          <DrawingSelectOptions
+            mode={selectMode}
+            onMode={onSelectMode}
+            move={selectionMove}
+            onMove={onSelectionMove}
             open={panel === "pen"}
-            onChange={onMoveTarget}
             onClose={close}
           />
         ) : (
@@ -328,35 +396,37 @@ export function DrawingToolbar({
 
       <div class="[grid-area:tools] flex flex-wrap items-center justify-center gap-1 px-2 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:flex-col md:flex-nowrap md:justify-start md:p-2 md:pt-0">
         {TOOLS.map(({ tool: each, Icon, label }) => (
-          <ToolButton
-            key={each}
-            on={tool === each}
-            onClick={() => onTool(tool === each ? "pen" : each)}
-            Icon={Icon}
-            label={t(label)}
-          />
-        ))}
-        <span class="relative" ref={shapesArea}>
-          <Tooltip label={t("drawing.shapes")}>
-            <button
-              type="button"
-              class={shape ? toolOn : barButton}
-              onClick={() => toggle("shapes")}
-              aria-label={t("drawing.shapes")}
-              aria-expanded={panel === "shapes"}
-            >
-              <ShapeIcon class="w-5 h-5" />
-            </button>
-          </Tooltip>
-          {panel === "shapes" && (
-            <ShapePicker
-              tool={tool}
-              within={shapesArea}
-              onTool={onTool}
-              onClose={close}
+          <Fragment key={each}>
+            <ToolButton
+              on={tool === each}
+              onClick={() => onTool(tool === each ? "pen" : each)}
+              Icon={Icon}
+              label={t(label)}
             />
-          )}
-        </span>
+            {each === "move" && (
+              <ToolGroup
+                label={t("drawing.selection")}
+                items={SELECTIONS}
+                Fallback={SquareDashedMousePointer}
+                tool={tool}
+                open={panel === "selections"}
+                onToggle={() => toggle("selections")}
+                onTool={onTool}
+                onClose={close}
+              />
+            )}
+          </Fragment>
+        ))}
+        <ToolGroup
+          label={t("drawing.shapes")}
+          items={SHAPES}
+          Fallback={Shapes}
+          tool={tool}
+          open={panel === "shapes"}
+          onToggle={() => toggle("shapes")}
+          onTool={onTool}
+          onClose={close}
+        />
         <ToolButton
           on={tool === "hand"}
           onClick={() => onTool(tool === "hand" ? "pen" : "hand")}
@@ -371,7 +441,9 @@ export function DrawingToolbar({
           type="button"
           class={`${barButton} md:hidden ${panel === "pen" ? "bg-white/20" : ""}`}
           onClick={() => toggle("pen")}
-          disabled={tool !== "move" && !hasPenOptions(tool)}
+          disabled={
+            tool !== "select" && tool !== "lasso" && !hasPenOptions(tool)
+          }
           aria-label={t("drawing.penSettings")}
           aria-expanded={panel === "pen"}
         >

@@ -74,6 +74,14 @@ function drawLine(
 
 const settled = () => new Promise((r) => requestAnimationFrame(r));
 
+/** Chooses a tool from the menu of its group. */
+async function pick(group: string, tool: string) {
+  button(group)?.click();
+  await settled();
+  button(tool)?.click();
+  await settled();
+}
+
 beforeEach(async () => {
   saved = [];
   host = document.createElement("div");
@@ -368,7 +376,7 @@ describe("DrawingPad", () => {
   it("crops a layer and the picture to a selected area", async () => {
     drawLine([0.1, 0.5], [0.9, 0.5]);
     await settled();
-    button(t("drawing.select"))?.click();
+    await pick(t("drawing.selection"), t("drawing.select"));
     await settled();
     drawLine([0.4, 0.3], [0.6, 0.7]);
     await settled();
@@ -549,7 +557,7 @@ describe("DrawingPad", () => {
   });
 
   it("draws only inside the selected area, with any tool", async () => {
-    button(t("drawing.select"))?.click();
+    await pick(t("drawing.selection"), t("drawing.select"));
     await settled();
     drawLine([0.4, 0.3], [0.6, 0.7]);
     await settled();
@@ -568,31 +576,95 @@ describe("DrawingPad", () => {
     expect(inkAt(0.2, 0.2)).toBe("23,23,23");
   });
 
-  it("moves the selected area, and not the ink, when Move is set to it", async () => {
+  it("adds to a selection with Shift, and subtracts with Alt", async () => {
+    await pick(t("drawing.selection"), t("drawing.select"));
+    await settled();
+    drawLine([0.1, 0.4], [0.3, 0.6]);
+    drawLine([0.7, 0.4], [0.9, 0.6], { shiftKey: true });
+    await settled();
+    // A hole in the second area.
+    drawLine([0.75, 0.45], [0.85, 0.55], { altKey: true });
+    await settled();
+    button(t("drawing.penTool"))?.click();
+    await settled();
+    drawLine([0.05, 0.5], [0.95, 0.5]);
+    await settled();
+    expect(inkAt(0.2, 0.5)).toBe("23,23,23");
+    expect(inkAt(0.72, 0.5)).toBe("23,23,23");
+    expect(inkAt(0.5, 0.5)).toBe(PAPER);
+    expect(inkAt(0.8, 0.5)).toBe(PAPER);
+  });
+
+  it("keeps only the shared part with Shift and Alt", async () => {
+    await pick(t("drawing.selection"), t("drawing.select"));
+    drawLine([0.1, 0.4], [0.6, 0.6]);
+    drawLine([0.4, 0.4], [0.9, 0.6], { shiftKey: true, altKey: true });
+    await settled();
+    button(t("drawing.penTool"))?.click();
+    await settled();
+    drawLine([0.05, 0.5], [0.95, 0.5]);
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    expect(inkAt(0.2, 0.5)).toBe(PAPER);
+    expect(inkAt(0.8, 0.5)).toBe(PAPER);
+  });
+
+  it("selects a freehand area with the lasso", async () => {
+    await pick(t("drawing.selection"), t("drawing.lasso"));
+    await settled();
+    // A triangle: the base at the bottom, the point at the top.
+    const at = (p: [number, number]) => ({ ...screenPoint(...p) });
+    const base = { pointerId: 1, isPrimary: true, bubbles: true, button: 0 };
+    canvas().dispatchEvent(
+      new PointerEvent("pointerdown", { ...base, ...at([0.2, 0.8]) }),
+    );
+    for (const p of [
+      [0.5, 0.2],
+      [0.8, 0.8],
+    ] as [number, number][]) {
+      canvas().dispatchEvent(
+        new PointerEvent("pointermove", { ...base, ...at(p) }),
+      );
+    }
+    canvas().dispatchEvent(
+      new PointerEvent("pointerup", { ...base, ...at([0.8, 0.8]) }),
+    );
+    await settled();
+    button(t("drawing.penTool"))?.click();
+    await settled();
+    drawLine([0.05, 0.3], [0.95, 0.3]);
+    await settled();
+    expect(inkAt(0.5, 0.3)).toBe("23,23,23");
+    // Outside the slope of the triangle.
+    expect(inkAt(0.3, 0.3)).toBe(PAPER);
+  });
+
+  it("moves the selection, or the ink in it, with a drag inside it", async () => {
     drawLine([0.45, 0.5], [0.55, 0.5]);
-    button(t("drawing.select"))?.click();
+    await pick(t("drawing.selection"), t("drawing.select"));
     await settled();
     drawLine([0.4, 0.4], [0.6, 0.6]);
     await settled();
-    button(t("drawing.move"))?.click();
-    await settled();
-    host.querySelectorAll<HTMLButtonElement>("button").forEach((each) => {
-      if (each.textContent === t("drawing.moveSelection")) each.click();
-    });
-    await settled();
+    // The area moves up and back, and the ink stays.
     drawLine([0.5, 0.5], [0.5, 0.2]);
     await settled();
-    // The ink stayed.
     expect(inkAt(0.5, 0.5)).toBe("23,23,23");
-    // The pen now draws only in the area where it went.
-    button(t("drawing.penTool"))?.click();
+    drawLine([0.5, 0.2], [0.5, 0.5]);
     await settled();
-    drawLine([0.1, 0.2], [0.9, 0.2]);
-    drawLine([0.1, 0.45], [0.9, 0.45]);
+    // Now the ink in the area moves down with it.
+    host.querySelectorAll<HTMLButtonElement>("button").forEach((each) => {
+      if (each.textContent === t("drawing.movePixels")) each.click();
+    });
     await settled();
-    expect(inkAt(0.5, 0.2)).toBe("23,23,23");
-    expect(inkAt(0.2, 0.2)).toBe(PAPER);
-    expect(inkAt(0.5, 0.45)).toBe(PAPER);
+    drawLine([0.5, 0.5], [0.5, 0.7]);
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe(PAPER);
+    expect(inkAt(0.5, 0.7)).toBe("23,23,23");
+    // One step for undo.
+    button(t("editor.undo"))?.click();
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    expect(inkAt(0.5, 0.7)).toBe(PAPER);
   });
 
   it("closes the shapes menu on a press outside it", async () => {

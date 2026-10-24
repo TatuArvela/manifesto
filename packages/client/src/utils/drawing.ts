@@ -97,6 +97,18 @@ export interface Transform {
  */
 export interface Clip {
   clip: Rect;
+  /**
+   * A shape in the box `clip`: opaque where the marks show. Without it, they
+   * show in all of the box. A selected area of any shape makes it.
+   */
+  mask?: CanvasImageSource | undefined;
+  /** The marks show outside the mask, not inside it. */
+  outside?: boolean | undefined;
+  /**
+   * The marks take ink away from the layer, inside the mask: an eraser in a
+   * selected area. They are drawn as ink, and that ink is what goes.
+   */
+  erase?: boolean | undefined;
   marks: readonly Mark[];
 }
 
@@ -170,6 +182,7 @@ export function transformMark(mark: Mark, by: Transform): Mark {
   if (isFill(mark)) return { ...mark, at: transformRect(mark.at, by) };
   if (!isClip(mark)) return transformStroke(mark, by);
   return {
+    ...mark,
     clip: transformRect(mark.clip, by),
     marks: mark.marks.map((each) => transformMark(each, by)),
   };
@@ -193,8 +206,10 @@ export function markBounds(marks: readonly Mark[]): Rect | null {
   };
   for (const mark of marks) {
     if (isClip(mark)) {
+      // An eraser adds no ink, and ink outside a mask can be anywhere.
+      if (mark.erase) continue;
       const inner = markBounds(mark.marks);
-      const shown = inner && intersect(inner, mark.clip);
+      const shown = mark.outside ? inner : inner && intersect(inner, mark.clip);
       if (shown) include(shown);
       continue;
     }
@@ -492,6 +507,10 @@ export function drawMarks(
       drawStroke(ctx, mark);
       continue;
     }
+    if (mark.mask) {
+      drawMasked(ctx, mark, mark.mask);
+      continue;
+    }
     ctx.save();
     ctx.beginPath();
     ctx.rect(mark.clip.x, mark.clip.y, mark.clip.width, mark.clip.height);
@@ -499,6 +518,50 @@ export function drawMarks(
     drawMarks(ctx, mark.marks);
     ctx.restore();
   }
+}
+
+/** Canvases for the groups with a mask, one for each depth of nesting. */
+const maskScratch: HTMLCanvasElement[] = [];
+let maskDepth = 0;
+
+/**
+ * A group with a mask: its marks on a canvas of their own, cut to the mask
+ * there, then put on the drawing. As ink, or, for an eraser, as the ink that
+ * goes. A clip path cannot have holes, and a mask can.
+ */
+function drawMasked(
+  ctx: CanvasRenderingContext2D,
+  mark: Clip,
+  mask: CanvasImageSource,
+): void {
+  const { width, height } = ctx.canvas;
+  const scratch = reusedCanvas(maskScratch[maskDepth], { width, height });
+  maskScratch[maskDepth] = scratch;
+  const own = scratch.getContext("2d");
+  if (!own) return;
+  own.setTransform(1, 0, 0, 1, 0, 0);
+  own.clearRect(0, 0, width, height);
+  own.setTransform(ctx.getTransform());
+  maskDepth++;
+  try {
+    drawMarks(own, mark.marks);
+  } finally {
+    maskDepth--;
+  }
+  // Destination-in keeps the marks where the mask is, and clears all the
+  // rest, also outside its box. Destination-out takes away what is inside.
+  own.globalCompositeOperation = mark.outside
+    ? "destination-out"
+    : "destination-in";
+  const { x, y, width: w, height: h } = mark.clip;
+  own.drawImage(mask, x, y, w, h);
+  own.globalCompositeOperation = "source-over";
+  own.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (mark.erase) ctx.globalCompositeOperation = "destination-out";
+  ctx.drawImage(scratch, 0, 0);
+  ctx.restore();
 }
 
 /**
