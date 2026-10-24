@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "preact/hooks";
+import { useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { useBackToClose } from "#/hooks/useBackToClose.ts";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
@@ -7,14 +7,17 @@ import { t } from "#/i18n/index.ts";
 import { askConfirmation } from "#/state/confirm.ts";
 import { closeDrawing, drawingRequest } from "#/state/drawing.ts";
 import {
+  CORNERS,
+  cornerPoint,
   drawingPoint,
   encodeDrawing,
   type Mark,
   PAPER,
   type Point,
   penScale,
+  type Rect,
   renderDrawing,
-  resizeFrom,
+  resizeAround,
   type Shape,
   type Stroke,
   type Transform,
@@ -31,7 +34,6 @@ import {
   hasStrokes,
   hasVisibleStrokes,
   layerBounds,
-  movedMarks,
   moveSelected,
   newSketchHistory,
   redo,
@@ -202,12 +204,10 @@ export function DrawingPad() {
     moving: () =>
       gesture.current?.kind === "drag" ? gesture.current.by : null,
     preview: () => previewMarks(),
-    replacing: () => {
-      const by = selectTool.pixelOffset();
-      const layer = activeLayer(historyRef.current.present);
-      if (!by || !selection || !layer) return null;
-      const { bounds, mask } = selection;
-      return movedMarks(layer.marks, bounds, mask, by[0], by[1]);
+    floating: () => {
+      const offset = selectTool.pixelOffset();
+      if (!offset || !selection) return null;
+      return { bounds: selection.bounds, mask: selection.mask, offset };
     },
   });
 
@@ -499,21 +499,28 @@ export function DrawingPad() {
    * its size, and a press at any other place moves it. Nothing happens on an
    * empty layer.
    */
+  /** The corner handle at a point of the paper, with room for a finger. */
+  const cornerAt = (bounds: Rect, at: Point, shown: DOMRect) => {
+    const reach = onPaper(HANDLE * 1.5, shown);
+    return (
+      CORNERS.find((corner) => {
+        const [x, y] = cornerPoint(bounds, corner);
+        return Math.abs(at[0] - x) <= reach && Math.abs(at[1] - y) <= reach;
+      }) ?? null
+    );
+  };
+
   const startDrag = (pointerId: number, start: Point, shown: DOMRect) => {
     const layer = activeLayer(historyRef.current.present);
     // A hidden layer does not move: you cannot see what you would move.
     const bounds = layer?.visible ? layerBounds(layer) : null;
     if (!bounds) return;
-    // The handle, with some room around it for a finger.
-    const reach = onPaper(HANDLE * 1.5, shown);
-    const resize =
-      Math.abs(start[0] - (bounds.x + bounds.width)) <= reach &&
-      Math.abs(start[1] - (bounds.y + bounds.height)) <= reach;
+    const corner = cornerAt(bounds, start, shown);
     cacheAround();
     gesture.current = {
       kind: "drag",
       pointerId,
-      resize,
+      corner,
       start,
       bounds,
       by: UNCHANGED,
@@ -612,6 +619,17 @@ export function DrawingPad() {
       schedule();
       return;
     }
+    if (tool === "move" && !gesture.current && inkBox) {
+      // The pointer shows when a press would change the size.
+      const shown = canvas.getBoundingClientRect();
+      const corner = cornerAt(inkBox, paperPoint(event, shown), shown);
+      canvas.style.cursor =
+        corner === null
+          ? "move"
+          : corner === "nw" || corner === "se"
+            ? "nwse-resize"
+            : "nesw-resize";
+    }
     if (selectTool.dragging(event.pointerId)) {
       selectTool.update(paperPoint(event, canvas.getBoundingClientRect()));
       return;
@@ -630,12 +648,16 @@ export function DrawingPad() {
       case "drag": {
         const to = paperPoint(event, shown);
         const { bounds, start } = now;
-        now.by = now.resize
-          ? resizeFrom(bounds, [
-              to[0] + bounds.x + bounds.width - start[0],
-              to[1] + bounds.y + bounds.height - start[1],
-            ])
-          : { scale: 1, dx: to[0] - start[0], dy: to[1] - start[1] };
+        if (now.corner) {
+          // The corner follows the pointer from where the press took it.
+          const [cx, cy] = cornerPoint(bounds, now.corner);
+          now.by = resizeAround(bounds, now.corner, [
+            cx + to[0] - start[0],
+            cy + to[1] - start[1],
+          ]);
+        } else {
+          now.by = { scale: 1, dx: to[0] - start[0], dy: to[1] - start[1] };
+        }
         setDragBy(now.by);
         schedule();
         return;
@@ -692,8 +714,15 @@ export function DrawingPad() {
   };
 
   const shownLayer = activeLayer(history.present);
-  const inkBox = shownLayer?.visible ? layerBounds(shownLayer) : null;
-  const layerHasInk = shownLayer !== undefined && hasInk(shownLayer);
+  // Measured again only when the layer changes, not at each move of a drag.
+  const inkBox = useMemo(
+    () => (shownLayer?.visible ? layerBounds(shownLayer) : null),
+    [shownLayer],
+  );
+  const layerHasInk = useMemo(
+    () => shownLayer !== undefined && hasInk(shownLayer),
+    [shownLayer],
+  );
   const moveBox = inkBox && transformRect(inkBox, dragBy ?? UNCHANGED);
   const canvasCursor =
     tool === "move"

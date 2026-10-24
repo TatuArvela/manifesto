@@ -236,26 +236,48 @@ export function markBounds(marks: readonly Mark[]): Rect | null {
   return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
+/** A corner of a box: north west (top left) to south east (bottom right). */
+export type Corner = "nw" | "ne" | "sw" | "se";
+
+export const CORNERS: readonly Corner[] = ["nw", "ne", "sw", "se"];
+
+/** Where a corner of a box is. */
+export const cornerPoint = (box: Rect, corner: Corner): Point => [
+  corner === "nw" || corner === "sw" ? box.x : box.x + box.width,
+  corner === "nw" || corner === "ne" ? box.y : box.y + box.height,
+];
+
+const opposite: Record<Corner, Corner> = {
+  nw: "se",
+  ne: "sw",
+  sw: "ne",
+  se: "nw",
+};
+
 /**
- * The size change that keeps the top left corner of `box` in place, and takes
- * its bottom right corner to `to`. The same scale on both axes, so that a
- * circle stays a circle: the axis that moved further sets it.
+ * The size change that takes `corner` of `box` to `to`, and keeps the
+ * opposite corner in place. The same scale on both axes, so that a circle
+ * stays a circle: the axis that moved further sets it.
  */
-export function resizeFrom(
+export function resizeAround(
   box: Rect,
+  corner: Corner,
   to: Point,
   min = 0.05,
   max = 20,
 ): Transform {
+  const [ax, ay] = cornerPoint(box, opposite[corner]);
+  const towardX = corner === "ne" || corner === "se" ? 1 : -1;
+  const towardY = corner === "sw" || corner === "se" ? 1 : -1;
   const scale = Math.min(
     max,
     Math.max(
       min,
-      (to[0] - box.x) / Math.max(1, box.width),
-      (to[1] - box.y) / Math.max(1, box.height),
+      ((to[0] - ax) * towardX) / Math.max(1, box.width),
+      ((to[1] - ay) * towardY) / Math.max(1, box.height),
     ),
   );
-  return { scale, dx: box.x * (1 - scale), dy: box.y * (1 - scale) };
+  return { scale, dx: ax * (1 - scale), dy: ay * (1 - scale) };
 }
 
 /**
@@ -525,9 +547,39 @@ const maskScratch: HTMLCanvasElement[] = [];
 let maskDepth = 0;
 
 /**
+ * The pixels of the canvas that a box of the paper covers, under the
+ * transform of `ctx`, rounded out to whole pixels and held inside the canvas.
+ * Null when it is outside the canvas.
+ */
+function canvasArea(ctx: CanvasRenderingContext2D, box: Rect) {
+  const m = ctx.getTransform();
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const [px, py] of [
+    [box.x, box.y],
+    [box.x + box.width, box.y],
+    [box.x, box.y + box.height],
+    [box.x + box.width, box.y + box.height],
+  ] as const) {
+    xs.push(m.a * px + m.c * py + m.e);
+    ys.push(m.b * px + m.d * py + m.f);
+  }
+  const left = Math.max(0, Math.floor(Math.min(...xs)));
+  const top = Math.max(0, Math.floor(Math.min(...ys)));
+  const right = Math.min(ctx.canvas.width, Math.ceil(Math.max(...xs)));
+  const bottom = Math.min(ctx.canvas.height, Math.ceil(Math.max(...ys)));
+  if (right <= left || bottom <= top) return null;
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+/**
  * A group with a mask: its marks on a canvas of their own, cut to the mask
  * there, then put on the drawing. As ink, or, for an eraser, as the ink that
  * goes. A clip path cannot have holes, and a mask can.
+ *
+ * Inside a mask, the work stays in the box of the mask on the canvas: a line
+ * in a small selected area does not cost a pass over the whole picture. Ink
+ * outside a mask can be anywhere, and takes the whole canvas.
  */
 function drawMasked(
   ctx: CanvasRenderingContext2D,
@@ -535,12 +587,21 @@ function drawMasked(
   mask: CanvasImageSource,
 ): void {
   const { width, height } = ctx.canvas;
+  const area = mark.outside
+    ? { x: 0, y: 0, width, height }
+    : canvasArea(ctx, mark.clip);
+  if (!area) return;
   const scratch = reusedCanvas(maskScratch[maskDepth], { width, height });
   maskScratch[maskDepth] = scratch;
   const own = scratch.getContext("2d");
   if (!own) return;
+  own.save();
   own.setTransform(1, 0, 0, 1, 0, 0);
-  own.clearRect(0, 0, width, height);
+  own.clearRect(area.x, area.y, area.width, area.height);
+  // Drawing and compositing outside the area would only cost time.
+  own.beginPath();
+  own.rect(area.x, area.y, area.width, area.height);
+  own.clip();
   own.setTransform(ctx.getTransform());
   maskDepth++;
   try {
@@ -549,18 +610,27 @@ function drawMasked(
     maskDepth--;
   }
   // Destination-in keeps the marks where the mask is, and clears all the
-  // rest, also outside its box. Destination-out takes away what is inside.
+  // rest of the area. Destination-out takes away what is inside the mask.
   own.globalCompositeOperation = mark.outside
     ? "destination-out"
     : "destination-in";
   const { x, y, width: w, height: h } = mark.clip;
   own.drawImage(mask, x, y, w, h);
-  own.globalCompositeOperation = "source-over";
-  own.setTransform(1, 0, 0, 1, 0, 0);
+  own.restore();
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (mark.erase) ctx.globalCompositeOperation = "destination-out";
-  ctx.drawImage(scratch, 0, 0);
+  ctx.drawImage(
+    scratch,
+    area.x,
+    area.y,
+    area.width,
+    area.height,
+    area.x,
+    area.y,
+    area.width,
+    area.height,
+  );
   ctx.restore();
 }
 

@@ -8,7 +8,7 @@ import {
   markBounds,
   paperSizeFor,
   penScale,
-  resizeFrom,
+  resizeAround,
   stampCenters,
   transformMark,
   transformStroke,
@@ -145,16 +145,21 @@ describe("moving and resizing strokes", () => {
     expect(moved.width).toBe(20);
   });
 
-  it("resizes from the top left corner, the same on both axes", () => {
+  it("resizes from the opposite corner, the same on both axes", () => {
     const box = { x: 10, y: 10, width: 100, height: 50 };
-    const by = resizeFrom(box, [210, 20]);
+    const by = resizeAround(box, "se", [210, 20]);
     expect(by.scale).toBe(2);
-    // The corner stays.
+    // The top left corner stays.
     expect(10 * by.scale + by.dx).toBe(10);
     expect(10 * by.scale + by.dy).toBe(10);
     // Never to nothing, and never past its limit.
-    expect(resizeFrom(box, [0, 0]).scale).toBe(0.05);
-    expect(resizeFrom(box, [99999, 0]).scale).toBe(20);
+    expect(resizeAround(box, "se", [0, 0]).scale).toBe(0.05);
+    expect(resizeAround(box, "se", [99999, 0]).scale).toBe(20);
+    // From the top left handle, the bottom right corner stays.
+    const up = resizeAround(box, "nw", [-90, 10]);
+    expect(up.scale).toBe(2);
+    expect(110 * up.scale + up.dx).toBe(110);
+    expect(60 * up.scale + up.dy).toBe(60);
   });
 });
 

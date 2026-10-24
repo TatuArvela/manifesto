@@ -1,6 +1,6 @@
 import type { RefObject } from "preact";
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
-import type { Point, Rect } from "#/utils/drawing.ts";
+import { CORNERS, type Point, type Rect } from "#/utils/drawing.ts";
 import type { Selection, SelectShape } from "#/utils/selection.ts";
 
 /** Where the canvas is in the area around it, in CSS pixels. */
@@ -39,13 +39,13 @@ export function useCanvasBox(
   return box;
 }
 
-/** The size of the corner handle of a box on the screen, in CSS pixels. */
-export const HANDLE = 14;
+/** The size of a corner handle of a box on the screen, in CSS pixels. */
+export const HANDLE = 12;
 
 /**
  * A dashed box over the paper, at a place on the drawing: the ink of the
- * layer to move, or the area that is selected. With `handle`, a square at its
- * bottom right corner shows where to pull to change the size. It takes no
+ * layer to move, or the area that is selected. With `handle`, a square at each
+ * corner shows where to pull to change the size. It takes no
  * pointer events. The canvas below keeps them, so that one drag works also
  * when it starts outside the box.
  */
@@ -74,17 +74,20 @@ export function DrawingOverlay({
         height: `${rect.height * sy}px`,
       }}
     >
-      {handle && (
-        <span
-          class="absolute bg-blue-400 ring-1 ring-white"
-          style={{
-            width: `${HANDLE}px`,
-            height: `${HANDLE}px`,
-            right: `${-HANDLE / 2}px`,
-            bottom: `${-HANDLE / 2}px`,
-          }}
-        />
-      )}
+      {handle &&
+        CORNERS.map((corner) => (
+          <span
+            key={corner}
+            class="absolute rounded-xs bg-white border-2 border-blue-500 shadow-[0_0_0_1px_rgba(0,0,0,0.4)]"
+            style={{
+              width: `${HANDLE}px`,
+              height: `${HANDLE}px`,
+              [corner.endsWith("w") ? "left" : "right"]: `${-HANDLE / 2 - 1}px`,
+              [corner.startsWith("n") ? "top" : "bottom"]:
+                `${-HANDLE / 2 - 1}px`,
+            }}
+          />
+        ))}
     </div>
   );
 }

@@ -373,6 +373,24 @@ describe("DrawingPad", () => {
     expect(inkAt(0.65, 0.6)).toBe("23,23,23");
   });
 
+  it("resizes the ink from the top left handle, around the opposite corner", async () => {
+    drawLine([0.4, 0.5], [0.6, 0.5]);
+    await settled();
+    button(t("drawing.move"))?.click();
+    await settled();
+    const box = host.querySelector<HTMLElement>(".border-dashed");
+    const rect = canvas().getBoundingClientRect();
+    const left = (box?.getBoundingClientRect().left ?? 0) - rect.left;
+    const top = (box?.getBoundingClientRect().top ?? 0) - rect.top;
+    const corner: [number, number] = [left / rect.width, top / rect.height];
+    drawLine(corner, [corner[0] - 0.2, corner[1]]);
+    await settled();
+    // Twice as long, to the left: the right end stays.
+    expect(inkAt(0.25, 0.5)).not.toBe(PAPER);
+    expect(inkAt(0.59, 0.5)).not.toBe(PAPER);
+    expect(host.querySelectorAll(".border-dashed > span")).toHaveLength(4);
+  });
+
   it("crops a layer and the picture to a selected area", async () => {
     drawLine([0.1, 0.5], [0.9, 0.5]);
     await settled();

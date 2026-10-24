@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "preact/hooks";
 import {
+  blankCanvas,
   drawMarks,
   type Mark,
   type PaperSize,
+  type Point,
   paintLayer,
   type Rect,
   renderDrawing,
@@ -24,10 +26,14 @@ export interface LiveSource {
   /** Marks that the frame shows on the active layer, not yet in the sketch. */
   preview: () => Mark[];
   /**
-   * All the marks of the active layer in place of the cached layer, while a
-   * change applies to all of them: the move of the ink of a selected area.
+   * While a drag moves the ink of a selected area: the area, and how far the
+   * ink moved.
    */
-  replacing: () => Mark[] | null;
+  floating: () => {
+    bounds: Rect;
+    mask: CanvasImageSource;
+    offset: Point;
+  } | null;
 }
 
 /**
@@ -45,6 +51,11 @@ export function useLiveFrames(source: LiveSource) {
     scratch: HTMLCanvasElement;
   } | null>(null);
   const kept = useRef<typeof live.current>(null);
+  // For a move of the ink of an area: the layer without it, and the ink itself.
+  const floatingInk = useRef<{
+    rest: HTMLCanvasElement;
+    piece: HTMLCanvasElement;
+  } | null>(null);
   const frame = useRef(0);
 
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
@@ -66,9 +77,18 @@ export function useLiveFrames(source: LiveSource) {
     scratchCtx.clearRect(0, 0, scratch.width, scratch.height);
     const { x, y } = source.view();
     const by = source.moving();
-    const replaced = source.replacing();
-    if (replaced) {
-      paintLayer(scratch, replaced, { x, y });
+    const floating = source.floating();
+    const cut = floatingInk.current;
+    if (floating && cut) {
+      // Two pictures made at the start: each frame only puts the ink at its
+      // new place, whatever the number of marks on the layer.
+      const { bounds, offset } = floating;
+      scratchCtx.drawImage(cut.rest, 0, 0);
+      scratchCtx.drawImage(
+        cut.piece,
+        bounds.x - x + offset[0],
+        bounds.y - y + offset[1],
+      );
     } else if (by) {
       // The layer as a picture while it moves. The marks themselves move at
       // the release, and lines stay sharp at any size. The cached layer starts
@@ -125,13 +145,42 @@ export function useLiveFrames(source: LiveSource) {
     paintLayer(layer, layers[index]?.marks ?? [], shown);
     const scratch = reusedCanvas(reused?.scratch, shown);
     live.current = kept.current = { under, layer, over, scratch };
+    floatingInk.current = null;
+    const floating = source.floating();
+    if (floating) floatingInk.current = cutOut(layer, shown, floating);
   };
 
   const endFrames = () => {
     live.current = null;
+    floatingInk.current = null;
     cancelAnimationFrame(frame.current);
     frame.current = 0;
   };
 
   return { paintActive, schedule, cacheAround, endFrames };
+}
+
+/**
+ * The cached layer as two pictures: without the ink in an area, and that ink
+ * alone, in the box of the area.
+ */
+function cutOut(
+  layer: HTMLCanvasElement,
+  view: Rect,
+  area: { bounds: Rect; mask: CanvasImageSource },
+) {
+  const { bounds, mask } = area;
+  const rest = blankCanvas(view);
+  const piece = blankCanvas(bounds);
+  const restCtx = rest.getContext("2d");
+  const pieceCtx = piece.getContext("2d");
+  if (!restCtx || !pieceCtx) return null;
+  const at = { x: bounds.x - view.x, y: bounds.y - view.y };
+  restCtx.drawImage(layer, 0, 0);
+  restCtx.globalCompositeOperation = "destination-out";
+  restCtx.drawImage(mask, at.x, at.y, bounds.width, bounds.height);
+  pieceCtx.drawImage(layer, -at.x, -at.y);
+  pieceCtx.globalCompositeOperation = "destination-in";
+  pieceCtx.drawImage(mask, 0, 0, bounds.width, bounds.height);
+  return { rest, piece };
 }

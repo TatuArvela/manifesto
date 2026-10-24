@@ -73,7 +73,7 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   of eight), move the current layer up or down, and delete it (not the last layer). A line that
   you draw on a hidden layer shows that layer again.
 - **Move** shows a dashed box around the ink of the current layer. A drag moves the ink. A drag of
-  the handle at the bottom right corner makes it larger or smaller, from its top left corner, with
+  one of the handles at its four corners makes it larger or smaller, from the opposite corner, with
   the same scale on both axes (from 0.05 to 20 times). The strokes move as lines, not as a picture.
   A hidden layer shows no box and does not move.
   Thus, they stay sharp at any size, and a pen width grows with them. A drag is one step.

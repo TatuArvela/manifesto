@@ -1,4 +1,11 @@
-import type { Point, Rect, Shape, Stroke, Transform } from "#/utils/drawing.ts";
+import type {
+  Corner,
+  Point,
+  Rect,
+  Shape,
+  Stroke,
+  Transform,
+} from "#/utils/drawing.ts";
 
 /** What the pointer that is down is doing on the pad. One at a time. */
 export type Gesture =
@@ -7,7 +14,8 @@ export type Gesture =
   | {
       kind: "drag";
       pointerId: number;
-      resize: boolean;
+      /** The handle that changes the size, or null for a move. */
+      corner: Corner | null;
       start: Point;
       bounds: Rect;
       by: Transform;
