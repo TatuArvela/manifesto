@@ -14,7 +14,7 @@ import {
   Repeat2,
   Shapes,
   Square,
-  SquareDashedMousePointer,
+  SquareDashed,
 } from "lucide-preact";
 import { type ComponentType, Fragment, type RefObject } from "preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
@@ -71,7 +71,7 @@ export const barButton =
 
 /** The tools that select an area, in a menu of one button. */
 const SELECTIONS = [
-  { tool: "select", Icon: SquareDashedMousePointer, label: "drawing.select" },
+  { tool: "select", Icon: SquareDashed, label: "drawing.select" },
   { tool: "lasso", Icon: Lasso, label: "drawing.lasso" },
 ] as const;
 
@@ -407,7 +407,7 @@ export function DrawingToolbar({
               <ToolGroup
                 label={t("drawing.selection")}
                 items={SELECTIONS}
-                Fallback={SquareDashedMousePointer}
+                Fallback={SquareDashed}
                 tool={tool}
                 open={panel === "selections"}
                 onToggle={() => toggle("selections")}
