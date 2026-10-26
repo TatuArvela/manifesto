@@ -38,7 +38,7 @@
     "zod": "^4.6.6"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite": "^0.5.10",
     "@hocuspocus/provider": "^4.7.1",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^24.19.2",
@@ -47,6 +47,6 @@
     "@types/ws": "^8.18.2",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.5"
   }
 }
