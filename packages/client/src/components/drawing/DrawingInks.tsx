@@ -4,20 +4,98 @@ import { Tooltip } from "#/components/Tooltip.tsx";
 import { getColorLabel, t } from "#/i18n/index.ts";
 import { SidePanel } from "./SidePanel.tsx";
 
-export const INKS = [
-  { color: "#171717", name: null },
-  { color: "#ffffff", name: "white" },
-  { color: "#737373", name: NoteColor.Gray },
-  { color: "#dc2626", name: NoteColor.Red },
-  { color: "#ea580c", name: NoteColor.Orange },
-  { color: "#facc15", name: NoteColor.Yellow },
-  { color: "#16a34a", name: NoteColor.Green },
-  { color: "#0d9488", name: NoteColor.Teal },
-  { color: "#2563eb", name: NoteColor.Blue },
-  { color: "#9333ea", name: NoteColor.Purple },
-  { color: "#db2777", name: NoteColor.Pink },
-  { color: "#92400e", name: NoteColor.Brown },
-] as const;
+/** The shades of a family of inks, from dark to pale. */
+type Shade = "dark" | "base" | "light" | "pale";
+
+/**
+ * A family of inks: its name (that of a note color), and its four shades.
+ * The base shades are the inks from before the families, and the ones that a
+ * phone shows.
+ */
+const FAMILIES: readonly {
+  name: NoteColor;
+  shades: readonly [dark: string, base: string, light: string, pale: string];
+}[] = [
+  {
+    name: NoteColor.Gray,
+    shades: ["#171717", "#737373", "#d4d4d4", "#ffffff"],
+  },
+  {
+    name: NoteColor.Brown,
+    shades: ["#451a03", "#92400e", "#c08552", "#e7d3b8"],
+  },
+  { name: NoteColor.Red, shades: ["#991b1b", "#dc2626", "#f87171", "#fecaca"] },
+  {
+    name: NoteColor.Pink,
+    shades: ["#9d174d", "#db2777", "#f472b6", "#fbcfe8"],
+  },
+  {
+    name: NoteColor.Orange,
+    shades: ["#9a3412", "#ea580c", "#fb923c", "#fed7aa"],
+  },
+  {
+    name: NoteColor.Yellow,
+    shades: ["#a16207", "#facc15", "#fef08a", "#fefce8"],
+  },
+  {
+    name: NoteColor.Green,
+    shades: ["#166534", "#16a34a", "#4ade80", "#bbf7d0"],
+  },
+  {
+    name: NoteColor.Teal,
+    shades: ["#115e59", "#0d9488", "#2dd4bf", "#99f6e4"],
+  },
+  {
+    name: NoteColor.Blue,
+    shades: ["#1e40af", "#2563eb", "#60a5fa", "#bfdbfe"],
+  },
+  {
+    name: NoteColor.Purple,
+    shades: ["#6b21a8", "#9333ea", "#c084fc", "#e9d5ff"],
+  },
+];
+
+const SHADES: readonly Shade[] = ["dark", "base", "light", "pale"];
+
+/**
+ * The name of an ink. The gray family has the names of its own: its dark
+ * shade is black, and its pale shade white.
+ */
+function inkLabel(family: NoteColor, shade: Shade): string {
+  if (family === NoteColor.Gray && shade === "dark") return t("drawing.black");
+  if (family === NoteColor.Gray && shade === "pale") return t("drawing.white");
+  const name = getColorLabel(family);
+  if (shade === "base") return name;
+  const lower = name.toLocaleLowerCase();
+  if (family === NoteColor.Gray) return t("drawing.lightInk", { name: lower });
+  return t(
+    shade === "dark"
+      ? "drawing.darkInk"
+      : shade === "light"
+        ? "drawing.lightInk"
+        : "drawing.paleInk",
+    { name: lower },
+  );
+}
+
+/**
+ * All inks, in the order of the grid: two families on each row, each from
+ * dark to pale. `phone` marks the inks that the row on a phone shows.
+ */
+export const INKS = FAMILIES.flatMap((family) =>
+  family.shades.map((color, at) => {
+    const shade = SHADES[at] ?? "base";
+    return {
+      color,
+      label: () => inkLabel(family.name, shade),
+      phone: shade === "base" || family.name === NoteColor.Gray,
+    };
+  }),
+);
+
+/** The inks that a new drawing starts with. */
+export const BLACK = "#171717";
+export const WHITE = "#ffffff";
 
 // A round ink with a light ring and a dark gap: a black ink shows on the dark
 // bar, and the two inks stay apart where they overlap. The browser gives a
@@ -25,13 +103,6 @@ export const INKS = [
 // round swatch. Thus, both are removed.
 const colorField =
   "absolute w-8 h-8 appearance-none overflow-hidden rounded-full border-0 p-0 cursor-pointer bg-transparent shadow-[0_0_0_2px_#737373,0_0_0_4px_#171717] [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-0";
-
-const inkLabel = (name: (typeof INKS)[number]["name"]) =>
-  name === null
-    ? t("drawing.black")
-    : name === "white"
-      ? t("drawing.white")
-      : getColorLabel(name);
 
 /**
  * The two inks: the foreground over the background, and the button that
@@ -88,7 +159,9 @@ export function InkPair({
 
 /**
  * The colors to draw with. A color sets the foreground ink; with a right
- * click, the background ink.
+ * click, the background ink. On a wide screen, a grid of all inks: two
+ * families on each row, from dark to pale. On a phone, one row of the base
+ * shades, and all of the grays.
  */
 export function DrawingColors({
   ink,
@@ -104,19 +177,19 @@ export function DrawingColors({
       label={t("drawing.colors")}
       class="md:rounded-lg md:bg-neutral-800 md:p-2"
     >
-      <div class="flex flex-wrap justify-center gap-0.5 md:grid md:grid-cols-6 md:justify-items-center md:gap-2">
-        {INKS.map(({ color, name }) => (
+      <div class="flex flex-wrap justify-center gap-0.5 md:grid md:grid-cols-8 md:justify-items-center md:gap-1 md:[&>:nth-child(8n+5)]:ml-1">
+        {INKS.map(({ color, label, phone }) => (
           <button
             key={color}
             type="button"
-            class={`w-6 h-6 md:w-7 md:h-7 rounded-full cursor-pointer ${ink === color ? "ring-2 ring-blue-400 ring-offset-2 ring-offset-neutral-900 md:ring-offset-neutral-800" : "ring-1 ring-white/30"}`}
+            class={`${phone ? "" : "hidden md:block "}w-6 h-6 rounded-full cursor-pointer ${ink === color ? "ring-2 ring-blue-400 ring-offset-2 ring-offset-neutral-900 md:ring-offset-neutral-800" : "ring-1 ring-white/30"}`}
             style={{ backgroundColor: color }}
             onClick={() => onInk(color)}
             onContextMenu={(event) => {
               event.preventDefault();
               onBackInk(color);
             }}
-            aria-label={inkLabel(name)}
+            aria-label={label()}
             aria-pressed={ink === color}
           />
         ))}

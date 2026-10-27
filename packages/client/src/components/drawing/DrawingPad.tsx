@@ -42,7 +42,7 @@ import {
 import { inArea } from "#/utils/selection.ts";
 import { closesPolygon, snapLine, snapSquare } from "#/utils/shapes.ts";
 import { DrawingHints } from "./DrawingHints.tsx";
-import { INKS } from "./DrawingInks.tsx";
+import { BLACK, WHITE } from "./DrawingInks.tsx";
 import {
   type CanvasBox,
   DrawingOverlay,
@@ -136,8 +136,8 @@ export function DrawingPad() {
   const { polygon, drawing: drawingPolygon } = polygonTool;
   // The drag of the move tool as the box over the ink shows it.
   const [dragBy, setDragBy] = useState<Transform | null>(null);
-  const [ink, setInk] = useState<string>(INKS[0].color);
-  const [backInk, setBackInk] = useState<string>(INKS[1].color);
+  const [ink, setInk] = useState<string>(BLACK);
+  const [backInk, setBackInk] = useState<string>(WHITE);
   const [pen, setPen] = useState<PenSettings>({
     width: WIDTHS[1],
     tip: "round",

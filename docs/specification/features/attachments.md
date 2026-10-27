@@ -27,7 +27,10 @@ the note as a PNG image, through the same path as an attached picture. Thus, the
 shares and exports it as a picture, and it uses one of the image slots of the note.
 
 - **Inks**: there are two inks, a foreground ink and a background ink. Each one shows as a color
-  field that takes any other ink. A press on one of the twelve colors sets the foreground ink, and a
+  field that takes any other ink. The colors are ten families (gray, brown, red, pink, orange,
+  yellow, green, teal, blue, purple), each in a dark, a base, a light and a pale shade. The gray
+  family goes from black to white. A wide screen shows all forty, two families on each row. A phone
+  shows the base shades, and all of the grays. A press on a color sets the foreground ink, and a
   right click sets the background ink. **Swap inks** exchanges them. Lines, outlines and fills use
   the foreground ink. The inside of a shape uses the background ink.
 - **Tools**, in this order: Move, Selection (a menu of Rectangle select, Ellipse select, Lasso and
