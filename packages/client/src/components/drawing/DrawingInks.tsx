@@ -1,5 +1,6 @@
 import { NoteColor } from "@manifesto/shared";
 import { Repeat2 } from "lucide-preact";
+import { useState } from "preact/hooks";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { getColorLabel, t } from "#/i18n/index.ts";
 import { SidePanel } from "./SidePanel.tsx";
@@ -104,6 +105,61 @@ export const WHITE = "#ffffff";
 const colorField =
   "absolute w-8 h-8 appearance-none overflow-hidden rounded-full border-0 p-0 cursor-pointer bg-transparent shadow-[0_0_0_2px_#737373,0_0_0_4px_#171717] [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 [&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-0";
 
+/** A hex color with 3 or 6 digits, with or without its `#`. */
+const HEX = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+/** The ink that a hex color names, as `#rrggbb`. Null when it is not one. */
+export function parseHex(text: string): string | null {
+  const digits = HEX.exec(text.trim())?.[1]?.toLowerCase();
+  if (!digits) return null;
+  return digits.length === 3
+    ? `#${[...digits].map((digit) => digit + digit).join("")}`
+    : `#${digits}`;
+}
+
+/**
+ * The field that takes the hex color of an ink. A complete color applies as
+ * it is typed. Enter or a move of focus away puts back the text of the ink
+ * when the text is not a color.
+ */
+function HexField({
+  value,
+  label,
+  onChange,
+}: {
+  value: string;
+  label: string;
+  onChange: (color: string) => void;
+}) {
+  const [text, setText] = useState(value);
+  const [typing, setTyping] = useState(false);
+  return (
+    <input
+      type="text"
+      class="w-24 min-w-0 rounded-md bg-neutral-900 px-2 py-1 font-mono text-sm text-neutral-100 outline-none ring-1 ring-white/20 focus-visible:ring-blue-400"
+      value={typing ? text : value}
+      maxLength={7}
+      spellcheck={false}
+      autocomplete="off"
+      aria-label={label}
+      onFocus={() => {
+        setText(value);
+        setTyping(true);
+      }}
+      onInput={(event) => {
+        const next = event.currentTarget.value;
+        setText(next);
+        const color = parseHex(next);
+        if (color) onChange(color);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") event.currentTarget.blur();
+      }}
+      onBlur={() => setTyping(false)}
+    />
+  );
+}
+
 /**
  * The two inks: the foreground over the background, and the button that
  * swaps them. Each ink is a color field for any other ink, and shows the ink
@@ -158,7 +214,8 @@ export function InkPair({
 }
 
 /**
- * The colors to draw with. A color sets the foreground ink; with a right
+ * The colors to draw with: a field for the hex color of the foreground ink,
+ * and a palette under it. A color sets the foreground ink; with a right
  * click, the background ink. On a wide screen, a grid of all inks: two
  * families on each row, from dark to pale. On a phone, one row of the base
  * shades, and all of the grays.
@@ -175,8 +232,11 @@ export function DrawingColors({
   return (
     <SidePanel
       label={t("drawing.colors")}
-      class="md:rounded-lg md:bg-neutral-800 md:p-2"
+      class="flex flex-col items-center gap-2 md:block md:rounded-lg md:bg-neutral-800 md:p-2"
     >
+      <div class="md:px-1 md:pb-2">
+        <HexField value={ink} label={t("drawing.hexColor")} onChange={onInk} />
+      </div>
       <div class="flex flex-wrap justify-center gap-0.5 md:grid md:grid-cols-8 md:justify-items-center md:gap-1 md:[&>:nth-child(8n+5)]:ml-1">
         {INKS.map(({ color, label, phone }) => (
           <button

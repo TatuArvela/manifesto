@@ -5,6 +5,7 @@ import { t } from "#/i18n/index.ts";
 import { answerConfirmation, confirmRequest } from "#/state/confirm.ts";
 import { drawingRequest, requestDrawing } from "#/state/drawing.ts";
 import { afterHistorySettles } from "#/state/sheetHistory.ts";
+import { defined } from "#/test/defined.ts";
 import { DRAWING_HEIGHT, DRAWING_WIDTH } from "#/utils/drawing.ts";
 import { DrawingPad } from "./DrawingPad.tsx";
 import "#/styles.css";
@@ -23,6 +24,11 @@ const canvas = () => host.querySelector("canvas[hidden]") as HTMLCanvasElement;
 /** Where the paper is on the screen. */
 const paperRect = () =>
   (host.querySelector("[data-paper]") as HTMLElement).getBoundingClientRect();
+const hexField = () =>
+  host.querySelector<HTMLInputElement>(
+    `input[aria-label="${t("drawing.hexColor")}"]`,
+  );
+
 const button = (label: string) =>
   host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
 
@@ -513,6 +519,33 @@ describe("DrawingPad", () => {
       `input[aria-label="${t("drawing.foreground")}"]`,
     );
     expect(field?.value).toBe("#2563eb");
+  });
+
+  it("takes the foreground ink as a hex color", async () => {
+    const type = (text: string) => {
+      const field = defined(hexField() ?? undefined, "hex field");
+      field.focus();
+      field.value = text;
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    type("#0f0");
+    await settled();
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("0,255,0");
+    // Not a color yet: the ink stays, and the field shows it again.
+    type("12");
+    hexField()?.blur();
+    await settled();
+    expect(hexField()?.value).toBe("#00ff00");
+    type("ABCDEF");
+    hexField()?.blur();
+    await settled();
+    expect(hexField()?.value).toBe("#abcdef");
+    // A color from the palette shows in the field.
+    button("Red")?.click();
+    await settled();
+    expect(hexField()?.value).toBe("#dc2626");
   });
 
   it("closes a polygon on its first corner", async () => {

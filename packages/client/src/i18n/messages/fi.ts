@@ -200,6 +200,7 @@ export const fi: Messages = {
   "drawing.foreground": "Etuväri",
   "drawing.background": "Taustaväri",
   "drawing.swapColors": "Vaihda värit",
+  "drawing.hexColor": "Etuvärin heksakoodi",
   "drawing.colors": "Värit",
   "drawing.penTool": "Kynä",
   "drawing.penSettings": "Kynän asetukset",

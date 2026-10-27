@@ -197,6 +197,7 @@ export const en = {
   "drawing.foreground": "Foreground ink",
   "drawing.background": "Background ink",
   "drawing.swapColors": "Swap inks",
+  "drawing.hexColor": "Hex color of the foreground ink",
   "drawing.colors": "Colors",
   "drawing.penTool": "Pen",
   "drawing.penSettings": "Pen settings",
