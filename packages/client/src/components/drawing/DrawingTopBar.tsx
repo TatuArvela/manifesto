@@ -35,7 +35,9 @@ function ZoomField({
   useEscapeStack(typed !== null, () => setTyped(null));
   const commit = () => {
     if (typed === null) return;
-    const value = Number.parseFloat(typed.replace("%", "").replace(",", "."));
+    const value = Number.parseFloat(
+      typed.replaceAll("%", "").replaceAll(",", "."),
+    );
     if (Number.isFinite(value) && value > 0) onZoom(value);
     setTyped(null);
   };
