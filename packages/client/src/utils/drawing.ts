@@ -3,7 +3,6 @@
 // be tested without a pointer.
 
 import type { Layer } from "./drawingLayers.ts";
-import { MAX_IMAGE_EDGE } from "./shrinkImage.ts";
 
 /** The own size of the drawing, whatever size it shows at: 4 by 3. */
 export const DRAWING_WIDTH = 1600;
@@ -21,20 +20,13 @@ export const BLANK_PAPER: PaperSize = {
 };
 
 /**
- * The paper for a drawing over an image: the own shape of the image. Its long
- * edge is not shorter than that of a new drawing (a line on a thumbnail would
- * be a row of blocks), and not longer than the size at which an attached image
- * is kept. Null for an image with almost no size.
+ * The paper for a drawing over an image: the own size of the image. Thus, the
+ * image under the drawing keeps its pixels, and is not stretched. Null for an
+ * image with almost no size.
  */
 export function paperSizeFor(image: PaperSize): PaperSize | null {
-  const longEdge = Math.max(image.width, image.height);
   if (!(image.width > 0 && image.height > 0)) return null;
-  const scale =
-    Math.min(MAX_IMAGE_EDGE, Math.max(DRAWING_WIDTH, longEdge)) / longEdge;
-  return {
-    width: Math.max(1, Math.round(image.width * scale)),
-    height: Math.max(1, Math.round(image.height * scale)),
-  };
+  return { width: Math.round(image.width), height: Math.round(image.height) };
 }
 
 /**

@@ -14,7 +14,6 @@ import {
   transformMark,
   transformStroke,
 } from "./drawing.ts";
-import { MAX_IMAGE_EDGE } from "./shrinkImage.ts";
 
 describe("drawingPoint", () => {
   // The paper shown at a quarter of its size, away from the corner.
@@ -52,25 +51,14 @@ describe("drawingPoint", () => {
 });
 
 describe("paperSizeFor", () => {
-  it("keeps the size of an image between the two edges", () => {
-    expect(paperSizeFor({ width: 2000, height: 1500 })).toEqual({
-      width: 2000,
-      height: 1500,
-    });
-  });
-
-  it("enlarges a small image to a new drawing's long edge, keeping its shape", () => {
-    expect(paperSizeFor({ width: 300, height: 600 })).toEqual({
-      width: 800,
-      height: 1600,
-    });
-  });
-
-  it("brings a large image down to the edge an attached one is kept at", () => {
-    expect(paperSizeFor({ width: 5120, height: 2560 })).toEqual({
-      width: MAX_IMAGE_EDGE,
-      height: MAX_IMAGE_EDGE / 2,
-    });
+  it("keeps the own size of an image", () => {
+    for (const size of [
+      { width: 2000, height: 1500 },
+      { width: 300, height: 600 },
+      { width: 5120, height: 2560 },
+    ]) {
+      expect(paperSizeFor(size)).toEqual(size);
+    }
   });
 
   it("has no paper for an image without a size", () => {

@@ -1051,7 +1051,7 @@ describe("DrawingPad", () => {
     await vi.waitFor(() => expect(saved).toHaveLength(1));
   });
 
-  it("opens an image as the paper, at its own shape, and saves the lines over it", async () => {
+  it("opens an image as the paper, at its own size, and saves the lines over it", async () => {
     // A tall, plain blue picture, as the note would contain it.
     const picture = document.createElement("canvas");
     picture.width = 300;
@@ -1075,7 +1075,7 @@ describe("DrawingPad", () => {
     requestDrawing((file) => saved.push(file), picture.toDataURL("image/png"));
     render(<DrawingPad />, host);
     await vi.waitFor(() =>
-      expect([canvas().width, canvas().height]).toEqual([800, 1600]),
+      expect([canvas().width, canvas().height]).toEqual([300, 600]),
     );
     await vi.waitFor(() => expect(pixel(canvas(), 0.5, 0.5)).toBe(BLUE));
     const rect = paperRect();
@@ -1106,7 +1106,7 @@ describe("DrawingPad", () => {
     copy.width = bitmap.width;
     copy.height = bitmap.height;
     copy.getContext("2d")?.drawImage(bitmap, 0, 0);
-    expect([copy.width, copy.height]).toEqual([800, 1600]);
+    expect([copy.width, copy.height]).toEqual([300, 600]);
     expect(pixel(copy, 0.5, 0.5)).toBe("23,23,23");
     expect(pixel(copy, 0.5, 0.2)).toBe(BLUE);
   });
