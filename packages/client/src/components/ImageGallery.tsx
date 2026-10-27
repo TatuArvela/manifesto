@@ -179,6 +179,11 @@ function ImageLightbox({
 
   useEscapeStack(true, onClose);
   const dialogRef = useFocusTrap<HTMLDivElement>(true);
+  // The width over the height of the image that shows, once it is read. Thus,
+  // a small image grows to fill the space, as a large one shrinks to it.
+  const [shape, setShape] = useState<{ src: string; ratio: number } | null>(
+    null,
+  );
 
   // On the dialog, which keeps the focus (`useFocusTrap`), not on the document.
   // The arrows belong to this layer, never to a layer under it.
@@ -196,6 +201,7 @@ function ImageLightbox({
   const shown = images[index];
   if (shown === undefined) return null;
   const alt = alts?.[index] ?? "";
+  const ratio = shape?.src === shown ? shape.ratio : null;
 
   return createPortal(
     <>
@@ -208,11 +214,26 @@ function ImageLightbox({
         aria-label={t("editor.imageViewer")}
         class="fixed inset-0 layer-gallery flex items-center justify-center p-4 pointer-events-none animate-fade-in"
       >
-        <StoredImage
-          src={shown}
-          alt={alt}
-          class={`pointer-events-auto max-w-full object-contain select-none ${onDescribe ? "max-h-[calc(100%-7rem)]" : "max-h-full"}`}
-        />
+        {/* The space for the image, as a container: the image is as large as
+            fits in it, in its own shape. */}
+        <div
+          class={`flex w-full items-center justify-center [container-type:size] ${onDescribe ? "h-[calc(100%-7rem)]" : "h-full"}`}
+        >
+          <StoredImage
+            src={shown}
+            alt={alt}
+            onLoad={(e) => {
+              const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+              if (w > 0 && h > 0) setShape({ src: shown, ratio: w / h });
+            }}
+            style={
+              ratio === null
+                ? undefined
+                : { width: `min(100cqw, ${ratio} * 100cqh)` }
+            }
+            class="pointer-events-auto max-w-full max-h-full object-contain select-none"
+          />
+        </div>
         <button
           type="button"
           class="pointer-events-auto absolute top-4 right-4 p-2 rounded-full bg-black/60 text-white hover:bg-black/80 cursor-pointer"
