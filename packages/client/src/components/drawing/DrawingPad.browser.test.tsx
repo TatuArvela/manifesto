@@ -664,6 +664,129 @@ describe("DrawingPad", () => {
     expect(inkAt(0.3, 0.3)).toBe(PAPER);
   });
 
+  it("crops the picture to a box with the crop tool and Enter", async () => {
+    drawLine([0.1, 0.5], [0.9, 0.5]);
+    button(t("drawing.crop"))?.click();
+    await settled();
+    drawLine([0.4, 0.4], [0.6, 0.6]);
+    await settled();
+    screen().dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Enter",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    await settled();
+    // The paper is now the box: its middle is the middle of the old paper.
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    expect(inkAt(0.5, 0.1)).toBe(PAPER);
+    expect(host.textContent).toContain(t("drawing.cropHint"));
+  });
+
+  it("zooms to a size typed in the zoom field", async () => {
+    const field = host.querySelector<HTMLInputElement>(
+      `input[aria-label="${t("drawing.zoomLevel")}"]`,
+    );
+    field?.focus();
+    await settled();
+    if (field) field.value = "200";
+    field?.dispatchEvent(new Event("input", { bubbles: true }));
+    field?.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+    await settled();
+    await settled();
+    expect(field?.value).toBe("200%");
+  });
+
+  it("selects an ellipse", async () => {
+    await pick(t("drawing.selection"), t("drawing.selectEllipse"));
+    drawLine([0.2, 0.2], [0.8, 0.8]);
+    await settled();
+    button(t("drawing.penTool"))?.click();
+    await settled();
+    drawLine([0.05, 0.5], [0.95, 0.5]);
+    drawLine([0.05, 0.22], [0.95, 0.22]);
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+    // Inside the box, but outside the ellipse.
+    expect(inkAt(0.22, 0.22)).toBe(PAPER);
+  });
+
+  it("selects a polygon with a tap at each corner", async () => {
+    await pick(t("drawing.selection"), t("drawing.polyLasso"));
+    await settled();
+    const base = { pointerId: 1, isPrimary: true, bubbles: true, button: 0 };
+    const tap = (p: [number, number]) => {
+      const at = { ...base, ...screenPoint(...p) };
+      screen().dispatchEvent(new PointerEvent("pointerdown", at));
+      screen().dispatchEvent(new PointerEvent("pointerup", at));
+    };
+    for (const p of [
+      [0.2, 0.8],
+      [0.5, 0.2],
+      [0.8, 0.8],
+      [0.2, 0.8],
+    ] as [number, number][]) {
+      tap(p);
+    }
+    await settled();
+    button(t("drawing.penTool"))?.click();
+    await settled();
+    drawLine([0.05, 0.3], [0.95, 0.3]);
+    await settled();
+    expect(inkAt(0.5, 0.3)).toBe("23,23,23");
+    expect(inkAt(0.3, 0.3)).toBe(PAPER);
+  });
+
+  it("picks the selection tools with M and L, and selects with the keys", async () => {
+    const press = (key: string, mods: KeyboardEventInit = {}) =>
+      screen().dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key,
+          bubbles: true,
+          cancelable: true,
+          ...mods,
+        }),
+      );
+    const group = () => button(t("drawing.selection"));
+    press("m");
+    await settled();
+    expect(group()?.className).toContain("bg-blue-600");
+    press("l");
+    press("l");
+    await settled();
+    expect(host.textContent).toContain(t("drawing.polyLassoHint"));
+    // Select all, then invert: no area stays, and the pen draws anywhere.
+    press("a", { ctrlKey: true });
+    press("i", { ctrlKey: true, shiftKey: true });
+    await settled();
+    button(t("drawing.penTool"))?.click();
+    await settled();
+    drawLine([0.45, 0.2], [0.55, 0.2]);
+    await settled();
+    expect(inkAt(0.5, 0.2)).toBe("23,23,23");
+    // A rectangle, inverted: the pen draws only outside it.
+    press("m");
+    await settled();
+    drawLine([0.4, 0.4], [0.6, 0.6]);
+    press("i", { ctrlKey: true, shiftKey: true });
+    await settled();
+    button(t("drawing.penTool"))?.click();
+    await settled();
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe(PAPER);
+    expect(inkAt(0.3, 0.5)).toBe("23,23,23");
+    // Ctrl+D removes the area, and the pen draws anywhere again.
+    press("d", { ctrlKey: true });
+    await settled();
+    drawLine([0.2, 0.5], [0.8, 0.5]);
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
+  });
+
   it("moves the selection, or the ink in it, with a drag inside it", async () => {
     drawLine([0.45, 0.5], [0.55, 0.5]);
     await pick(t("drawing.selection"), t("drawing.select"));

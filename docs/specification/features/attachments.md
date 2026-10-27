@@ -30,8 +30,8 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   field that takes any other ink. A press on one of the twelve colors sets the foreground ink, and a
   right click sets the background ink. **Swap inks** exchanges them. Lines, outlines and fills use
   the foreground ink. The inside of a shape uses the background ink.
-- **Tools**, in this order: Move, Selection (a menu of Select and Lasso), Eyedropper, Pen, Eraser,
-  Fill, Shapes and Hand.
+- **Tools**, in this order: Move, Selection (a menu of Rectangle select, Ellipse select, Lasso and
+  Polygonal lasso), Crop, Eyedropper, Pen, Eraser, Fill, Shapes, Hand and Zoom.
   - **Pen** draws a free line. A tap makes a dot.
   - **Eraser** takes ink away from the current layer only. The layers under it, and the image under
     the drawing, stay. It has the tip of the pen, and is four times the size of the pen.
@@ -46,11 +46,24 @@ shares and exports it as a picture, and it uses one of the image slots of the no
     A press on the first corner, or a double click, closes it. Escape or Undo discards it, and so
     does a change from the other controls of the top bar or the layer list. A shape with no size
     draws nothing.
-  - **Select**, **Lasso** and **Move** are described below. **Hand** drags the view.
+  - The selection tools and **Move** are described below. **Hand** drags the view.
+  - **Zoom** (Z) zooms in at the place of a click, and out with Alt and a click.
 - On a wide screen, the tools and the two inks are a rail at the left of the paper, the options of
-  the current tool a bar over the paper, and the colors and the layers panels at the right. On a
-  phone, the inks and the colors are one row under the paper, and the tools a row under that. The
-  options and the layers are panels that a button of the tools row opens.
+  the current tool a bar over the paper, and the colors, the layers, the history and the picture
+  size panels at the right. On a phone, the inks and the colors are one row under the paper, and
+  the tools a row under that. The options, the layers, the history and the picture size are panels
+  that a button of the tools row opens. The names and labels of the pad cannot be selected as text;
+  the fields can.
+- **History** lists each step of the drawing (Pen, Fill, New layer, Canvas size and so on), from
+  Open at the top. A press on a step shows the drawing as it was after that step, as that many
+  undos or redos. The steps after it stay, paler, until a new change replaces them.
+- **Picture size** changes the size of the picture in pixels, or in percent of the size now. It
+  shows the megapixels and the shape (for example `16 : 9`). The link keeps the shape. Each edge
+  is from 1 to 2560 pixels. **Apply** is one step for undo, and removes the selected area.
+  - **Canvas** gives the picture a new size, and the drawing keeps its size. A larger canvas adds
+    paper, and a smaller one crops. The anchor (one of nine places) is where the picture stays.
+  - **Image** stretches the drawing, and the image under it, to the new size. A line becomes as much
+    wider as the area that it covers.
 - **Pen settings** shows only the options of the current tool. It sets the tip (round, square, or a tilted oval as a broad nib), the size (three
   sizes or a field from 1 to 200), the opacity of the ink (5 to 100 percent), and what a shape draws
   (its outline, its inside, or both). The size and the opacity apply to all tools. The tip applies
@@ -60,8 +73,9 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   while it touches. Thus, you see where a stroke will apply before you draw it.
 - **Zoom**: the buttons in the top bar zoom out and in, from a quarter to 16 times the size that
   fits the screen. Ctrl or Cmd with the mouse wheel zooms at the pointer, and the wheel alone moves
-  the view. The number between the buttons is the size of the paper on the screen, and a press on
-  it fits the paper to the screen again. A zoom keeps the point at the middle, or under the pointer,
+  the view. The field between the buttons is the size of the paper on the screen, in percent.
+  You can type a new size in it: Enter sets it, and Escape gives back the old one. **Fit to
+  screen**, after the buttons, fits the paper to the screen again. A zoom keeps the point at the middle, or under the pointer,
   in place. A zoom changes the view only, not the picture. From twice the size, each pixel of the
   picture shows as a square.
 - The screen and the picture are separate. The screen shows the paper at the zoom and the place of
@@ -80,8 +94,16 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   one of the handles at its four corners makes it larger or smaller, from the opposite corner, with
   the same scale on both axes (from 0.05 to 20 times). A hidden layer shows no box and does not
   move. A drag is one step.
-- **Selection** opens a menu of two tools. **Select** marks a rectangle with a drag, and **Lasso** a
-  freehand area along the path of the drag. The options choose what a new shape does: a new area,
+- **Selection** opens a menu of four tools. **Rectangle select** marks a rectangle with a drag,
+  **Ellipse select** an ellipse, and **Lasso** a freehand area along the path of the drag.
+  **Polygonal lasso** adds a corner with each tap. A tap on the first corner or a double click
+  closes the area, and Escape cancels it. M picks Rectangle select, and again Ellipse select. L
+  picks Lasso, and again Polygonal lasso. The tooltip of each tool shows its key.
+- **Crop** (C) marks the part of the picture to keep with a drag, and darkens the rest. A new drag
+  marks it again. **Crop image** under the paper, or Enter, keeps only that part, as one step for
+  undo. Escape, the close button or another tool removes the box.
+- Ctrl or Cmd with A selects all of the paper that shows, with D removes the area, and with Shift and
+  I inverts the area. The options choose what a new shape does: a new area,
   added to the area, subtracted from it, or only the part that both share. For one drag, Shift
   adds, Alt subtracts, and Shift and Alt together keep the shared part. Thus, the area can have any
   shape, and holes. Its edge shows as black and white dashes.
@@ -89,7 +111,7 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   the ink of the current layer in it. A move of the ink is one step for undo.
 - With an area, two buttons show. **Crop layer** removes the ink of the current layer outside the
   area. **Crop image** makes the picture the area, and Done saves only that part. A second crop
-  stays inside the first. Escape, a tap with Select, or the close button removes the area. Each
+  stays inside the first. Escape, a tap with a selection tool, Ctrl or Cmd with D, or the close button removes the area. Each
   crop is one step for undo.
 - The area stays when you change the tool, and limits where the pen, the eraser, the shapes and the
   fill apply. A line that crosses its edge stops there. The line keeps that limit after the area is

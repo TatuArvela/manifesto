@@ -189,6 +189,32 @@ export function transformMark(mark: Mark, by: Transform): Mark {
 }
 
 /**
+ * A mark at another size, `sx` times as wide and `sy` times as tall, from the
+ * corner of the plane. A line becomes as much wider as the area it covers.
+ */
+export function stretchMark(mark: Mark, sx: number, sy: number): Mark {
+  const box = (rect: Rect): Rect => ({
+    x: rect.x * sx,
+    y: rect.y * sy,
+    width: rect.width * sx,
+    height: rect.height * sy,
+  });
+  if (isFill(mark)) return { ...mark, at: box(mark.at) };
+  if (isClip(mark)) {
+    return {
+      ...mark,
+      clip: box(mark.clip),
+      marks: mark.marks.map((each) => stretchMark(each, sx, sy)),
+    };
+  }
+  return {
+    ...mark,
+    width: mark.width * Math.sqrt(sx * sy),
+    points: mark.points.map(([x, y]): Point => [x * sx, y * sy]),
+  };
+}
+
+/**
  * The box that the ink of the strokes covers, the width of the tip included.
  * A square tip reaches further at its corners. Null when there is no ink: no
  * marks, or only an eraser.

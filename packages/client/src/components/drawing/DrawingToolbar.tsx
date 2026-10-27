@@ -1,8 +1,11 @@
 import { NoteColor } from "@manifesto/shared";
 import {
   Circle,
+  CircleDashed,
+  Crop,
   Eraser,
   Hand,
+  History,
   Lasso,
   Layers,
   Minus,
@@ -12,18 +15,22 @@ import {
   Pentagon,
   Pipette,
   Repeat2,
+  Scaling,
   Shapes,
   Square,
   SquareDashed,
+  VectorPolygon,
+  ZoomIn,
 } from "lucide-preact";
 import { type ComponentType, Fragment, type RefObject } from "preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { getColorLabel, t } from "#/i18n/index.ts";
-import type { Rect } from "#/utils/drawing.ts";
-import type { SketchHistory } from "#/utils/drawingLayers.ts";
+import type { PaperSize, Rect } from "#/utils/drawing.ts";
+import type { Anchor, SketchHistory } from "#/utils/drawingLayers.ts";
 import type { SelectMode } from "#/utils/selection.ts";
+import { DrawingHistory } from "./DrawingHistory.tsx";
 import { DrawingLayers } from "./DrawingLayers.tsx";
 import {
   DrawingPen,
@@ -35,6 +42,8 @@ import {
   DrawingSelectOptions,
   type SelectionMove,
 } from "./DrawingSelectOptions.tsx";
+import { DrawingSize, type ResizeKind } from "./DrawingSize.tsx";
+import type { SelectTool } from "./useSelectionTool.ts";
 
 /** What a press on the paper does. */
 export type Tool =
@@ -46,10 +55,11 @@ export type Tool =
   | "polygon"
   | "fill"
   | "dropper"
-  | "select"
-  | "lasso"
+  | SelectTool
+  | "crop"
   | "move"
-  | "hand";
+  | "hand"
+  | "zoom";
 
 export const INKS = [
   { color: "#171717", name: null },
@@ -69,11 +79,41 @@ export const INKS = [
 export const barButton =
   "p-2 rounded-lg text-neutral-100 hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer disabled:cursor-default";
 
-/** The tools that select an area, in a menu of one button. */
+/**
+ * The tools that select an area, in a menu of one button. A key picks the
+ * first tool of its letter, and again the next one.
+ */
 const SELECTIONS = [
-  { tool: "select", Icon: SquareDashed, label: "drawing.select" },
-  { tool: "lasso", Icon: Lasso, label: "drawing.lasso" },
+  { tool: "select", Icon: SquareDashed, label: "drawing.select", key: "M" },
+  {
+    tool: "selectEllipse",
+    Icon: CircleDashed,
+    label: "drawing.selectEllipse",
+    key: "M",
+  },
+  { tool: "lasso", Icon: Lasso, label: "drawing.lasso", key: "L" },
+  {
+    tool: "polyLasso",
+    Icon: VectorPolygon,
+    label: "drawing.polyLasso",
+    key: "L",
+  },
 ] as const;
+
+export const isSelectTool = (tool: Tool): tool is SelectTool =>
+  SELECTIONS.some((each) => each.tool === tool);
+
+/**
+ * The tool that a key picks after `tool`, or null. C picks Crop, and Z Zoom. A key of the
+ * selection tools picks the next tool of its letter.
+ */
+export function toolForKey(tool: Tool, key: string): Tool | null {
+  if (key.toLowerCase() === "c") return "crop";
+  if (key.toLowerCase() === "z") return "zoom";
+  const group = SELECTIONS.filter((each) => each.key === key.toUpperCase());
+  const at = group.findIndex((each) => each.tool === tool);
+  return group[(at + 1) % group.length]?.tool ?? null;
+}
 
 const SHAPES = [
   { tool: "line", Icon: Minus, label: "drawing.line" },
@@ -84,11 +124,12 @@ const SHAPES = [
 
 /**
  * The tools in the order of most picture editors: those that pick a part of
- * the drawing, then those that put ink on it. The shapes come after these, and
- * the hand that moves the view is last.
+ * the drawing, the crop, then those that put ink on it. The shapes come after these, and
+ * the hand that moves the view and the zoom are last.
  */
 const TOOLS = [
   { tool: "move", Icon: Move, label: "drawing.move" },
+  { tool: "crop", Icon: Crop, label: "drawing.crop", key: "C" },
   { tool: "dropper", Icon: Pipette, label: "drawing.dropper" },
   { tool: "pen", Icon: Pencil, label: "drawing.penTool" },
   { tool: "eraser", Icon: Eraser, label: "drawing.eraser" },
@@ -120,14 +161,17 @@ function ToolButton({
   onClick,
   Icon,
   label,
+  shortcut,
 }: {
   on: boolean;
   onClick: () => void;
   Icon: ComponentType<{ class?: string }>;
   label: string;
+  /** The key that picks the tool, shown after the name in the tooltip. */
+  shortcut?: string | undefined;
 }) {
   return (
-    <Tooltip label={label}>
+    <Tooltip label={shortcut ? `${label} (${shortcut})` : label}>
       <button
         type="button"
         class={on ? toolOn : barButton}
@@ -229,16 +273,17 @@ function ToolMenu({
       class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 flex gap-1 rounded-lg bg-neutral-800 p-1 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0 md:left-full md:top-0 md:bottom-auto md:translate-x-0 md:mb-0 md:ml-2"
       aria-label={label}
     >
-      {items.map(({ tool: each, Icon, label: name }) => (
+      {items.map((item) => (
         <ToolButton
-          key={each}
-          on={tool === each}
+          key={item.tool}
+          on={tool === item.tool}
           onClick={() => {
-            onTool(each);
+            onTool(item.tool);
             onClose();
           }}
-          Icon={Icon}
-          label={t(name)}
+          Icon={item.Icon}
+          label={t(item.label)}
+          shortcut={"key" in item ? item.key : undefined}
         />
       ))}
     </fieldset>
@@ -271,6 +316,7 @@ export function DrawingToolbar({
   onSelectMode,
   selectionMove,
   onSelectionMove,
+  onResize,
 }: {
   tool: Tool;
   onTool: (tool: Tool) => void;
@@ -288,8 +334,14 @@ export function DrawingToolbar({
   onSelectMode: (next: SelectMode) => void;
   selectionMove: SelectionMove;
   onSelectionMove: (next: SelectionMove) => void;
+  onResize: (
+    kind: ResizeKind,
+    width: number,
+    height: number,
+    anchor: Anchor,
+  ) => void;
 }) {
-  type Panel = "pen" | "layers" | "shapes" | "selections";
+  type Panel = "pen" | "layers" | "shapes" | "selections" | "size" | "history";
   const [panel, setPanel] = useState<Panel | null>(null);
   const toggle = (next: Panel) => setPanel(panel === next ? null : next);
   const close = useCallback(() => setPanel(null), []);
@@ -371,10 +423,22 @@ export function DrawingToolbar({
           onChange={onHistory}
           onClose={close}
         />
+        <DrawingHistory
+          open={panel === "history"}
+          history={history}
+          onChange={onHistory}
+          onClose={close}
+        />
+        <DrawingSize
+          open={panel === "size"}
+          size={view satisfies PaperSize}
+          onResize={onResize}
+          onClose={close}
+        />
       </div>
 
       <div class="[grid-area:options] relative md:flex md:items-center md:justify-center md:px-2">
-        {tool === "select" || tool === "lasso" ? (
+        {isSelectTool(tool) ? (
           <DrawingSelectOptions
             mode={selectMode}
             onMode={onSelectMode}
@@ -395,15 +459,16 @@ export function DrawingToolbar({
       </div>
 
       <div class="[grid-area:tools] flex flex-wrap items-center justify-center gap-1 px-2 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:flex-col md:flex-nowrap md:justify-start md:p-2 md:pt-0">
-        {TOOLS.map(({ tool: each, Icon, label }) => (
-          <Fragment key={each}>
+        {TOOLS.map((item) => (
+          <Fragment key={item.tool}>
             <ToolButton
-              on={tool === each}
-              onClick={() => onTool(tool === each ? "pen" : each)}
-              Icon={Icon}
-              label={t(label)}
+              on={tool === item.tool}
+              onClick={() => onTool(tool === item.tool ? "pen" : item.tool)}
+              Icon={item.Icon}
+              label={t(item.label)}
+              shortcut={"key" in item ? item.key : undefined}
             />
-            {each === "move" && (
+            {item.tool === "move" && (
               <ToolGroup
                 label={t("drawing.selection")}
                 items={SELECTIONS}
@@ -433,6 +498,13 @@ export function DrawingToolbar({
           Icon={Hand}
           label={t("drawing.hand")}
         />
+        <ToolButton
+          on={tool === "zoom"}
+          onClick={() => onTool(tool === "zoom" ? "pen" : "zoom")}
+          Icon={ZoomIn}
+          label={t("drawing.zoomTool")}
+          shortcut="Z"
+        />
         <span class={divider} aria-hidden="true" />
         {inkPair("hidden md:flex")}
         {/* On a wide screen, the options are over the paper and the layers
@@ -441,9 +513,7 @@ export function DrawingToolbar({
           type="button"
           class={`${barButton} md:hidden ${panel === "pen" ? "bg-white/20" : ""}`}
           onClick={() => toggle("pen")}
-          disabled={
-            tool !== "select" && tool !== "lasso" && !hasPenOptions(tool)
-          }
+          disabled={!isSelectTool(tool) && !hasPenOptions(tool)}
           aria-label={t("drawing.penSettings")}
           aria-expanded={panel === "pen"}
         >
@@ -459,6 +529,24 @@ export function DrawingToolbar({
           aria-expanded={panel === "layers"}
         >
           <Layers class="w-5 h-5" />
+        </button>
+        <button
+          type="button"
+          class={`${barButton} md:hidden ${panel === "size" ? "bg-white/20" : ""}`}
+          onClick={() => toggle("size")}
+          aria-label={t("drawing.pictureSize")}
+          aria-expanded={panel === "size"}
+        >
+          <Scaling class="w-5 h-5" />
+        </button>
+        <button
+          type="button"
+          class={`${barButton} md:hidden ${panel === "history" ? "bg-white/20" : ""}`}
+          onClick={() => toggle("history")}
+          aria-label={t("drawing.history")}
+          aria-expanded={panel === "history"}
+        >
+          <History class="w-5 h-5" />
         </button>
       </div>
     </>

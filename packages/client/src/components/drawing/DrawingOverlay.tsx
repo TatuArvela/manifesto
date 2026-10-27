@@ -18,26 +18,29 @@ export const HANDLE = 12;
  * layer to move, or the area that is selected. With `handle`, a square at each
  * corner shows where to pull to change the size. It takes no
  * pointer events. The canvas below keeps them, so that one drag works also
- * when it starts outside the box.
+ * when it starts outside the box. With `dim`, the paper outside the box is
+ * darker: the part that a crop removes.
  */
 export function DrawingOverlay({
   box,
   view,
   rect,
   handle = false,
+  dim = false,
 }: {
   box: CanvasBox;
   /** The part of the paper that the canvas shows. */
   view: Rect;
   rect: Rect;
   handle?: boolean;
+  dim?: boolean;
 }) {
   const sx = box.width / view.width;
   const sy = box.height / view.height;
   return (
     <div
       aria-hidden="true"
-      class="absolute pointer-events-none border border-dashed border-blue-400 shadow-[0_0_0_1px_rgba(0,0,0,0.4)]"
+      class={`absolute pointer-events-none border border-dashed border-blue-400 ${dim ? "shadow-[0_0_0_1px_rgba(0,0,0,0.4),0_0_0_100vmax_rgba(0,0,0,0.45)]" : "shadow-[0_0_0_1px_rgba(0,0,0,0.4)]"}`}
       style={{
         left: `${box.left + (rect.x - view.x) * sx}px`,
         top: `${box.top + (rect.y - view.y) * sy}px`,
@@ -163,6 +166,14 @@ export function SelectionOutline({
   );
 }
 
+/** An ellipse in a box, as two half arcs of an SVG path. */
+function ellipsePath({ x, y, width, height }: Rect): string {
+  const rx = width / 2;
+  const ry = height / 2;
+  const cy = y + ry;
+  return `M${x} ${cy}a${rx} ${ry} 0 1 0 ${width} 0a${rx} ${ry} 0 1 0 ${-width} 0z`;
+}
+
 /** A shape that a selection tool draws, while the drag lasts. */
 export function SelectionDraft({
   box,
@@ -176,7 +187,9 @@ export function SelectionDraft({
   const d =
     shape.kind === "rect"
       ? `M${shape.rect.x} ${shape.rect.y}h${shape.rect.width}v${shape.rect.height}h${-shape.rect.width}z`
-      : `M${shape.points.map(([x, y]) => `${x} ${y}`).join("L")}z`;
+      : shape.kind === "ellipse"
+        ? ellipsePath(shape.rect)
+        : `M${shape.points.map(([x, y]) => `${x} ${y}`).join("L")}z`;
   return (
     <svg
       aria-hidden="true"

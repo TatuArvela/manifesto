@@ -2,14 +2,27 @@ import { useRef, useState } from "preact/hooks";
 import type { Point, Rect } from "#/utils/drawing.ts";
 import {
   combineSelection,
+  invertSelection,
   moveSelection,
   type Selection,
   type SelectMode,
   type SelectShape,
+  selectAll,
   selectionContains,
   shapeBounds,
 } from "#/utils/selection.ts";
+import { closesPolygon } from "#/utils/shapes.ts";
 import type { SelectionMove } from "./DrawingSelectOptions.tsx";
+
+/** The tools that select an area. */
+export type SelectTool = "select" | "selectEllipse" | "lasso" | "polyLasso";
+
+/** The corners of a polygonal lasso in progress, and where the pointer is. */
+interface Trace {
+  mode: SelectMode;
+  corners: Point[];
+  hover: Point | null;
+}
 
 /** A drag shorter than this, in paper pixels, is a tap, not an area. */
 const MIN_SELECTION = 4;
@@ -33,8 +46,9 @@ type Drag =
 /**
  * The selected area of the pad, and the drags of the two selection tools.
  *
- * A drag of Select draws a rectangle, and a drag of Lasso a freehand shape.
- * The shape makes a new area, adds to it with Shift, takes away from it with
+ * A drag of Select draws a rectangle, of Ellipse select an ellipse, and of
+ * Lasso a freehand shape. Polygonal lasso adds a corner with each press, and
+ * a press on the first corner or a double click closes it. The shape makes a new area, adds to it with Shift, takes away from it with
  * Alt, or keeps only the part that both share with Shift and Alt (or as the
  * options choose). A tap clears the area. A drag that
  * starts inside the area moves it, or moves the ink in it, as the options
@@ -59,13 +73,61 @@ export function useSelectionTool({
   const [draft, setDraft] = useState<SelectShape | null>(null);
   const [offset, setOffset] = useState<Point>([0, 0]);
   const drag = useRef<Drag | null>(null);
+  const trace = useRef<Trace | null>(null);
+  const [tracing, setTracing] = useState(false);
+
+  const showTrace = (now: Trace) =>
+    setDraft({
+      kind: "lasso",
+      points: now.hover ? [...now.corners, now.hover] : [...now.corners],
+    });
+
+  /** Closes the polygonal lasso in progress, and keeps its area. */
+  const finishTrace = () => {
+    const now = trace.current;
+    if (!now) return;
+    trace.current = null;
+    setTracing(false);
+    setDraft(null);
+    // A double click presses twice on one place.
+    const points = now.corners.filter((point, i, all) => {
+      const before = all[i - 1];
+      return (
+        !before || Math.hypot(point[0] - before[0], point[1] - before[1]) > 1
+      );
+    });
+    const shape: SelectShape = { kind: "lasso", points };
+    if (shapeBounds(shape)) {
+      setSelection(combineSelection(selection, shape, now.mode, view()));
+    }
+  };
+
+  /** Ends the polygonal lasso in progress with no change to the area. */
+  const cancelTrace = () => {
+    if (!trace.current) return;
+    trace.current = null;
+    setTracing(false);
+    setDraft(null);
+  };
 
   const begin = (
-    tool: "select" | "lasso",
+    tool: SelectTool,
     pointerId: number,
     at: Point,
     keys: { shiftKey: boolean; altKey: boolean },
+    /** How near to the first corner a press closes a polygonal lasso. */
+    reach: number,
   ) => {
+    const open = trace.current;
+    if (open) {
+      if (closesPolygon(open.corners, at, reach)) {
+        finishTrace();
+      } else {
+        open.corners.push(at);
+        showTrace(open);
+      }
+      return;
+    }
     const chosen: SelectMode =
       keys.altKey && keys.shiftKey
         ? "intersect"
@@ -86,10 +148,19 @@ export function useSelectionTool({
       if (pixels) onPixelFrames("start");
       return;
     }
+    if (tool === "polyLasso") {
+      trace.current = { mode: chosen, corners: [at], hover: null };
+      setTracing(true);
+      showTrace(trace.current);
+      return;
+    }
+    const empty = { x: at[0], y: at[1], width: 0, height: 0 };
     const shape: SelectShape =
       tool === "select"
-        ? { kind: "rect", rect: { x: at[0], y: at[1], width: 0, height: 0 } }
-        : { kind: "lasso", points: [at] };
+        ? { kind: "rect", rect: empty }
+        : tool === "selectEllipse"
+          ? { kind: "ellipse", rect: empty }
+          : { kind: "lasso", points: [at] };
     drag.current = { kind: "shape", pointerId, mode: chosen, start: at, shape };
     setDraft(shape);
   };
@@ -108,9 +179,9 @@ export function useSelectionTool({
     }
     const [sx, sy] = now.start;
     now.shape =
-      now.shape.kind === "rect"
+      now.shape.kind !== "lasso"
         ? {
-            kind: "rect",
+            kind: now.shape.kind,
             rect: {
               x: Math.min(at[0], sx),
               y: Math.min(at[1], sy),
@@ -147,6 +218,14 @@ export function useSelectionTool({
     setSelection(combineSelection(selection, now.shape, now.mode, view()));
   };
 
+  /** Follows the pointer with the open side of a polygonal lasso. */
+  const hover = (at: Point) => {
+    const now = trace.current;
+    if (!now) return;
+    now.hover = at;
+    showTrace(now);
+  };
+
   /** How far a drag moved the ink of the area, while it lasts. */
   const pixelOffset = (): Point | null => {
     const now = drag.current;
@@ -165,6 +244,12 @@ export function useSelectionTool({
     begin,
     update,
     end,
+    tracing,
+    hover,
+    finishTrace,
+    cancelTrace,
+    selectAll: () => setSelection(selectAll(view())),
+    invert: () => setSelection(invertSelection(selection, view())),
     dragging: (pointerId: number) => drag.current?.pointerId === pointerId,
     pixelOffset,
   };

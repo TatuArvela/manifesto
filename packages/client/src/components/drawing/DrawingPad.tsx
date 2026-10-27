@@ -2,7 +2,6 @@ import { useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { useBackToClose } from "#/hooks/useBackToClose.ts";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
-import { isTypingTarget } from "#/hooks/useShortcut.ts";
 import { t } from "#/i18n/index.ts";
 import { askConfirmation } from "#/state/confirm.ts";
 import { closeDrawing, drawingRequest } from "#/state/drawing.ts";
@@ -39,6 +38,8 @@ import {
   moveSelected,
   newSketchHistory,
   redo,
+  resizeCanvas,
+  resizeImage,
   type SketchHistory,
   transformLayer,
   undo,
@@ -58,8 +59,10 @@ import { type PenSettings, WIDTHS } from "./DrawingPen.tsx";
 import { DrawingToolbar, INKS, type Tool } from "./DrawingToolbar.tsx";
 import { DrawingTopBar } from "./DrawingTopBar.tsx";
 import { type Gesture, UNCHANGED } from "./gesture.ts";
+import { onPadKey } from "./padKeys.ts";
 import { placePenCursor } from "./penCursor.ts";
 import { useBaseImage } from "./useBaseImage.ts";
+import { useCropTool } from "./useCropTool.ts";
 import { useLiveFrames } from "./useLiveFrames.ts";
 import { useSelectionTool } from "./useSelectionTool.ts";
 import { useViewport } from "./useViewport.ts";
@@ -134,7 +137,9 @@ export function DrawingPad() {
   const erasing = tool === "eraser";
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
-  const { base, paper, ready } = useBaseImage(request?.base);
+  const { base, paper: basePaper, ready } = useBaseImage(request?.base);
+  // The paper after a change of the size of the image, or that of the pad.
+  const paper = history.present.paper ?? basePaper;
   const dialogRef = useFocusTrap<HTMLDivElement>(true);
 
   const context = () => canvasRef.current?.getContext("2d") ?? null;
@@ -286,6 +291,9 @@ export function DrawingPad() {
     },
   });
   const { selection, setSelection } = selectTool;
+  const cropTool = useCropTool((area) =>
+    apply(cropImage(historyRef.current, area, wholePaper(paper))),
+  );
 
   /** The width of the pen, the eraser or an outline, on this paper. */
   const strokeWidth = () =>
@@ -377,20 +385,6 @@ export function DrawingPad() {
     polygon.current ? cancelPolygon() : apply(undo(historyRef.current));
   const redoStep = () => applyControl(redo(historyRef.current));
 
-  /**
-   * Ctrl or Cmd with Z undoes, and with Y or Shift and Z redoes. Not in a text
-   * field: there, the keys undo the typing.
-   */
-  const onKeyDown = (event: KeyboardEvent) => {
-    if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
-    if (isTypingTarget(event.target)) return;
-    const key = event.key.toLowerCase();
-    if (key !== "z" && key !== "y") return;
-    event.preventDefault();
-    if (key === "y" || event.shiftKey) redoStep();
-    else undoStep();
-  };
-
   const discard = async () => {
     const confirmed = await askConfirmation({
       title: t("drawing.discardConfirm"),
@@ -422,6 +416,8 @@ export function DrawingPad() {
   useBackToClose(true, cancel);
   useEscapeStack(selection !== null, () => setSelection(null));
   useEscapeStack(drawingPolygon, cancelPolygon);
+  useEscapeStack(selectTool.tracing, selectTool.cancelTrace);
+  useEscapeStack(cropTool.area !== null, cropTool.clear);
 
   const done = () => {
     const canvas = canvasRef.current;
@@ -470,6 +466,8 @@ export function DrawingPad() {
 
   const chooseTool = (next: Tool) => {
     if (polygon.current) finishPolygon();
+    selectTool.cancelTrace();
+    cropTool.clear();
     if (next === "dropper" && tool !== "dropper") toolBefore.current = tool;
     setTool(next);
   };
@@ -622,8 +620,20 @@ export function DrawingPad() {
         startDrag(pointerId, at, shown);
         return;
       case "select":
+      case "selectEllipse":
       case "lasso":
-        selectTool.begin(tool, pointerId, at, event);
+      case "polyLasso":
+        selectTool.begin(tool, pointerId, at, event, onPaper(HANDLE, shown));
+        return;
+      case "crop":
+        cropTool.begin(pointerId, at);
+        return;
+      case "zoom":
+        // A click zooms in at the pointer, and with Alt, out.
+        zoomTo(
+          event.altKey ? zoom / viewport.ZOOM_STEP : zoom * viewport.ZOOM_STEP,
+          [event.clientX, event.clientY],
+        );
         return;
       case "hand":
         gesture.current = {
@@ -694,8 +704,16 @@ export function DrawingPad() {
             ? "nwse-resize"
             : "nesw-resize";
     }
+    if (selectTool.tracing) {
+      selectTool.hover(paperPoint(event, shown));
+      return;
+    }
     if (selectTool.dragging(event.pointerId)) {
       selectTool.update(paperPoint(event, shown));
+      return;
+    }
+    if (cropTool.dragging(event.pointerId)) {
+      cropTool.update(paperPoint(event, shown));
       return;
     }
     const now = gesture.current;
@@ -751,6 +769,7 @@ export function DrawingPad() {
   const endGesture = (event: PointerEvent) => {
     if (gesture.current?.pointerId === event.pointerId) commitGesture();
     if (selectTool.dragging(event.pointerId)) selectTool.end();
+    if (cropTool.dragging(event.pointerId)) cropTool.end();
     // A finger leaves the screen: there is no place to show the pen at.
     if (event.pointerType === "touch") hideCursor();
   };
@@ -791,9 +810,11 @@ export function DrawingPad() {
       ? "move"
       : tool === "hand"
         ? "grab"
-        : tool === "pen" || tool === "eraser" || tool === "line"
-          ? "none"
-          : "crosshair";
+        : tool === "zoom"
+          ? "zoom-in"
+          : tool === "pen" || tool === "eraser" || tool === "line"
+            ? "none"
+            : "crosshair";
 
   return (
     <div
@@ -801,8 +822,23 @@ export function DrawingPad() {
       role="dialog"
       aria-modal="true"
       aria-label={t("drawing.title")}
-      onKeyDown={onKeyDown}
-      class={`fixed inset-0 layer-drawing ${padGrid} bg-neutral-900 text-neutral-100 animate-fade-in`}
+      onKeyDown={(event) =>
+        onPadKey(event, {
+          tool,
+          chooseTool,
+          applyCrop: () => {
+            if (!cropTool.area) return false;
+            cropTool.apply();
+            return true;
+          },
+          selectAll: selectTool.selectAll,
+          deselect: () => setSelection(null),
+          invert: selectTool.invert,
+          undo: undoStep,
+          redo: redoStep,
+        })
+      }
+      class={`fixed inset-0 layer-drawing ${padGrid} bg-neutral-900 text-neutral-100 animate-fade-in select-none [&_input]:select-text`}
     >
       <DrawingTopBar
         onCancel={() => void cancel()}
@@ -810,6 +846,7 @@ export function DrawingPad() {
         zoomPercent={Math.round(scale * 100)}
         onZoomOut={() => zoomTo(zoom / viewport.ZOOM_STEP)}
         onZoomFit={viewport.fitView}
+        onZoomPercent={(percent) => zoomTo(percent / 100 / (scale / zoom))}
         onZoomIn={() => zoomTo(zoom * viewport.ZOOM_STEP)}
         canZoomOut={zoom > viewport.MIN_ZOOM}
         canZoomIn={zoom < viewport.MAX_ZOOM}
@@ -864,6 +901,7 @@ export function DrawingPad() {
           onPointerLeave={hideCursor}
           onDblClick={() => {
             if (polygon.current) finishPolygon();
+            selectTool.finishTrace();
           }}
         />
         {tool === "move" && box && moveBox && (
@@ -877,6 +915,9 @@ export function DrawingPad() {
             selection={selection}
             offset={selectTool.offset}
           />
+        )}
+        {box && cropTool.area && (
+          <DrawingOverlay box={box} view={view} rect={cropTool.area} dim />
         )}
         {box && selectTool.draft && (
           <SelectionDraft box={box} view={view} shape={selectTool.draft} />
@@ -903,6 +944,9 @@ export function DrawingPad() {
         canCropLayer={layerHasInk}
         onCrop={cropTo}
         onClearSelection={() => setSelection(null)}
+        cropping={cropTool.area !== null}
+        onApplyCrop={cropTool.apply}
+        onCancelCrop={cropTool.clear}
       />
       <DrawingToolbar
         tool={tool}
@@ -920,6 +964,20 @@ export function DrawingPad() {
         onSelectMode={selectTool.setMode}
         selectionMove={selectTool.move}
         onSelectionMove={selectTool.setMove}
+        onResize={(kind, width, height, anchor) => {
+          setSelection(null);
+          applyControl(
+            kind === "canvas"
+              ? resizeCanvas(
+                  historyRef.current,
+                  basePaper,
+                  width,
+                  height,
+                  anchor,
+                )
+              : resizeImage(historyRef.current, basePaper, width, height),
+          );
+        }}
       />
     </div>
   );

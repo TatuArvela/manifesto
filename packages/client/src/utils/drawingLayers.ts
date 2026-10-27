@@ -5,13 +5,19 @@
 
 import {
   intersect,
+  isClip,
   isFill,
+  isShape,
   type Mark,
   markBounds,
+  type PaperSize,
   type Rect,
+  stretchMark,
   type Transform,
   transformMark,
+  wholePaper,
 } from "./drawing.ts";
+import { MAX_IMAGE_EDGE } from "./shrinkImage.ts";
 
 export interface Layer {
   /** Also the number in its name. A deleted layer does not give its number to a new one. */
@@ -33,7 +39,33 @@ export interface Sketch {
    * The full paper when absent. Marks outside it stay, and show again on undo.
    */
   frame?: Rect;
+  /**
+   * The size of the paper after a change of the size of the image. The paper
+   * of the pad when absent. The image under the drawing stretches to it.
+   */
+  paper?: PaperSize;
+  /** The change that made this sketch, for the list of steps. None at the start. */
+  step?: Step;
 }
+
+/** The kinds of change that are steps, as the history list names them. */
+export type Step =
+  | "pen"
+  | "eraser"
+  | "shape"
+  | "fill"
+  | "clearLayer"
+  | "addLayer"
+  | "removeLayer"
+  | "toggleLayer"
+  | "layerOpacity"
+  | "moveLayer"
+  | "orderLayer"
+  | "cropLayer"
+  | "movePixels"
+  | "cropImage"
+  | "canvasSize"
+  | "imageSize";
 
 export interface SketchHistory {
   past: readonly Sketch[];
@@ -67,10 +99,12 @@ export function newSketchHistory(): SketchHistory {
  */
 function record(
   history: SketchHistory,
-  next: Sketch,
+  step: Step,
+  changed: Sketch,
   joins?: string,
 ): SketchHistory {
-  if (next === history.present) return history;
+  if (changed === history.present) return history;
+  const next = { ...changed, step };
   if (joins !== undefined && history.joins === joins) {
     return { ...history, present: next };
   }
@@ -80,6 +114,17 @@ function record(
     future: [],
     joins,
   };
+}
+
+/** The step of a new mark: what drew it. An area keeps the kind of its mark. */
+function markStep(mark: Mark): Step {
+  if (isFill(mark)) return "fill";
+  if (isClip(mark)) {
+    const [inner] = mark.marks;
+    return mark.erase ? "eraser" : inner ? markStep(inner) : "pen";
+  }
+  if (isShape(mark)) return "shape";
+  return mark.erase ? "eraser" : "pen";
 }
 
 function changeLayer(
@@ -106,6 +151,7 @@ export function addMark(history: SketchHistory, mark: Mark): SketchHistory {
   const sketch = history.present;
   return record(
     history,
+    markStep(mark),
     changeLayer(sketch, sketch.active, (layer) => ({
       ...layer,
       visible: true,
@@ -120,6 +166,7 @@ export function clearLayer(history: SketchHistory): SketchHistory {
   if (!activeLayer(sketch)?.marks.length) return history;
   return record(
     history,
+    "clearLayer",
     changeLayer(sketch, sketch.active, (layer) => ({ ...layer, marks: [] })),
   );
 }
@@ -130,7 +177,7 @@ export function addLayer(history: SketchHistory): SketchHistory {
   if (sketch.layers.length >= MAX_LAYERS) return history;
   const at = sketch.layers.findIndex((layer) => layer.id === sketch.active) + 1;
   const layer: Layer = { id: sketch.nextId, visible: true, marks: [] };
-  return record(history, {
+  return record(history, "addLayer", {
     ...sketch,
     layers: [...sketch.layers.slice(0, at), layer, ...sketch.layers.slice(at)],
     active: layer.id,
@@ -148,7 +195,7 @@ export function removeLayer(history: SketchHistory, id: number): SketchHistory {
   if (at < 0 || sketch.layers.length <= 1) return history;
   const layers = sketch.layers.filter((layer) => layer.id !== id);
   const next = layers[Math.max(0, at - 1)];
-  return record(history, {
+  return record(history, "removeLayer", {
     ...sketch,
     layers,
     active: sketch.active === id && next ? next.id : sketch.active,
@@ -158,6 +205,7 @@ export function removeLayer(history: SketchHistory, id: number): SketchHistory {
 export function toggleLayer(history: SketchHistory, id: number): SketchHistory {
   return record(
     history,
+    "toggleLayer",
     changeLayer(history.present, id, (layer) => ({
       ...layer,
       visible: !layer.visible,
@@ -176,6 +224,7 @@ export function setLayerOpacity(
   if (!layer || (layer.opacity ?? 1) === value) return history;
   return record(
     history,
+    "layerOpacity",
     changeLayer(history.present, id, (each) => ({ ...each, opacity: value })),
     `opacity:${id}`,
   );
@@ -226,6 +275,7 @@ export function transformLayer(
   if (!activeLayer(sketch)?.marks.length) return history;
   return record(
     history,
+    "moveLayer",
     changeLayer(sketch, sketch.active, (layer) => ({
       ...layer,
       marks: layer.marks.map((mark) => transformMark(mark, by)),
@@ -271,6 +321,7 @@ export function cropLayer(
   if (!activeLayer(sketch)?.marks.length) return history;
   return record(
     history,
+    "cropLayer",
     changeLayer(sketch, sketch.active, (layer) => ({
       ...layer,
       marks: [{ clip: area, ...(mask ? { mask } : {}), marks: layer.marks }],
@@ -294,6 +345,7 @@ export function moveSelected(
   if (!activeLayer(sketch)?.marks.length) return history;
   return record(
     history,
+    "movePixels",
     changeLayer(sketch, sketch.active, (layer) => ({
       ...layer,
       marks: movedMarks(layer.marks, area, mask, dx, dy),
@@ -335,7 +387,77 @@ export function cropImage(
     width: Math.max(1, whole(frame.width)),
     height: Math.max(1, whole(frame.height)),
   };
-  return record(history, { ...sketch, frame: rounded });
+  return record(history, "cropImage", { ...sketch, frame: rounded });
+}
+
+/** Where a change of the canvas keeps the picture: 0, 0.5 or 1 on each axis. */
+export type Anchor = readonly [x: number, y: number];
+
+/** The longest edge that a canvas or an image can have on the pad. */
+export const MAX_EDGE = MAX_IMAGE_EDGE;
+
+const edge = (value: number) =>
+  Math.min(MAX_EDGE, Math.max(1, Math.round(value)));
+
+/**
+ * Gives the picture a new size, and keeps the drawing at its size. The
+ * picture grows or shrinks around `anchor`. A larger canvas adds paper, and a
+ * smaller one crops. Nothing when the size does not change.
+ */
+export function resizeCanvas(
+  history: SketchHistory,
+  paper: PaperSize,
+  width: number,
+  height: number,
+  anchor: Anchor,
+): SketchHistory {
+  const sketch = history.present;
+  const now = sketch.frame ?? wholePaper(sketch.paper ?? paper);
+  const w = edge(width);
+  const h = edge(height);
+  if (w === now.width && h === now.height) return history;
+  const frame = {
+    x: Math.round(now.x + (now.width - w) * anchor[0]),
+    y: Math.round(now.y + (now.height - h) * anchor[1]),
+    width: w,
+    height: h,
+  };
+  return record(history, "canvasSize", { ...sketch, frame });
+}
+
+/**
+ * Gives the picture a new size, with the drawing and the image under it
+ * stretched to fill it. Ink becomes pixels of the new size, as in any picture
+ * editor. Nothing when the size does not change.
+ */
+export function resizeImage(
+  history: SketchHistory,
+  paper: PaperSize,
+  width: number,
+  height: number,
+): SketchHistory {
+  const sketch = history.present;
+  const own = sketch.paper ?? paper;
+  const now = sketch.frame ?? wholePaper(own);
+  const w = edge(width);
+  const h = edge(height);
+  if (w === now.width && h === now.height) return history;
+  const sx = w / now.width;
+  const sy = h / now.height;
+  return record(history, "imageSize", {
+    ...sketch,
+    layers: sketch.layers.map((layer) => ({
+      ...layer,
+      marks: layer.marks.map((mark) => stretchMark(mark, sx, sy)),
+    })),
+    frame: {
+      x: Math.round(now.x * sx),
+      y: Math.round(now.y * sy),
+      width: w,
+      height: h,
+    },
+    paper: { width: own.width * sx, height: own.height * sy },
+  });
 }
 
 /** Moves a layer one place up (+1) or down (-1). Nothing past the top or the bottom. */
@@ -353,7 +475,7 @@ export function moveLayer(
   const layers = [...sketch.layers];
   layers[at] = other;
   layers[to] = layer;
-  return record(history, { ...sketch, layers });
+  return record(history, "orderLayer", { ...sketch, layers });
 }
 
 /**
@@ -363,6 +485,21 @@ export function moveLayer(
 export function selectLayer(history: SketchHistory, id: number): SketchHistory {
   if (!history.present.layers.some((layer) => layer.id === id)) return history;
   return { ...history, present: { ...history.present, active: id } };
+}
+
+/**
+ * The history at one of its steps: `at` counts from the start, the sketch
+ * before the first step. The steps after it stay, for redo.
+ */
+export function jumpTo(history: SketchHistory, at: number): SketchHistory {
+  const all = [...history.past, history.present, ...history.future];
+  const present = all[at];
+  if (!present || present === history.present) return history;
+  return {
+    past: all.slice(0, at),
+    present,
+    future: all.slice(at + 1),
+  };
 }
 
 export function undo(history: SketchHistory): SketchHistory {

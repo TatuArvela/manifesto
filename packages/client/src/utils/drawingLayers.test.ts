@@ -11,11 +11,14 @@ import {
   flattenActive,
   hasStrokes,
   hasVisibleStrokes,
+  jumpTo,
   MAX_LAYERS,
   moveLayer,
   newSketchHistory,
   redo,
   removeLayer,
+  resizeCanvas,
+  resizeImage,
   selectLayer,
   setLayerOpacity,
   toggleLayer,
@@ -284,5 +287,74 @@ describe("drawing layers", () => {
     expect(undo(undo(history)).present.frame).toBeUndefined();
     const outside = { x: 500, y: 500, width: 5, height: 5 };
     expect(cropImage(history, outside, paper)).toBe(history);
+  });
+});
+
+describe("the size of the picture", () => {
+  const paper = { width: 100, height: 50 };
+
+  it("grows the canvas around the anchor, and keeps the drawing", () => {
+    const drawn = addMark(newSketchHistory(), line(10));
+    const next = resizeCanvas(drawn, paper, 200, 50, [0.5, 0.5]);
+    expect(next.present.frame).toEqual({
+      x: -50,
+      y: 0,
+      width: 200,
+      height: 50,
+    });
+    expect(firstPoint(activeLayer(next.present)?.marks[0])).toEqual([10, 0]);
+    // From the top left corner, the picture grows to the right and down.
+    const corner = resizeCanvas(drawn, paper, 120, 60, [0, 0]);
+    expect(corner.present.frame).toEqual({
+      x: 0,
+      y: 0,
+      width: 120,
+      height: 60,
+    });
+    expect(undo(next).present.frame).toBeUndefined();
+  });
+
+  it("stretches the drawing and the paper to a new image size", () => {
+    const drawn = addMark(newSketchHistory(), line(10));
+    const next = resizeImage(drawn, paper, 200, 25);
+    expect(next.present.paper).toEqual({ width: 200, height: 25 });
+    expect(next.present.frame).toEqual({ x: 0, y: 0, width: 200, height: 25 });
+    const mark = activeLayer(next.present)?.marks[0];
+    expect(firstPoint(mark)).toEqual([20, 0]);
+    expect(mark && "width" in mark ? mark.width : 0).toBeCloseTo(4);
+  });
+
+  it("changes nothing at the same size", () => {
+    const drawn = addMark(newSketchHistory(), line(10));
+    expect(resizeCanvas(drawn, paper, 100, 50, [0, 0])).toBe(drawn);
+    expect(resizeImage(drawn, paper, 100, 50)).toBe(drawn);
+  });
+});
+
+describe("the list of steps", () => {
+  it("names each step by what made it", () => {
+    let history = addMark(newSketchHistory(), line(10));
+    history = addMark(history, { ...line(20), erase: true });
+    history = addLayer(history);
+    expect(history.past.map((sketch) => sketch.step)).toEqual([
+      undefined,
+      "pen",
+      "eraser",
+    ]);
+    expect(history.present.step).toBe("addLayer");
+  });
+
+  it("jumps to a step, and keeps the steps after it for redo", () => {
+    let history = addMark(newSketchHistory(), line(10));
+    history = addMark(history, line(20));
+    history = addMark(history, line(30));
+    const back = jumpTo(history, 1);
+    expect(back.past).toHaveLength(1);
+    expect(back.future).toHaveLength(2);
+    expect(activeLayer(back.present)?.marks).toHaveLength(1);
+    expect(jumpTo(back, 3).present).toBe(history.present);
+    expect(jumpTo(back, 1)).toBe(back);
+    // A new change after a jump replaces the steps after it.
+    expect(addMark(back, line(40)).future).toHaveLength(0);
   });
 });

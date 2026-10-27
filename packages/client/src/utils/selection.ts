@@ -25,6 +25,7 @@ export interface Selection {
 /** What a drag of a selection tool draws. */
 export type SelectShape =
   | { kind: "rect"; rect: Rect }
+  | { kind: "ellipse"; rect: Rect }
   | { kind: "lasso"; points: readonly Point[] };
 
 /**
@@ -36,7 +37,7 @@ export type SelectMode = "replace" | "add" | "subtract" | "intersect";
 /** The box around a shape, in whole pixels. Null for a shape with no area. */
 export function shapeBounds(shape: SelectShape): Rect | null {
   const points =
-    shape.kind === "rect"
+    shape.kind !== "lasso"
       ? [
           [shape.rect.x, shape.rect.y] as Point,
           [shape.rect.x + shape.rect.width, shape.rect.y + shape.rect.height],
@@ -69,6 +70,19 @@ export function shapePath(
   if (shape.kind === "rect") {
     const { x, y, width, height } = shape.rect;
     ctx.rect(x, y, width, height);
+    return;
+  }
+  if (shape.kind === "ellipse") {
+    const { x, y, width, height } = shape.rect;
+    ctx.ellipse(
+      x + width / 2,
+      y + height / 2,
+      width / 2,
+      height / 2,
+      0,
+      0,
+      Math.PI * 2,
+    );
     return;
   }
   const [first, ...rest] = shape.points;
@@ -159,6 +173,49 @@ export function combineSelection(
   ctx.beginPath();
   shapePath(ctx, shape);
   ctx.fill();
+  return trimmed({ mask, bounds: box });
+}
+
+/** The paper in whole pixels: the box of an area that covers all of `limit`. */
+const wholePixels = (limit: Rect): Rect => {
+  const x = Math.floor(limit.x);
+  const y = Math.floor(limit.y);
+  return {
+    x,
+    y,
+    width: Math.ceil(limit.x + limit.width) - x,
+    height: Math.ceil(limit.y + limit.height) - y,
+  };
+};
+
+/** An area that is all of `limit`. */
+export function selectAll(limit: Rect): Selection | null {
+  return invertSelection(null, limit);
+}
+
+/**
+ * The part of `limit` that is outside the area. With no area, all of `limit`.
+ * Null when nothing stays selected.
+ */
+export function invertSelection(
+  current: Selection | null,
+  limit: Rect,
+): Selection | null {
+  const box = wholePixels(limit);
+  if (!(box.width > 0 && box.height > 0)) return null;
+  const mask = blankCanvas(box);
+  const ctx = mask.getContext("2d");
+  if (!ctx) return current;
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, box.width, box.height);
+  if (current) {
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.drawImage(
+      current.mask,
+      current.bounds.x - box.x,
+      current.bounds.y - box.y,
+    );
+  }
   return trimmed({ mask, bounds: box });
 }
 
