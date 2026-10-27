@@ -1,42 +1,13 @@
-import type { RefObject } from "preact";
-import { useLayoutEffect, useRef, useState } from "preact/hooks";
+import { useLayoutEffect, useRef } from "preact/hooks";
 import { CORNERS, type Point, type Rect } from "#/utils/drawing.ts";
 import type { Selection, SelectShape } from "#/utils/selection.ts";
 
-/** Where the canvas is in the area around it, in CSS pixels. */
+/** Where the paper is in the stage, in CSS pixels from its corner. */
 export interface CanvasBox {
   left: number;
   top: number;
   width: number;
   height: number;
-}
-
-/**
- * The box of the canvas, measured again when it or the area around it changes
- * size: the paper takes what room there is, and a rotated phone gives it a
- * different room. A wider area moves a paper of the same size to its centre.
- */
-export function useCanvasBox(
-  canvasRef: RefObject<HTMLCanvasElement | null>,
-): CanvasBox | null {
-  const [box, setBox] = useState<CanvasBox | null>(null);
-  useLayoutEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const measure = () =>
-      setBox({
-        left: canvas.offsetLeft,
-        top: canvas.offsetTop,
-        width: canvas.offsetWidth,
-        height: canvas.offsetHeight,
-      });
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(canvas);
-    if (canvas.parentElement) observer.observe(canvas.parentElement);
-    return () => observer.disconnect();
-  }, [canvasRef]);
-  return box;
 }
 
 /** The size of a corner handle of a box on the screen, in CSS pixels. */

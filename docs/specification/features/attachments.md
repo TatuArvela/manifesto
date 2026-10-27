@@ -37,8 +37,7 @@ shares and exports it as a picture, and it uses one of the image slots of the no
     the drawing, stay. It has the tip of the pen, and is four times the size of the pen.
   - **Fill** fills the area around the press that has the color there, as the drawing shows it,
     with the foreground ink, on the current layer. It stops at a line, and covers the soft edge of
-    the line. Hidden layers do not count. A fill is a picture of its area. Thus, a large resize of
-    it is less sharp than a line.
+    the line. Hidden layers do not count.
   - **Eyedropper** takes the foreground ink from where you press on the drawing, as it shows with
     all layers and the image. Then the tool from before comes back.
   - **Shapes** opens a menu of four tools, which a press outside it closes: **Line**, **Rectangle**, **Ellipse** and **Polygon**. A drag
@@ -47,7 +46,7 @@ shares and exports it as a picture, and it uses one of the image slots of the no
     A press on the first corner, or a double click, closes it. Escape or Undo discards it, and so
     does a change from the other controls of the top bar or the layer list. A shape with no size
     draws nothing.
-  - **Select**, **Lasso** and **Move** are described below. **Hand** drags the view of a zoomed drawing.
+  - **Select**, **Lasso** and **Move** are described below. **Hand** drags the view.
 - On a wide screen, the tools and the two inks are a rail at the left of the paper, the options of
   the current tool a bar over the paper, and the colors and the layers panels at the right. On a
   phone, the inks and the colors are one row under the paper, and the tools a row under that. The
@@ -60,10 +59,15 @@ shares and exports it as a picture, and it uses one of the image slots of the no
 - A shape in the size and tip of the pen, the line or the eraser follows the pointer, and a finger
   while it touches. Thus, you see where a stroke will apply before you draw it.
 - **Zoom**: the buttons in the top bar zoom out and in, from a quarter to 16 times the size that
-  fits the screen. Ctrl or Cmd with the mouse wheel zooms at the pointer. The number between the
-  buttons is the size of the paper on the screen, and a press on it fits the paper to the screen
-  again. A zoom keeps the point at the middle, or under the pointer, in place. A zoom changes the
-  view only, not the picture.
+  fits the screen. Ctrl or Cmd with the mouse wheel zooms at the pointer, and the wheel alone moves
+  the view. The number between the buttons is the size of the paper on the screen, and a press on
+  it fits the paper to the screen again. A zoom keeps the point at the middle, or under the pointer,
+  in place. A zoom changes the view only, not the picture. From twice the size, each pixel of the
+  picture shows as a square.
+- The screen and the picture are separate. The screen shows the paper at the zoom and the place of
+  the view, with a margin around it, also at the zoom that fits. The tools work in the margin: a
+  line can start there, and a handle at the edge of the paper is in reach. The middle of the view
+  stays over the paper.
 - Undo, redo, and clear are in the top bar. Ctrl or Cmd with Z undoes, and with Y, or with Shift
   and Z, redoes. In a text field, the keys undo the typing.
 - The drawing has layers. The **Layers** panel lists them, the top layer first. At the top, a slider
@@ -74,9 +78,8 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   you draw on a hidden layer shows that layer again.
 - **Move** shows a dashed box around the ink of the current layer. A drag moves the ink. A drag of
   one of the handles at its four corners makes it larger or smaller, from the opposite corner, with
-  the same scale on both axes (from 0.05 to 20 times). The strokes move as lines, not as a picture.
-  A hidden layer shows no box and does not move.
-  Thus, they stay sharp at any size, and a pen width grows with them. A drag is one step.
+  the same scale on both axes (from 0.05 to 20 times). A hidden layer shows no box and does not
+  move. A drag is one step.
 - **Selection** opens a menu of two tools. **Select** marks a rectangle with a drag, and **Lasso** a
   freehand area along the path of the drag. The options choose what a new shape does: a new area,
   added to the area, subtracted from it, or only the part that both share. For one drag, Shift
@@ -84,14 +87,20 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   shape, and holes. Its edge shows as black and white dashes.
 - A drag that starts inside the area moves it. The options choose what it moves: the area alone, or
   the ink of the current layer in it. A move of the ink is one step for undo.
-- With an area, two buttons show. **Crop layer** cuts the ink
-  of the current layer to the area: the rest no longer shows, but lines that you draw after it are
-  not cut. **Crop image** makes the picture the area, and Done saves only that part. A second crop
+- With an area, two buttons show. **Crop layer** removes the ink of the current layer outside the
+  area. **Crop image** makes the picture the area, and Done saves only that part. A second crop
   stays inside the first. Escape, a tap with Select, or the close button removes the area. Each
   crop is one step for undo.
 - The area stays when you change the tool, and limits where the pen, the eraser, the shapes and the
   fill apply. A line that crosses its edge stops there. The line keeps that limit after the area is
   removed.
+- The pad is a bitmap tool. Ink, once drawn, is pixels. A move, a resize, a move of the ink in an
+  area, and Crop layer first make the ink of the layer one picture. Thus, a resize makes the ink
+  less sharp. An undo of the change brings back the ink from before it.
+- A layer goes past the edge of the paper. Ink that you move off the paper stays, and comes back
+  when you move it back. The picture keeps only the paper. The layer keeps a margin of half the
+  paper on each side, less on a large image (a canvas has a limit of pixels). Ink past the margin
+  is gone at the next move.
 - Clear empties the current layer.
 - Each stroke, shape, fill, clear, and change to a layer is one step that undo takes back and redo does again.
   The choice of the layer to draw on is not a step. A new change after an undo removes the steps to
@@ -99,11 +108,12 @@ shares and exports it as a picture, and it uses one of the image slots of the no
 - The layers and the steps are only for the open pad. Done flattens the layers that show into one
   picture. Hidden layers are not in it.
 - The paper is 1600 by 1200 and opaque. Thus, a drawing looks the same on a note of any color and in
-  both themes. At the zoom that fits, it shows as large as possible, and keeps its shape.
+  both themes. At the zoom that fits, it shows as large as possible inside the margin, and keeps its
+  shape.
 - Only one pointer draws at a time, the first one down. The pad ignores a second finger or a palm
   that rests on the screen.
-  - No gesture of the page takes a stroke away (only the paper has `touch-action: none`).
-  - The stroke follows the pointer past the edge of the paper.
+  - No gesture of the page takes a stroke away (only the screen has `touch-action: none`).
+  - The stroke follows the pointer past the edge of the paper, onto the layer there.
   - When the system cancels a touch, the pad keeps what you drew.
 - If the pad has a drawing, it asks before it closes, from the close button, Escape or Back. If you
   do not discard, Back stays with the pad. Done with no ink that shows adds nothing. An eraser

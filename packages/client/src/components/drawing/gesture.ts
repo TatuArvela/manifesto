@@ -24,7 +24,8 @@ export type Gesture =
       kind: "pan";
       pointerId: number;
       client: Point;
-      scroll: Point;
+      /** The point of the picture at the middle of the stage, at the press. */
+      center: Point;
     };
 
 /** No change of size or place. */

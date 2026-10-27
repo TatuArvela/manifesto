@@ -5,6 +5,7 @@
 
 import {
   intersect,
+  isFill,
   type Mark,
   markBounds,
   type Rect,
@@ -230,6 +231,31 @@ export function transformLayer(
       marks: layer.marks.map((mark) => transformMark(mark, by)),
     })),
   );
+}
+
+/**
+ * The active layer with its ink as one picture (`toPicture`), before a move,
+ * a resize or a crop changes its pixels. Not a step: the drawing looks the
+ * same, and the change after it is the step. A layer that is already one
+ * picture stays.
+ */
+export function flattenActive(
+  history: SketchHistory,
+  toPicture: (marks: readonly Mark[]) => Mark | null,
+): SketchHistory {
+  const sketch = history.present;
+  const layer = activeLayer(sketch);
+  if (!layer?.marks.length) return history;
+  const [only] = layer.marks;
+  if (layer.marks.length === 1 && only && isFill(only)) return history;
+  const picture = toPicture(layer.marks);
+  return {
+    ...history,
+    present: changeLayer(sketch, sketch.active, (each) => ({
+      ...each,
+      marks: picture ? [picture] : [],
+    })),
+  };
 }
 
 /**

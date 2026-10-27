@@ -25,6 +25,8 @@ export interface LiveSource {
   moving: () => Transform | null;
   /** Marks that the frame shows on the active layer, not yet in the sketch. */
   preview: () => Mark[];
+  /** Shows the picture on the screen, after a frame changed it. */
+  present: () => void;
   /**
    * While a drag moves the ink of a selected area: the area, and how far the
    * ink moved.
@@ -90,8 +92,8 @@ export function useLiveFrames(source: LiveSource) {
         bounds.y - y + offset[1],
       );
     } else if (by) {
-      // The layer as a picture while it moves. The marks themselves move at
-      // the release, and lines stay sharp at any size. The cached layer starts
+      // The layer as a picture while it moves: the same picture that the
+      // release moves, because the drag made the layer one. The cached layer starts
       // at the corner of the view, not of the paper.
       const { scale, dx, dy } = by;
       scratchCtx.setTransform(
@@ -114,6 +116,7 @@ export function useLiveFrames(source: LiveSource) {
     ctx.drawImage(scratch, 0, 0);
     ctx.globalAlpha = 1;
     ctx.drawImage(over, 0, 0);
+    source.present();
   };
 
   const schedule = () => {

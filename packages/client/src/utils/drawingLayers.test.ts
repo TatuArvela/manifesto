@@ -8,6 +8,7 @@ import {
   cropImage,
   cropLayer,
   endJoin,
+  flattenActive,
   hasStrokes,
   hasVisibleStrokes,
   MAX_LAYERS,
@@ -204,6 +205,22 @@ describe("drawing layers", () => {
     expect(still).toBe(history);
     const empty = addLayer(history);
     expect(transformLayer(empty, { scale: 2, dx: 0, dy: 0 })).toBe(empty);
+  });
+
+  it("makes the ink of the active layer one picture, with no step to undo", () => {
+    const picture: Mark = {
+      image: {} as CanvasImageSource,
+      at: { x: 0, y: 0, width: 4, height: 10 },
+    };
+    let history = addMark(newSketchHistory(), line(0));
+    history = addMark(history, line(2));
+    const flat = flattenActive(history, () => picture);
+    expect(activeLayer(flat.present)?.marks).toEqual([picture]);
+    expect(flat.past).toBe(history.past);
+    // A layer that is one picture already stays as it is.
+    expect(flattenActive(flat, () => null)).toBe(flat);
+    // The undo goes to the step before the last line, with lines.
+    expect(activeLayer(undo(flat).present)?.marks).toHaveLength(1);
   });
 
   it("cuts the marks of a layer to an area, and leaves later lines whole", () => {

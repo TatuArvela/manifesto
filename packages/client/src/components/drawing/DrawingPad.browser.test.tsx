@@ -15,7 +15,14 @@ const session = () => cdp() as unknown as Cdp;
 let host: HTMLDivElement;
 let saved: File[];
 
-const canvas = () => host.querySelector("canvas") as HTMLCanvasElement;
+/** The screen: the canvas that takes the pointer and shows the paper. */
+const screen = () =>
+  host.querySelector("canvas[aria-label]") as HTMLCanvasElement;
+/** The picture, at the size of the image: what Done saves. */
+const canvas = () => host.querySelector("canvas[hidden]") as HTMLCanvasElement;
+/** Where the paper is on the screen. */
+const paperRect = () =>
+  (host.querySelector("[data-paper]") as HTMLElement).getBoundingClientRect();
 const button = (label: string) =>
   host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
 
@@ -34,7 +41,7 @@ const PAPER = "255,255,255";
 
 /** Where a fraction of the paper is on the screen. */
 function screenPoint(fx: number, fy: number) {
-  const rect = canvas().getBoundingClientRect();
+  const rect = paperRect();
   return {
     clientX: rect.left + fx * rect.width,
     clientY: rect.top + fy * rect.height,
@@ -56,10 +63,10 @@ function drawLine(
     ...init,
   };
   const at = (p: [number, number]) => ({ ...base, ...screenPoint(...p) });
-  canvas().dispatchEvent(new PointerEvent("pointerdown", at(from)));
+  screen().dispatchEvent(new PointerEvent("pointerdown", at(from)));
   const steps = 8;
   for (let i = 1; i <= steps; i++) {
-    canvas().dispatchEvent(
+    screen().dispatchEvent(
       new PointerEvent(
         "pointermove",
         at([
@@ -69,7 +76,7 @@ function drawLine(
       ),
     );
   }
-  canvas().dispatchEvent(new PointerEvent("pointerup", at(to)));
+  screen().dispatchEvent(new PointerEvent("pointerup", at(to)));
 }
 
 const settled = () => new Promise((r) => requestAnimationFrame(r));
@@ -105,9 +112,9 @@ afterEach(() => {
 describe("DrawingPad", () => {
   it("starts as blank paper that no page gesture can take a stroke from", () => {
     expect(inkAt(0.5, 0.5)).toBe(PAPER);
-    expect(getComputedStyle(canvas()).touchAction).toBe("none");
+    expect(getComputedStyle(screen()).touchAction).toBe("none");
     // Shown in the own shape of the drawing, whatever the space.
-    const rect = canvas().getBoundingClientRect();
+    const rect = paperRect();
     expect(rect.width / rect.height).toBeCloseTo(
       DRAWING_WIDTH / DRAWING_HEIGHT,
       1,
@@ -135,7 +142,7 @@ describe("DrawingPad", () => {
 
   it("draws one line at a time: a second finger is not a second pen", async () => {
     const first = { pointerId: 1, pointerType: "touch", bubbles: true };
-    canvas().dispatchEvent(
+    screen().dispatchEvent(
       new PointerEvent("pointerdown", {
         ...first,
         isPrimary: true,
@@ -143,7 +150,7 @@ describe("DrawingPad", () => {
       }),
     );
     // A palm touches the screen while the first finger is down.
-    canvas().dispatchEvent(
+    screen().dispatchEvent(
       new PointerEvent("pointerdown", {
         pointerId: 2,
         pointerType: "touch",
@@ -152,7 +159,7 @@ describe("DrawingPad", () => {
         ...screenPoint(0.8, 0.8),
       }),
     );
-    canvas().dispatchEvent(
+    screen().dispatchEvent(
       new PointerEvent("pointermove", {
         pointerId: 2,
         pointerType: "touch",
@@ -160,7 +167,7 @@ describe("DrawingPad", () => {
         ...screenPoint(0.9, 0.9),
       }),
     );
-    canvas().dispatchEvent(
+    screen().dispatchEvent(
       new PointerEvent("pointerup", {
         ...first,
         isPrimary: true,
@@ -181,9 +188,9 @@ describe("DrawingPad", () => {
       bubbles: true,
     };
     const at = (p: [number, number]) => ({ ...touch, ...screenPoint(...p) });
-    canvas().dispatchEvent(new PointerEvent("pointerdown", at([0.2, 0.7])));
-    canvas().dispatchEvent(new PointerEvent("pointermove", at([0.6, 0.7])));
-    canvas().dispatchEvent(new PointerEvent("pointercancel", at([0.6, 0.7])));
+    screen().dispatchEvent(new PointerEvent("pointerdown", at([0.2, 0.7])));
+    screen().dispatchEvent(new PointerEvent("pointermove", at([0.6, 0.7])));
+    screen().dispatchEvent(new PointerEvent("pointercancel", at([0.6, 0.7])));
     await settled();
     expect(inkAt(0.4, 0.7)).not.toBe(PAPER);
     // Also, the pad accepts the next stroke. Nothing stays half drawn.
@@ -359,7 +366,7 @@ describe("DrawingPad", () => {
     // A drag of the corner handle makes it twice as long.
     const box = host.querySelector<HTMLElement>(".border-dashed");
     expect(box).not.toBeNull();
-    const rect = canvas().getBoundingClientRect();
+    const rect = paperRect();
     const right = (box?.getBoundingClientRect().right ?? 0) - rect.left;
     const bottom = (box?.getBoundingClientRect().bottom ?? 0) - rect.top;
     const corner: [number, number] = [right / rect.width, bottom / rect.height];
@@ -379,7 +386,7 @@ describe("DrawingPad", () => {
     button(t("drawing.move"))?.click();
     await settled();
     const box = host.querySelector<HTMLElement>(".border-dashed");
-    const rect = canvas().getBoundingClientRect();
+    const rect = paperRect();
     const left = (box?.getBoundingClientRect().left ?? 0) - rect.left;
     const top = (box?.getBoundingClientRect().top ?? 0) - rect.top;
     const corner: [number, number] = [left / rect.width, top / rect.height];
@@ -551,7 +558,7 @@ describe("DrawingPad", () => {
 
   it("undoes with Ctrl+Z, and redoes with Ctrl+Y and Ctrl+Shift+Z", async () => {
     const press = (key: string, shiftKey = false) =>
-      canvas().dispatchEvent(
+      screen().dispatchEvent(
         new KeyboardEvent("keydown", {
           key,
           shiftKey,
@@ -633,18 +640,18 @@ describe("DrawingPad", () => {
     // A triangle: the base at the bottom, the point at the top.
     const at = (p: [number, number]) => ({ ...screenPoint(...p) });
     const base = { pointerId: 1, isPrimary: true, bubbles: true, button: 0 };
-    canvas().dispatchEvent(
+    screen().dispatchEvent(
       new PointerEvent("pointerdown", { ...base, ...at([0.2, 0.8]) }),
     );
     for (const p of [
       [0.5, 0.2],
       [0.8, 0.8],
     ] as [number, number][]) {
-      canvas().dispatchEvent(
+      screen().dispatchEvent(
         new PointerEvent("pointermove", { ...base, ...at(p) }),
       );
     }
-    canvas().dispatchEvent(
+    screen().dispatchEvent(
       new PointerEvent("pointerup", { ...base, ...at([0.8, 0.8]) }),
     );
     await settled();
@@ -689,7 +696,7 @@ describe("DrawingPad", () => {
     button(t("drawing.shapes"))?.click();
     await settled();
     expect(button(t("drawing.ellipse"))).not.toBeNull();
-    canvas().dispatchEvent(
+    screen().dispatchEvent(
       new PointerEvent("pointerdown", { bubbles: true, pointerId: 2 }),
     );
     await settled();
@@ -697,20 +704,36 @@ describe("DrawingPad", () => {
   });
 
   it("zooms in and back to the size of the screen", async () => {
-    const before = canvas().getBoundingClientRect().width;
+    const before = paperRect().width;
     button(t("drawing.zoomIn"))?.click();
     await settled();
     await settled();
-    expect(canvas().getBoundingClientRect().width).toBeCloseTo(
-      before * 1.25,
-      0,
-    );
+    expect(paperRect().width).toBeCloseTo(before * 1.25, 0);
     // The paper keeps its own size: only the view changes.
     expect(canvas().width).toBe(DRAWING_WIDTH);
     button(t("drawing.zoomFit"))?.click();
     await settled();
     await settled();
-    expect(canvas().getBoundingClientRect().width).toBeCloseTo(before, 0);
+    expect(paperRect().width).toBeCloseTo(before, 0);
+  });
+
+  it("draws from the margin around the paper", async () => {
+    drawLine([-0.02, 0.5], [0.2, 0.5]);
+    await settled();
+    expect(inkAt(0.1, 0.5)).toBe("23,23,23");
+  });
+
+  it("keeps ink that a move takes past the edge of the paper", async () => {
+    drawLine([0.3, 0.5], [0.7, 0.5]);
+    await settled();
+    button(t("drawing.move"))?.click();
+    await settled();
+    drawLine([0.5, 0.5], [1.2, 0.5]);
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe(PAPER);
+    drawLine([0.5, 0.5], [-0.2, 0.5]);
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe("23,23,23");
   });
 
   it("hands the drawing over as a PNG with the ink in it", async () => {
@@ -799,15 +822,15 @@ describe("DrawingPad", () => {
           80,
         ).data,
       ].join();
-    canvas().dispatchEvent(new PointerEvent("pointerdown", at([0.2, 0.5])));
+    screen().dispatchEvent(new PointerEvent("pointerdown", at([0.2, 0.5])));
     for (let i = 1; i <= 12; i++) {
-      canvas().dispatchEvent(
+      screen().dispatchEvent(
         new PointerEvent("pointermove", at([0.2 + i * 0.05, 0.5])),
       );
       await settled();
     }
     const drawn = strip();
-    canvas().dispatchEvent(new PointerEvent("pointerup", at([0.8, 0.5])));
+    screen().dispatchEvent(new PointerEvent("pointerup", at([0.8, 0.5])));
     await settled();
     expect(inkAt(0.5, 0.5)).toBe("23,23,23");
     expect(strip()).toBe(drawn);
@@ -816,8 +839,8 @@ describe("DrawingPad", () => {
   it("saves a line the pen has not yet left", async () => {
     const pen = { pointerId: 1, isPrimary: true, bubbles: true, button: 0 };
     const at = (p: [number, number]) => ({ ...pen, ...screenPoint(...p) });
-    canvas().dispatchEvent(new PointerEvent("pointerdown", at([0.2, 0.5])));
-    canvas().dispatchEvent(new PointerEvent("pointermove", at([0.8, 0.5])));
+    screen().dispatchEvent(new PointerEvent("pointerdown", at([0.2, 0.5])));
+    screen().dispatchEvent(new PointerEvent("pointermove", at([0.8, 0.5])));
     button(t("editor.done"))?.click();
     await vi.waitFor(() => expect(saved).toHaveLength(1));
     const bitmap = await createImageBitmap(saved[0] as File);
@@ -880,7 +903,7 @@ describe("DrawingPad", () => {
       expect([canvas().width, canvas().height]).toEqual([800, 1600]),
     );
     await vi.waitFor(() => expect(pixel(canvas(), 0.5, 0.5)).toBe(BLUE));
-    const rect = canvas().getBoundingClientRect();
+    const rect = paperRect();
     expect(rect.width / rect.height).toBeCloseTo(0.5, 1);
 
     // Nothing drawn: the image of the note does not change.

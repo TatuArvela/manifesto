@@ -9,13 +9,14 @@ import { closeDrawing, drawingRequest } from "#/state/drawing.ts";
 import {
   CORNERS,
   cornerPoint,
-  drawingPoint,
   encodeDrawing,
+  inkArea,
   type Mark,
   PAPER,
   type Point,
   penScale,
   type Rect,
+  rasterize,
   renderDrawing,
   resizeAround,
   type Shape,
@@ -30,6 +31,7 @@ import {
   clearLayer,
   cropImage,
   cropLayer,
+  flattenActive,
   hasInk,
   hasStrokes,
   hasVisibleStrokes,
@@ -46,11 +48,11 @@ import { inArea } from "#/utils/selection.ts";
 import { closesPolygon, snapLine, snapSquare } from "#/utils/shapes.ts";
 import { DrawingHints } from "./DrawingHints.tsx";
 import {
+  type CanvasBox,
   DrawingOverlay,
   HANDLE,
   SelectionDraft,
   SelectionOutline,
-  useCanvasBox,
 } from "./DrawingOverlay.tsx";
 import { type PenSettings, WIDTHS } from "./DrawingPen.tsx";
 import { DrawingToolbar, INKS, type Tool } from "./DrawingToolbar.tsx";
@@ -60,7 +62,7 @@ import { placePenCursor } from "./penCursor.ts";
 import { useBaseImage } from "./useBaseImage.ts";
 import { useLiveFrames } from "./useLiveFrames.ts";
 import { useSelectionTool } from "./useSelectionTool.ts";
-import { useStageZoom } from "./useStageZoom.ts";
+import { useViewport } from "./useViewport.ts";
 
 /** The eraser is wider than the pen, wide enough to rub with. */
 const ERASER_SCALE = 4;
@@ -92,13 +94,21 @@ const padGrid =
  * pointer through a capture. Thus, it continues past the edge of the paper, and
  * ends cleanly when the system cancels the touch.
  *
+ * Two canvases: the picture, at the size of the image, which the layers paint
+ * and Done saves, and the screen, which shows it at the zoom and the place of
+ * the view, with a margin around the paper. A layer goes past the edge of the
+ * paper, and the tools work in the margin too.
+ *
  * The drawing has layers, and each change is a step that undo takes back and
  * redo does again. All of it is for this session: Done flattens what shows into
  * one picture.
  */
 export function DrawingPad() {
   const request = drawingRequest.value;
+  // The picture, at the size of the image: not shown, but read by the tests.
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // What the stage shows of it.
+  const screenRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<SketchHistory>(newSketchHistory());
@@ -111,7 +121,6 @@ export function DrawingPad() {
   const [drawingPolygon, setDrawingPolygon] = useState(false);
   // The drag of the move tool as the box over the ink shows it.
   const [dragBy, setDragBy] = useState<Transform | null>(null);
-  const box = useCanvasBox(canvasRef);
   const [ink, setInk] = useState<string>(INKS[0].color);
   const [backInk, setBackInk] = useState<string>(INKS[1].color);
   const [pen, setPen] = useState<PenSettings>({
@@ -134,8 +143,42 @@ export function DrawingPad() {
   const currentView = () =>
     historyRef.current.present.frame ?? wholePaper(paper);
   const view = history.present.frame ?? wholePaper(paper);
-  const { zoom, fit, zoomTo, onWheel, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP } =
-    useStageZoom(stageRef, canvasRef, view);
+  const viewport = useViewport(stageRef, view);
+  const { zoom, scale, box, stage, zoomTo, onWheel } = viewport;
+  const boxRef = useRef<CanvasBox | null>(box);
+  boxRef.current = box;
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
+
+  /**
+   * The picture on the screen, at the place and the zoom of the view. Its
+   * pixels show as squares from twice their size: you see what you edit.
+   */
+  const present = () => {
+    const screen = screenRef.current;
+    const picture = canvasRef.current;
+    const at = boxRef.current;
+    const ctx = screen?.getContext("2d");
+    if (!screen || !picture || !at || !ctx || !stage) return;
+    const ratio = screen.width / stage.width;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, screen.width, screen.height);
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.imageSmoothingEnabled = scaleRef.current < 2;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(picture, at.left, at.top, at.width, at.height);
+  };
+
+  // A new place or zoom of the view, or a new size of the stage.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on each new view of the picture
+  useLayoutEffect(present, [
+    box?.left,
+    box?.top,
+    box?.width,
+    box?.height,
+    stage?.width,
+    stage?.height,
+  ]);
 
   const redraw = () => {
     const ctx = context();
@@ -149,6 +192,19 @@ export function DrawingPad() {
         currentView(),
       );
     }
+    present();
+  };
+
+  /**
+   * The ink of the active layer as one picture, before a change of its
+   * pixels. The picture on the screen stays the same, and so does the undo.
+   */
+  const flatten = () => {
+    const next = flattenActive(historyRef.current, (marks) =>
+      rasterize(marks, inkArea(paper)),
+    );
+    historyRef.current = next;
+    setHistory(next);
   };
 
   /** The drawing after a change, on the canvas and in the controls. */
@@ -204,6 +260,7 @@ export function DrawingPad() {
     moving: () =>
       gesture.current?.kind === "drag" ? gesture.current.by : null,
     preview: () => previewMarks(),
+    present,
     floating: () => {
       const offset = selectTool.pixelOffset();
       if (!offset || !selection) return null;
@@ -217,6 +274,7 @@ export function DrawingPad() {
       apply(moveSelected(historyRef.current, area.bounds, area.mask, dx, dy)),
     onPixelFrames: (phase) => {
       if (phase === "start") {
+        flatten();
         cacheAround();
         paintActive();
       } else if (phase === "frame") {
@@ -401,6 +459,7 @@ export function DrawingPad() {
 
   const cropTo = (crop: "image" | "layer") => {
     if (!selection) return;
+    if (crop === "layer") flatten();
     apply(
       crop === "image"
         ? cropImage(historyRef.current, selection.bounds, wholePaper(paper))
@@ -415,10 +474,19 @@ export function DrawingPad() {
     setTool(next);
   };
 
-  /** Where a pointer is on the paper, also past its edge: a drag goes there. */
+  /** Where the paper is on the screen, in client pixels. */
+  const shownPaper = (): CanvasBox | null => {
+    const at = boxRef.current;
+    const element = stageRef.current;
+    if (!at || !element) return null;
+    const around = element.getBoundingClientRect();
+    return { ...at, left: around.left + at.left, top: around.top + at.top };
+  };
+
+  /** Where a pointer is on the paper, also past its edge: a layer goes there. */
   const paperPoint = (
     event: { clientX: number; clientY: number },
-    shown: DOMRect,
+    shown: CanvasBox,
   ): Point => {
     const { x, y, width, height } = currentView();
     return [
@@ -427,18 +495,14 @@ export function DrawingPad() {
     ];
   };
 
-  /** Where a pointer is on the paper, held at the edge of what shows. */
-  const viewPoint = (
-    event: { clientX: number; clientY: number },
-    shown: DOMRect,
-  ): Point => {
+  /** True when a point is on the picture, not in the margin around it. */
+  const onPicture = ([px, py]: Point) => {
     const { x, y, width, height } = currentView();
-    const [px, py] = drawingPoint(event, shown, { width, height });
-    return [x + px, y + py];
+    return px >= x && py >= y && px < x + width && py < y + height;
   };
 
   /** A distance on the screen, in CSS pixels, as pixels of the paper. */
-  const onPaper = (pixels: number, shown: DOMRect) =>
+  const onPaper = (pixels: number, shown: CanvasBox) =>
     (pixels / shown.width) * currentView().width;
 
   /**
@@ -500,7 +564,7 @@ export function DrawingPad() {
    * empty layer.
    */
   /** The corner handle at a point of the paper, with room for a finger. */
-  const cornerAt = (bounds: Rect, at: Point, shown: DOMRect) => {
+  const cornerAt = (bounds: Rect, at: Point, shown: CanvasBox) => {
     const reach = onPaper(HANDLE * 1.5, shown);
     return (
       CORNERS.find((corner) => {
@@ -510,10 +574,12 @@ export function DrawingPad() {
     );
   };
 
-  const startDrag = (pointerId: number, start: Point, shown: DOMRect) => {
-    const layer = activeLayer(historyRef.current.present);
+  const startDrag = (pointerId: number, start: Point, shown: CanvasBox) => {
     // A hidden layer does not move: you cannot see what you would move.
-    const bounds = layer?.visible ? layerBounds(layer) : null;
+    if (!activeLayer(historyRef.current.present)?.visible) return;
+    flatten();
+    const layer = activeLayer(historyRef.current.present);
+    const bounds = layer ? layerBounds(layer) : null;
     if (!bounds) return;
     const corner = cornerAt(bounds, start, shown);
     cacheAround();
@@ -530,7 +596,7 @@ export function DrawingPad() {
   };
 
   const onPointerDown = (event: PointerEvent) => {
-    const canvas = canvasRef.current;
+    const canvas = screenRef.current;
     // One gesture at a time. A second finger, or a palm, is not a second pen.
     if (!canvas || !ready || gesture.current || !event.isPrimary) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
@@ -541,34 +607,32 @@ export function DrawingPad() {
       // A pointer that the browser does not know now: the gesture still
       // starts. It only stops to follow past the edge of the paper.
     }
-    const shown = canvas.getBoundingClientRect();
-    const at = viewPoint(event, shown);
+    const shown = shownPaper();
+    if (!shown) return;
+    const at = paperPoint(event, shown);
     const { pointerId } = event;
     switch (tool) {
       case "dropper":
-        pickColor(at);
+        if (onPicture(at)) pickColor(at);
         return;
       case "fill":
-        fillAt(at);
+        if (onPicture(at)) fillAt(at);
         return;
       case "move":
-        startDrag(pointerId, paperPoint(event, shown), shown);
+        startDrag(pointerId, at, shown);
         return;
       case "select":
       case "lasso":
-        selectTool.begin(tool, pointerId, paperPoint(event, shown), event);
+        selectTool.begin(tool, pointerId, at, event);
         return;
-      case "hand": {
-        const element = stageRef.current;
-        if (!element) return;
+      case "hand":
         gesture.current = {
           kind: "pan",
           pointerId,
           client: [event.clientX, event.clientY],
-          scroll: [element.scrollLeft, element.scrollTop],
+          center: viewport.center,
         };
         return;
-      }
       case "polygon": {
         const open = polygon.current;
         if (!open) {
@@ -611,17 +675,17 @@ export function DrawingPad() {
 
   const onPointerMove = (event: PointerEvent) => {
     if (event.isPrimary) showCursor(event);
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const canvas = screenRef.current;
+    const shown = shownPaper();
+    if (!canvas || !shown) return;
     const open = polygon.current;
     if (open && !gesture.current) {
-      open.hover = viewPoint(event, canvas.getBoundingClientRect());
+      open.hover = paperPoint(event, shown);
       schedule();
       return;
     }
     if (tool === "move" && !gesture.current && inkBox) {
       // The pointer shows when a press would change the size.
-      const shown = canvas.getBoundingClientRect();
       const corner = cornerAt(inkBox, paperPoint(event, shown), shown);
       canvas.style.cursor =
         corner === null
@@ -631,20 +695,18 @@ export function DrawingPad() {
             : "nesw-resize";
     }
     if (selectTool.dragging(event.pointerId)) {
-      selectTool.update(paperPoint(event, canvas.getBoundingClientRect()));
+      selectTool.update(paperPoint(event, shown));
       return;
     }
     const now = gesture.current;
     if (now?.pointerId !== event.pointerId) return;
-    const shown = canvas.getBoundingClientRect();
     switch (now.kind) {
-      case "pan": {
-        const element = stageRef.current;
-        if (!element) return;
-        element.scrollLeft = now.scroll[0] - (event.clientX - now.client[0]);
-        element.scrollTop = now.scroll[1] - (event.clientY - now.client[1]);
+      case "pan":
+        viewport.panTo([
+          now.center[0] - (event.clientX - now.client[0]) / scale,
+          now.center[1] - (event.clientY - now.client[1]) / scale,
+        ]);
         return;
-      }
       case "drag": {
         const to = paperPoint(event, shown);
         const { bounds, start } = now;
@@ -663,7 +725,7 @@ export function DrawingPad() {
         return;
       }
       case "shape": {
-        const to = viewPoint(event, shown);
+        const to = paperPoint(event, shown);
         // Shift keeps a line at a step of 15 degrees, and a box square.
         const end = !event.shiftKey
           ? to
@@ -679,7 +741,7 @@ export function DrawingPad() {
         // where the browser kept them. If not, a fast hand draws corners.
         const events = event.getCoalescedEvents?.() ?? [];
         for (const each of events.length > 0 ? events : [event]) {
-          now.mark.points.push(viewPoint(each, shown));
+          now.mark.points.push(paperPoint(each, shown));
         }
         schedule();
       }
@@ -695,17 +757,16 @@ export function DrawingPad() {
 
   const showCursor = (event: PointerEvent) => {
     const cursor = cursorRef.current;
-    const stage = stageRef.current;
-    const canvas = canvasRef.current;
-    if (!cursor || !stage || !canvas || !ready) return;
+    const element = stageRef.current;
+    if (!cursor || !element || !ready) return;
     if (tool !== "pen" && tool !== "eraser" && tool !== "line") {
       hideCursor();
       return;
     }
-    placePenCursor(cursor, stage, canvas, event, {
+    placePenCursor(cursor, element, event, {
       tip: pen.tip,
       width: strokeWidth(),
-      viewWidth: currentView().width,
+      scale: scaleRef.current,
     });
   };
 
@@ -724,6 +785,7 @@ export function DrawingPad() {
     [shownLayer],
   );
   const moveBox = inkBox && transformRect(inkBox, dragBy ?? UNCHANGED);
+  const pixelRatio = window.devicePixelRatio || 1;
   const canvasCursor =
     tool === "move"
       ? "move"
@@ -745,12 +807,12 @@ export function DrawingPad() {
       <DrawingTopBar
         onCancel={() => void cancel()}
         failed={failed}
-        zoomPercent={Math.round((fit ?? 1) * zoom * 100)}
-        onZoomOut={() => zoomTo(zoom / ZOOM_STEP)}
-        onZoomFit={() => zoomTo(1)}
-        onZoomIn={() => zoomTo(zoom * ZOOM_STEP)}
-        canZoomOut={zoom > MIN_ZOOM}
-        canZoomIn={zoom < MAX_ZOOM}
+        zoomPercent={Math.round(scale * 100)}
+        onZoomOut={() => zoomTo(zoom / viewport.ZOOM_STEP)}
+        onZoomFit={viewport.fitView}
+        onZoomIn={() => zoomTo(zoom * viewport.ZOOM_STEP)}
+        canZoomOut={zoom > viewport.MIN_ZOOM}
+        canZoomIn={zoom < viewport.MAX_ZOOM}
         onUndo={undoStep}
         onRedo={redoStep}
         canUndo={history.past.length > 0 || drawingPolygon}
@@ -761,29 +823,39 @@ export function DrawingPad() {
         saving={saving}
       />
 
-      {/* The paper keeps its shape. At zoom 1, it takes what room there is;
-          larger, the area scrolls. A margin of auto centres it while it fits,
-          and keeps all of it in reach when it does not. */}
+      {/* The stage is the screen: the paper at the place and the zoom of
+          the view, and a margin around it. The sheet under the screen gives
+          the paper its shadow, and its place to the tests. */}
       <div
         ref={stageRef}
-        class="[grid-area:stage] relative min-h-0 min-w-0 flex overflow-auto p-2"
+        class="[grid-area:stage] relative min-h-0 min-w-0 overflow-hidden"
         onWheel={onWheel}
       >
         <canvas
           ref={canvasRef}
           width={view.width}
           height={view.height}
-          class={`m-auto shrink-0 rounded-lg shadow-lg touch-none select-none ${fit === null ? "max-w-full max-h-full" : ""}`}
-          style={{
-            aspectRatio: `${view.width} / ${view.height}`,
-            cursor: canvasCursor,
-            ...(fit === null
-              ? {}
-              : {
-                  width: `${view.width * fit * zoom}px`,
-                  height: `${view.height * fit * zoom}px`,
-                }),
-          }}
+          hidden
+        />
+        {box && (
+          <div
+            data-paper
+            aria-hidden="true"
+            class="absolute bg-white shadow-lg pointer-events-none"
+            style={{
+              left: `${box.left}px`,
+              top: `${box.top}px`,
+              width: `${box.width}px`,
+              height: `${box.height}px`,
+            }}
+          />
+        )}
+        <canvas
+          ref={screenRef}
+          width={Math.max(1, Math.round((stage?.width ?? 1) * pixelRatio))}
+          height={Math.max(1, Math.round((stage?.height ?? 1) * pixelRatio))}
+          class="absolute inset-0 size-full touch-none select-none"
+          style={{ cursor: canvasCursor }}
           aria-label={t("drawing.paper")}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}

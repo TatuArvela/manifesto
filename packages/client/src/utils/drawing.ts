@@ -653,6 +653,52 @@ export function paintLayer(
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
+/** Fewer pixels than the limit of one canvas in Safari, with some to spare. */
+const MAX_LAYER_PIXELS = 16_000_000;
+
+/**
+ * The part of the plane where a layer keeps ink: the paper, and a margin
+ * around it. Ink can go past the edge of the paper and come back. The area is
+ * at most twice the paper on each axis, and stays inside the pixel limit of a
+ * canvas.
+ */
+export function inkArea(paper: PaperSize): Rect {
+  const grow = Math.min(
+    2,
+    Math.sqrt(MAX_LAYER_PIXELS / (paper.width * paper.height)),
+  );
+  const width = Math.floor(paper.width * grow);
+  const height = Math.floor(paper.height * grow);
+  return {
+    x: Math.round((paper.width - width) / 2),
+    y: Math.round((paper.height - height) / 2),
+    width,
+    height,
+  };
+}
+
+/**
+ * The ink of marks as one picture, in whole pixels, cut to `area`. Null when
+ * they have no ink there. A move or a resize after it changes pixels, not
+ * lines: this is a bitmap pad.
+ */
+export function rasterize(marks: readonly Mark[], area: Rect): Fill | null {
+  const ink = markBounds(marks);
+  const shown = ink && intersect(ink, area);
+  if (!shown) return null;
+  const x = Math.floor(shown.x);
+  const y = Math.floor(shown.y);
+  const at = {
+    x,
+    y,
+    width: Math.ceil(shown.x + shown.width) - x,
+    height: Math.ceil(shown.y + shown.height) - y,
+  };
+  const image = blankCanvas(at);
+  paintLayer(image, marks, at);
+  return { image, at };
+}
+
 /**
  * The full drawing from nothing: paper, the image under the drawing if there is
  * one, then each layer that shows, from the bottom up. The paper stays under

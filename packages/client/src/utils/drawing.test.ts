@@ -4,6 +4,7 @@ import {
   DRAWING_HEIGHT,
   DRAWING_WIDTH,
   drawingPoint,
+  inkArea,
   intersect,
   markBounds,
   paperSizeFor,
@@ -236,5 +237,23 @@ describe("shapes and fills", () => {
       ...fill,
       at: { x: 2, y: 5, width: 6, height: 8 },
     });
+  });
+});
+
+describe("inkArea", () => {
+  it("keeps a margin of half the paper on each side", () => {
+    expect(inkArea(BLANK_PAPER)).toEqual({
+      x: -DRAWING_WIDTH / 2,
+      y: -DRAWING_HEIGHT / 2,
+      width: DRAWING_WIDTH * 2,
+      height: DRAWING_HEIGHT * 2,
+    });
+  });
+
+  it("keeps a smaller margin on a large image, inside the limit of a canvas", () => {
+    const area = inkArea({ width: 2560, height: 2560 });
+    expect(area.width * area.height).toBeLessThanOrEqual(16_000_000);
+    expect(area.x).toBeLessThan(0);
+    expect(area.x + area.width).toBeGreaterThan(2560);
   });
 });
