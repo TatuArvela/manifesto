@@ -496,6 +496,12 @@ export function DrawingPad() {
     if (!canvas || !ready || gesture.current || !event.isPrimary) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     event.preventDefault();
+    // The canvas cannot take focus. Without this, a press on it leaves focus
+    // on the page body, and the keys of the pad (Ctrl or Cmd with A) never
+    // come to the dialog.
+    if (!dialogRef.current?.contains(document.activeElement)) {
+      dialogRef.current?.focus({ preventScroll: true });
+    }
     try {
       canvas.setPointerCapture(event.pointerId);
     } catch {
@@ -717,6 +723,7 @@ export function DrawingPad() {
       role="dialog"
       aria-modal="true"
       aria-label={t("drawing.title")}
+      tabIndex={-1}
       onKeyDown={(event) =>
         onPadKey(event, {
           tool,
@@ -733,7 +740,7 @@ export function DrawingPad() {
           redo: redoStep,
         })
       }
-      class={`fixed inset-0 layer-drawing ${padGrid} bg-neutral-900 text-neutral-100 animate-fade-in select-none [&_input]:select-text`}
+      class={`fixed inset-0 layer-drawing outline-none ${padGrid} bg-neutral-900 text-neutral-100 animate-fade-in select-none [&_input]:select-text`}
     >
       <DrawingTopBar
         onCancel={() => void cancel()}
