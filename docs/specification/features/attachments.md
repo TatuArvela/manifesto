@@ -107,7 +107,8 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   marks it again. **Crop image** under the paper, or Enter, keeps only that part, as one step for
   undo. Escape, the close button or another tool removes the box.
 - Ctrl or Cmd with A selects all of the paper that shows, with D removes the area, and with Shift and
-  I inverts the area. The options choose what a new shape does: a new area,
+  I inverts the area. Delete or Backspace removes the ink of the current layer inside the area, as one
+  step for undo. The options choose what a new shape does: a new area,
   added to the area, subtracted from it, or only the part that both share. For one drag, Shift
   adds, Alt subtracts, and Shift and Alt together keep the shared part. Thus, the area can have any
   shape, and holes. Its edge shows as black and white dashes.
