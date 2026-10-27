@@ -24,6 +24,7 @@ const STEP_NAMES = {
   orderLayer: "drawing.stepOrderLayer",
   cropLayer: "drawing.cropLayer",
   movePixels: "drawing.stepMovePixels",
+  deleteSelected: "drawing.stepDeleteSelected",
   cropImage: "drawing.cropImage",
   canvasSize: "drawing.stepCanvasSize",
   imageSize: "drawing.stepImageSize",

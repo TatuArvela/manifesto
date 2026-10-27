@@ -243,6 +243,7 @@ export const en = {
   "drawing.stepMoveLayer": "Move layer",
   "drawing.stepOrderLayer": "Layer order",
   "drawing.stepMovePixels": "Move pixels",
+  "drawing.stepDeleteSelected": "Delete selection",
   "drawing.stepCanvasSize": "Canvas size",
   "drawing.stepImageSize": "Image size",
   "drawing.zoomLevel": "Zoom level",

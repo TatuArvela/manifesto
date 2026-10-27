@@ -7,6 +7,7 @@ import {
   clearLayer,
   cropImage,
   cropLayer,
+  deleteSelected,
   endJoin,
   flattenActive,
   hasStrokes,
@@ -109,6 +110,24 @@ describe("drawing layers", () => {
     expect(history.present.layers.map((l) => l.marks.length)).toEqual([1, 0]);
     // An empty layer: nothing to clear, and no step to undo.
     expect(clearLayer(history)).toBe(history);
+  });
+
+  it("deletes the selected area on the active layer only", () => {
+    const area = { x: 0, y: 0, width: 10, height: 10 };
+    const mask = {} as CanvasImageSource;
+    let history = addMark(newSketchHistory(), line(1));
+    history = addMark(addLayer(history), line(2));
+    history = deleteSelected(history, area, mask);
+    expect(history.present.step).toBe("deleteSelected");
+    expect(history.present.layers[0]?.marks).toEqual([line(1)]);
+    expect(activeLayer(history.present)?.marks).toEqual([
+      { clip: area, mask, outside: true, marks: [line(2)] },
+    ]);
+    history = undo(history);
+    expect(activeLayer(history.present)?.marks).toEqual([line(2)]);
+    // An empty layer: nothing to delete, and no step to undo.
+    const empty = addLayer(history);
+    expect(deleteSelected(empty, area, mask)).toBe(empty);
   });
 
   it("undoes and redoes each change, a clear also", () => {

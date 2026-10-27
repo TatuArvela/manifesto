@@ -8,6 +8,8 @@ export interface PadKeys {
   /** Keeps the box of the crop. False when there is no box. */
   applyCrop: () => boolean;
   selectAll: () => void;
+  /** Removes the ink in the selected area. False when there is no area. */
+  deleteSelected: () => boolean;
   deselect: () => void;
   invert: () => void;
   undo: () => void;
@@ -18,7 +20,8 @@ export interface PadKeys {
  * The keys of the pad. Ctrl or Cmd with Z undoes, and with Y or Shift and Z
  * redoes. With A, it selects all, with D it removes the area, and with Shift
  * and I it inverts the area. M and L pick the selection tools, C the crop and
- * Z the zoom, and Enter keeps the box of the crop. Not in a text field:
+ * Z the zoom, Enter keeps the box of the crop, and Delete or Backspace removes
+ * the ink in the selected area. Not in a text field:
  * there, the keys type and undo the typing.
  *
  * The pad is a modal dialog, which `useShortcut` leaves alone. Thus, the pad
@@ -28,6 +31,14 @@ export function onPadKey(event: KeyboardEvent, pad: PadKeys): void {
   if (event.altKey || isTypingTarget(event.target)) return;
   const key = event.key.toLowerCase();
   if (!(event.ctrlKey || event.metaKey)) {
+    if (
+      (key === "delete" || key === "backspace") &&
+      !event.shiftKey &&
+      pad.deleteSelected()
+    ) {
+      event.preventDefault();
+      return;
+    }
     if (key === "enter" && pad.applyCrop()) {
       event.preventDefault();
       return;

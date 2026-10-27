@@ -24,6 +24,7 @@ import {
   clearLayer,
   cropImage,
   cropLayer,
+  deleteSelected,
   flattenActive,
   hasInk,
   hasStrokes,
@@ -734,6 +735,18 @@ export function DrawingPad() {
             return true;
           },
           selectAll: selectTool.selectAll,
+          deleteSelected: () => {
+            if (!selection) return false;
+            flatten();
+            apply(
+              deleteSelected(
+                historyRef.current,
+                selection.bounds,
+                selection.mask,
+              ),
+            );
+            return true;
+          },
           deselect: () => setSelection(null),
           invert: selectTool.invert,
           undo: undoStep,

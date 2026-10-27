@@ -63,6 +63,7 @@ export type Step =
   | "orderLayer"
   | "cropLayer"
   | "movePixels"
+  | "deleteSelected"
   | "cropImage"
   | "canvasSize"
   | "imageSize";
@@ -349,6 +350,27 @@ export function moveSelected(
     changeLayer(sketch, sketch.active, (layer) => ({
       ...layer,
       marks: movedMarks(layer.marks, area, mask, dx, dy),
+    })),
+  );
+}
+
+/**
+ * Removes the ink of the active layer that is inside an area (`area`, in the
+ * shape of `mask`). The ink outside it stays. One step.
+ */
+export function deleteSelected(
+  history: SketchHistory,
+  area: Rect,
+  mask: CanvasImageSource,
+): SketchHistory {
+  const sketch = history.present;
+  if (!activeLayer(sketch)?.marks.length) return history;
+  return record(
+    history,
+    "deleteSelected",
+    changeLayer(sketch, sketch.active, (layer) => ({
+      ...layer,
+      marks: [{ clip: area, mask, outside: true, marks: layer.marks }],
     })),
   );
 }

@@ -246,6 +246,7 @@ export const fi: Messages = {
   "drawing.stepMoveLayer": "Siirrä tasoa",
   "drawing.stepOrderLayer": "Tasojen järjestys",
   "drawing.stepMovePixels": "Siirrä pikseleitä",
+  "drawing.stepDeleteSelected": "Poista valinta",
   "drawing.stepCanvasSize": "Piirtoalueen koko",
   "drawing.stepImageSize": "Kuvan koko",
   "drawing.zoomLevel": "Zoomaustaso",
