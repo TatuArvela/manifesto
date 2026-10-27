@@ -32,12 +32,15 @@ const hexField = () =>
 const button = (label: string) =>
   host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
 
-/** The color of the drawing at a point, given as fractions of the paper. */
+/**
+ * The color of the drawing at a point, given as fractions of the canvas. After
+ * a crop, the picture is the size of the box, not of the paper.
+ */
 function inkAt(fx: number, fy: number, from = canvas()): string {
   const ctx = from.getContext("2d") as CanvasRenderingContext2D;
   const [r, g, b] = ctx.getImageData(
-    Math.round(fx * DRAWING_WIDTH),
-    Math.round(fy * DRAWING_HEIGHT),
+    Math.round(fx * from.width),
+    Math.round(fy * from.height),
     1,
     1,
   ).data;
@@ -657,6 +660,8 @@ describe("DrawingPad", () => {
     await pick(t("drawing.selection"), t("drawing.select"));
     await settled();
     drawLine([0.1, 0.4], [0.3, 0.6]);
+    // Each drag adds to the selection that the one before made.
+    await settled();
     drawLine([0.7, 0.4], [0.9, 0.6], { shiftKey: true });
     await settled();
     // A hole in the second area.
@@ -675,6 +680,7 @@ describe("DrawingPad", () => {
   it("keeps only the shared part with Shift and Alt", async () => {
     await pick(t("drawing.selection"), t("drawing.select"));
     drawLine([0.1, 0.4], [0.6, 0.6]);
+    await settled();
     drawLine([0.4, 0.4], [0.9, 0.6], { shiftKey: true, altKey: true });
     await settled();
     button(t("drawing.penTool"))?.click();
@@ -744,6 +750,9 @@ describe("DrawingPad", () => {
     await settled();
     if (field) field.value = "200";
     field?.dispatchEvent(new Event("input", { bubbles: true }));
+    // The field renders what was typed before Enter reads it, as between two
+    // keys of a person.
+    await settled();
     field?.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
     );
@@ -806,12 +815,15 @@ describe("DrawingPad", () => {
     press("m");
     await settled();
     expect(group()?.className).toContain("bg-blue-600");
+    // Each press moves on from the tool that the one before picked.
     press("l");
+    await settled();
     press("l");
     await settled();
     expect(host.textContent).toContain(t("drawing.polyLassoHint"));
     // Select all, then invert: no area stays, and the pen draws anywhere.
     press("a", { ctrlKey: true });
+    await settled();
     press("i", { ctrlKey: true, shiftKey: true });
     await settled();
     button(t("drawing.penTool"))?.click();
@@ -823,6 +835,7 @@ describe("DrawingPad", () => {
     press("m");
     await settled();
     drawLine([0.4, 0.4], [0.6, 0.6]);
+    await settled();
     press("i", { ctrlKey: true, shiftKey: true });
     await settled();
     button(t("drawing.penTool"))?.click();
