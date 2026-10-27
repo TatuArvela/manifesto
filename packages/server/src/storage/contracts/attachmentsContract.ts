@@ -1,7 +1,7 @@
 import { type LinkPreview, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StorageDriver } from "#/storage/types.ts";
-import { claimed, heldKey } from "./claimed.ts";
+import { ciphertext, claimed, claimedImages, heldKey } from "./claimed.ts";
 
 /** The rules of the attachment store, run against both drivers. */
 
@@ -117,6 +117,40 @@ export function describeAttachmentsContract(
       );
       expect(await storage.attachments.meta(lost.id)).toBeNull();
       expect(await storage.attachments.meta(kept.id)).not.toBeNull();
+    });
+
+    it("keeps what a version names, and lets a recipient of the note read it", async () => {
+      const old = await put("01AAAAAAAAAAAAAAAAAAAAAAAA", "owner", [1]);
+      // The note no longer shows the image. Only its version names it.
+      await note("n1", "owner", []);
+      await storage.versions.add({
+        id: "01VVVVVVVVVVVVVVVVVVVVVVVV",
+        noteId: "n1",
+        authorId: "owner",
+        keyVersion: 1,
+        format: 1,
+        title: ciphertext(""),
+        content: ciphertext(""),
+        images: {
+          sealed: ciphertext("list"),
+          refs: claimedImages([`attachment:${old.id}`]),
+        },
+        // Now: an older version would be pruned at once.
+        createdAt: new Date().toISOString(),
+      });
+      const [version] = await storage.versions.list("n1");
+      expect(version?.images).toBe(ciphertext("list"));
+      await storage.shares.create({
+        noteId: "n1",
+        userId: "alice",
+        role: "view",
+        createdAt: T0,
+      });
+      await storage.shares.accept("n1", "alice", T0, heldKey);
+      expect(await storage.attachments.readableBy(old.id, "alice")).toBe(true);
+      await storage.attachments.sweep("2026-05-01", "2000-01-01");
+      await storage.attachments.sweep("2026-08-01", "2026-06-01");
+      expect(await storage.attachments.meta(old.id)).not.toBeNull();
     });
 
     it("counts a preview's thumbnail and favicon as references", async () => {

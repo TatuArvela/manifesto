@@ -2,6 +2,7 @@ import {
   ATTACHMENT_META_COLUMNS,
   type AttachmentRow,
   REFERRING_NOTES_WHERE,
+  REFERRING_VERSIONS_SQL,
   type ReferringRow,
   referencesOf,
   refPattern,
@@ -77,7 +78,20 @@ export function createPostgresAttachmentsRepo(pool: PgPool): AttachmentsRepo {
            AND (n.images LIKE $3 OR n.preview_refs LIKE $3)`,
         [userId, found.ownerId, refPattern(id)],
       );
-      return shared.rows.some((note) => referencesOf(note).includes(id));
+      // The versions of the same shared notes: a reader of a note reads its
+      // history, with the pictures that it had.
+      const versions = await pool.query<ReferringRow>(
+        `SELECT v.image_refs AS images, NULL AS preview_refs
+         FROM note_shares s JOIN notes n ON n.id = s.note_id
+           JOIN note_versions v ON v.note_id = n.id
+         WHERE s.user_id = $1 AND s.accepted_at IS NOT NULL
+           AND n.user_id = $2 AND n.trashed = FALSE
+           AND v.image_refs LIKE $3`,
+        [userId, found.ownerId, refPattern(id)],
+      );
+      return [...shared.rows, ...versions.rows].some((note) =>
+        referencesOf(note).includes(id),
+      );
     },
 
     async sweep(now, cutoffIso) {
@@ -85,7 +99,8 @@ export function createPostgresAttachmentsRepo(pool: PgPool): AttachmentsRepo {
       const notes = await pool.query<ReferringRow>(
         `SELECT images, preview_refs FROM notes WHERE ${REFERRING_NOTES_WHERE}`,
       );
-      for (const row of notes.rows) {
+      const versions = await pool.query<ReferringRow>(REFERRING_VERSIONS_SQL);
+      for (const row of [...notes.rows, ...versions.rows]) {
         for (const id of referencesOf(row)) referenced.add(id);
       }
       const snapshots = await pool.query<{ snapshot: string }>(
@@ -117,7 +132,9 @@ export function createPostgresAttachmentsRepo(pool: PgPool): AttachmentsRepo {
           const gone = await pool.query(
             `DELETE FROM attachments WHERE id = $1 AND NOT EXISTS
                (SELECT 1 FROM notes
-                WHERE images LIKE $2 OR preview_refs LIKE $2)`,
+                WHERE images LIKE $2 OR preview_refs LIKE $2)
+             AND NOT EXISTS
+               (SELECT 1 FROM note_versions WHERE image_refs LIKE $2)`,
             [row.id, refPattern(row.id)],
           );
           deleted += gone.rowCount ?? 0;

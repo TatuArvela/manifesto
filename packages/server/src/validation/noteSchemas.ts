@@ -307,14 +307,21 @@ export const noteRekeySchema = z.object({
 });
 
 /** `POST /api/v1/notes/:id/versions` from the app. */
-export const sealedVersionCreateSchema = z.object({
-  id: noteIdSchema,
-  keyVersion: z.number().int().min(1),
-  format: noteFormat,
-  title: sealed(SEALED_FIELD_MAX.title),
-  content: sealed(SEALED_FIELD_MAX.content),
-  timestamp: z.string().max(40).exactOptional(),
-});
+export const sealedVersionCreateSchema = z
+  .object({
+    id: noteIdSchema,
+    keyVersion: z.number().int().min(1),
+    format: noteFormat,
+    title: sealed(SEALED_FIELD_MAX.title),
+    content: sealed(SEALED_FIELD_MAX.content),
+    images: sealed(SEALED_FIELD_MAX.images).exactOptional(),
+    imageRefs: attachmentRefs(MAX_IMAGES_PER_NOTE).exactOptional(),
+    timestamp: z.string().max(40).exactOptional(),
+  })
+  .refine(
+    (body) => (body.images === undefined) === (body.imageRefs === undefined),
+    { message: "images comes with imageRefs" },
+  );
 
 /**
  * `PUT /api/v1/notes/:id/comments/:commentId`: the text of the comment, sealed

@@ -19,7 +19,7 @@ from either mode into either mode:
 | `manifest.json` | The [format](../data-model.md#format) of the notes and versions, as `{ "format": 1 }`. An import upgrades an older archive. It refuses an archive from a newer version. An archive without this file is from before the app recorded formats, and is format 1. |
 | `notes.json` | All notes that the account owns, with the archive and the trash, in the import format above. Images are inlined as `data:` URLs. An import of this file restores the notes in all places, also in open mode. |
 | `notes/<title>.md` | Each note that is not in the trash, as Markdown with frontmatter (`title`, `tags`, `pinned`, `archived`, `created`, `updated`). The Markdown-folder import reads it back. Other tools can open it. |
-| `versions.json` | The version history of those notes. |
+| `versions.json` | The version history of those notes: the title and the text of each version. The images of a version stay out, because the archive would have to inline each one again. |
 | `preferences.json` | The [preferences](preferences.md) of this browser. It is for storage and for reading. An import of an archive does not change the settings. |
 
 Notes that a different person shared with the account belong to that person. The export does not

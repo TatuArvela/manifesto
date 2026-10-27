@@ -83,7 +83,16 @@ export async function exportArchive(): Promise<Blob | null> {
   const versions: NoteVersion[] = [];
   for (const note of backup) {
     try {
-      versions.push(...(await storage.listVersions(note.id)));
+      // The text of each version only. Its images are references to this
+      // session, which the archive would have to inline. The import files a
+      // version without them, and the notes carry their own images.
+      for (const {
+        images: _i,
+        imageAlts: _a,
+        ...words
+      } of await storage.listVersions(note.id)) {
+        versions.push(words);
+      }
     } catch (err) {
       // A history is a safety net under the notes. A backup without the history
       // of one note still restores each note.

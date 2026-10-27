@@ -6,6 +6,7 @@ import type {
   SealedNoteRefs,
   SealedNoteUpdate,
   SealedNoteVersion,
+  SealedNoteVersionCreateRequest,
 } from "#/api/sealed.ts";
 import {
   ATTACHMENT_REF_PREFIX,
@@ -136,6 +137,33 @@ function parsed(text: string | null): unknown {
 }
 
 /**
+ * The image list of a note or a version, as the JSON to seal: each reference
+ * with its key and its description. Throws `NoteLimitError` for a list that is
+ * too long, a value that is not a reference, a description that is too long,
+ * or an image whose key is not in `images`.
+ */
+function imageList(
+  refs: readonly string[],
+  alts: readonly string[] | undefined,
+  images: ImageKeys,
+): string {
+  // Only references. The app uploads all inline data before it seals a note.
+  if (refs.length > MAX_IMAGES_PER_NOTE || !refs.every(isAttachmentRef)) {
+    throw new NoteLimitError("images");
+  }
+  const list: ImageEntry[] = [];
+  for (const [i, ref] of refs.entries()) {
+    const image = images.get(ref);
+    // Without its key, nobody could open it, also not this account.
+    if (!image) throw new NoteLimitError("images");
+    const alt = alts?.[i] ?? "";
+    if (alt.length > MAX_IMAGE_ALT_LENGTH) throw new NoteLimitError("images");
+    list.push({ id: attachmentIdOf(ref), ...image, ...(alt && { alt }) });
+  }
+  return JSON.stringify(list);
+}
+
+/**
  * Seals the given shared fields, and the excerpt when the text is among them.
  * `images` contains what opens each image that the fields name. Throws
  * `NoteLimitError` for a value that is larger than a note can contain, or for
@@ -167,23 +195,8 @@ export async function sealSharedFields(
     out.font = await put("font", fields.font.padEnd(PADDED_LENGTH, " "));
   }
   if (fields.images !== undefined) {
-    // Only references. The app uploads all inline data before it seals a note.
-    if (
-      fields.images.length > MAX_IMAGES_PER_NOTE ||
-      !fields.images.every(isAttachmentRef)
-    ) {
-      throw new NoteLimitError("images");
-    }
-    const list: ImageEntry[] = [];
-    for (const [i, ref] of fields.images.entries()) {
-      const image = images.get(ref);
-      // Without its key, nobody could open it, also not this account.
-      if (!image) throw new NoteLimitError("images");
-      const alt = fields.imageAlts?.[i] ?? "";
-      if (alt.length > MAX_IMAGE_ALT_LENGTH) throw new NoteLimitError("images");
-      list.push({ id: attachmentIdOf(ref), ...image, ...(alt && { alt }) });
-    }
-    out.images = await put("images", JSON.stringify(list));
+    const list = imageList(fields.images, fields.imageAlts, images);
+    out.images = await put("images", list);
     out.imageRefs = [...fields.images];
   } else if (fields.imageAlts !== undefined) {
     // The descriptions are in the entries of the image list. Thus, they are
@@ -557,15 +570,20 @@ export async function openSealedNote(
 }
 
 /**
- * The title and text of a version, sealed under the note key and bound to the
- * own id of the version.
+ * The title, text and images of a version, sealed under the note key and bound
+ * to the own id of the version. `images` contains what opens each image that
+ * the version names, as for a note.
  */
 export async function sealVersion(
   key: NoteSealKey,
   versionId: string,
-  version: Pick<NoteVersion, "title" | "content">,
+  version: Pick<NoteVersion, "title" | "content" | "images" | "imageAlts">,
+  images: ImageKeys = new Map(),
 ): Promise<
-  Pick<SealedNoteVersion, "title" | "content" | "keyVersion" | "format">
+  Pick<
+    SealedNoteVersionCreateRequest,
+    "title" | "content" | "images" | "imageRefs" | "keyVersion" | "format"
+  >
 > {
   if (version.title.length > MAX_NOTE_TITLE_LENGTH) {
     throw new NoteLimitError("title");
@@ -586,17 +604,27 @@ export async function sealVersion(
       utf8(version.content),
       sharedData(key, versionId, "version/content"),
     ),
+    ...(version.images !== undefined && {
+      images: await seal(
+        key.fields,
+        utf8(imageList(version.images, version.imageAlts, images)),
+        sharedData(key, versionId, "version/images"),
+      ),
+      imageRefs: [...version.images],
+    }),
   };
 }
 
 /**
- * The version in the current format. Null when it is under a different key,
- * does not open, or is in a format that is newer than this build can read.
+ * The version in the current format, with what opens each of its images. Null
+ * when it is under a different key, does not open, or is in a format that is
+ * newer than this build can read. A version whose images do not open has no
+ * `images`, as a version from before they were kept.
  */
 export async function openVersion(
   key: NoteSealKey,
   sealed: SealedNoteVersion,
-): Promise<NoteVersion | null> {
+): Promise<(NoteVersion & { imageKeys: Map<string, ImageKey> }) | null> {
   if (sealed.keyVersion !== key.version) return null;
   if (isNewerNoteFormat(sealed.format)) return null;
   const title = await unsealText(
@@ -616,10 +644,25 @@ export async function openVersion(
   ) {
     return null;
   }
+  const imageKeys = new Map<string, ImageKey>();
+  const list =
+    sealed.images === undefined
+      ? null
+      : await unsealText(
+          key.fields,
+          sealed.images,
+          sharedData(key, sealed.id, "version/images"),
+        );
+  const imageAlts: string[] = [];
+  const images =
+    list === null ? null : checkedImages(parsed(list), imageKeys, imageAlts);
   return {
     noteId: sealed.noteId,
     timestamp: sealed.timestamp,
     ...upgradeNoteWords({ title, content }, sealed.format),
+    ...(images && { images }),
+    ...(images && imageAlts.some((alt) => alt !== "") && { imageAlts }),
+    imageKeys,
   };
 }
 

@@ -28,11 +28,13 @@ import type {
   CreateOptions,
   NoteChanges,
   StorageAdapter,
+  VersionInput,
 } from "./StorageAdapter.ts";
 import {
   getVersions,
   saveVersion,
   upgradeAllVersions,
+  versionImageRefs,
 } from "./VersionStorage.ts";
 
 const STORAGE_KEY = "manifesto:notes";
@@ -300,7 +302,11 @@ export class LocalStorageAdapter implements StorageAdapter {
       void openModeImageRefs()
         .then((kept) =>
           sweepLocalImages(
-            new Set([...current.flatMap(imagesOf), ...kept]),
+            new Set([
+              ...current.flatMap(imagesOf),
+              ...kept,
+              ...versionImageRefs(),
+            ]),
             LOCAL_IMAGE_GRACE_MS,
           ),
         )
@@ -406,11 +412,11 @@ export class LocalStorageAdapter implements StorageAdapter {
     return getVersions(noteId);
   }
 
-  async saveVersion(
-    noteId: string,
-    version: { title: string; content: string; timestamp?: string },
-  ): Promise<void> {
-    saveVersion(noteId, version.title, version.content, version.timestamp);
+  async saveVersion(noteId: string, version: VersionInput): Promise<void> {
+    saveVersion(noteId, version.title, version.content, version.timestamp, {
+      images: version.images,
+      imageAlts: version.imageAlts,
+    });
   }
 
   /** Kept in IndexedDB. The note has its `local:` reference. */

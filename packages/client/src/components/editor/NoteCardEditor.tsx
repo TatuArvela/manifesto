@@ -34,7 +34,11 @@ import {
   updateStoredNote,
 } from "#/state/notesStore.ts";
 import { showError } from "#/state/ui.ts";
-import { recordVersion } from "#/state/versions.ts";
+import {
+  type NoteBefore,
+  recordVersion,
+  versionToKeep,
+} from "#/state/versions.ts";
 import { placedImageAlts, placeImages } from "#/utils/drawing.ts";
 import { isPhoneLayout } from "#/utils/phoneSheets.ts";
 import { getEditorMarkdown } from "./MilkdownEditor.tsx";
@@ -86,9 +90,13 @@ export function NoteCardEditor({
   agreementRef.current = agreement;
   const [editor, setEditor] = useState<Editor | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  // Record the original state for the version history (set one time on mount).
-  const originalTitleRef = useRef(note.title);
-  const originalContentRef = useRef(note.content);
+  // Record the original state for the version history (set one time on mount,
+  // and the images when they arrive).
+  const beforeRef = useRef<NoteBefore>({
+    title: note.title,
+    content: note.content,
+    images: null,
+  });
 
   // Record what we really saved, NOT the snapshot of the prop at mount. If a WS
   // `note:updated` event arrives during an edit, `note.title` becomes the new
@@ -117,16 +125,8 @@ export function NoteCardEditor({
   );
 
   const maybeSaveVersion = () => {
-    if (
-      title !== originalTitleRef.current ||
-      content !== originalContentRef.current
-    ) {
-      void recordVersion(
-        note.id,
-        originalTitleRef.current,
-        originalContentRef.current,
-      );
-    }
+    const version = versionToKeep(note.id, beforeRef.current, title, content);
+    if (version) void recordVersion(note.id, version);
   };
 
   const titleRef = useRef(title);
@@ -167,17 +167,14 @@ export function NoteCardEditor({
         savedContentRef.current = contentRef.current;
         saveText(titleRef.current, contentRef.current);
       }
-      // Save a version if the content changed during this editing session.
-      if (
-        titleRef.current !== originalTitleRef.current ||
-        contentRef.current !== originalContentRef.current
-      ) {
-        void recordVersion(
-          note.id,
-          originalTitleRef.current,
-          originalContentRef.current,
-        );
-      }
+      // Save a version if the note changed during this editing session.
+      const version = versionToKeep(
+        note.id,
+        beforeRef.current,
+        titleRef.current,
+        contentRef.current,
+      );
+      if (version) void recordVersion(note.id, version);
     };
   }, [note.id, saveText]);
 
@@ -194,8 +191,16 @@ export function NoteCardEditor({
   // the user needs it, but this does not make it safe. The handlers below await
   // it themselves, because this fetch is still in progress during the first
   // moments when the editor is open, and can fail after that.
+  // The images that arrive first are those from before the session.
   useEffect(() => {
-    void ensureImages(note.id);
+    void ensureImages(note.id).then((images) => {
+      if (images === null || beforeRef.current.images !== null) return;
+      const row = notes.value.find((n) => n.id === note.id);
+      beforeRef.current.images = {
+        images,
+        ...(row?.imageAlts && { imageAlts: row.imageAlts }),
+      };
+    });
   }, [note.id]);
 
   /**
@@ -259,7 +264,10 @@ export function NoteCardEditor({
         }
         if (!records.leads()) return;
         if (!records.wasClaimed(documentText)) {
-          void recordVersion(note.id, titleRef.current, documentText);
+          void recordVersion(note.id, {
+            title: titleRef.current,
+            content: documentText,
+          });
         }
         records.claim(row.content);
         editor.action(replaceAll(row.content));
@@ -293,14 +301,19 @@ export function NoteCardEditor({
           <VersionHistory
             noteId={note.id}
             color={note.color}
-            onRestore={(restoredTitle, restoredContent) => {
-              setTitle(restoredTitle);
-              setContent(restoredContent);
-              savedTitleRef.current = restoredTitle;
-              savedContentRef.current = restoredContent;
+            onRestore={(version) => {
+              setTitle(version.title);
+              setContent(version.content);
+              savedTitleRef.current = version.title;
+              savedContentRef.current = version.content;
+              // A version from before images were kept leaves them as they are.
               void updateNote(note.id, {
-                title: restoredTitle,
-                content: restoredContent,
+                title: version.title,
+                content: version.content,
+                ...(version.images && {
+                  images: version.images,
+                  imageAlts: version.imageAlts ?? [],
+                }),
               });
               versions.close();
             }}

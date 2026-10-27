@@ -5,6 +5,7 @@ import { noteColorMap } from "#/colors.ts";
 import { formatDateTime, t } from "#/i18n/index.ts";
 import { loadVersions } from "#/state/versions.ts";
 import { iconButtonClass } from "./editor/editorButtons.ts";
+import { StoredImage } from "./StoredImage.tsx";
 import { Tooltip } from "./Tooltip.tsx";
 
 function truncate(text: string, max: number): string {
@@ -20,7 +21,7 @@ export function VersionHistory({
 }: {
   noteId: string;
   color: NoteColor;
-  onRestore: (title: string, content: string) => void;
+  onRestore: (version: NoteVersion) => void;
   onClose: () => void;
 }) {
   // Null while it loads. A failed load shows as an empty history, not as a
@@ -55,6 +56,24 @@ export function VersionHistory({
           <pre class="whitespace-pre-wrap text-sm sm:max-h-80 sm:overflow-y-auto">
             {selected.content || t("versions.emptyContent")}
           </pre>
+          {/* The images that a restore brings back, also a replaced drawing. */}
+          {selected.images && selected.images.length > 0 && (
+            <ul
+              aria-label={t("versions.images")}
+              class="mt-3 flex flex-wrap gap-2"
+            >
+              {selected.images.map((image, i) => (
+                <li key={image}>
+                  <StoredImage
+                    src={image}
+                    alt={selected.imageAlts?.[i] ?? ""}
+                    placeholderClass="block"
+                    class="size-16 rounded object-cover"
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <div class="note-sheet-bottom px-3 pt-1.5 sm:pb-2 flex items-center gap-0.5">
           <Tooltip label={t("versions.backToList")}>
@@ -71,7 +90,7 @@ export function VersionHistory({
           <button
             type="button"
             class="px-3 py-1 text-sm rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer flex items-center gap-1.5"
-            onClick={() => onRestore(selected.title, selected.content)}
+            onClick={() => onRestore(selected)}
           >
             <RotateCcw class="w-3.5 h-3.5" />
             {t("versions.restore")}

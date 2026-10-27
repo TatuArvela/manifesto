@@ -65,6 +65,7 @@ import {
   type SealedPublicLink,
   sealPublicLink,
 } from "./linkSealing.ts";
+import type { VersionInput } from "./StorageAdapter.ts";
 
 /**
  * The seal and open of all data that goes to the server in connected mode
@@ -734,14 +735,14 @@ export class Sealer {
   /** A version to add to the history of a note. */
   async sealVersion(
     noteId: string,
-    version: Pick<NoteVersion, "title" | "content"> & { timestamp?: string },
+    version: VersionInput,
     fetch: () => Promise<SealedNote | null>,
   ): Promise<SealedNoteVersionCreateRequest> {
     const { key } = await this.keyOf(noteId, fetch);
     const id = ulid();
     return {
       id,
-      ...(await sealVersion(key, id, version)),
+      ...(await sealVersion(key, id, version, this.images.byRef)),
       ...(version.timestamp !== undefined && { timestamp: version.timestamp }),
     };
   }
@@ -761,7 +762,12 @@ export class Sealer {
     for (const version of sealed) {
       const key = ringKey(ring, version.keyVersion);
       const opened = key ? await openVersion(key, version) : null;
-      if (opened) out.push(opened);
+      if (opened) {
+        // A restore seals the images of the version again for the note.
+        const { imageKeys, ...plain } = opened;
+        this.images.keepAll(imageKeys);
+        out.push(plain);
+      }
     }
     return out;
   }

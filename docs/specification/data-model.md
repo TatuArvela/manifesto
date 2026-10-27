@@ -202,7 +202,7 @@ A scheduled reminder, attached to a note. See [Reminders](features/reminders.md)
 
 ## NoteVersion
 
-A snapshot of the title and the content of a note at one time. [Version History](features/version-history.md) uses it.
+A snapshot of the title, the content and the images of a note at one time. [Version History](features/version-history.md) uses it.
 
 | Field       | Type     | Required | Description                              |
 |-------------|----------|----------|------------------------------------------|
@@ -210,6 +210,8 @@ A snapshot of the title and the content of a note at one time. [Version History]
 | `timestamp` | `string` | Yes      | ISO 8601 timestamp of the time when the app recorded the version |
 | `title`     | `string` | Yes      | The note title at that time               |
 | `content`   | `string` | Yes      | The note content at that time            |
+| `images`    | `string[]` | No     | The image references of the note at that time. Absent on a version from before images were kept |
+| `imageAlts` | `string[]` | No     | The descriptions of those images, aligned with `images` |
 
 ## Example
 

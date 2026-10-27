@@ -1,23 +1,77 @@
-import { NOTE_VERSION_MAX_AGE_DAYS, type NoteVersion } from "@manifesto/shared";
+import {
+  imageAltsOf,
+  NOTE_VERSION_MAX_AGE_DAYS,
+  type Note,
+  type NoteVersion,
+} from "@manifesto/shared";
 import { storage, storageConnection } from "#/storage/index.ts";
+import type { VersionInput } from "#/storage/StorageAdapter.ts";
 import { deleteVersions, getVersions } from "#/storage/VersionStorage.ts";
 import { notes } from "./notesStore.ts";
 
 /**
- * Keeps the text that a note had before an editing session, as a version.
- * Reports nothing on failure. A version is a safety net under a save that
- * already occurred, and the save has its own error. Never rejects.
+ * Keeps the text and the images that a note had before an editing session, as
+ * a version. Without `images`, the version keeps none. Reports nothing on
+ * failure. A version is a safety net under a save that already occurred, and
+ * the save has its own error. Never rejects.
  */
 export async function recordVersion(
   noteId: string,
-  title: string,
-  content: string,
+  version: Omit<VersionInput, "timestamp">,
 ): Promise<void> {
   try {
-    await storage.saveVersion(noteId, { title, content });
+    await storage.saveVersion(noteId, version);
   } catch (err) {
     console.warn("Failed to save version:", err);
   }
+}
+
+/** What a note was when its editor opened, for the version of the session. */
+export interface NoteBefore {
+  title: string;
+  content: string;
+  /** Null until the images of the note have arrived. */
+  images: Pick<Note, "images" | "imageAlts"> | null;
+}
+
+const sameImages = (
+  a: Pick<Note, "images" | "imageAlts">,
+  b: Pick<Note, "images" | "imageAlts">,
+) => {
+  const altsA = imageAltsOf(a);
+  const altsB = imageAltsOf(b);
+  return (
+    a.images.length === b.images.length &&
+    a.images.every((ref, i) => ref === b.images[i] && altsA[i] === altsB[i])
+  );
+};
+
+/**
+ * The version to keep when an editing session ends: the note as it was before
+ * it, when its title, its text or its images changed. Null when nothing did.
+ * The images are in it only when they arrived before the session ended.
+ */
+export function versionToKeep(
+  noteId: string,
+  before: NoteBefore,
+  title: string,
+  content: string,
+): Omit<VersionInput, "timestamp"> | null {
+  const now = notes.value.find((n) => n.id === noteId);
+  const images = before.images;
+  const imagesChanged =
+    images !== null && now !== undefined && !sameImages(images, now);
+  if (title === before.title && content === before.content && !imagesChanged) {
+    return null;
+  }
+  return {
+    title: before.title,
+    content: before.content,
+    ...(images && {
+      images: images.images,
+      ...(images.imageAlts && { imageAlts: images.imageAlts }),
+    }),
+  };
 }
 
 /**

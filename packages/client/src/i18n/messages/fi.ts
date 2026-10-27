@@ -302,6 +302,7 @@ export const fi: Messages = {
   "versions.backToEditor": "Takaisin editoriin",
   "versions.restore": "Palauta",
   "versions.emptyContent": "(tyhjä)",
+  "versions.images": "Tämän version kuvat",
 
   // Note grid
   "empty.archive.title": "Arkisto on tyhjä",

@@ -180,15 +180,23 @@ export interface SealedNoteVersion {
   format: number;
   title: string;
   content: string;
+  /** The image list, sealed as that of a note. Absent on an older version. */
+  images?: string;
 }
 
-/** `POST /api/v1/notes/:id/versions` from the app. */
+/**
+ * `POST /api/v1/notes/:id/versions` from the app. `images` comes with
+ * `imageRefs`, as on a note write. Thus, the server knows which attachments the
+ * version keeps.
+ */
 export interface SealedNoteVersionCreateRequest {
   id: string;
   keyVersion: number;
   format: number;
   title: string;
   content: string;
+  images?: string;
+  imageRefs?: string[];
   timestamp?: string;
 }
 
