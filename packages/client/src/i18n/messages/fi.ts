@@ -238,6 +238,7 @@ export const fi: Messages = {
   "drawing.anchorBottom": "Ala",
   "drawing.anchorBottomRight": "Alaoikea",
   "drawing.applySize": "Käytä",
+  "drawing.resetSize": "Palauta nykyinen koko",
   "drawing.history": "Historia",
   "drawing.stepOpen": "Avaa",
   "drawing.stepPen": "Kynä",

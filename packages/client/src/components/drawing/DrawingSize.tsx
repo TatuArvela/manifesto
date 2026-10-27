@@ -1,16 +1,20 @@
-import { Link2, Link2Off } from "lucide-preact";
+import { Link2, Link2Off, Undo2 } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { t } from "#/i18n/index.ts";
 import type { PaperSize } from "#/utils/drawing.ts";
 import { type Anchor, MAX_EDGE } from "#/utils/drawingLayers.ts";
+import { evaluateArithmetic } from "#/utils/evaluateExpression.ts";
 import { phonePanel, SidePanel } from "./SidePanel.tsx";
 
 /** What a new size changes: the paper around the drawing, or the drawing too. */
 export type ResizeKind = "canvas" | "image";
 
 type Unit = "px" | "percent";
+
+/** The fields of one tab. */
+type Fields = { width: string; height: string; unit: Unit; linked: boolean };
 
 const ANCHORS = [
   { at: [0, 0], label: "drawing.anchorTopLeft" },
@@ -23,6 +27,16 @@ const ANCHORS = [
   { at: [0.5, 1], label: "drawing.anchorBottom" },
   { at: [1, 1], label: "drawing.anchorBottomRight" },
 ] as const;
+
+/**
+ * The number in a field. A field takes arithmetic (`1920 / 2`), and a comma
+ * or a point as the decimal separator.
+ */
+const amount = (value: string): number | null =>
+  evaluateArithmetic(value.trim().replaceAll(",", "."), ".");
+
+/** A number as a field shows it: no more than two decimals. */
+const written = (n: number): string => `${Math.round(n * 100) / 100}`;
 
 const gcd = (a: number, b: number): number => {
   let [x, y] = [a, b];
@@ -73,26 +87,38 @@ export function DrawingSize({
 }) {
   useEscapeStack(open, onClose);
   const [kind, setKind] = useState<ResizeKind>("canvas");
-  const [unit, setUnit] = useState<Unit>("px");
-  const [linked, setLinked] = useState(true);
   const [anchor, setAnchor] = useState<Anchor>([0.5, 0.5]);
-  const shown = (px: number, as: Unit = unit) =>
-    as === "px" ? `${px}` : "100";
-  const [width, setWidth] = useState(shown(size.width));
-  const [height, setHeight] = useState(shown(size.height));
+  const fresh = (as: Unit = "px", keep = true): Fields => ({
+    width: as === "px" ? `${size.width}` : "100",
+    height: as === "px" ? `${size.height}` : "100",
+    unit: as,
+    linked: keep,
+  });
+  // Each tab keeps its own fields. Thus, values from one tab never apply
+  // through the other.
+  const [tabs, setTabs] = useState<Record<ResizeKind, Fields>>(() => ({
+    canvas: fresh(),
+    image: fresh(),
+  }));
+  const { width, height, unit, linked } = tabs[kind];
+  const edit = (change: Partial<Fields>) =>
+    setTabs((all) => ({ ...all, [kind]: { ...all[kind], ...change } }));
+  const setUnit = (as: Unit) => edit(fresh(as, linked));
 
   // A new size of the picture, from here or from a crop or an undo, starts
-  // the fields again.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only the size and the unit start the fields again
+  // the fields of both tabs again.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only the size starts the fields again
   useEffect(() => {
-    setWidth(shown(size.width));
-    setHeight(shown(size.height));
-  }, [size.width, size.height, unit]);
+    setTabs((all) => ({
+      canvas: fresh(all.canvas.unit, all.canvas.linked),
+      image: fresh(all.image.unit, all.image.linked),
+    }));
+  }, [size.width, size.height]);
 
   /** A value of a field in pixels, or null when it is not a size. */
   const pixels = (value: string, of: number): number | null => {
-    const n = Number.parseFloat(value.replace(",", "."));
-    if (!(Number.isFinite(n) && n > 0)) return null;
+    const n = amount(value);
+    if (n === null || !(n > 0)) return null;
     const px = Math.round(unit === "px" ? n : (n / 100) * of);
     return px >= 1 && px <= MAX_EDGE ? px : null;
   };
@@ -101,12 +127,52 @@ export function DrawingSize({
   const changed =
     w !== null && h !== null && (w !== size.width || h !== size.height);
 
+  const start = fresh(unit, linked);
+  const edited = width !== start.width || height !== start.height;
+
   /** The other field follows, in the shape of the picture now. */
   const follow = (value: string, from: number, to: number): string => {
-    const n = Number.parseFloat(value.replace(",", "."));
-    if (!Number.isFinite(n)) return "";
-    return unit === "percent" ? value : `${Math.round((n * to) / from)}`;
+    const n = amount(value);
+    if (n === null) return "";
+    return unit === "percent" ? written(n) : `${Math.round((n * to) / from)}`;
   };
+
+  /** A new value in one field. With the link, the other field follows. */
+  const type = (axis: "width" | "height", value: string) => {
+    const [from, to] =
+      axis === "width" ? [size.width, size.height] : [size.height, size.width];
+    const other = axis === "width" ? "height" : "width";
+    edit({
+      [axis]: value,
+      ...(linked && { [other]: follow(value, from, to) }),
+    });
+  };
+
+  /**
+   * Up and Down step the value by one, or by ten with Shift. Enter and a blur
+   * show the result of the arithmetic in the field.
+   */
+  const keys = (axis: "width" | "height") => ({
+    onKeyDown: (event: KeyboardEvent) => {
+      const value = axis === "width" ? width : height;
+      if (event.key === "Enter") {
+        const n = amount(value);
+        if (n !== null) type(axis, written(n));
+        return;
+      }
+      if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+      event.preventDefault();
+      const step =
+        (event.shiftKey ? 10 : 1) * (event.key === "ArrowUp" ? 1 : -1);
+      const n = amount(value) ?? 0;
+      type(axis, written(Math.max(1, Math.round(n) + step)));
+    },
+    onBlur: () => {
+      const value = axis === "width" ? width : height;
+      const n = amount(value);
+      if (n !== null && written(n) !== value.trim()) type(axis, written(n));
+    },
+  });
 
   return (
     <SidePanel
@@ -141,11 +207,8 @@ export function DrawingSize({
               inputMode="decimal"
               class={field}
               value={width}
-              onInput={(event) => {
-                const value = event.currentTarget.value;
-                setWidth(value);
-                if (linked) setHeight(follow(value, size.width, size.height));
-              }}
+              onInput={(event) => type("width", event.currentTarget.value)}
+              {...keys("width")}
             />
           </label>
           <label class="flex items-center justify-between gap-2">
@@ -155,11 +218,8 @@ export function DrawingSize({
               inputMode="decimal"
               class={field}
               value={height}
-              onInput={(event) => {
-                const value = event.currentTarget.value;
-                setHeight(value);
-                if (linked) setWidth(follow(value, size.height, size.width));
-              }}
+              onInput={(event) => type("height", event.currentTarget.value)}
+              {...keys("height")}
             />
           </label>
         </div>
@@ -167,7 +227,7 @@ export function DrawingSize({
           <button
             type="button"
             class={`p-1.5 rounded-md cursor-pointer ${linked ? "bg-blue-600 text-white" : "text-neutral-300 hover:bg-white/10"}`}
-            onClick={() => setLinked(!linked)}
+            onClick={() => edit({ linked: !linked })}
             aria-label={t("drawing.keepShape")}
             aria-pressed={linked}
           >
@@ -216,18 +276,31 @@ export function DrawingSize({
           </fieldset>
         </div>
       )}
-      <button
-        type="button"
-        class="rounded-lg px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 cursor-pointer disabled:cursor-default"
-        disabled={!changed}
-        onClick={() => {
-          if (w === null || h === null) return;
-          onResize(kind, w, h, anchor);
-          onClose();
-        }}
-      >
-        {t("drawing.applySize")}
-      </button>
+      <div class="flex gap-2">
+        <Tooltip label={t("drawing.resetSize")}>
+          <button
+            type="button"
+            class="rounded-lg p-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 cursor-pointer disabled:cursor-default"
+            disabled={!edited}
+            onClick={() => edit(fresh(unit, linked))}
+            aria-label={t("drawing.resetSize")}
+          >
+            <Undo2 class="w-4 h-4" />
+          </button>
+        </Tooltip>
+        <button
+          type="button"
+          class="flex-1 rounded-lg px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 cursor-pointer disabled:cursor-default"
+          disabled={!changed}
+          onClick={() => {
+            if (w === null || h === null) return;
+            onResize(kind, w, h, anchor);
+            onClose();
+          }}
+        >
+          {t("drawing.applySize")}
+        </button>
+      </div>
     </SidePanel>
   );
 }

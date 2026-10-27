@@ -66,6 +66,10 @@ shares and exports it as a picture, and it uses one of the image slots of the no
 - **Picture size** changes the size of the picture in pixels, or in percent of the size now. It
   shows the megapixels and the shape (for example `16 : 9`). The link keeps the shape. Each edge
   is from 1 to 2560 pixels. **Apply** is one step for undo, and removes the selected area.
+  Canvas and Image keep their own fields, unit and link. The undo button next to Apply puts the
+  fields of the open tab back to the size now. A field takes arithmetic (`1920 / 2`), and shows
+  the result on Enter or when focus leaves it. Up and Down step the value by 1, or by 10 with
+  Shift.
   - **Canvas** gives the picture a new size, and the drawing keeps its size. A larger canvas adds
     paper, and a smaller one crops. The anchor (one of nine places) is where the picture stays.
   - **Image** stretches the drawing, and the image under it, to the new size. A line becomes as much

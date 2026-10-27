@@ -235,6 +235,7 @@ export const en = {
   "drawing.anchorBottom": "Bottom",
   "drawing.anchorBottomRight": "Bottom right",
   "drawing.applySize": "Apply",
+  "drawing.resetSize": "Reset to the current size",
   "drawing.history": "History",
   "drawing.stepOpen": "Open",
   "drawing.stepPen": "Pen",
