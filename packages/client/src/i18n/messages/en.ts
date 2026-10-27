@@ -149,6 +149,7 @@ export const en = {
   "drawing.clear": "Clear",
   "drawing.layers": "Layers",
   "drawing.layerName": "Layer {n}",
+  "drawing.pictureLayer": "Picture",
   "drawing.addLayer": "Add layer",
   "drawing.showLayer": "Show {name}",
   "drawing.hideLayer": "Hide {name}",

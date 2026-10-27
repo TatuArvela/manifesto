@@ -35,6 +35,7 @@ import {
   redo,
   resizeCanvas,
   resizeImage,
+  type Sketch,
   type SketchHistory,
   transformLayer,
   undo,
@@ -200,14 +201,7 @@ export function DrawingPad() {
   const redraw = () => {
     const ctx = context();
     if (ctx) {
-      renderDrawing(
-        ctx,
-        historyRef.current.present.layers,
-        paper,
-        base.current,
-        false,
-        currentView(),
-      );
+      renderDrawing(ctx, historyRef.current.present.layers, currentView());
     }
     present();
   };
@@ -231,6 +225,20 @@ export function DrawingPad() {
     setHistory(next);
     redraw();
   };
+
+  // The image to draw over, as the bottom layer, once it is read.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, as the image arrives
+  useLayoutEffect(() => {
+    const image = base.current;
+    if (!ready || !image) return;
+    const next = newSketchHistory({
+      image,
+      paper: basePaper,
+      name: t("drawing.pictureLayer"),
+    });
+    historyRef.current = next;
+    setHistory(next);
+  }, [ready]);
 
   // The paper, before anything is drawn on it and before the first frame. A
   // canvas starts transparent, which looks black over the dark ground of the
@@ -272,8 +280,6 @@ export function DrawingPad() {
     context,
     sketch: () => historyRef.current.present,
     view: currentView,
-    paper,
-    base: base.current,
     moving: () =>
       gesture.current?.kind === "drag" ? gesture.current.by : null,
     preview: () => previewMarks(),
@@ -351,6 +357,15 @@ export function DrawingPad() {
     polygon.current ? cancelPolygon() : apply(undo(historyRef.current));
   const redoStep = () => applyControl(redo(historyRef.current));
 
+  /**
+   * True when there is a drawing: on blank paper, as `drawn` says. Over an
+   * image, any step from the start, because the image is a layer with ink.
+   */
+  const changed = (drawn: (sketch: Sketch) => boolean) =>
+    base.current
+      ? historyRef.current.past.length > 0
+      : drawn(historyRef.current.present);
+
   const discard = async () => {
     const confirmed = await askConfirmation({
       title: t("drawing.discardConfirm"),
@@ -368,7 +383,7 @@ export function DrawingPad() {
     commitGesture();
     selectTool.end();
     if (polygon.current) finishPolygon();
-    if (!hasStrokes(historyRef.current.present)) {
+    if (!changed(hasStrokes)) {
       closeDrawing();
       return true;
     }
@@ -393,7 +408,7 @@ export function DrawingPad() {
     selectTool.end();
     if (polygon.current) finishPolygon();
     // Only what shows is the picture. Hidden layers alone change nothing.
-    if (!hasVisibleStrokes(historyRef.current.present)) {
+    if (!changed(hasVisibleStrokes)) {
       closeDrawing();
       return;
     }

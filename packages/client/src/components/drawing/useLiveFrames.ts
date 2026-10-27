@@ -4,7 +4,6 @@ import {
   CPU_INK,
   drawMarks,
   type Mark,
-  type PaperSize,
   type Point,
   paintLayer,
   type Rect,
@@ -20,8 +19,6 @@ export interface LiveSource {
   sketch: () => Sketch;
   /** The part of the paper that the picture shows. */
   view: () => Rect;
-  paper: PaperSize;
-  base: HTMLImageElement | null;
   /** While the move tool drags the active layer: how far it moved it. */
   moving: () => Transform | null;
   /** Marks that the frame shows on the active layer, not yet in the sketch. */
@@ -138,13 +135,12 @@ export function useLiveFrames(source: LiveSource) {
     const layer = reusedCanvas(reused?.layer, shown);
     const underCtx = under.getContext("2d");
     const overCtx = over.getContext("2d");
-    const { paper, base } = source;
     if (underCtx) {
       const below = layers.slice(0, index);
-      renderDrawing(underCtx, below, paper, base, false, shown);
+      renderDrawing(underCtx, below, shown);
     }
     if (overCtx) {
-      renderDrawing(overCtx, layers.slice(index + 1), paper, null, true, shown);
+      renderDrawing(overCtx, layers.slice(index + 1), shown, true);
     }
     paintLayer(layer, layers[index]?.marks ?? [], shown);
     const scratch = reusedCanvas(reused?.scratch, shown);

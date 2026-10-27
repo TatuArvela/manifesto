@@ -45,6 +45,25 @@ const ids = (history: ReturnType<typeof newSketchHistory>) =>
   history.present.layers.map((layer) => layer.id);
 
 describe("drawing layers", () => {
+  it("opens an image as the bottom layer, under the layer the pen draws on", () => {
+    const image = {} as CanvasImageSource;
+    const history = newSketchHistory({
+      image,
+      paper: { width: 300, height: 600 },
+      name: "Picture",
+    });
+    const [picture, drawn] = history.present.layers;
+    expect(picture).toEqual({
+      id: 0,
+      visible: true,
+      name: "Picture",
+      marks: [{ image, at: { x: 0, y: 0, width: 300, height: 600 } }],
+    });
+    expect(drawn).toEqual({ id: 1, visible: true, marks: [] });
+    expect(history.present.active).toBe(1);
+    expect(history.past).toEqual([]);
+  });
+
   it("starts with one empty layer and nothing to undo", () => {
     const history = newSketchHistory();
     expect(ids(history)).toEqual([1]);

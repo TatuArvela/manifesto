@@ -152,6 +152,7 @@ export const fi: Messages = {
   "drawing.clear": "Tyhjennä",
   "drawing.layers": "Tasot",
   "drawing.layerName": "Taso {n}",
+  "drawing.pictureLayer": "Kuva",
   "drawing.addLayer": "Lisää taso",
   "drawing.showLayer": "Näytä {name}",
   "drawing.hideLayer": "Piilota {name}",

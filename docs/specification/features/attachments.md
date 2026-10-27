@@ -167,16 +167,19 @@ when the pointer is on the image, and always on a touch screen. The button opens
 pad as the paper. Done puts the result in the position of the image (at the end, if you removed the
 image in the meantime). Use this to change a drawing after you save it, and to add notes on a photo.
 
+- The image is the bottom layer, named Picture, under an empty layer for the pen. You can erase,
+  move, select, hide, delete and change the opacity of it as of any other layer.
 - After a drawing is on the note, it is a picture. Thus, its old lines and layers are part of the
-  paper. Undo, clear and the eraser apply only to the lines of this session, and the eraser does not
-  remove the picture. To keep the strokes, the app needs a place to store them with the image.
+  Picture layer when it opens again. To keep the strokes, the app needs a place to store them with
+  the image.
 - The paper is the own size of the image. Thus, the image keeps its pixels, and is not stretched.
   A pen width is in pixels of the paper, on paper of any size. Thus, the same width looks wider
   on a small image than on a large one.
 - The result is a PNG, which keeps lines sharp each time you open a drawing again. If the PNG is more
   than one megabyte, as over a photo, the result is a JPEG. An animated GIF becomes a still image.
-- Done with nothing drawn does not change the image. The drawing replaces the original in the note. The
-  version of the edit keeps the original, and a restore of it brings the original back. The drawing gets its description, which still tells what is under the
+- Done with no step since the pad opened does not change the image. The drawing replaces the
+  original in the note. The version of the edit keeps the original, and a restore of it brings the
+  original back. The drawing gets its description, which still tells what is under the
   lines.
 
 ### Describing an image

@@ -52,7 +52,7 @@ export interface Stroke {
   points: Point[];
   /**
    * Takes ink away from its own layer, and leaves what is under that layer.
-   * Thus, it never paints over the image under the drawing.
+   * Thus, it never paints over the layers under it.
    */
   erase?: boolean;
   /** Round when absent. */
@@ -115,9 +115,9 @@ export interface Shape {
 }
 
 /**
- * The area of a flood fill, as a picture of it in its color. A fill follows
- * the pixels that showed at the press. Thus, it is a picture, not a line, and
- * a large resize of it is less sharp.
+ * A picture on a layer: the area of a flood fill in its color, or the image
+ * that the pad opened. A fill follows the pixels that showed at the press.
+ * Thus, it is a picture, not a line, and a large resize of it is less sharp.
  */
 export interface Fill {
   image: CanvasImageSource;
@@ -721,21 +721,18 @@ export function rasterize(marks: readonly Mark[], area: Rect): Fill | null {
 }
 
 /**
- * The full drawing from nothing: paper, the image under the drawing if there is
- * one, then each layer that shows, from the bottom up. The paper stays under
- * the image. Thus, an image with transparent parts is as opaque as all other
- * drawings. With `onlyLayers`, it is the given layers alone, on a transparent
- * ground: the pad keeps those under and over the line in progress. The canvas
- * is the size of `view`, the part of the paper that the picture keeps after a
- * crop.
+ * The full drawing from nothing: paper, then each layer that shows, from the
+ * bottom up. The paper stays under an image on a layer. Thus, an image with
+ * transparent parts is as opaque as all other drawings. With `onlyLayers`, it
+ * is the given layers alone, on a transparent ground: the pad keeps those under
+ * and over the line in progress. The canvas is the size of `view`, the part of
+ * the paper that the picture keeps after a crop.
  */
 export function renderDrawing(
   ctx: CanvasRenderingContext2D,
   layers: readonly Layer[],
-  paper: PaperSize = BLANK_PAPER,
-  base: CanvasImageSource | null = null,
+  view: Rect,
   onlyLayers = false,
-  view: Rect = wholePaper(paper),
 ): void {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (onlyLayers) {
@@ -743,9 +740,6 @@ export function renderDrawing(
   } else {
     ctx.fillStyle = PAPER;
     ctx.fillRect(0, 0, view.width, view.height);
-    if (base) {
-      ctx.drawImage(base, -view.x, -view.y, paper.width, paper.height);
-    }
   }
   let scratch: HTMLCanvasElement | null = null;
   for (const layer of layers) {

@@ -43,7 +43,7 @@ export interface Sketch {
   frame?: Rect;
   /**
    * The size of the paper after a change of the size of the image. The paper
-   * of the pad when absent. The image under the drawing stretches to it.
+   * of the pad when absent.
    */
   paper?: PaperSize;
   /** The change that made this sketch, for the list of steps. None at the start. */
@@ -85,14 +85,31 @@ export interface SketchHistory {
 /** More layers than this are hard to tell apart in a list on a phone. */
 export const MAX_LAYERS = 8;
 
-export function newSketchHistory(): SketchHistory {
+/**
+ * The history of a new drawing. Over an image, the image is the bottom layer,
+ * number 0 and named `picture`, under an empty layer 1 on which the pen draws.
+ * Thus, it is erased, moved and hidden as any other layer.
+ */
+export function newSketchHistory(picture?: {
+  image: CanvasImageSource;
+  paper: PaperSize;
+  name: string;
+}): SketchHistory {
+  const drawn: Layer = { id: 1, visible: true, marks: [] };
+  const layers: Layer[] = picture
+    ? [
+        {
+          id: 0,
+          visible: true,
+          name: picture.name,
+          marks: [{ image: picture.image, at: wholePaper(picture.paper) }],
+        },
+        drawn,
+      ]
+    : [drawn];
   return {
     past: [],
-    present: {
-      layers: [{ id: 1, visible: true, marks: [] }],
-      active: 1,
-      nextId: 2,
-    },
+    present: { layers, active: 1, nextId: 2 },
     future: [],
   };
 }
@@ -476,8 +493,7 @@ export function resizeCanvas(
 }
 
 /**
- * Gives the picture a new size, with the drawing and the image under it
- * stretched to fill it. Ink becomes pixels of the new size, as in any picture
+ * Gives the picture a new size, with all layers stretched to fill it. Ink becomes pixels of the new size, as in any picture
  * editor. Nothing when the size does not change.
  */
 export function resizeImage(
@@ -577,8 +593,8 @@ export const hasStrokes = (sketch: Sketch): boolean =>
   sketch.layers.some((layer) => layer.marks.length > 0);
 
 /**
- * True when the picture differs from the paper, or from the image under it:
- * something to save on Done.
+ * True when the picture differs from the blank paper: something to save on
+ * Done. A drawing over an image asks if anything changed instead.
  */
 export const hasVisibleStrokes = (sketch: Sketch): boolean =>
   sketch.frame !== undefined ||
