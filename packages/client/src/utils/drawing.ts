@@ -472,6 +472,16 @@ export const reusedCanvas = (
     ? kept
     : blankCanvas(size);
 
+/**
+ * The context of a canvas that ink is drawn on. On the GPU, Chrome changes how
+ * it smooths the edge of a path as the path gets long: a line in progress
+ * moves, and moves again at the release. On the CPU, the edge stays the same.
+ * The live frames use it too, so that a line keeps its shape at the release.
+ */
+export const CPU_INK: CanvasRenderingContext2DSettings = {
+  willReadFrequently: true,
+};
+
 /** The canvas on which `renderDrawing` paints each layer before it adds it. */
 let layerScratch: HTMLCanvasElement | null = null;
 
@@ -619,7 +629,7 @@ function drawMasked(
   if (!area) return;
   const scratch = reusedCanvas(maskScratch[maskDepth], { width, height });
   maskScratch[maskDepth] = scratch;
-  const own = scratch.getContext("2d");
+  const own = scratch.getContext("2d", CPU_INK);
   if (!own) return;
   own.save();
   own.setTransform(1, 0, 0, 1, 0, 0);
@@ -670,7 +680,7 @@ export function paintLayer(
   marks: readonly Mark[],
   view: Pick<Rect, "x" | "y"> = { x: 0, y: 0 },
 ): void {
-  const ctx = scratch.getContext("2d");
+  const ctx = scratch.getContext("2d", CPU_INK);
   if (!ctx) return;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, scratch.width, scratch.height);

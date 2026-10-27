@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "preact/hooks";
 import {
   blankCanvas,
+  CPU_INK,
   drawMarks,
   type Mark,
   type PaperSize,
@@ -73,7 +74,7 @@ export function useLiveFrames(source: LiveSource) {
     const canvases = live.current;
     if (!ctx || !canvases) return;
     const { under, layer, over, scratch } = canvases;
-    const scratchCtx = scratch.getContext("2d");
+    const scratchCtx = scratch.getContext("2d", CPU_INK);
     if (!scratchCtx) return;
     scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
     scratchCtx.clearRect(0, 0, scratch.width, scratch.height);
