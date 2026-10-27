@@ -89,8 +89,11 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   with an eye icon sets the opacity of the current layer. One slide is one step for undo. Each row
   has an eye that hides or shows the layer, a small picture of its ink, and its name. Press a row
   to draw on that layer. The buttons at the bottom add a layer over the current one (to a maximum
-  of eight), move the current layer up or down, and delete it (not the last layer). A line that
-  you draw on a hidden layer shows that layer again.
+  of eight), rename the current layer, move it up or down, and delete it (not the last layer). A
+  double press on a row also renames the layer. Enter or a press outside keeps the name, and Escape
+  keeps the old one. A name has a maximum of 40 characters, and an empty name gives the layer its
+  numbered name again. Each rename is one step for undo. A line that you draw on a hidden layer
+  shows that layer again.
 - **Move** shows a dashed box around the ink of the current layer. A drag moves the ink. A drag of
   one of the handles at its four corners makes it larger or smaller, from the opposite corner, with
   the same scale on both axes (from 0.05 to 20 times). A hidden layer shows no box and does not

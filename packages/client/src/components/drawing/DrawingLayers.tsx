@@ -1,6 +1,14 @@
-import { ArrowDown, ArrowUp, Eye, EyeOff, Plus, Trash2 } from "lucide-preact";
+import {
+  ArrowDown,
+  ArrowUp,
+  Eye,
+  EyeOff,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-preact";
 import type { ComponentChildren } from "preact";
-import { useLayoutEffect, useRef } from "preact/hooks";
+import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { t } from "#/i18n/index.ts";
@@ -10,9 +18,11 @@ import {
   addLayer,
   endJoin,
   type Layer,
+  MAX_LAYER_NAME,
   MAX_LAYERS,
   moveLayer,
   removeLayer,
+  renameLayer,
   type SketchHistory,
   selectLayer,
   setLayerOpacity,
@@ -56,6 +66,54 @@ function LayerThumb({ layer, view }: { layer: Layer; view: Rect }) {
   );
 }
 
+/** The name of a layer: its own, or "Layer" and its number. */
+export const layerName = (layer: Layer): string =>
+  layer.name ?? t("drawing.layerName", { n: layer.id });
+
+/**
+ * The field that renames a layer, in place of its name. Enter or a move of
+ * focus away keeps the name, and Escape keeps the old one.
+ */
+function NameField({
+  layer,
+  onRename,
+  onEnd,
+}: {
+  layer: Layer;
+  onRename: (name: string) => void;
+  onEnd: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  // Escape ends the edit before it reaches the panel. A ref, because the
+  // blur that follows the end must not keep the name.
+  const cancelled = useRef(false);
+  useEscapeStack(true, () => {
+    cancelled.current = true;
+    onEnd();
+  });
+  useLayoutEffect(() => {
+    ref.current?.focus();
+    ref.current?.select();
+  }, []);
+  return (
+    <input
+      ref={ref}
+      type="text"
+      class="flex-1 min-w-0 rounded-md bg-neutral-900 px-1.5 py-1 text-sm text-neutral-100 outline-none ring-1 ring-blue-400"
+      defaultValue={layerName(layer)}
+      maxLength={MAX_LAYER_NAME}
+      aria-label={t("drawing.layerNameField", { name: layerName(layer) })}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") event.currentTarget.blur();
+      }}
+      onBlur={(event) => {
+        if (!cancelled.current) onRename(event.currentTarget.value);
+        onEnd();
+      }}
+    />
+  );
+}
+
 /** A button of the bottom row, with only an icon, and its name on hover. */
 function ActionButton({
   label,
@@ -90,8 +148,9 @@ function ActionButton({
  *
  * The opacity of the current layer is at the top. Each row has the eye that
  * hides or shows the layer, a picture of its ink, and its name. A press on a
- * row makes that layer the one the pen draws on. The buttons at the bottom
- * add a layer, and move or delete the current one. Each change, but the
+ * row makes that layer the one the pen draws on, and a double press, or the
+ * pencil at the bottom, renames it. The buttons at the bottom add a layer,
+ * and rename, move or delete the current one. Each change, but the
  * choice of a layer, is one step that undo takes back.
  */
 export function DrawingLayers({
@@ -113,7 +172,9 @@ export function DrawingLayers({
   const current = activeLayer(history.present);
   const at = layers.findIndex((layer) => layer.id === active);
   const opacity = Math.round((current?.opacity ?? 1) * 100);
-  const currentName = current ? t("drawing.layerName", { n: current.id }) : "";
+  const currentName = current ? layerName(current) : "";
+  /** The layer whose name is a field. */
+  const [naming, setNaming] = useState<number | null>(null);
 
   return (
     <SidePanel label={t("drawing.layers")} class={phonePanel(open)}>
@@ -148,7 +209,7 @@ export function DrawingLayers({
       )}
       <ul class="flex flex-col gap-0.5">
         {[...layers].reverse().map((layer) => {
-          const name = t("drawing.layerName", { n: layer.id });
+          const name = layerName(layer);
           return (
             <li
               key={layer.id}
@@ -169,15 +230,32 @@ export function DrawingLayers({
                   <EyeOff class="w-4 h-4 text-neutral-500" />
                 )}
               </button>
-              <button
-                type="button"
-                class={`flex flex-1 min-w-0 items-center gap-2 py-1 pr-2 text-left text-sm cursor-pointer ${layer.visible ? "" : "text-neutral-500"}`}
-                onClick={() => onChange(selectLayer(history, layer.id))}
-                aria-pressed={layer.id === active}
-              >
-                <LayerThumb layer={layer} view={view} />
-                <span class="truncate">{name}</span>
-              </button>
+              {naming === layer.id ? (
+                <div class="flex flex-1 min-w-0 items-center gap-2 py-1 pr-1">
+                  <LayerThumb layer={layer} view={view} />
+                  <NameField
+                    layer={layer}
+                    onRename={(next) =>
+                      onChange(renameLayer(history, layer.id, next))
+                    }
+                    onEnd={() => setNaming(null)}
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  class={`flex flex-1 min-w-0 items-center gap-2 py-1 pr-2 text-left text-sm cursor-pointer ${layer.visible ? "" : "text-neutral-500"}`}
+                  onClick={() => onChange(selectLayer(history, layer.id))}
+                  onDblClick={() => {
+                    onChange(selectLayer(history, layer.id));
+                    setNaming(layer.id);
+                  }}
+                  aria-pressed={layer.id === active}
+                >
+                  <LayerThumb layer={layer} view={view} />
+                  <span class="truncate">{name}</span>
+                </button>
+              )}
             </li>
           );
         })}
@@ -189,6 +267,13 @@ export function DrawingLayers({
           disabled={layers.length >= MAX_LAYERS}
         >
           <Plus class="w-4 h-4" />
+        </ActionButton>
+        <ActionButton
+          label={t("drawing.renameLayer", { name: currentName })}
+          onClick={() => setNaming(active)}
+          disabled={!current}
+        >
+          <Pencil class="w-4 h-4" />
         </ActionButton>
         <ActionButton
           label={t("drawing.layerUp", { name: currentName })}

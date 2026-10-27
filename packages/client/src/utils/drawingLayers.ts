@@ -25,6 +25,8 @@ export interface Layer {
   visible: boolean;
   /** From 0 to 1. Opaque when absent. */
   opacity?: number;
+  /** The name that the person gave it. "Layer" and its number when absent. */
+  name?: string;
   marks: readonly Mark[];
 }
 
@@ -59,6 +61,7 @@ export type Step =
   | "removeLayer"
   | "toggleLayer"
   | "layerOpacity"
+  | "renameLayer"
   | "moveLayer"
   | "orderLayer"
   | "cropLayer"
@@ -231,6 +234,30 @@ export function setLayerOpacity(
   );
 }
 
+/** The longest name of a layer. */
+export const MAX_LAYER_NAME = 40;
+
+/**
+ * Gives a layer a name. A name of only spaces removes the name, and the layer
+ * has its numbered name again. Nothing when the name does not change.
+ */
+export function renameLayer(
+  history: SketchHistory,
+  id: number,
+  name: string,
+): SketchHistory {
+  const value = name.trim().slice(0, MAX_LAYER_NAME);
+  const layer = history.present.layers.find((each) => each.id === id);
+  if (!layer || (layer.name ?? "") === value) return history;
+  return record(
+    history,
+    "renameLayer",
+    changeLayer(history.present, id, ({ name: _, ...each }) =>
+      value ? { ...each, name: value } : each,
+    ),
+  );
+}
+
 /** The same picture: the same layers, in the same order and look. */
 const sameSketch = (a: Sketch, b: Sketch): boolean =>
   a.frame === b.frame &&
@@ -242,7 +269,8 @@ const sameSketch = (a: Sketch, b: Sketch): boolean =>
       layer.id === other.id &&
       layer.marks === other.marks &&
       layer.visible === other.visible &&
-      (layer.opacity ?? 1) === (other.opacity ?? 1)
+      (layer.opacity ?? 1) === (other.opacity ?? 1) &&
+      layer.name === other.name
     );
   });
 

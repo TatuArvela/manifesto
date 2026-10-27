@@ -18,6 +18,7 @@ import {
   newSketchHistory,
   redo,
   removeLayer,
+  renameLayer,
   resizeCanvas,
   resizeImage,
   selectLayer,
@@ -128,6 +129,23 @@ describe("drawing layers", () => {
     // An empty layer: nothing to delete, and no step to undo.
     const empty = addLayer(history);
     expect(deleteSelected(empty, area, mask)).toBe(empty);
+  });
+
+  it("names a layer, and an empty name gives back the number", () => {
+    let history = addMark(newSketchHistory(), line(1));
+    const id = history.present.active;
+    history = renameLayer(history, id, "  Sky  ");
+    expect(activeLayer(history.present)?.name).toBe("Sky");
+    expect(history.present.step).toBe("renameLayer");
+    // The same name: no step.
+    expect(renameLayer(history, id, "Sky")).toBe(history);
+    expect(
+      renameLayer(history, id, "x".repeat(60)).present.layers[0]?.name,
+    ).toHaveLength(40);
+    history = renameLayer(history, id, "   ");
+    expect(activeLayer(history.present)).not.toHaveProperty("name");
+    history = undo(history);
+    expect(activeLayer(history.present)?.name).toBe("Sky");
   });
 
   it("undoes and redoes each change, a clear also", () => {

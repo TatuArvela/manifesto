@@ -20,6 +20,7 @@ const STEP_NAMES = {
   removeLayer: "drawing.stepRemoveLayer",
   toggleLayer: "drawing.stepToggleLayer",
   layerOpacity: "drawing.stepLayerOpacity",
+  renameLayer: "drawing.stepRenameLayer",
   moveLayer: "drawing.stepMoveLayer",
   orderLayer: "drawing.stepOrderLayer",
   cropLayer: "drawing.cropLayer",
