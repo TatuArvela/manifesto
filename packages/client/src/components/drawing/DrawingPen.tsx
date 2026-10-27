@@ -6,7 +6,7 @@ import { t } from "#/i18n/index.ts";
 import type { PenTip } from "#/utils/drawing.ts";
 import type { Tool } from "./tools.ts";
 
-/** Pen widths, in the own pixels of a new drawing. */
+/** Pen widths, in pixels of the paper. */
 export const WIDTHS = [4, 10, 22] as const;
 export const MIN_WIDTH = 1;
 export const MAX_WIDTH = 200;
@@ -93,8 +93,8 @@ const choice = (on: boolean) =>
 /**
  * The shape, width and transparency of the pen, also for the eraser, lines
  * and the outlines of shapes, and what a shape draws. The width has three sizes to
- * press, and a field for any other, in the pixels of a new drawing. Thus, a
- * width looks the same on paper of any size.
+ * press, and a field for any other, in pixels of the paper. Thus, a width
+ * is the same number of pixels on paper of any size.
  *
  * Only the options of the current tool show. On a wide screen they are a bar
  * over the paper, always there. On a phone they are a panel that the pen

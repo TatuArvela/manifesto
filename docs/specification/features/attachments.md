@@ -171,8 +171,8 @@ image in the meantime). Use this to change a drawing after you save it, and to a
   paper. Undo, clear and the eraser apply only to the lines of this session, and the eraser does not
   remove the picture. To keep the strokes, the app needs a place to store them with the image.
 - The paper is the own size of the image. Thus, the image keeps its pixels, and is not stretched.
-  The app scales the pens, so that they look the same width on the screen. On a small image, a line
-  shows its pixels.
+  A pen width is in pixels of the paper, on paper of any size. Thus, the same width looks wider
+  on a small image than on a large one.
 - The result is a PNG, which keeps lines sharp each time you open a drawing again. If the PNG is more
   than one megabyte, as over a photo, the result is a JPEG. An animated GIF becomes a still image.
 - Done with nothing drawn does not change the image. The drawing replaces the original in the note. The

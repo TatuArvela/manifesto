@@ -30,13 +30,6 @@ export function paperSizeFor(image: PaperSize): PaperSize | null {
 }
 
 /**
- * How much wider a pen is on `paper` than on a new drawing. Thus, it looks the
- * same width on the screen, whatever the size of the paper.
- */
-export function penScale(paper: PaperSize): number {
-  return Math.max(paper.width, paper.height) / DRAWING_WIDTH;
-}
-/**
  * Paper: a drawing is opaque. Thus, it looks the same on a note of any color
  * and in both themes, where transparent ink on a dark note would disappear.
  */

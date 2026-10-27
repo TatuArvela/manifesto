@@ -2,7 +2,6 @@ import {
   PAPER,
   type PaperSize,
   type Point,
-  penScale,
   type Shape,
   type Stroke,
 } from "#/utils/drawing.ts";
@@ -20,9 +19,9 @@ export type MarkStyle = {
   paper: PaperSize;
 };
 
-/** The width of the pen, the eraser or an outline, on this paper. */
-export const strokeWidth = ({ pen, erasing, paper }: MarkStyle) =>
-  (erasing ? pen.width * ERASER_SCALE : pen.width) * penScale(paper);
+/** The width of the pen, the eraser or an outline, in pixels of the paper. */
+export const strokeWidth = ({ pen, erasing }: MarkStyle) =>
+  erasing ? pen.width * ERASER_SCALE : pen.width;
 
 export const shapeMark = (
   style: MarkStyle,

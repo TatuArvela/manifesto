@@ -8,7 +8,6 @@ import {
   intersect,
   markBounds,
   paperSizeFor,
-  penScale,
   resizeAround,
   stampCenters,
   transformMark,
@@ -64,13 +63,6 @@ describe("paperSizeFor", () => {
   it("has no paper for an image without a size", () => {
     expect(paperSizeFor({ width: 0, height: 0 })).toBeNull();
     expect(paperSizeFor({ width: 100, height: 0 })).toBeNull();
-  });
-});
-
-describe("penScale", () => {
-  it("widens the pen with the paper, so it looks the same on screen", () => {
-    expect(penScale(BLANK_PAPER)).toBe(1);
-    expect(penScale({ width: 1200, height: 2400 })).toBe(1.5);
   });
 });
 
