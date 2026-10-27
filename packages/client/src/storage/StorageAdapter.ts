@@ -25,6 +25,12 @@ export interface NoteChanges {
   checkpoint: string;
 }
 
+/** A version to add: the note as it was, and when, if not now. */
+export type VersionInput = Pick<
+  NoteVersion,
+  "title" | "content" | "images" | "imageAlts"
+> & { timestamp?: string };
+
 /** What a new note is stored with, other than its fields. */
 export interface CreateOptions {
   id?: string | undefined;
@@ -86,12 +92,10 @@ export interface StorageAdapter {
   listVersions(noteId: string): Promise<NoteVersion[]>;
   /**
    * Adds a version. `timestamp` only when the code brings across an older
-   * version.
+   * version. Without `images`, the version keeps no images, and a restore of
+   * it keeps those of the note.
    */
-  saveVersion(
-    noteId: string,
-    version: { title: string; content: string; timestamp?: string },
-  ): Promise<void>;
+  saveVersion(noteId: string, version: VersionInput): Promise<void>;
   /**
    * What the server could read from a linked page, with its image and favicon
    * as loaded (not shrunk yet). Null when there is nothing to add to the plain

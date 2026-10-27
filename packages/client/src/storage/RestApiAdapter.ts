@@ -31,6 +31,7 @@ import type {
   CreateOptions,
   NoteChanges,
   StorageAdapter,
+  VersionInput,
 } from "./StorageAdapter.ts";
 import { LockedError, type NoteSealing } from "./sealing.ts";
 
@@ -259,10 +260,7 @@ export class RestApiAdapter implements StorageAdapter {
     );
   }
 
-  async saveVersion(
-    noteId: string,
-    version: { title: string; content: string; timestamp?: string },
-  ): Promise<void> {
+  async saveVersion(noteId: string, version: VersionInput): Promise<void> {
     const sealed = await this.sealing().sealVersion(
       noteId,
       version,

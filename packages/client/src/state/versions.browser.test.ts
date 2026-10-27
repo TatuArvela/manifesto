@@ -1,9 +1,18 @@
 import type { NoteVersion } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { currentStorage, storageConnection } from "#/storage/index.ts";
-import { getVersions, saveVersion } from "#/storage/VersionStorage.ts";
+import {
+  getVersions,
+  saveVersion,
+  versionImageRefs,
+} from "#/storage/VersionStorage.ts";
 import { notes } from "./notesStore.ts";
-import { loadVersions, recordVersion, restoreVersions } from "./versions.ts";
+import {
+  loadVersions,
+  recordVersion,
+  restoreVersions,
+  versionToKeep,
+} from "./versions.ts";
 
 let saved: { noteId: string; timestamp?: string; content: string }[];
 let listVersions: ReturnType<typeof vi.fn>;
@@ -60,7 +69,9 @@ describe("versions in connected mode", () => {
       },
     } as never);
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    await expect(recordVersion("n1", "", "x")).resolves.toBeUndefined();
+    await expect(
+      recordVersion("n1", { title: "", content: "x" }),
+    ).resolves.toBeUndefined();
   });
 });
 
@@ -105,5 +116,57 @@ describe("restoreVersions", () => {
     await expect(
       restoreVersions([version("mine", "x", ago(1))]),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("the images of a version", () => {
+  const note = (images: string[], imageAlts?: string[]) =>
+    ({
+      id: "n1",
+      title: "T",
+      content: "C",
+      images,
+      ...(imageAlts && { imageAlts }),
+    }) as never;
+
+  it("keeps the images from before, when only the images changed", () => {
+    notes.value = [note(["local:new"])];
+    const version = versionToKeep(
+      "n1",
+      { title: "T", content: "C", images: { images: ["local:old"] } },
+      "T",
+      "C",
+    );
+    expect(version).toEqual({
+      title: "T",
+      content: "C",
+      images: ["local:old"],
+    });
+  });
+
+  it("sees a new description as a change, and nothing when all is the same", () => {
+    notes.value = [note(["local:a"], ["A dog"])];
+    const before = {
+      title: "T",
+      content: "C",
+      images: { images: ["local:a"] },
+    };
+    expect(versionToKeep("n1", before, "T", "C")).not.toBeNull();
+    notes.value = [note(["local:a"])];
+    expect(versionToKeep("n1", before, "T", "C")).toBeNull();
+  });
+
+  it("keeps no images when they had not arrived", () => {
+    notes.value = [note(["local:a"])];
+    expect(
+      versionToKeep("n1", { title: "T", content: "C", images: null }, "T", "D"),
+    ).toEqual({ title: "T", content: "C" });
+  });
+
+  it("names the images of open mode's versions for the sweep", () => {
+    saveVersion("n1", "", "kept", undefined, { images: ["local:old"] });
+    saveVersion("n2", "", "plain");
+    expect(versionImageRefs()).toEqual(["local:old"]);
+    expect(getVersions("n1")[0]?.images).toEqual(["local:old"]);
   });
 });

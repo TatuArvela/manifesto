@@ -4,11 +4,13 @@ Notes have a persistent version history. Users can see previous versions and res
 
 ## Behavior
 
-- When the note editor closes with unsaved changes, the app saves the state from before the edit as
-  a version.
+- When the note editor closes after a change to the title, the text or the images, the app saves the
+  state from before the edit as a version. The images are those that the note had when the editor
+  opened, with their descriptions. A replaced drawing is such a change.
 - To see the version history, open the kebab menu in the note editor.
 - Each version shows the time when the app recorded it.
-- When you select a version, the app restores its title and content to the note.
+- When you select a version, the app restores its title, its content and its images to the note. A
+  version from before images were kept restores only its title and content.
 - Each note has its own versions. In open mode, this browser keeps them. In connected mode, the
   server keeps them. Thus, all devices, and all persons who have the note, see the same history.
 
@@ -60,10 +62,13 @@ Each version is a `NoteVersion` (see [Data Model](../data-model.md)). It contain
 - `timestamp`: the time when the app recorded the version
 - `title`: the title of the note at that time
 - `content`: the content of the note at that time
+- `images`, `imageAlts`: the images of the note at that time, with their descriptions. Absent on a
+  version from before images were kept
 
 ## Limitations
 
 - In open mode, the version history is in one browser. If you clear the site data of that browser,
   the history is lost.
-- Only the title and the content have versions. Color, font, tags and other fields do not.
+- Only the title, the content and the images have versions. Color, font, tags and other fields do
+  not.
 - Share links and export files do not contain the version history.

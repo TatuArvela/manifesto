@@ -56,8 +56,8 @@ image in the meantime). Use this to change a drawing after you save it, and to a
   scales the pens, so that they look the same width on the screen.
 - The result is a PNG, which keeps lines sharp each time you open a drawing again. If the PNG is more
   than one megabyte, as over a photo, the result is a JPEG. An animated GIF becomes a still image.
-- Done with nothing drawn does not change the image. The drawing replaces the original, and the app
-  does not keep the original. The drawing gets its description, which still tells what is under the
+- Done with nothing drawn does not change the image. The drawing replaces the original in the note. The
+  version of the edit keeps the original, and a restore of it brings the original back. The drawing gets its description, which still tells what is under the
   lines.
 
 ### Describing an image
@@ -205,8 +205,8 @@ attach two times is stored one time.
   (`navigator.storage.persist()`), because in open mode it is the only copy.
 - A refusal because there is no space gets the same report as for `localStorage`
   (`storage/quota.ts`). The attachment stays in the editor, with a retry.
-- On load, the app sweeps images to which no note refers now (a note deleted permanently, a removed
-  image), after one day. This protects an image that you just attached to an unsaved draft.
+- On load, the app sweeps images to which no note and no kept version refers now (a note deleted
+  permanently, a removed image), after one day. This protects an image that you just attached to an unsaved draft.
 - Images from before this design, inline in notes, move into IndexedDB on the first load.
 - As open-mode notes, they belong to one browser profile. Export and import move them, as `data:`
   URLs.

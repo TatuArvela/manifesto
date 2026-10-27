@@ -8,10 +8,12 @@ import {
   openReminderKey,
   openSealedNote,
   openSharedFields,
+  openVersion,
   type SealedNote,
   type SealedNoteCreate,
   sealNewNote,
   sealNoteUpdate,
+  sealVersion,
   tokenHashOf,
   unwrapFeedKey,
   unwrapTokenKeys,
@@ -178,6 +180,48 @@ describe("sealing a note", () => {
         { ...draft, images: [first], imageAlts: ["x".repeat(1001)] },
         imageKeys,
       ),
+    ).rejects.toBeInstanceOf(NoteLimitError);
+  });
+
+  it("seals the images of a version with their keys, and opens them in step", async () => {
+    const account = await accountOf(await testKeys());
+    const ref = "attachment:01J00000000000000000000001";
+    const image = { key: "a".repeat(43), type: "image/png" as const };
+    const { key } = await sealNewNote(account, "n1", draft);
+    const sealed = await sealVersion(
+      key,
+      "v1",
+      { title: "T", content: "C", images: [ref], imageAlts: ["A red bicycle"] },
+      new Map([[ref, image]]),
+    );
+    expect(sealed.imageRefs).toEqual([ref]);
+    expect(JSON.stringify(sealed)).not.toContain("bicycle");
+    const opened = await openVersion(key, {
+      ...sealed,
+      id: "v1",
+      noteId: "n1",
+      timestamp: "t",
+    });
+    expect(opened).toMatchObject({
+      images: [ref],
+      imageAlts: ["A red bicycle"],
+    });
+    expect(opened?.imageKeys.get(ref)).toEqual(image);
+
+    // A version without images opens without them, and an image without its
+    // key is refused.
+    const bare = await sealVersion(key, "v2", { title: "T", content: "C" });
+    expect(bare).not.toHaveProperty("images");
+    expect(
+      await openVersion(key, {
+        ...bare,
+        id: "v2",
+        noteId: "n1",
+        timestamp: "t",
+      }),
+    ).not.toHaveProperty("images");
+    await expect(
+      sealVersion(key, "v3", { title: "", content: "", images: [ref] }),
     ).rejects.toBeInstanceOf(NoteLimitError);
   });
 

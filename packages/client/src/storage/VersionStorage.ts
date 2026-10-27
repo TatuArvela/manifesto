@@ -97,6 +97,10 @@ export function saveVersion(
   title: string,
   content: string,
   timestamp?: string,
+  images?: {
+    images?: string[] | undefined;
+    imageAlts?: string[] | undefined;
+  },
 ): void {
   const now = Date.now();
   const cutoff = now - MAX_AGE_MS;
@@ -112,6 +116,8 @@ export function saveVersion(
     timestamp: new Date(at).toISOString(),
     title,
     content,
+    ...(images?.images !== undefined && { images: images.images }),
+    ...(images?.imageAlts !== undefined && { imageAlts: images.imageAlts }),
   });
   if (timestamp !== undefined) {
     fresh.sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
@@ -162,6 +168,24 @@ export function upgradeAllVersions(from: number): void {
       reportQuotaRefusal();
     }
   }
+}
+
+/**
+ * Each image reference that a kept version names. Thus, the sweep of images to
+ * which no note refers keeps those that a restore can bring back.
+ */
+export function versionImageRefs(): string[] {
+  migrateLegacy();
+  const refs: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key?.startsWith(KEY_PREFIX)) continue;
+    for (const version of load(key.slice(KEY_PREFIX.length))) {
+      if (!Array.isArray(version.images)) continue;
+      refs.push(...version.images.filter((r) => typeof r === "string"));
+    }
+  }
+  return refs;
 }
 
 /** For tests: run the legacy migration again on the next access. */

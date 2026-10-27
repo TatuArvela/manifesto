@@ -20,7 +20,7 @@ export function VersionHistory({
 }: {
   noteId: string;
   color: NoteColor;
-  onRestore: (title: string, content: string) => void;
+  onRestore: (version: NoteVersion) => void;
   onClose: () => void;
 }) {
   // Null while it loads. A failed load shows as an empty history, not as a
@@ -71,7 +71,7 @@ export function VersionHistory({
           <button
             type="button"
             class="px-3 py-1 text-sm rounded-full hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer flex items-center gap-1.5"
-            onClick={() => onRestore(selected.title, selected.content)}
+            onClick={() => onRestore(selected)}
           >
             <RotateCcw class="w-3.5 h-3.5" />
             {t("versions.restore")}
