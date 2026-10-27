@@ -6,20 +6,14 @@ import { t } from "#/i18n/index.ts";
 import { askConfirmation } from "#/state/confirm.ts";
 import { closeDrawing, drawingRequest } from "#/state/drawing.ts";
 import {
-  CORNERS,
   cornerPoint,
   encodeDrawing,
   inkArea,
   type Mark,
-  PAPER,
   type Point,
-  penScale,
-  type Rect,
   rasterize,
   renderDrawing,
   resizeAround,
-  type Shape,
-  type Stroke,
   type Transform,
   transformRect,
   wholePaper,
@@ -44,10 +38,10 @@ import {
   transformLayer,
   undo,
 } from "#/utils/drawingLayers.ts";
-import { fillPicture, floodFill, growArea } from "#/utils/floodFill.ts";
 import { inArea } from "#/utils/selection.ts";
 import { closesPolygon, snapLine, snapSquare } from "#/utils/shapes.ts";
 import { DrawingHints } from "./DrawingHints.tsx";
+import { INKS } from "./DrawingInks.tsx";
 import {
   type CanvasBox,
   DrawingOverlay,
@@ -56,23 +50,33 @@ import {
   SelectionOutline,
 } from "./DrawingOverlay.tsx";
 import { type PenSettings, WIDTHS } from "./DrawingPen.tsx";
-import { DrawingToolbar, INKS, type Tool } from "./DrawingToolbar.tsx";
+import { DrawingToolbar } from "./DrawingToolbar.tsx";
 import { DrawingTopBar } from "./DrawingTopBar.tsx";
 import { type Gesture, UNCHANGED } from "./gesture.ts";
 import { onPadKey } from "./padKeys.ts";
+import {
+  colorAt,
+  cornerAt,
+  fillMark,
+  onPaper,
+  onPicture,
+  paperPoint,
+  shownPaper,
+} from "./paperPoints.ts";
 import { placePenCursor } from "./penCursor.ts";
+import {
+  lineMark,
+  type MarkStyle,
+  shapeMark,
+  strokeWidth,
+} from "./penMarks.ts";
+import { showsPen, type Tool, toolCursor } from "./tools.ts";
 import { useBaseImage } from "./useBaseImage.ts";
 import { useCropTool } from "./useCropTool.ts";
 import { useLiveFrames } from "./useLiveFrames.ts";
+import { usePolygonTool } from "./usePolygonTool.ts";
 import { useSelectionTool } from "./useSelectionTool.ts";
 import { useViewport } from "./useViewport.ts";
-
-/** The eraser is wider than the pen, wide enough to rub with. */
-const ERASER_SCALE = 4;
-
-/** A color of the canvas as `#rrggbb`, which a color field accepts. */
-const hex = (r: number, g: number, b: number) =>
-  `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
 
 /**
  * The areas of the pad. On a phone: the paper, then the rows of controls under
@@ -117,11 +121,18 @@ export function DrawingPad() {
   const historyRef = useRef<SketchHistory>(newSketchHistory());
   const [history, setHistory] = useState(historyRef.current);
   const gesture = useRef<Gesture | null>(null);
-  // The corners of a polygon in progress, and where the pointer is.
-  const polygon = useRef<{ corners: Point[]; hover: Point | null } | null>(
-    null,
-  );
-  const [drawingPolygon, setDrawingPolygon] = useState(false);
+  const polygonTool = usePolygonTool({
+    endFrames: () => endFrames(),
+    redraw: () => redraw(),
+    keep: (corners) =>
+      apply(
+        addMark(
+          historyRef.current,
+          inSelection(shapeMark(style(), "polygon", corners)),
+        ),
+      ),
+  });
+  const { polygon, drawing: drawingPolygon } = polygonTool;
   // The drag of the move tool as the box over the ink shows it.
   const [dragBy, setDragBy] = useState<Transform | null>(null);
   const [ink, setInk] = useState<string>(INKS[0].color);
@@ -251,7 +262,7 @@ export function DrawingPad() {
     const open = polygon.current;
     if (open) {
       const corners = open.hover ? [...open.corners, open.hover] : open.corners;
-      return [inSelection(shapeMark("polygon", corners))];
+      return [inSelection(shapeMark(style(), "polygon", corners))];
     }
     return [];
   };
@@ -295,27 +306,7 @@ export function DrawingPad() {
     apply(cropImage(historyRef.current, area, wholePaper(paper))),
   );
 
-  /** The width of the pen, the eraser or an outline, on this paper. */
-  const strokeWidth = () =>
-    (erasing ? pen.width * ERASER_SCALE : pen.width) * penScale(paper);
-
-  const shapeMark = (kind: Shape["shape"], points: Point[]): Shape => ({
-    shape: kind,
-    points,
-    width: strokeWidth(),
-    ...(pen.shapes === "filled" ? {} : { color: ink }),
-    ...(pen.shapes === "outline" ? {} : { fill: backInk }),
-    ...(pen.opacity < 1 ? { opacity: pen.opacity } : {}),
-  });
-
-  const lineMark = (points: Point[]): Stroke => ({
-    color: erasing ? PAPER : ink,
-    width: strokeWidth(),
-    points,
-    ...(erasing ? { erase: true } : {}),
-    ...(pen.tip === "round" ? {} : { tip: pen.tip }),
-    ...(pen.opacity < 1 ? { opacity: pen.opacity } : {}),
-  });
+  const style = (): MarkStyle => ({ pen, ink, backInk, erasing, paper });
 
   /** Ends the gesture, and keeps what it made, if anything. */
   const commitGesture = () => {
@@ -342,34 +333,8 @@ export function DrawingPad() {
     apply(addMark(historyRef.current, inSelection(now.mark)));
   };
 
-  /** Closes the polygon in progress and keeps it, with three corners or more. */
-  const finishPolygon = () => {
-    const open = polygon.current;
-    polygon.current = null;
-    setDrawingPolygon(false);
-    endFrames();
-    // A double click presses twice on one place.
-    const corners = (open?.corners ?? []).filter((point, i, all) => {
-      const before = all[i - 1];
-      return (
-        !before || Math.hypot(point[0] - before[0], point[1] - before[1]) > 1
-      );
-    });
-    if (corners.length >= 3) {
-      apply(
-        addMark(historyRef.current, inSelection(shapeMark("polygon", corners))),
-      );
-    } else {
-      redraw();
-    }
-  };
-
-  const cancelPolygon = () => {
-    polygon.current = null;
-    setDrawingPolygon(false);
-    endFrames();
-    redraw();
-  };
+  const finishPolygon = polygonTool.finish;
+  const cancelPolygon = polygonTool.cancel;
 
   /**
    * A change from the controls. A polygon in progress ends with no mark: its
@@ -472,36 +437,13 @@ export function DrawingPad() {
     setTool(next);
   };
 
-  /** Where the paper is on the screen, in client pixels. */
-  const shownPaper = (): CanvasBox | null => {
-    const at = boxRef.current;
-    const element = stageRef.current;
-    if (!at || !element) return null;
-    const around = element.getBoundingClientRect();
-    return { ...at, left: around.left + at.left, top: around.top + at.top };
-  };
-
-  /** Where a pointer is on the paper, also past its edge: a layer goes there. */
-  const paperPoint = (
+  const shownNow = () => shownPaper(boxRef.current, stageRef.current);
+  const pointOf = (
     event: { clientX: number; clientY: number },
     shown: CanvasBox,
-  ): Point => {
-    const { x, y, width, height } = currentView();
-    return [
-      x + ((event.clientX - shown.left) / shown.width) * width,
-      y + ((event.clientY - shown.top) / shown.height) * height,
-    ];
-  };
-
-  /** True when a point is on the picture, not in the margin around it. */
-  const onPicture = ([px, py]: Point) => {
-    const { x, y, width, height } = currentView();
-    return px >= x && py >= y && px < x + width && py < y + height;
-  };
-
-  /** A distance on the screen, in CSS pixels, as pixels of the paper. */
-  const onPaper = (pixels: number, shown: CanvasBox) =>
-    (pixels / shown.width) * currentView().width;
+  ) => paperPoint(event, shown, currentView());
+  const distance = (pixels: number, shown: CanvasBox) =>
+    onPaper(pixels, shown, currentView());
 
   /**
    * The eye dropper: the ink becomes the color of the drawing where it was
@@ -511,49 +453,15 @@ export function DrawingPad() {
   const pickColor = (at: Point) => {
     const ctx = context();
     if (!ctx) return;
-    const { x, y, width, height } = currentView();
-    const [r = 0, g = 0, b = 0] = ctx.getImageData(
-      Math.min(width - 1, Math.floor(at[0] - x)),
-      Math.min(height - 1, Math.floor(at[1] - y)),
-      1,
-      1,
-    ).data;
-    setInk(hex(r, g, b));
+    setInk(colorAt(ctx, at, currentView()));
     setTool(toolBefore.current);
   };
 
-  /**
-   * Flood fill: the area around the press that has the color there, as the
-   * drawing shows it, in the ink, on the active layer. Hidden layers do not
-   * count, as they do not show.
-   */
+  /** Flood fill, on the active layer. See `fillMark`. */
   const fillAt = (at: Point) => {
     const ctx = context();
-    if (!ctx) return;
-    const shown = currentView();
-    const { data } = ctx.getImageData(0, 0, shown.width, shown.height);
-    const found = floodFill(
-      data,
-      shown.width,
-      shown.height,
-      at[0] - shown.x,
-      at[1] - shown.y,
-    );
-    if (!found) return;
-    const area = growArea(found);
-    const image = fillPicture(area, ink);
-    if (!image) return;
-    const { bounds } = area;
-    apply(
-      addMark(
-        historyRef.current,
-        inSelection({
-          image,
-          at: { ...bounds, x: bounds.x + shown.x, y: bounds.y + shown.y },
-          ...(pen.opacity < 1 ? { opacity: pen.opacity } : {}),
-        }),
-      ),
-    );
+    const mark = ctx && fillMark(ctx, at, currentView(), ink, pen.opacity);
+    if (mark) apply(addMark(historyRef.current, inSelection(mark)));
   };
 
   /**
@@ -561,17 +469,6 @@ export function DrawingPad() {
    * its size, and a press at any other place moves it. Nothing happens on an
    * empty layer.
    */
-  /** The corner handle at a point of the paper, with room for a finger. */
-  const cornerAt = (bounds: Rect, at: Point, shown: CanvasBox) => {
-    const reach = onPaper(HANDLE * 1.5, shown);
-    return (
-      CORNERS.find((corner) => {
-        const [x, y] = cornerPoint(bounds, corner);
-        return Math.abs(at[0] - x) <= reach && Math.abs(at[1] - y) <= reach;
-      }) ?? null
-    );
-  };
-
   const startDrag = (pointerId: number, start: Point, shown: CanvasBox) => {
     // A hidden layer does not move: you cannot see what you would move.
     if (!activeLayer(historyRef.current.present)?.visible) return;
@@ -579,7 +476,7 @@ export function DrawingPad() {
     const layer = activeLayer(historyRef.current.present);
     const bounds = layer ? layerBounds(layer) : null;
     if (!bounds) return;
-    const corner = cornerAt(bounds, start, shown);
+    const corner = cornerAt(bounds, start, shown, currentView());
     cacheAround();
     gesture.current = {
       kind: "drag",
@@ -605,16 +502,16 @@ export function DrawingPad() {
       // A pointer that the browser does not know now: the gesture still
       // starts. It only stops to follow past the edge of the paper.
     }
-    const shown = shownPaper();
+    const shown = shownNow();
     if (!shown) return;
-    const at = paperPoint(event, shown);
+    const at = pointOf(event, shown);
     const { pointerId } = event;
     switch (tool) {
       case "dropper":
-        if (onPicture(at)) pickColor(at);
+        if (onPicture(at, currentView())) pickColor(at);
         return;
       case "fill":
-        if (onPicture(at)) fillAt(at);
+        if (onPicture(at, currentView())) fillAt(at);
         return;
       case "move":
         startDrag(pointerId, at, shown);
@@ -623,7 +520,7 @@ export function DrawingPad() {
       case "selectEllipse":
       case "lasso":
       case "polyLasso":
-        selectTool.begin(tool, pointerId, at, event, onPaper(HANDLE, shown));
+        selectTool.begin(tool, pointerId, at, event, distance(HANDLE, shown));
         return;
       case "crop":
         cropTool.begin(pointerId, at);
@@ -646,10 +543,9 @@ export function DrawingPad() {
       case "polygon": {
         const open = polygon.current;
         if (!open) {
-          polygon.current = { corners: [at], hover: null };
-          setDrawingPolygon(true);
+          polygonTool.start(at);
           cacheAround();
-        } else if (closesPolygon(open.corners, at, onPaper(HANDLE, shown))) {
+        } else if (closesPolygon(open.corners, at, distance(HANDLE, shown))) {
           finishPolygon();
           return;
         } else {
@@ -663,7 +559,7 @@ export function DrawingPad() {
           kind: "shape",
           pointerId,
           start: at,
-          mark: lineMark([at, at]),
+          mark: lineMark(style(), [at, at]),
         };
         break;
       case "rect":
@@ -672,11 +568,15 @@ export function DrawingPad() {
           kind: "shape",
           pointerId,
           start: at,
-          mark: shapeMark(tool, [at, at]),
+          mark: shapeMark(style(), tool, [at, at]),
         };
         break;
       default:
-        gesture.current = { kind: "stroke", pointerId, mark: lineMark([at]) };
+        gesture.current = {
+          kind: "stroke",
+          pointerId,
+          mark: lineMark(style(), [at]),
+        };
     }
     cacheAround();
     paintActive();
@@ -686,17 +586,22 @@ export function DrawingPad() {
   const onPointerMove = (event: PointerEvent) => {
     if (event.isPrimary) showCursor(event);
     const canvas = screenRef.current;
-    const shown = shownPaper();
+    const shown = shownNow();
     if (!canvas || !shown) return;
     const open = polygon.current;
     if (open && !gesture.current) {
-      open.hover = paperPoint(event, shown);
+      open.hover = pointOf(event, shown);
       schedule();
       return;
     }
     if (tool === "move" && !gesture.current && inkBox) {
       // The pointer shows when a press would change the size.
-      const corner = cornerAt(inkBox, paperPoint(event, shown), shown);
+      const corner = cornerAt(
+        inkBox,
+        pointOf(event, shown),
+        shown,
+        currentView(),
+      );
       canvas.style.cursor =
         corner === null
           ? "move"
@@ -705,15 +610,15 @@ export function DrawingPad() {
             : "nesw-resize";
     }
     if (selectTool.tracing) {
-      selectTool.hover(paperPoint(event, shown));
+      selectTool.hover(pointOf(event, shown));
       return;
     }
     if (selectTool.dragging(event.pointerId)) {
-      selectTool.update(paperPoint(event, shown));
+      selectTool.update(pointOf(event, shown));
       return;
     }
     if (cropTool.dragging(event.pointerId)) {
-      cropTool.update(paperPoint(event, shown));
+      cropTool.update(pointOf(event, shown));
       return;
     }
     const now = gesture.current;
@@ -726,7 +631,7 @@ export function DrawingPad() {
         ]);
         return;
       case "drag": {
-        const to = paperPoint(event, shown);
+        const to = pointOf(event, shown);
         const { bounds, start } = now;
         if (now.corner) {
           // The corner follows the pointer from where the press took it.
@@ -743,7 +648,7 @@ export function DrawingPad() {
         return;
       }
       case "shape": {
-        const to = paperPoint(event, shown);
+        const to = pointOf(event, shown);
         // Shift keeps a line at a step of 15 degrees, and a box square.
         const end = !event.shiftKey
           ? to
@@ -759,7 +664,7 @@ export function DrawingPad() {
         // where the browser kept them. If not, a fast hand draws corners.
         const events = event.getCoalescedEvents?.() ?? [];
         for (const each of events.length > 0 ? events : [event]) {
-          now.mark.points.push(paperPoint(each, shown));
+          now.mark.points.push(pointOf(each, shown));
         }
         schedule();
       }
@@ -778,13 +683,13 @@ export function DrawingPad() {
     const cursor = cursorRef.current;
     const element = stageRef.current;
     if (!cursor || !element || !ready) return;
-    if (tool !== "pen" && tool !== "eraser" && tool !== "line") {
+    if (!showsPen(tool)) {
       hideCursor();
       return;
     }
     placePenCursor(cursor, element, event, {
       tip: pen.tip,
-      width: strokeWidth(),
+      width: strokeWidth(style()),
       scale: scaleRef.current,
     });
   };
@@ -805,16 +710,6 @@ export function DrawingPad() {
   );
   const moveBox = inkBox && transformRect(inkBox, dragBy ?? UNCHANGED);
   const pixelRatio = window.devicePixelRatio || 1;
-  const canvasCursor =
-    tool === "move"
-      ? "move"
-      : tool === "hand"
-        ? "grab"
-        : tool === "zoom"
-          ? "zoom-in"
-          : tool === "pen" || tool === "eraser" || tool === "line"
-            ? "none"
-            : "crosshair";
 
   return (
     <div
@@ -892,7 +787,7 @@ export function DrawingPad() {
           width={Math.max(1, Math.round((stage?.width ?? 1) * pixelRatio))}
           height={Math.max(1, Math.round((stage?.height ?? 1) * pixelRatio))}
           class="absolute inset-0 size-full touch-none select-none"
-          style={{ cursor: canvasCursor }}
+          style={{ cursor: toolCursor(tool) }}
           aria-label={t("drawing.paper")}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}

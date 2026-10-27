@@ -4,7 +4,7 @@ import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { t } from "#/i18n/index.ts";
 import type { PenTip } from "#/utils/drawing.ts";
-import type { Tool } from "./DrawingToolbar.tsx";
+import type { Tool } from "./tools.ts";
 
 /** Pen widths, in the own pixels of a new drawing. */
 export const WIDTHS = [4, 10, 22] as const;

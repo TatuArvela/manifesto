@@ -13,7 +13,7 @@ import { useState } from "preact/hooks";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { t } from "#/i18n/index.ts";
-import { barButton } from "./DrawingToolbar.tsx";
+import { barButton } from "./ToolGroup.tsx";
 
 /**
  * The top bar of the pad: close, the title (or why the picture was not

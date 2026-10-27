@@ -1,5 +1,5 @@
 import { isTypingTarget } from "#/hooks/useShortcut.ts";
-import { type Tool, toolForKey } from "./DrawingToolbar.tsx";
+import { type Tool, toolForKey } from "./tools.ts";
 
 /** What the keys of the pad do. */
 export interface PadKeys {

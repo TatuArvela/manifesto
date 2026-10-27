@@ -1,6 +1,7 @@
 import { Crop, SquareDashed, X } from "lucide-preact";
 import { t } from "#/i18n/index.ts";
-import { barButton, isSelectTool, type Tool } from "./DrawingToolbar.tsx";
+import { barButton } from "./ToolGroup.tsx";
+import { isSelectTool, type Tool } from "./tools.ts";
 
 const selectionButton =
   "flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 cursor-pointer disabled:cursor-default";
