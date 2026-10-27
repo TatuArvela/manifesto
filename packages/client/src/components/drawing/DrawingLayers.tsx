@@ -18,6 +18,7 @@ import {
   setLayerOpacity,
   toggleLayer,
 } from "#/utils/drawingLayers.ts";
+import { phonePanel, SidePanel } from "./SidePanel.tsx";
 
 const rowButton =
   "p-1.5 rounded-md text-neutral-100 hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer disabled:cursor-default";
@@ -115,16 +116,7 @@ export function DrawingLayers({
   const currentName = current ? t("drawing.layerName", { n: current.id }) : "";
 
   return (
-    <fieldset
-      class={`${open ? "block" : "hidden"} absolute right-2 bottom-full mb-1 w-64 max-w-[calc(100vw-1rem)] rounded-lg bg-neutral-800 p-1 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0 md:static md:block md:w-auto md:max-w-none md:p-2 md:shadow-none md:ring-0`}
-      aria-label={t("drawing.layers")}
-    >
-      <div
-        class="hidden md:block px-1 pb-2 text-xs font-medium text-neutral-400"
-        aria-hidden="true"
-      >
-        {t("drawing.layers")}
-      </div>
+    <SidePanel label={t("drawing.layers")} class={phonePanel(open)}>
       {current && (
         <label class="flex items-center gap-2 px-1 pb-2 text-sm">
           <Eye class="w-4 h-4 shrink-0 text-neutral-400" aria-hidden="true" />
@@ -220,6 +212,6 @@ export function DrawingLayers({
           <Trash2 class="w-4 h-4" />
         </ActionButton>
       </div>
-    </fieldset>
+    </SidePanel>
   );
 }

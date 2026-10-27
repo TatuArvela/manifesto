@@ -2,6 +2,7 @@ import { NoteColor } from "@manifesto/shared";
 import { Repeat2 } from "lucide-preact";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { getColorLabel, t } from "#/i18n/index.ts";
+import { SidePanel } from "./SidePanel.tsx";
 
 export const INKS = [
   { color: "#171717", name: null },
@@ -99,10 +100,10 @@ export function DrawingColors({
   onBackInk: (color: string) => void;
 }) {
   return (
-    <section class="md:rounded-lg md:bg-neutral-800 md:p-2">
-      <h2 class="hidden md:block px-1 pb-2 text-xs font-medium text-neutral-400">
-        {t("drawing.colors")}
-      </h2>
+    <SidePanel
+      label={t("drawing.colors")}
+      class="md:rounded-lg md:bg-neutral-800 md:p-2"
+    >
       <div class="flex flex-wrap justify-center gap-0.5 md:grid md:grid-cols-6 md:justify-items-center md:gap-2">
         {INKS.map(({ color, name }) => (
           <button
@@ -120,6 +121,6 @@ export function DrawingColors({
           />
         ))}
       </div>
-    </section>
+    </SidePanel>
   );
 }

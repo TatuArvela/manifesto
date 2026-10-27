@@ -5,6 +5,7 @@ import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { t } from "#/i18n/index.ts";
 import type { PaperSize } from "#/utils/drawing.ts";
 import { type Anchor, MAX_EDGE } from "#/utils/drawingLayers.ts";
+import { phonePanel, SidePanel } from "./SidePanel.tsx";
 
 /** What a new size changes: the paper around the drawing, or the drawing too. */
 export type ResizeKind = "canvas" | "image";
@@ -108,13 +109,11 @@ export function DrawingSize({
   };
 
   return (
-    <fieldset
-      class={`${open ? "flex" : "hidden"} absolute right-2 bottom-full mb-1 w-64 max-w-[calc(100vw-1rem)] flex-col gap-2 rounded-lg bg-neutral-800 p-2 text-sm shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0 md:static md:flex md:w-auto md:max-w-none md:shadow-none md:ring-0`}
-      aria-label={t("drawing.pictureSize")}
+    <SidePanel
+      label={t("drawing.pictureSize")}
+      class={phonePanel(open)}
+      body="flex flex-col gap-2 p-1 text-sm md:p-0"
     >
-      <h2 class="hidden md:block px-1 text-xs font-medium text-neutral-400">
-        {t("drawing.pictureSize")}
-      </h2>
       <div class="flex gap-0.5 rounded-lg bg-white/5 p-0.5">
         {(["canvas", "image"] as const).map((each) => (
           <button
@@ -229,6 +228,6 @@ export function DrawingSize({
       >
         {t("drawing.applySize")}
       </button>
-    </fieldset>
+    </SidePanel>
   );
 }

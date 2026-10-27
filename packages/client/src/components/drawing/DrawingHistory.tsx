@@ -7,6 +7,7 @@ import {
   type SketchHistory,
   type Step,
 } from "#/utils/drawingLayers.ts";
+import { phonePanel, SidePanel } from "./SidePanel.tsx";
 
 /** The name in the catalogues of each kind of step. */
 const STEP_NAMES = {
@@ -64,13 +65,7 @@ export function DrawingHistory({
   }, [at, steps.length]);
 
   return (
-    <section
-      class={`${open ? "block" : "hidden"} absolute right-2 bottom-full mb-1 w-64 max-w-[calc(100vw-1rem)] rounded-lg bg-neutral-800 p-1 shadow-lg ring-1 ring-white/10 md:static md:block md:w-auto md:max-w-none md:p-2 md:shadow-none md:ring-0`}
-      aria-label={t("drawing.history")}
-    >
-      <h2 class="hidden md:block px-1 pb-2 text-xs font-medium text-neutral-400">
-        {t("drawing.history")}
-      </h2>
+    <SidePanel label={t("drawing.history")} class={phonePanel(open)}>
       <ol ref={list} class="max-h-48 overflow-y-auto m-0 p-0 list-none">
         {steps.map((sketch, i) => (
           // The steps only change at the end, and keep their places.
@@ -86,6 +81,6 @@ export function DrawingHistory({
           </li>
         ))}
       </ol>
-    </section>
+    </SidePanel>
   );
 }

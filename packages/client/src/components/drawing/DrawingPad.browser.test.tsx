@@ -121,6 +121,25 @@ describe("DrawingPad", () => {
     );
   });
 
+  it("collapses a section of the rail from its heading, and opens it again", async () => {
+    const section = host.querySelector(
+      `section[aria-label="${t("drawing.history")}"]`,
+    ) as HTMLElement;
+    const heading = section.querySelector("h2 button") as HTMLButtonElement;
+    const body = document.getElementById(
+      heading.getAttribute("aria-controls") ?? "",
+    ) as HTMLElement;
+    expect(heading.getAttribute("aria-expanded")).toBe("true");
+    heading.click();
+    await settled();
+    expect(heading.getAttribute("aria-expanded")).toBe("false");
+    expect(body.classList.contains("md:hidden")).toBe(true);
+    heading.click();
+    await settled();
+    expect(heading.getAttribute("aria-expanded")).toBe("true");
+    expect(body.classList.contains("md:hidden")).toBe(false);
+  });
+
   it("draws where the pointer goes, in the ink chosen", async () => {
     drawLine([0.2, 0.5], [0.8, 0.5]);
     await settled();

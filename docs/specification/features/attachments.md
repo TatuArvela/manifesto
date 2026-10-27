@@ -50,7 +50,8 @@ shares and exports it as a picture, and it uses one of the image slots of the no
   - **Zoom** (Z) zooms in at the place of a click, and out with Alt and a click.
 - On a wide screen, the tools and the two inks are a rail at the left of the paper, the options of
   the current tool a bar over the paper, and the colors, the layers, the history and the picture
-  size panels at the right. On a phone, the inks and the colors are one row under the paper, and
+  size panels at the right. The heading of each panel at the right collapses it, and opens it
+  again. On a phone, the inks and the colors are one row under the paper, and
   the tools a row under that. The options, the layers, the history and the picture size are panels
   that a button of the tools row opens. The names and labels of the pad cannot be selected as text;
   the fields can.
