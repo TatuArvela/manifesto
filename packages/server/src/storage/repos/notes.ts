@@ -266,6 +266,8 @@ export interface VersionsRepo {
     format: number;
     title: string;
     content: string;
+    /** The sealed image list, with the references that it names. */
+    images?: { sealed: string; refs: ClaimedImages } | undefined;
     createdAt: string;
   }): Promise<boolean>;
 }

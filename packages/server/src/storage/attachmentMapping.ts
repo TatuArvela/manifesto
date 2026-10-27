@@ -53,13 +53,21 @@ export function referencedIds(imagesJson: string | null): string[] {
  * names them inside ciphertext. Thus, these are what the server knows.
  */
 export interface ReferringRow {
-  images: string;
-  preview_refs: string;
+  images: string | null;
+  preview_refs: string | null;
 }
 
 /** Selects the notes that refer to an attachment. */
 export const REFERRING_NOTES_WHERE =
   "(images LIKE '%attachment:%' OR preview_refs LIKE '%attachment:%')";
+
+/**
+ * The versions that refer to an attachment, in the shape of a note row. A
+ * version keeps the images of the note before an edit. Thus, a restore within
+ * its life still finds them.
+ */
+export const REFERRING_VERSIONS_SQL =
+  "SELECT image_refs AS images, NULL AS preview_refs FROM note_versions WHERE image_refs LIKE '%attachment:%'";
 
 /**
  * Each attachment id to which a note row refers, from its images and previews.

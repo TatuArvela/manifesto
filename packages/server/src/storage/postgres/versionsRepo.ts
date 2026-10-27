@@ -38,8 +38,8 @@ export function createPostgresVersionsRepo(pool: PgPool): VersionsRepo {
       await pool.query(
         `INSERT INTO note_versions
            (id, note_id, author_id, key_version, format, title, content,
-            created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            images, image_refs, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
           input.id,
           input.noteId,
@@ -48,6 +48,8 @@ export function createPostgresVersionsRepo(pool: PgPool): VersionsRepo {
           input.format,
           input.title,
           input.content,
+          input.images?.sealed ?? null,
+          input.images ? JSON.stringify(input.images.refs) : null,
           input.createdAt,
         ],
       );

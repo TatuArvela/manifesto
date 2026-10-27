@@ -2,6 +2,7 @@ import {
   ATTACHMENT_META_COLUMNS,
   type AttachmentRow,
   REFERRING_NOTES_WHERE,
+  REFERRING_VERSIONS_SQL,
   type ReferringRow,
   referencesOf,
   refPattern,
@@ -40,6 +41,17 @@ export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
        AND n.user_id = @ownerId AND n.trashed = 0
        AND (n.images LIKE @pattern OR n.preview_refs LIKE @pattern)`,
   );
+  // The versions of the same shared notes: a reader of a note reads its
+  // history, with the pictures that it had.
+  const sharedVersionRefStmt = db.prepare(
+    `SELECT v.image_refs AS images, NULL AS preview_refs
+     FROM note_shares s JOIN notes n ON n.id = s.note_id
+       JOIN note_versions v ON v.note_id = n.id
+     WHERE s.user_id = @userId AND s.accepted_at IS NOT NULL
+       AND n.user_id = @ownerId AND n.trashed = 0
+       AND v.image_refs LIKE @pattern`,
+  );
+  const referringVersionsStmt = db.prepare(REFERRING_VERSIONS_SQL);
   const referringStmt = db.prepare(
     `SELECT images, preview_refs FROM notes WHERE ${REFERRING_NOTES_WHERE}`,
   );
@@ -54,7 +66,10 @@ export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
 
   const sweep = db.transaction((now: string, cutoffIso: string) => {
     const referenced = new Set<string>();
-    for (const row of referringStmt.all() as ReferringRow[]) {
+    for (const row of [
+      ...(referringStmt.all() as ReferringRow[]),
+      ...(referringVersionsStmt.all() as ReferringRow[]),
+    ]) {
       for (const id of referencesOf(row)) referenced.add(id);
     }
     // A snapshot link shows the note as it was, also pictures that the note
@@ -111,11 +126,11 @@ export function createSqliteAttachmentsRepo(db: SqliteDB): AttachmentsRepo {
       const row = metaStmt.get(id) as AttachmentRow | undefined;
       if (!row) return false;
       if (row.owner_id === userId) return true;
-      const candidates = sharedRefStmt.all({
-        userId,
-        ownerId: row.owner_id,
-        pattern: refPattern(id),
-      }) as ReferringRow[];
+      const asked = { userId, ownerId: row.owner_id, pattern: refPattern(id) };
+      const candidates = [
+        ...(sharedRefStmt.all(asked) as ReferringRow[]),
+        ...(sharedVersionRefStmt.all(asked) as ReferringRow[]),
+      ];
       return candidates.some((note) => referencesOf(note).includes(id));
     },
 

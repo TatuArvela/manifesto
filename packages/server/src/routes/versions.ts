@@ -1,9 +1,10 @@
 import { NOTE_VERSION_MAX_AGE_DAYS, roleOf } from "@manifesto/shared";
 import type { Hono } from "hono";
+import { claimImages } from "#/attachments/store.ts";
 import { nowIso } from "#/lib/time.ts";
 import type { AuthContext } from "#/middleware/authBearer.ts";
 import { HttpError } from "#/middleware/error.ts";
-import type { StorageDriver } from "#/storage/types.ts";
+import type { ClaimedImages, StorageDriver } from "#/storage/types.ts";
 import { tokenKeys, versionBody, versionsOut } from "./noteCodec.ts";
 
 type AuthedApp = Hono<{ Variables: { auth: AuthContext } }>;
@@ -64,6 +65,17 @@ export function registerVersionRoutes(
     if (!version) {
       throw new HttpError(409, "This token cannot open the note's key");
     }
+    // As on a note write: the images of a version belong to the owner of the
+    // note.
+    let images: { sealed: string; refs: ClaimedImages } | undefined;
+    if (version.images !== undefined && version.imageRefs !== undefined) {
+      const access = await storage.notes.access(id, userId);
+      if (!access) throw new HttpError(404, "Note not found");
+      images = {
+        sealed: version.images,
+        refs: await claimImages(storage, version.imageRefs, access.ownerId),
+      };
+    }
     // The client selects the id, or the server for a token. The sealed values
     // are bound to it.
     const added = await storage.versions.add({
@@ -74,6 +86,7 @@ export function registerVersionRoutes(
       format: version.format,
       title: version.title,
       content: version.content,
+      images,
       createdAt: versionTimestamp(version.timestamp, nowIso()),
     });
     if (!added) throw new HttpError(409, "A version already has this id");

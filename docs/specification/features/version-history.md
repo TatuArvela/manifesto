@@ -24,8 +24,8 @@ reads through the storage adapter (`state/versions.ts`). Thus, the editor does n
   note. When the note is deleted, its versions are deleted too.
 - `GET /api/v1/notes/:id/versions` lists the versions, newest first. All persons who can read the
   note can use it.
-- `POST /api/v1/notes/:id/versions` (`{ title, content, timestamp? }`) adds a version. Only the
-  owner and the editors can use it. The editor of a viewer never has changes to save, so it never
+- `POST /api/v1/notes/:id/versions` (`{ title, content, images?, imageRefs?, timestamp? }`) adds a
+  version. Only the owner and the editors can use it. The editor of a viewer never has changes to save, so it never
   sends this request.
 - `timestamp` is for history that comes from a browser. The server keeps it only if it is a real
   time in the past and inside the 90 days. If not, the server records the time when it received the
@@ -33,9 +33,14 @@ reads through the storage adapter (`state/versions.ts`). Thus, the editor does n
 - Some browsers kept the history of a note locally before. The first time the history of the note
   opens in such a browser, the browser sends the history to the server, oldest first, with the
   original dates. Then the browser deletes its copy.
-- A version contains only the title and the content. Thus, it refers to attachments, but does not
-  copy them. For this reason, the attachment sweep keeps an unreferenced image for 90 days (see
+- A version contains the title, the content and the images, with their descriptions. The image list
+  is sealed as that of a note, with the key of each image. It comes with `imageRefs`, the
+  references that it names, which the server claims for the owner of the note, as on a note write.
+  The version refers to the attachments, and does not copy them.
+- The sweep counts the references of versions as those of notes. Thus, an image stays while a
+  version names it. A person who can read the note can read the images of its versions (see
   [Attachments](attachments.md)).
+- A version from before images were kept has no `images`. A token adds versions without images.
 
 ### Open mode
 

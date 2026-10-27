@@ -15,11 +15,12 @@ interface VersionRow {
   format?: number | string;
   title: string;
   content: string;
+  images: string | null;
   created_at: string;
 }
 
 export const VERSION_COLUMNS =
-  "id, note_id, key_version, format, title, content, created_at";
+  "id, note_id, key_version, format, title, content, images, created_at";
 
 export function rowToVersion(row: VersionRow): SealedNoteVersion {
   return {
@@ -30,6 +31,7 @@ export function rowToVersion(row: VersionRow): SealedNoteVersion {
     format: Number(row.format ?? 1),
     title: row.title,
     content: row.content,
+    ...(row.images !== null && { images: row.images }),
   };
 }
 
@@ -41,9 +43,9 @@ export function createSqliteVersionsRepo(db: SqliteDB): VersionsRepo {
   const insertStmt = db.prepare(
     `INSERT INTO note_versions
        (id, note_id, author_id, key_version, format, title, content,
-        created_at)
+        images, image_refs, created_at)
      VALUES (@id, @noteId, @authorId, @keyVersion, @format, @title, @content,
-       @createdAt)
+       @images, @imageRefs, @createdAt)
      ON CONFLICT (id) DO NOTHING`,
   );
   const expireStmt = db.prepare(
@@ -57,7 +59,13 @@ export function createSqliteVersionsRepo(db: SqliteDB): VersionsRepo {
   );
 
   const add = db.transaction((input: Parameters<VersionsRepo["add"]>[0]) => {
-    if (insertStmt.run(input).changes === 0) return false;
+    const { images, ...row } = input;
+    const inserted = insertStmt.run({
+      ...row,
+      images: images?.sealed ?? null,
+      imageRefs: images ? JSON.stringify(images.refs) : null,
+    });
+    if (inserted.changes === 0) return false;
     const cutoff = new Date(
       Date.now() - NOTE_VERSION_MAX_AGE_DAYS * DAY_MS,
     ).toISOString();

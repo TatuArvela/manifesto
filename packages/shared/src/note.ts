@@ -457,10 +457,17 @@ export const NOTE_VERSION_MAX_AGE_DAYS = 90;
 /** How long a note stays in the trash before its permanent deletion. */
 export const TRASH_RETENTION_DAYS = 30;
 
-/** A snapshot of the title and content of a note at one time. */
+/**
+ * A snapshot of the title, the content and the images of a note at one time.
+ * A version from before the images were kept has no `images`. A restore of it
+ * keeps the images that the note has.
+ */
 export interface NoteVersion {
   noteId: string;
   timestamp: string;
   title: string;
   content: string;
+  images?: string[];
+  /** Aligned with `images`, as on a note. */
+  imageAlts?: string[];
 }

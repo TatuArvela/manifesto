@@ -153,12 +153,13 @@ file into a server, the server stores the images again.
 
 `attachments.sweep` runs each hour on `startPeriodicJob` (`jobs/attachmentCleanup.ts`):
 
-- It marks an attachment to which no note refers, with the time when it found it.
-- It clears the mark when a note refers to it again.
+- It marks an attachment to which no note and no version refers, with the time when it found it.
+- It clears the mark when a note or a version refers to it again.
 - It deletes it after it is unreferenced for 90 days.
 
-This agrees with the version history of the client, which refers to attachments by id and keeps
-versions for 90 days. Thus, a version that you restore within its life still finds its images.
+A version names the images of the note from before an edit (`image_refs` on `note_versions`).
+Thus, a version that you restore within its life finds its images, also a picture that the drawing
+pad replaced. A recipient of a shared note can read the images of its versions too.
 
 ## Note writes
 

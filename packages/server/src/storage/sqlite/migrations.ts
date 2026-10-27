@@ -665,6 +665,16 @@ ALTER TABLE notes ADD COLUMN format INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE note_versions ADD COLUMN format INTEGER NOT NULL DEFAULT 1;
 `;
 
+/**
+ * The images of a version: the list sealed as that of a note, and the
+ * references that it names, readable for the sweep and for the readers of a
+ * shared note. Null on a version from before.
+ */
+const VERSION_IMAGES = `
+ALTER TABLE note_versions ADD COLUMN images TEXT;
+ALTER TABLE note_versions ADD COLUMN image_refs TEXT;
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -708,6 +718,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0036-oauth-keys", sql: OAUTH_KEYS },
   { id: "0037-attachment-keys", sql: ATTACHMENT_KEYS },
   { id: "0038-note-format", sql: NOTE_FORMAT },
+  { id: "0039-version-images", sql: VERSION_IMAGES },
 ];
 
 export function runMigrations(

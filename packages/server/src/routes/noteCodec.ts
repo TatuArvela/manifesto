@@ -394,8 +394,11 @@ export async function versionsOut(
   const out: NoteVersion[] = [];
   for (const version of sealed) {
     const key = ringKey(ring, version.keyVersion);
-    const plain = key ? await openVersion(key, version) : null;
-    if (plain) out.push(plain);
+    const opened = key ? await openVersion(key, version) : null;
+    if (opened) {
+      const { imageKeys: _keys, ...plain } = opened;
+      out.push(plain);
+    }
   }
   return out;
 }
