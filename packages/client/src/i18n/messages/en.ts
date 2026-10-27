@@ -299,6 +299,7 @@ export const en = {
   "versions.backToEditor": "Back to editor",
   "versions.restore": "Restore",
   "versions.emptyContent": "(empty)",
+  "versions.images": "Images in this version",
 
   // Note grid
   "empty.archive.title": "The archive is empty",

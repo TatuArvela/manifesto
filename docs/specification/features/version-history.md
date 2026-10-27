@@ -9,6 +9,7 @@ Notes have a persistent version history. Users can see previous versions and res
   opened, with their descriptions. A replaced drawing is such a change.
 - To see the version history, open the kebab menu in the note editor.
 - Each version shows the time when the app recorded it.
+- The view of one version shows its title, its content and a row of its images.
 - When you select a version, the app restores its title, its content and its images to the note. A
   version from before images were kept restores only its title and content.
 - Each note has its own versions. In open mode, this browser keeps them. In connected mode, the
