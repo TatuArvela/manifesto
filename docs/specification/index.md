@@ -47,6 +47,7 @@ The name refers to three things:
 - [Trash](features/trash.md): soft delete and automatic expiry
 - [Export/Import](features/export-import.md): how to move your data
 - [Attachments](features/attachments.md): images inline in open mode, and in the attachment store of the server in connected mode
+- [Drawing Pad](features/drawing-pad.md): drawings and changes to images, in layers, which go on a note as images
 - [Sharing](features/sharing.md): how to share notes through a URL
 - [Sharing with People](features/sharing-with-people.md): how to share notes with other accounts, to edit or to view (connected mode)
 - [Link Previews](features/link-previews.md): cards for pasted links, which the server fills in connected mode

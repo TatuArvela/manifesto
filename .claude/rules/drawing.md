@@ -13,6 +13,8 @@ paths:
 
 # The Drawing Pad
 
+The specification is `docs/specification/features/drawing-pad.md`.
+
 ## Loading
 
 - The pad loads only when it opens, through `useLazyModule` in `App.tsx` (see `components.md`). Code

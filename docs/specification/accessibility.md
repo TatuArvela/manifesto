@@ -59,8 +59,9 @@ These gaps are open. A deployment that publishes a statement must list them:
   with an empty `alt`, and its button has only the name "Open image". Nothing asks for a description
   when you add an image (WCAG 1.1.1, EN 301 549 11.8.2). A token or an assistant can keep
   descriptions, but cannot write them. The thumbnail of a link preview has no description.
-- **Drawing needs a pointer.** The drawing pad follows the path of the pointer. WCAG gives an
-  exemption from the keyboard requirement for this. You can describe a drawing, as any image.
+- **Drawing needs a pointer.** The [drawing pad](features/drawing-pad.md) follows the path of the
+  pointer. WCAG gives an exemption from the keyboard requirement for this. You can describe a
+  drawing, as any image.
 - **No tests with assistive technology yet.** We reviewed the app against WCAG 2.1 AA from its code.
   Its browser tests check names, roles and focus. But we did not test it fully with screen readers
   (NVDA, JAWS, VoiceOver, TalkBack) or with speech input.
