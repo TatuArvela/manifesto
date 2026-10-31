@@ -556,6 +556,24 @@ ALTER TABLE note_versions ADD COLUMN images TEXT;
 ALTER TABLE note_versions ADD COLUMN image_refs TEXT;
 `;
 
+/** See the SQLite copy. */
+const DEVICE_SIGN_INS = `
+CREATE TABLE device_sign_ins (
+  id_hash       TEXT PRIMARY KEY,
+  wait_hash     TEXT NOT NULL UNIQUE,
+  user_agent    TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  expires_at    TEXT NOT NULL,
+  user_id       TEXT REFERENCES users(id) ON DELETE CASCADE,
+  key_ephemeral TEXT,
+  key_wrapped   TEXT,
+  approved_at   TEXT,
+  used_at       TEXT
+);
+CREATE INDEX device_sign_ins_user ON device_sign_ins(user_id);
+CREATE INDEX device_sign_ins_expiry ON device_sign_ins(expires_at);
+`;
+
 export const MIGRATIONS: readonly Migration[] = [
   { id: "0001-initial-schema", sql: INITIAL_SCHEMA },
   { id: "0002-note-image-count", sql: NOTE_IMAGE_COUNT },
@@ -600,6 +618,7 @@ export const MIGRATIONS: readonly Migration[] = [
   { id: "0037-attachment-keys", sql: ATTACHMENT_KEYS },
   { id: "0038-note-format", sql: NOTE_FORMAT },
   { id: "0039-version-images", sql: VERSION_IMAGES },
+  { id: "0040-device-sign-ins", sql: DEVICE_SIGN_INS },
 ];
 
 /**

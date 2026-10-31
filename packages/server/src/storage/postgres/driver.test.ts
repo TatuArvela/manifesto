@@ -671,3 +671,67 @@ describe("postgres storage driver (PGlite)", () => {
     });
   });
 });
+
+describe("postgres: device sign-ins", () => {
+  it("waits, is approved once, is collected once, and can be refused", async () => {
+    const storage = await bootStorage();
+    await storage.users.create({
+      id: "u1",
+      username: "una",
+      passwordHash: "h",
+      displayName: "",
+      avatarColor: "",
+      provider: "local",
+      externalId: null,
+      createdAt: NOW,
+    });
+    const at = (minute: number) => `2026-04-01T00:0${minute}:00.000Z`;
+    const make = (n: number) =>
+      storage.deviceSignIns.create({
+        idHash: `id${n}`,
+        waitHash: `wait${n}`,
+        userAgent: "Firefox",
+        createdAt: NOW,
+        expiresAt: at(3),
+      });
+    const key = { ephemeral: "e", wrapped: "w" };
+
+    await make(1);
+    expect(await storage.deviceSignIns.find("id1", at(1))).toEqual({
+      userAgent: "Firefox",
+      createdAt: NOW,
+      expiresAt: at(3),
+    });
+    expect(await storage.deviceSignIns.claim("wait1", at(1))).toBe("pending");
+    expect(await storage.deviceSignIns.approve("id1", "u1", key, at(4))).toBe(
+      false,
+    );
+    expect(await storage.deviceSignIns.approve("id1", "u1", key, at(1))).toBe(
+      true,
+    );
+    expect(await storage.deviceSignIns.approve("id1", "u1", key, at(1))).toBe(
+      false,
+    );
+    expect(await storage.deviceSignIns.find("id1", at(1))).toBeNull();
+    expect(await storage.deviceSignIns.claim("wait1", at(2))).toEqual({
+      userId: "u1",
+      key,
+    });
+    expect(await storage.deviceSignIns.claim("wait1", at(2))).toBeNull();
+
+    await make(2);
+    expect(await storage.deviceSignIns.deny("id2", at(1))).toBe(true);
+    expect(await storage.deviceSignIns.claim("wait2", at(1))).toBeNull();
+    expect(await storage.deviceSignIns.approve("id2", "u1", null, at(1))).toBe(
+      false,
+    );
+
+    // An approval that was not collected goes with the sessions.
+    await make(3);
+    await storage.deviceSignIns.approve("id3", "u1", null, at(1));
+    expect(await storage.deviceSignIns.deleteByUser("u1")).toBe(1);
+    expect(await storage.deviceSignIns.claim("wait3", at(1))).toBeNull();
+    expect(await storage.deviceSignIns.deleteExpired(at(5))).toBe(2);
+    await storage.close();
+  });
+});

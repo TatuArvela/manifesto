@@ -24,6 +24,10 @@ import {
   takeSecretKeyFromAddress,
 } from "#/state/account/accountKeys.ts";
 import { authToken, isServerMode } from "#/state/account/auth.ts";
+import {
+  scannedDeviceRequest,
+  takeDeviceRequestFromAddress,
+} from "#/state/account/deviceSignIn.ts";
 import { takeSignInLinkToken } from "#/state/account/mailedLinks.ts";
 import { takeConsentPage } from "#/state/account/oauth.ts";
 import { consumeOidcRedirect } from "#/state/account/oidcSignIn.ts";
@@ -77,6 +81,10 @@ const loadPublicLinksDialog = () =>
   );
 const loadDrawingPad = () =>
   import("./drawing/DrawingPad.tsx").then((m) => m.DrawingPad);
+const loadDeviceSignInApproval = () =>
+  import("./login/DeviceSignInApproval.tsx").then(
+    (m) => m.DeviceSignInApproval,
+  );
 
 // True only on the *very first render* of a page that arrived with `#token=` in
 // the URL. The OIDC consumer runs one time (in useEffect, after this render
@@ -106,8 +114,13 @@ export function App() {
   }, [signIn, lockedScreen, ready]);
   useEffect(() => {
     // A secret key scanned from the Settings of a different device arrives in
-    // the address, whether a person is signed in here yet or not.
-    if (isServerMode) takeSecretKeyFromAddress();
+    // the address, whether a person is signed in here yet or not. So does the
+    // QR code of a new device that asks to be approved here. It waits through a
+    // sign-in.
+    if (isServerMode) {
+      takeSecretKeyFromAddress();
+      takeDeviceRequestFromAddress();
+    }
   }, []);
   if (!ready) return null;
   if (signIn) {
@@ -192,6 +205,15 @@ function MainApp() {
     publicLinksDialog.value !== null,
     () => {
       publicLinksDialog.value = null;
+      showError(t("error.viewUnavailable"));
+    },
+  );
+  const scannedRequest = scannedDeviceRequest.value;
+  const DeviceSignInApproval = useLazyModule(
+    loadDeviceSignInApproval,
+    scannedRequest !== null,
+    () => {
+      scannedDeviceRequest.value = null;
       showError(t("error.viewUnavailable"));
     },
   );
@@ -380,6 +402,9 @@ function MainApp() {
       {/* After a shared note, not on top of it: the link is why they came. */}
       {showWelcome.value && !sharedNote && <WelcomeDialog />}
       {showShortcuts.value && <ShortcutsDialog />}
+      {scannedRequest && DeviceSignInApproval && (
+        <DeviceSignInApproval request={scannedRequest} />
+      )}
       {drag !== "none" && (
         <div class="fixed inset-0 layer-drop-target pointer-events-none flex items-center justify-center bg-blue-500/10 backdrop-blur-[2px]">
           <div class="m-6 px-8 py-6 rounded-2xl border-2 border-dashed border-blue-500 bg-white/90 dark:bg-neutral-800/90 shadow-xl flex flex-col items-center gap-2 text-center">

@@ -34,6 +34,13 @@ export const BUCKETS = {
    * addresses cannot avoid.
    */
   "sign-in": { per: "address", limit: 10, windowMs: 15 * 60 * 1000 },
+  /**
+   * Each one stores a request to sign in a new device, with no session. A new
+   * device makes one each time its code expires.
+   */
+  "device-sign-in": { per: "address", limit: 20, windowMs: 15 * 60 * 1000 },
+  /** A new device asks each few seconds while its code shows. */
+  "device-sign-in-wait": { per: "address", limit: 60, windowMs: 60 * 1000 },
   /** Nobody can guess a passkey. This limits the number of challenges. */
   "passkey-sign-in": { per: "address", limit: 60, windowMs: 15 * 60 * 1000 },
   /**

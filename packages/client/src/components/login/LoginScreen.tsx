@@ -1,4 +1,5 @@
 import type { CapabilitiesResponse } from "@manifesto/shared";
+import { QrCode } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { BrandLogo } from "#/components/BrandLogo.tsx";
 import { buttonClass } from "#/components/buttonClasses.ts";
@@ -16,8 +17,11 @@ import {
   oidcLoginUrl,
   oidcRefusal,
 } from "#/state/account/oidcSignIn.ts";
+import { serverFeature } from "#/state/serverFeatures.ts";
 import { passkeysSupported } from "#/utils/webauthn.ts";
+import { DeviceSignInPanel } from "./DeviceSignInPanel.tsx";
 import { LocalLoginForm } from "./LocalLoginForm.tsx";
+import { quietClass } from "./loginFormClasses.ts";
 import {
   ForgotPasswordForm,
   ResetPasswordForm,
@@ -134,6 +138,7 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
   const [forgot, setForgot] = useState(false);
   const [byLink, setByLink] = useState(false);
   const [recovering, setRecovering] = useState(false);
+  const [byDevice, setByDevice] = useState(false);
   const oidc = providers.includes("oidc");
   const local = providers.includes("local");
   if (resetToken && local) {
@@ -152,6 +157,7 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
       />
     );
   }
+  if (byDevice) return <DeviceSignInPanel onBack={() => setByDevice(false)} />;
   if (forgot) return <ForgotPasswordForm onBack={() => setForgot(false)} />;
   if (byLink) return <SignInLinkForm onBack={() => setByLink(false)} />;
   if (recovering && local) {
@@ -185,6 +191,16 @@ function SignInOptions({ auth }: { auth: CapabilitiesResponse["auth"] }) {
             {t("login.withPassword")}
           </button>
         ))}
+      {serverFeature("deviceSignIn") && (
+        <button
+          type="button"
+          class={`${quietClass} mt-3 inline-flex items-center justify-center gap-1.5`}
+          onClick={() => setByDevice(true)}
+        >
+          <QrCode class="w-4 h-4" />
+          {t("login.device.open")}
+        </button>
+      )}
     </>
   );
 }

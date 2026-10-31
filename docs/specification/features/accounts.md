@@ -331,6 +331,54 @@ A person who reads the mail of the account can already take the account with a r
 adds a shorter way in, not a new party to trust. If a host must never let a mailbox alone open an
 account, set `MAGIC_LINKS=off`, and think about reset by mail in the same way.
 
+## Signing in a new device
+
+With `DEVICE_SIGN_IN` on (the default; see [Server Deployment](../server/deployment.md)), a new
+device, for example a laptop, can sign in from a device that is already signed in, for example a
+phone. This works for local accounts and for accounts of single sign-on.
+
+1. On the sign-in screen of the new device, **Sign in with another device** shows a QR code and a
+   matching code of six digits.
+2. The person scans the QR code with the camera of the signed-in device. The camera opens
+   `APP_URL/#approve=<id>&pk=<public key>`. If that browser is not signed in, it first asks for a
+   sign-in, and then continues.
+3. The signed-in device shows which browser asked, and when. The person types the matching code from
+   the other screen, and confirms with the password (or, for an account without one, a recent
+   sign-in). Then they press **Approve**.
+4. The new device signs in. When the approving device holds the [secret key](encryption.md), the
+   notes also open immediately.
+
+The rules:
+
+- A request works one time, for 3 minutes. The new device makes a new one when it expires.
+- The server stores the id of the request as a SHA-256 hash, in its own table (`device_sign_ins`).
+  The new device keeps a second token, the wait token, which the QR code does not carry. Only that
+  token collects the session. Thus, a person who sees the QR code cannot sign in with it.
+- The secret key goes across encrypted. The new device makes a key pair for the request, and puts
+  the public half in the QR code. The approving device wraps the secret key to that public key, bound
+  to the request. The server only carries the wrap, and cannot open it. The approving device reads
+  the public key from the code, never from the server. Thus, the server cannot put its own key in
+  its place.
+- The matching code comes from the id and the public key in the QR code. Both devices calculate it,
+  and the server is not involved. A person who approves must type the code from the screen in front
+  of them. Thus, a QR code that somebody else sent them (for example, in a message that asks them to
+  "confirm the account") does not pass, unless the sender also sends the code. The approval screen
+  says that.
+- The approval asks for the password, as the other
+  [confirmed changes](#confirming-a-change-from-a-session) do. A session that stays open on a device
+  must not be sufficient to make a session somewhere else. It does not ask for a second factor again,
+  because the approving session already gave it.
+- An approval that the new device did not collect yet stops when the sessions of the account end.
+- **Not me** ends the request. The new device then says that its code expired.
+- The audit log records the approval as "Approved a sign-in on a new device", a refusal as
+  "Refused a sign-in on a new device", and the sign-in with `method: "device"`. Thus, a person who
+  refused a code that somebody sent them finds it again on the Activity page. The sign-in ends no
+  other session.
+
+A person who sees both the QR code and the matching code, and has an account here, can approve the
+request with their own account. The new device then signs in to that account, not to the account of
+its person. The app always shows the name of the account. Thus, the person sees the mistake.
+
 ## Admins and sign-up under single sign-on
 
 With single sign-on, admin rights can follow a group at the identity provider (`OIDC_ADMIN_GROUP`).
