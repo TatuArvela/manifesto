@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { evaluateExpression, formatResult } from "./evaluateExpression.ts";
+import {
+  evaluateArithmetic,
+  evaluateExpression,
+  formatResult,
+} from "./evaluateExpression.ts";
 
 describe("evaluateExpression with a dot decimal", () => {
   const ev = (s: string) => evaluateExpression(s, ".");
@@ -112,5 +116,19 @@ describe("formatResult", () => {
   it("trims trailing zeros", () => {
     expect(formatResult(1.1, ".")).toBe("1.1");
     expect(formatResult(2.5, ".")).toBe("2.5");
+  });
+});
+
+describe("evaluateArithmetic", () => {
+  it("evaluates a full expression", () => {
+    expect(evaluateArithmetic("1920 / 2", ".")).toBe(960);
+    expect(evaluateArithmetic("(3 + 1) * 100", ".")).toBe(400);
+    expect(evaluateArithmetic("400", ".")).toBe(400);
+  });
+
+  it("returns null for text that is not arithmetic", () => {
+    expect(evaluateArithmetic("", ".")).toBeNull();
+    expect(evaluateArithmetic("abc", ".")).toBeNull();
+    expect(evaluateArithmetic("2 +", ".")).toBeNull();
   });
 });

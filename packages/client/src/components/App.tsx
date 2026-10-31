@@ -76,7 +76,7 @@ const loadPublicLinksDialog = () =>
     (m) => m.PublicLinksDialogHost,
   );
 const loadDrawingPad = () =>
-  import("./DrawingPad.tsx").then((m) => m.DrawingPad);
+  import("./drawing/DrawingPad.tsx").then((m) => m.DrawingPad);
 
 // True only on the *very first render* of a page that arrived with `#token=` in
 // the URL. The OIDC consumer runs one time (in useEffect, after this render

@@ -196,6 +196,21 @@ function evalRpn(rpn: Token[]): number | null {
 }
 
 /**
+ * Evaluate a full arithmetic expression, such as `1920 / 2` or `(3 + 1) * 100`.
+ * Returns null when the text is not a valid expression.
+ */
+export function evaluateArithmetic(
+  text: string,
+  decimal: "." | ",",
+): number | null {
+  if (!/\d/.test(text)) return null;
+  const tokens = tokenize(text, decimal);
+  if (!tokens || tokens.length === 0) return null;
+  const rpn = toRpn(tokens);
+  return rpn ? evalRpn(rpn) : null;
+}
+
+/**
  * Evaluate the arithmetic expression at the end of `text`, which ends
  * immediately before an `=` sign. Returns `{ expression, result }`, where
  * `expression` is the matched tail (without the trailing `=`), or `null` if the

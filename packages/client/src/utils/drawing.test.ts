@@ -4,12 +4,15 @@ import {
   DRAWING_HEIGHT,
   DRAWING_WIDTH,
   drawingPoint,
+  intersect,
+  markBounds,
   paperSizeFor,
-  penScale,
-  placedImageAlts,
-  placeImages,
+  resizeAround,
+  transformMark,
+  transformStroke,
 } from "./drawing.ts";
-import { MAX_IMAGE_EDGE } from "./shrinkImage.ts";
+import { inkArea } from "./drawingRender.ts";
+import { stampCenters } from "./penTip.ts";
 
 describe("drawingPoint", () => {
   // The paper shown at a quarter of its size, away from the corner.
@@ -47,25 +50,14 @@ describe("drawingPoint", () => {
 });
 
 describe("paperSizeFor", () => {
-  it("keeps the size of an image between the two edges", () => {
-    expect(paperSizeFor({ width: 2000, height: 1500 })).toEqual({
-      width: 2000,
-      height: 1500,
-    });
-  });
-
-  it("enlarges a small image to a new drawing's long edge, keeping its shape", () => {
-    expect(paperSizeFor({ width: 300, height: 600 })).toEqual({
-      width: 800,
-      height: 1600,
-    });
-  });
-
-  it("brings a large image down to the edge an attached one is kept at", () => {
-    expect(paperSizeFor({ width: 5120, height: 2560 })).toEqual({
-      width: MAX_IMAGE_EDGE,
-      height: MAX_IMAGE_EDGE / 2,
-    });
+  it("keeps the own size of an image", () => {
+    for (const size of [
+      { width: 2000, height: 1500 },
+      { width: 300, height: 600 },
+      { width: 5120, height: 2560 },
+    ]) {
+      expect(paperSizeFor(size)).toEqual(size);
+    }
   });
 
   it("has no paper for an image without a size", () => {
@@ -74,48 +66,174 @@ describe("paperSizeFor", () => {
   });
 });
 
-describe("penScale", () => {
-  it("widens the pen with the paper, so it looks the same on screen", () => {
-    expect(penScale(BLANK_PAPER)).toBe(1);
-    expect(penScale({ width: 1200, height: 2400 })).toBe(1.5);
+describe("stampCenters", () => {
+  it("presses the tip at steps short enough to join into a line", () => {
+    const centers = stampCenters(
+      [
+        [0, 0],
+        [60, 0],
+      ],
+      12,
+    );
+    expect(centers.at(0)).toEqual([0, 0]);
+    expect(centers.at(-1)).toEqual([60, 0]);
+    // A sixth of the width at most between two shapes.
+    for (const [i, center] of centers.slice(1).entries()) {
+      const before = centers[i] ?? center;
+      expect(center[0] - before[0]).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it("presses one shape for a tap, and none for no points", () => {
+    expect(stampCenters([[5, 5]], 10)).toEqual([[5, 5]]);
+    expect(stampCenters([], 10)).toEqual([]);
   });
 });
 
-describe("placeImages", () => {
-  it("adds after the rest when nothing is replaced", () => {
-    expect(placeImages(["a", "b"], ["c"])).toEqual(["a", "b", "c"]);
+describe("moving and resizing strokes", () => {
+  const stroke = {
+    color: "#000",
+    width: 10,
+    points: [
+      [10, 20],
+      [30, 40],
+    ] as [number, number][],
+  };
+
+  it("finds the box of the ink, the width of the tip included", () => {
+    expect(markBounds([stroke])).toEqual({
+      x: 5,
+      y: 15,
+      width: 30,
+      height: 30,
+    });
+    expect(markBounds([])).toBeNull();
   });
 
-  it("puts the new image where the one it replaces was", () => {
-    expect(placeImages(["a", "b", "c"], ["b2"], "b")).toEqual(["a", "b2", "c"]);
+  it("finds no ink in an eraser", () => {
+    expect(markBounds([{ ...stroke, erase: true }])).toBeNull();
+    expect(markBounds([stroke, { ...stroke, erase: true }])).toEqual(
+      markBounds([stroke]),
+    );
   });
 
-  it("keeps the new image when the one it replaces has gone", () => {
-    expect(placeImages(["a", "c"], ["b2"], "b")).toEqual(["a", "c", "b2"]);
+  it("moves the points, and scales the width with them", () => {
+    const moved = transformStroke(stroke, { scale: 2, dx: 1, dy: -1 });
+    expect(moved.points).toEqual([
+      [21, 39],
+      [61, 79],
+    ]);
+    expect(moved.width).toBe(20);
+  });
+
+  it("resizes from the opposite corner, the same on both axes", () => {
+    const box = { x: 10, y: 10, width: 100, height: 50 };
+    const by = resizeAround(box, "se", [210, 20]);
+    expect(by.scale).toBe(2);
+    // The top left corner stays.
+    expect(10 * by.scale + by.dx).toBe(10);
+    expect(10 * by.scale + by.dy).toBe(10);
+    // Never to nothing, and never past its limit.
+    expect(resizeAround(box, "se", [0, 0]).scale).toBe(0.05);
+    expect(resizeAround(box, "se", [99999, 0]).scale).toBe(20);
+    // From the top left handle, the bottom right corner stays.
+    const up = resizeAround(box, "nw", [-90, 10]);
+    expect(up.scale).toBe(2);
+    expect(110 * up.scale + up.dx).toBe(110);
+    expect(60 * up.scale + up.dy).toBe(60);
   });
 });
 
-describe("placedImageAlts", () => {
-  const before = { images: ["a", "b", "c"], imageAlts: ["", "Bee", "Sea"] };
+describe("crops", () => {
+  const stroke = {
+    color: "#000",
+    width: 10,
+    points: [
+      [10, 20],
+      [30, 40],
+    ] as [number, number][],
+  };
 
-  it("keeps each description with its image, and gives a new one none", () => {
-    expect(placedImageAlts(before, ["a", "b", "c", "d"], ["d"])).toEqual([
-      "",
-      "Bee",
-      "Sea",
-      "",
-    ]);
+  it("finds the area two boxes share", () => {
+    const a = { x: 0, y: 0, width: 10, height: 10 };
+    expect(intersect(a, { x: 5, y: 5, width: 10, height: 10 })).toEqual({
+      x: 5,
+      y: 5,
+      width: 5,
+      height: 5,
+    });
+    expect(intersect(a, { x: 20, y: 0, width: 5, height: 5 })).toBeNull();
   });
 
-  it("gives a drawing the description of the image it was drawn over", () => {
-    expect(placedImageAlts(before, ["a", "b2", "c"], ["b2"], "b")).toEqual([
-      "",
-      "Bee",
-      "Sea",
-    ]);
+  it("gives a cut group only the box that still shows", () => {
+    const clip = { x: 0, y: 0, width: 20, height: 100 };
+    expect(markBounds([{ clip, marks: [stroke] }])).toEqual({
+      x: 5,
+      y: 15,
+      width: 15,
+      height: 30,
+    });
+    // Cut to an area with none of its ink: nothing shows.
+    const away = { x: 500, y: 500, width: 10, height: 10 };
+    expect(markBounds([{ clip: away, marks: [stroke] }])).toBeNull();
+  });
+});
+
+describe("shapes and fills", () => {
+  it("moves a shape's corners and widens its outline", () => {
+    const shape = {
+      shape: "rect" as const,
+      points: [
+        [0, 0],
+        [10, 20],
+      ] as [number, number][],
+      width: 4,
+      color: "#000",
+    };
+    const moved = transformMark(shape, { scale: 2, dx: 5, dy: 0 });
+    expect(moved).toEqual({
+      ...shape,
+      width: 8,
+      points: [
+        [5, 0],
+        [25, 40],
+      ],
+    });
+    expect(markBounds([shape])).toEqual({
+      x: -2,
+      y: -2,
+      width: 14,
+      height: 24,
+    });
   });
 
-  it("is empty when no image has a description", () => {
-    expect(placedImageAlts({ images: ["a"] }, ["a", "b"], ["b"])).toEqual([]);
+  it("gives a fill its own box, and moves it with the layer", () => {
+    const fill = {
+      image: {} as CanvasImageSource,
+      at: { x: 1, y: 2, width: 3, height: 4 },
+    };
+    expect(markBounds([fill])).toEqual(fill.at);
+    expect(transformMark(fill, { scale: 2, dx: 0, dy: 1 })).toEqual({
+      ...fill,
+      at: { x: 2, y: 5, width: 6, height: 8 },
+    });
+  });
+});
+
+describe("inkArea", () => {
+  it("keeps a margin of half the paper on each side", () => {
+    expect(inkArea(BLANK_PAPER)).toEqual({
+      x: -DRAWING_WIDTH / 2,
+      y: -DRAWING_HEIGHT / 2,
+      width: DRAWING_WIDTH * 2,
+      height: DRAWING_HEIGHT * 2,
+    });
+  });
+
+  it("keeps a smaller margin on a large image, inside the limit of a canvas", () => {
+    const area = inkArea({ width: 2560, height: 2560 });
+    expect(area.width * area.height).toBeLessThanOrEqual(16_000_000);
+    expect(area.x).toBeLessThan(0);
+    expect(area.x + area.width).toBeGreaterThan(2560);
   });
 });
