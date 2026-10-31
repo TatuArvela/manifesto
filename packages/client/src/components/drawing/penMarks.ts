@@ -5,7 +5,7 @@ import {
   type Shape,
   type Stroke,
 } from "#/utils/drawing.ts";
-import type { PenSettings } from "./DrawingPen.tsx";
+import type { PenSettings } from "./pen.ts";
 
 /** The eraser is wider than the pen, wide enough to rub with. */
 const ERASER_SCALE = 4;

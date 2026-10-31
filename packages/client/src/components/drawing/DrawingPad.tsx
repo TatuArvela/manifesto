@@ -33,12 +33,12 @@ import {
 import { inArea } from "#/utils/selection.ts";
 import { DrawingHints } from "./DrawingHints.tsx";
 import { BLACK, WHITE } from "./DrawingInks.tsx";
-import { type PenSettings, WIDTHS } from "./DrawingPen.tsx";
 import { DrawingToolbar } from "./DrawingToolbar.tsx";
 import { DrawingTopBar } from "./DrawingTopBar.tsx";
 import { type Gesture, UNCHANGED } from "./gesture.ts";
 import { PadStage } from "./PadStage.tsx";
 import { onPadKey } from "./padKeys.ts";
+import { type PenSettings, WIDTHS } from "./pen.ts";
 import { type MarkStyle, shapeMark } from "./penMarks.ts";
 import type { Tool } from "./tools.ts";
 import { useBaseImage } from "./useBaseImage.ts";

@@ -1,17 +1,7 @@
 import { useLayoutEffect, useRef } from "preact/hooks";
 import { CORNERS, type Point, type Rect } from "#/utils/drawing.ts";
 import type { Selection, SelectShape } from "#/utils/selection.ts";
-
-/** Where the paper is in the stage, in CSS pixels from its corner. */
-export interface CanvasBox {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
-
-/** The size of a corner handle of a box on the screen, in CSS pixels. */
-export const HANDLE = 12;
+import { type CanvasBox, HANDLE } from "./canvasBox.ts";
 
 /**
  * A dashed box over the paper, at a place on the drawing: the ink of the

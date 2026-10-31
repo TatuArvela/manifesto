@@ -2,13 +2,13 @@ import type { Ref } from "preact";
 import { t } from "#/i18n/index.ts";
 import type { Rect } from "#/utils/drawing.ts";
 import type { Selection } from "#/utils/selection.ts";
+import type { CanvasBox } from "./canvasBox.ts";
 import {
-  type CanvasBox,
   DrawingOverlay,
   SelectionDraft,
   SelectionOutline,
 } from "./DrawingOverlay.tsx";
-import type { PenSettings } from "./DrawingPen.tsx";
+import type { PenSettings } from "./pen.ts";
 import { type Tool, toolCursor } from "./tools.ts";
 import type { useSelectionTool } from "./useSelectionTool.ts";
 

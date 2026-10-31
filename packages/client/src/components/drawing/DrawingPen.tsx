@@ -3,13 +3,16 @@ import type { ComponentType } from "preact";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { t } from "#/i18n/index.ts";
-import type { PenTip } from "#/utils/drawing.ts";
+import {
+  hasPenOptions,
+  MAX_WIDTH,
+  MIN_WIDTH,
+  type PenSettings,
+  penOptions,
+  tipStyle,
+  WIDTHS,
+} from "./pen.ts";
 import type { Tool } from "./tools.ts";
-
-/** Pen widths, in pixels of the paper. */
-export const WIDTHS = [4, 10, 22] as const;
-export const MIN_WIDTH = 1;
-export const MAX_WIDTH = 200;
 
 const TIPS = [
   { tip: "round", label: "drawing.tipRound" },
@@ -17,32 +20,11 @@ const TIPS = [
   { tip: "oval", label: "drawing.tipOval" },
 ] as const;
 
-export interface PenSettings {
-  width: number;
-  tip: PenTip;
-  /** From 0 to 1. */
-  opacity: number;
-  /** What a shape draws: its outline, its inside, or both. */
-  shapes: ShapeStyle;
-}
-
-export type ShapeStyle = "outline" | "filled" | "both";
-
 const SHAPE_STYLES = [
   { style: "outline", label: "drawing.shapeOutline" },
   { style: "filled", label: "drawing.shapeFilled" },
   { style: "both", label: "drawing.shapeBoth" },
 ] as const;
-
-/** The look of a tip on its button, as the paper shows it. */
-export function tipStyle(tip: PenTip, size: number) {
-  return {
-    width: `${size}px`,
-    height: `${tip === "oval" ? size * 0.35 : size}px`,
-    borderRadius: tip === "square" ? "0" : "9999px",
-    transform: tip === "oval" ? "rotate(-45deg)" : undefined,
-  };
-}
 
 /**
  * The panel of the options of a tool: on a wide screen a bar over the paper,
@@ -50,21 +32,6 @@ export function tipStyle(tip: PenTip, size: number) {
  */
 export const optionsPanel = (open: boolean) =>
   `${open ? "flex" : "hidden"} absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-64 max-w-[calc(100vw-1rem)] flex-col gap-2 rounded-lg bg-neutral-800 p-2 shadow-lg ring-1 ring-white/10 border-0 m-0 min-w-0 text-sm md:static md:flex md:translate-x-0 md:w-auto md:max-w-none md:flex-row md:flex-wrap md:items-center md:justify-center md:gap-x-6 md:gap-y-1 md:bg-transparent md:p-0 md:shadow-none md:ring-0`;
-
-/** The options that apply to a tool. A tool with none shows no panel. */
-export function penOptions(tool: Tool) {
-  const shape = tool === "rect" || tool === "ellipse" || tool === "polygon";
-  const lines = tool === "pen" || tool === "eraser" || tool === "line" || shape;
-  return {
-    tip: lines,
-    size: lines,
-    opacity: lines && tool !== "eraser" ? true : tool === "fill",
-    shapes: shape,
-  };
-}
-
-export const hasPenOptions = (tool: Tool) =>
-  Object.values(penOptions(tool)).some(Boolean);
 
 /**
  * The name of an option: an icon, with the name on hover. In the panel of a

@@ -16,17 +16,13 @@ import type { SelectMode } from "#/utils/selection.ts";
 import { DrawingHistory } from "./DrawingHistory.tsx";
 import { DrawingColors, InkPair } from "./DrawingInks.tsx";
 import { DrawingLayers } from "./DrawingLayers.tsx";
-import {
-  DrawingPen,
-  hasPenOptions,
-  type PenSettings,
-  tipStyle,
-} from "./DrawingPen.tsx";
+import { DrawingPen } from "./DrawingPen.tsx";
 import {
   DrawingSelectOptions,
   type SelectionMove,
 } from "./DrawingSelectOptions.tsx";
 import { DrawingSize, type ResizeKind } from "./DrawingSize.tsx";
+import { hasPenOptions, type PenSettings, tipStyle } from "./pen.ts";
 import { barButton, ToolButton, ToolGroup } from "./ToolGroup.tsx";
 import { isSelectTool, SELECTIONS, SHAPES, TOOLS, type Tool } from "./tools.ts";
 

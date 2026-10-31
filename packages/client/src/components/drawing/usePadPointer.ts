@@ -13,8 +13,7 @@ import {
   type SketchHistory,
 } from "#/utils/drawingLayers.ts";
 import { closesPolygon, snapLine, snapSquare } from "#/utils/shapes.ts";
-import { type CanvasBox, HANDLE } from "./DrawingOverlay.tsx";
-import type { PenSettings } from "./DrawingPen.tsx";
+import { type CanvasBox, HANDLE } from "./canvasBox.ts";
 import { type Gesture, UNCHANGED } from "./gesture.ts";
 import {
   colorAt,
@@ -25,6 +24,7 @@ import {
   paperPoint,
   shownPaper,
 } from "./paperPoints.ts";
+import type { PenSettings } from "./pen.ts";
 import { placePenCursor } from "./penCursor.ts";
 import {
   lineMark,

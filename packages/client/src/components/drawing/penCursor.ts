@@ -1,5 +1,5 @@
 import type { PenTip } from "#/utils/drawing.ts";
-import { tipStyle } from "./DrawingPen.tsx";
+import { tipStyle } from "./pen.ts";
 
 /**
  * The shape that the next stroke will fill, at the pointer, in the width and

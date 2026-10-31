@@ -1,7 +1,7 @@
 import type { RefObject } from "preact";
 import { useLayoutEffect, useState } from "preact/hooks";
 import type { PaperSize, Point, Rect } from "#/utils/drawing.ts";
-import type { CanvasBox } from "./DrawingOverlay.tsx";
+import type { CanvasBox } from "./canvasBox.ts";
 
 /** Zoom, as a part of the size that fits the screen. */
 const MIN_ZOOM = 0.25;

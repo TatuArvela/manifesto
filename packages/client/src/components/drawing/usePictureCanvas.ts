@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from "preact/hooks";
 import { type PaperSize, type Rect, renderDrawing } from "#/utils/drawing.ts";
 import type { SketchHistory } from "#/utils/drawingLayers.ts";
-import type { CanvasBox } from "./DrawingOverlay.tsx";
+import type { CanvasBox } from "./canvasBox.ts";
 
 /**
  * The two canvases of the pad. The picture is at the size of the image: the

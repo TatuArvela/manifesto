@@ -6,7 +6,7 @@ import {
   type Rect,
 } from "#/utils/drawing.ts";
 import { fillPicture, floodFill, growArea } from "#/utils/floodFill.ts";
-import { type CanvasBox, HANDLE } from "./DrawingOverlay.tsx";
+import { type CanvasBox, HANDLE } from "./canvasBox.ts";
 
 /** Where the paper is on the screen, in client pixels. */
 export const shownPaper = (
