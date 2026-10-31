@@ -162,6 +162,7 @@ files.
 | `import-export.md` | share links, public links, importers, the export zip |
 | `notes-that-compute.md` | inline arithmetic, URL extraction |
 | `link-previews.md` | preview cards, the SSRF boundary |
+| `drawing.md` | the drawing pad, its model, layers and history |
 | `layout-and-loading.md` | masonry, drag to reorder, touch holds, splash, phone sheets |
 | `pagination.md` | paged listings, image bytes on demand |
 | `components.md` | Dropdown, confirmation, Escape, shortcuts, Back, modals |
