@@ -981,6 +981,8 @@ export const en = {
   "deviceSignIn.wrongCode":
     "That is not the code on the other screen. Look again, or make a new code there.",
   "deviceSignIn.deny": "Not me",
+  "deviceSignIn.denyFailed":
+    "The request could not be ended. Try again, or it ends by itself soon.",
   "deviceSignIn.approve": "Approve",
   "deviceSignIn.approved": "The other device is signed in",
   "login.or": "or",

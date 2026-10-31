@@ -994,6 +994,8 @@ export const fi: Messages = {
   "deviceSignIn.wrongCode":
     "Koodi ei ole sama kuin toisella näytöllä. Tarkista se, tai luo siellä uusi koodi.",
   "deviceSignIn.deny": "En minä",
+  "deviceSignIn.denyFailed":
+    "Pyyntöä ei voitu päättää. Yritä uudelleen, tai se päättyy pian itsestään.",
   "deviceSignIn.approve": "Hyväksy",
   "deviceSignIn.approved": "Toinen laite on kirjautunut sisään",
   "login.or": "tai",

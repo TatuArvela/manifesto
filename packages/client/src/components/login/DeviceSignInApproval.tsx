@@ -43,7 +43,9 @@ export function DeviceSignInApproval({ request }: { request: ScannedRequest }) {
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [refusal, setRefusal] = useState<ConfirmationRefusal | null>(null);
-  const [error, setError] = useState<"wrongCode" | "failed" | null>(null);
+  const [error, setError] = useState<
+    "wrongCode" | "failed" | "denyFailed" | null
+  >(null);
   const [busy, setBusy] = useState(false);
   const [closing, setClosing] = useState(false);
 
@@ -68,9 +70,15 @@ export function DeviceSignInApproval({ request }: { request: ScannedRequest }) {
   useEscapeStack(true, dismiss);
   const dialogRef = useFocusTrap<HTMLDivElement>(!closing);
 
-  const deny = () => {
-    void denyDeviceSignIn(request.id);
-    dismiss();
+  const deny = async () => {
+    if (busy) return;
+    setRefusal(null);
+    setError(null);
+    setBusy(true);
+    const ended = await denyDeviceSignIn(request.id);
+    setBusy(false);
+    if (ended) dismiss();
+    else setError("denyFailed");
   };
 
   const submit = async (event: Event) => {
@@ -162,7 +170,9 @@ export function DeviceSignInApproval({ request }: { request: ScannedRequest }) {
                   {t(
                     error === "wrongCode"
                       ? "deviceSignIn.wrongCode"
-                      : "deviceSignIn.failed",
+                      : error === "denyFailed"
+                        ? "deviceSignIn.denyFailed"
+                        : "deviceSignIn.failed",
                   )}
                 </p>
               )}
@@ -172,7 +182,8 @@ export function DeviceSignInApproval({ request }: { request: ScannedRequest }) {
             <button
               type="button"
               class={buttonClass("secondary")}
-              onClick={ready ? deny : dismiss}
+              disabled={busy}
+              onClick={ready ? () => void deny() : dismiss}
             >
               {t(ready ? "deviceSignIn.deny" : "confirm.cancel")}
             </button>

@@ -148,10 +148,12 @@ export async function inspectDeviceSignIn(
 
 /**
  * "Not me": ends the request, and the log of the account records it. A request
- * that is already gone needs nothing, so the answer is not shown.
+ * that is already gone needs nothing, so it counts as ended. False when the
+ * server did not end it: the request can still be approved until it expires.
  */
-export async function denyDeviceSignIn(id: string): Promise<void> {
-  await apiFetch("POST", "/auth/device-sign-in/deny", { id });
+export async function denyDeviceSignIn(id: string): Promise<boolean> {
+  const res = await apiFetch("POST", "/auth/device-sign-in/deny", { id });
+  return res?.ok === true || res?.status === 410;
 }
 
 export type ApproveResult =
