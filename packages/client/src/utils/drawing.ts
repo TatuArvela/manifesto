@@ -471,7 +471,7 @@ export const CPU_INK: CanvasRenderingContext2DSettings = {
 let layerScratch: HTMLCanvasElement | null = null;
 
 /** The outline of a shape, as a path in progress. */
-export function shapePath(
+export function markShapePath(
   ctx: CanvasRenderingContext2D | Path2D,
   shape: Pick<Shape, "shape" | "points">,
 ): void {
@@ -508,7 +508,7 @@ export function shapePath(
 export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
   ctx.globalAlpha = shape.opacity ?? 1;
   ctx.beginPath();
-  shapePath(ctx, shape);
+  markShapePath(ctx, shape);
   if (shape.fill) {
     ctx.fillStyle = shape.fill;
     ctx.fill();

@@ -63,7 +63,7 @@ export function shapeBounds(shape: SelectShape): Rect | null {
 }
 
 /** Adds the outline of a shape to the path in progress. */
-export function shapePath(
+export function selectShapePath(
   ctx: CanvasRenderingContext2D,
   shape: SelectShape,
 ): void {
@@ -171,7 +171,7 @@ export function combineSelection(
         : "source-over";
   ctx.fillStyle = "#000";
   ctx.beginPath();
-  shapePath(ctx, shape);
+  selectShapePath(ctx, shape);
   ctx.fill();
   return trimmed({ mask, bounds: box });
 }
