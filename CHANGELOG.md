@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.9.0](https://github.com/TatuArvela/manifesto/compare/v0.8.0...v0.9.0) (2026-10-31)
+
+
+### Features
+
+* a version keeps the images of the note, and a restore brings them back ([#180](https://github.com/TatuArvela/manifesto/issues/180)) ([4db9d0c](https://github.com/TatuArvela/manifesto/commit/4db9d0ce228e8f987fa00581f69fdadb12dd37be))
+* **client:** a note's shadow curls up at its bottom corners, with a setting to turn it off ([#170](https://github.com/TatuArvela/manifesto/issues/170)) ([b679702](https://github.com/TatuArvela/manifesto/commit/b6797024560b573bea4b70f8dfe0c712bc7dd6af))
+* **client:** drawings get layers, undo and redo, zoom, two inks, fill, and line and shape tools ([#175](https://github.com/TatuArvela/manifesto/issues/175)) ([57a44d2](https://github.com/TatuArvela/manifesto/commit/57a44d2c704793d269fcb9fdeddafa5436292f1e))
+* sign in a new device from a QR code that a signed-in device approves ([#174](https://github.com/TatuArvela/manifesto/issues/174)) ([75e3799](https://github.com/TatuArvela/manifesto/commit/75e3799fc4f067107a1818dc8061b72828e11b32))
+* urgent reminders that repeat until done, and a Reminders view in sections ([#172](https://github.com/TatuArvela/manifesto/issues/172)) ([5e5278a](https://github.com/TatuArvela/manifesto/commit/5e5278a3b61d75a760e0f7567242f0c06114eff1))
+
+
+### Bug Fixes
+
+* **client:** the buttons that do not fit on a card go into its menu ([#169](https://github.com/TatuArvela/manifesto/issues/169)) ([d8a2af8](https://github.com/TatuArvela/manifesto/commit/d8a2af89b713fc1686914ca7d085e0b260d79b6b))
+
 ## [0.8.0](https://github.com/TatuArvela/manifesto/compare/v0.7.0...v0.8.0) (2026-10-20)
 
 
