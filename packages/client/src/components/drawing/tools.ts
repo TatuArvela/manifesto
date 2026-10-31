@@ -14,7 +14,12 @@ import {
   SquareDashed,
   VectorPolygon,
 } from "lucide-preact";
-import type { SelectTool } from "./useSelectionTool.ts";
+
+/** The tools that select an area. */
+export type SelectTool = "select" | "selectEllipse" | "lasso" | "polyLasso";
+
+/** What a drag inside the selected area moves: the area, or its ink. */
+export type SelectionMove = "selection" | "pixels";
 
 /** What a press on the paper does. */
 export type Tool =

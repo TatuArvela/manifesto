@@ -17,14 +17,18 @@ import { DrawingHistory } from "./DrawingHistory.tsx";
 import { DrawingColors, InkPair } from "./DrawingInks.tsx";
 import { DrawingLayers } from "./DrawingLayers.tsx";
 import { DrawingPen } from "./DrawingPen.tsx";
-import {
-  DrawingSelectOptions,
-  type SelectionMove,
-} from "./DrawingSelectOptions.tsx";
+import { DrawingSelectOptions } from "./DrawingSelectOptions.tsx";
 import { DrawingSize, type ResizeKind } from "./DrawingSize.tsx";
 import { hasPenOptions, type PenSettings, tipStyle } from "./pen.ts";
 import { barButton, ToolButton, ToolGroup } from "./ToolGroup.tsx";
-import { isSelectTool, SELECTIONS, SHAPES, TOOLS, type Tool } from "./tools.ts";
+import {
+  isSelectTool,
+  SELECTIONS,
+  type SelectionMove,
+  SHAPES,
+  TOOLS,
+  type Tool,
+} from "./tools.ts";
 
 /** A divider between groups: across the bar on a phone, along the rail on a wide screen. */
 const divider = "w-px h-6 mx-1 bg-white/20 md:w-6 md:h-px md:mx-0 md:my-1";

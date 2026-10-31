@@ -12,10 +12,7 @@ import {
   shapeBounds,
 } from "#/utils/selection.ts";
 import { closesPolygon } from "#/utils/shapes.ts";
-import type { SelectionMove } from "./DrawingSelectOptions.tsx";
-
-/** The tools that select an area. */
-export type SelectTool = "select" | "selectEllipse" | "lasso" | "polyLasso";
+import type { SelectionMove, SelectTool } from "./tools.ts";
 
 /** The corners of a polygonal lasso in progress, and where the pointer is. */
 interface Trace {

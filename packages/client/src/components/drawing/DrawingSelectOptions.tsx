@@ -12,9 +12,7 @@ import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { t } from "#/i18n/index.ts";
 import type { SelectMode } from "#/utils/selection.ts";
 import { optionsPanel } from "./DrawingPen.tsx";
-
-/** What a drag inside the selected area moves: the area, or its ink. */
-export type SelectionMove = "selection" | "pixels";
+import type { SelectionMove } from "./tools.ts";
 
 const MODES = [
   { mode: "replace", Icon: Square, label: "drawing.selectNew" },
