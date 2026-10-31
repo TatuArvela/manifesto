@@ -4,13 +4,13 @@ import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { t } from "#/i18n/index.ts";
 import { askConfirmation } from "#/state/confirm.ts";
 import { closeDrawing } from "#/state/drawing.ts";
-import { encodeDrawing } from "#/utils/drawing.ts";
 import {
   hasStrokes,
   hasVisibleStrokes,
   type Sketch,
   type SketchHistory,
 } from "#/utils/drawingLayers.ts";
+import { encodeDrawing } from "#/utils/drawingRender.ts";
 
 /**
  * How the pad ends: Done saves the picture, and a close (the button, Escape,

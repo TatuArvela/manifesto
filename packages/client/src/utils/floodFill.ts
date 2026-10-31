@@ -2,7 +2,8 @@
 // pressed one that have nearly its color. Pure, on the bytes of the picture.
 // Thus, it can be tested without a canvas.
 
-import { blankCanvas, type Rect } from "./drawing.ts";
+import type { Rect } from "./drawing.ts";
+import { blankCanvas } from "./drawingRender.ts";
 
 export interface FillArea {
   /** One byte for each pixel of the picture: 1 inside the area. */

@@ -4,7 +4,6 @@
 // any shape, and holes.
 
 import {
-  blankCanvas,
   type Clip,
   intersect,
   isClip,
@@ -14,6 +13,7 @@ import {
   type Point,
   type Rect,
 } from "./drawing.ts";
+import { blankCanvas } from "./drawingRender.ts";
 
 export interface Selection {
   /** Opaque inside the area, transparent outside it. The size of `bounds`. */

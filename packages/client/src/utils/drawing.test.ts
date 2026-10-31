@@ -4,15 +4,15 @@ import {
   DRAWING_HEIGHT,
   DRAWING_WIDTH,
   drawingPoint,
-  inkArea,
   intersect,
   markBounds,
   paperSizeFor,
   resizeAround,
-  stampCenters,
   transformMark,
   transformStroke,
 } from "./drawing.ts";
+import { inkArea } from "./drawingRender.ts";
+import { stampCenters } from "./penTip.ts";
 
 describe("drawingPoint", () => {
   // The paper shown at a quarter of its size, away from the corner.

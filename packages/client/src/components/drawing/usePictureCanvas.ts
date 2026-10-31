@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from "preact/hooks";
-import { type PaperSize, type Rect, renderDrawing } from "#/utils/drawing.ts";
+import type { PaperSize, Rect } from "#/utils/drawing.ts";
 import type { SketchHistory } from "#/utils/drawingLayers.ts";
+import { renderDrawing } from "#/utils/drawingRender.ts";
 import type { CanvasBox } from "./canvasBox.ts";
 
 /**

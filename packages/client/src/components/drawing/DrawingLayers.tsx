@@ -12,7 +12,7 @@ import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { t } from "#/i18n/index.ts";
-import { drawMarks, type Rect } from "#/utils/drawing.ts";
+import type { Rect } from "#/utils/drawing.ts";
 import {
   activeLayer,
   addLayer,
@@ -28,6 +28,7 @@ import {
   setLayerOpacity,
   toggleLayer,
 } from "#/utils/drawingLayers.ts";
+import { drawMarks } from "#/utils/drawingRender.ts";
 import { phonePanel, SidePanel } from "./SidePanel.tsx";
 
 const rowButton =

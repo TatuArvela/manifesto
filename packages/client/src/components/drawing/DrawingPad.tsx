@@ -4,9 +4,7 @@ import { useFocusTrap } from "#/hooks/useFocusTrap.ts";
 import { t } from "#/i18n/index.ts";
 import { drawingRequest } from "#/state/drawing.ts";
 import {
-  inkArea,
   type Mark,
-  rasterize,
   type Transform,
   transformRect,
   wholePaper,
@@ -30,6 +28,7 @@ import {
   transformLayer,
   undo,
 } from "#/utils/drawingLayers.ts";
+import { inkArea, rasterize } from "#/utils/drawingRender.ts";
 import { inArea } from "#/utils/selection.ts";
 import { DrawingHints } from "./DrawingHints.tsx";
 import { BLACK, WHITE } from "./DrawingInks.tsx";

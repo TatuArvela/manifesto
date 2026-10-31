@@ -1,17 +1,14 @@
 import { useEffect, useRef } from "preact/hooks";
+import type { Mark, Point, Rect, Transform } from "#/utils/drawing.ts";
+import { activeLayer, type Sketch } from "#/utils/drawingLayers.ts";
 import {
   blankCanvas,
   CPU_INK,
   drawMarks,
-  type Mark,
-  type Point,
   paintLayer,
-  type Rect,
   renderDrawing,
   reusedCanvas,
-  type Transform,
-} from "#/utils/drawing.ts";
-import { activeLayer, type Sketch } from "#/utils/drawingLayers.ts";
+} from "#/utils/drawingRender.ts";
 
 /** What the frames of a gesture read, each time that they paint. */
 export interface LiveSource {
