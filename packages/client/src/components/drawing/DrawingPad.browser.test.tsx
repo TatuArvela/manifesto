@@ -367,7 +367,9 @@ describe("DrawingPad", () => {
     button("Red")?.click();
     await settled();
     drawLine([0.2, 0.5], [0.8, 0.5]);
+    await settled();
     button("Black")?.click();
+    await settled();
     button(t("drawing.dropper"))?.click();
     await settled();
     drawLine([0.5, 0.5], [0.5, 0.5]);
@@ -484,6 +486,7 @@ describe("DrawingPad", () => {
     expect(inkAt(0.4, 0.5)).toBe(PAPER);
 
     button("Red")?.click();
+    await settled();
     button(t("drawing.fill"))?.click();
     await settled();
     drawLine([0.4, 0.5], [0.4, 0.5]);
@@ -591,6 +594,7 @@ describe("DrawingPad", () => {
 
   it("does not move a hidden layer", async () => {
     drawLine([0.2, 0.2], [0.3, 0.2]);
+    await settled();
     button(t("drawing.layers"))?.click();
     await settled();
     button(
@@ -631,6 +635,8 @@ describe("DrawingPad", () => {
     await settled();
     expect(inkAt(0.5, 0.5)).toBe("23,23,23");
     press("z");
+    await settled();
+    expect(inkAt(0.5, 0.5)).toBe(PAPER);
     press("Z", true);
     await settled();
     expect(inkAt(0.5, 0.5)).toBe("23,23,23");
@@ -724,6 +730,7 @@ describe("DrawingPad", () => {
 
   it("crops the picture to a box with the crop tool and Enter", async () => {
     drawLine([0.1, 0.5], [0.9, 0.5]);
+    await settled();
     button(t("drawing.crop"))?.click();
     await settled();
     drawLine([0.4, 0.4], [0.6, 0.6]);
@@ -1129,11 +1136,11 @@ describe("DrawingPad", () => {
       enabled: true,
       maxTouchPoints: 5,
     });
+    // A page tall enough to scroll, as the board behind a note is.
+    const filler = document.createElement("div");
+    filler.style.height = "3000px";
+    document.body.appendChild(filler);
     try {
-      // A page tall enough to scroll, as the board behind a note is.
-      const filler = document.createElement("div");
-      filler.style.height = "3000px";
-      document.body.appendChild(filler);
       const from = screenPoint(0.5, 0.3);
       const to = screenPoint(0.5, 0.7);
       const touch = (
@@ -1155,12 +1162,13 @@ describe("DrawingPad", () => {
       }
       await touch("touchEnd");
       await settled();
-      filler.remove();
 
       expect(inkAt(0.5, 0.5)).not.toBe(PAPER);
       // A vertical drag on any other element would have scrolled the page.
+      // Read before the filler goes: a page too short to scroll is at 0.
       expect(window.scrollY).toBe(0);
     } finally {
+      filler.remove();
       await session().send("Emulation.setTouchEmulationEnabled", {
         enabled: false,
       });
