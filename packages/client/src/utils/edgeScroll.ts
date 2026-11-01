@@ -21,20 +21,37 @@ export function scrollParent(el: HTMLElement): HTMLElement {
 }
 
 /**
+ * The part of the window that the user sees, in the coordinates of the pointer.
+ * With the on-screen keyboard up, iOS keeps the window its full height and
+ * puts the keyboard over its bottom. An edge measured on the window was then
+ * under the keys, where no finger can go, and the list never scrolled down.
+ */
+function visibleRange(): { top: number; bottom: number } {
+  const visual = window.visualViewport;
+  if (!visual) return { top: 0, bottom: window.innerHeight };
+  const top = Math.max(visual.offsetTop, 0);
+  return {
+    top,
+    bottom: Math.min(top + visual.height, window.innerHeight),
+  };
+}
+
+/**
  * Scrolls `scroller` by one frame for a pointer at `y`. Its visible part is
  * what counts. Thus, an area taller than the window scrolls at the edges of the
- * window. True if it moved. Then the code must look up again the target of the
- * drag.
+ * window, above the keyboard. True if it moved. Then the code must look up
+ * again the target of the drag.
  */
 export function edgeScroll(scroller: HTMLElement, y: number): boolean {
+  const visible = visibleRange();
   const box =
     scroller === document.scrollingElement
-      ? { top: 0, bottom: window.innerHeight }
+      ? visible
       : scroller.getBoundingClientRect();
   const step = edgeScrollStep(
     y,
-    Math.max(box.top, 0),
-    Math.min(box.bottom, window.innerHeight),
+    Math.max(box.top, visible.top),
+    Math.min(box.bottom, visible.bottom),
   );
   if (step === 0) return false;
   const before = scroller.scrollTop;

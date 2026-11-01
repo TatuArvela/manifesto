@@ -88,14 +88,26 @@ export async function saveDeviceKeys(keys: DeviceKeys): Promise<boolean> {
   }
 }
 
+/**
+ * The waits before each new read of the keys after a read that failed. A
+ * home-screen app on iOS that comes back from the background can lose its
+ * connection to IndexedDB, and the first open fails. A read that failed one
+ * time asked for the secret key of an account whose keys were there.
+ */
+const READ_RETRY_MS = [100, 400];
+
 /** The keys kept on this device, or null when there are none to read. */
 export async function loadDeviceKeys(): Promise<DeviceKeys | null> {
   if (!available()) return null;
-  try {
-    const stored = await run("readonly", (store) => store.get(RECORD));
-    return isDeviceKeys(stored) ? stored : null;
-  } catch {
-    return null;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const stored = await run("readonly", (store) => store.get(RECORD));
+      return isDeviceKeys(stored) ? stored : null;
+    } catch {
+      const wait = READ_RETRY_MS[attempt];
+      if (wait === undefined) return null;
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
   }
 }
 
