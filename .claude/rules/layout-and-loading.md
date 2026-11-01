@@ -143,6 +143,9 @@ No code reads `visualViewport`, on purpose:
 - Padding for the keyboard added empty space after the end.
 - A top bar that followed the visual viewport was one frame late on each scroll.
 
+The surface of a sheet has a minimum height of `100lvh`, not `100dvh`. `dvh` changes only after
+the toolbars of the browser go, and the fixed board showed under a short note until it did.
+
 When the keyboard is open in a Safari tab, iOS pans the page past the bottom of the layout, and
 past the `fixed` layers. Thus, the background of the page shows there. `paintPage` gives it the
 color of the open note.

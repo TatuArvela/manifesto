@@ -330,9 +330,15 @@
    * keyboard. iOS already lets the page scroll the end of the text above the
    * keys. A top bar that followed the visible area during a scroll was one
    * frame behind it.
+   *
+   * The large viewport, not the dynamic one. `dvh` is the height with the
+   * toolbars of the browser out, and it changes only after they go. While they
+   * go, and in a home-screen app whose `dvh` iOS reports short, the fixed board
+   * showed under a short note. `lvh` is the full height in all states. The
+   * bottom bar is sticky. Thus, it stays at the bottom of what the user sees.
    */
   .note-sheet-surface {
-    min-height: 100dvh;
+    min-height: 100lvh;
   }
 
   /*
