@@ -216,57 +216,71 @@
   --board-color-to: var(--board-gradient-custom-shade);
 }
 :root[data-board-gradient-direction="top"] {
-  --board-gradient: linear-gradient(
-    to top,
-    var(--board-color, var(--board-page)),
-    var(--board-color-to)
-  );
+  --board-gradient-way: to top;
+  --board-roll-width: 100%;
+  --board-roll-height: 300%;
+  --board-roll-from: 0 0;
+  --board-roll-to: 0 calc(-200% / 3);
 }
 :root[data-board-gradient-direction="top-right"] {
-  --board-gradient: linear-gradient(
-    to top right,
-    var(--board-color, var(--board-page)),
-    var(--board-color-to)
-  );
+  --board-gradient-way: to top right;
+  --board-roll-width: 300%;
+  --board-roll-height: 300%;
+  --board-roll-from: calc(-200% / 3) 0;
+  --board-roll-to: 0 calc(-200% / 3);
 }
 :root[data-board-gradient-direction="right"] {
-  --board-gradient: linear-gradient(
-    to right,
-    var(--board-color, var(--board-page)),
-    var(--board-color-to)
-  );
+  --board-gradient-way: to right;
+  --board-roll-width: 300%;
+  --board-roll-height: 100%;
+  --board-roll-from: calc(-200% / 3) 0;
+  --board-roll-to: 0 0;
 }
 :root[data-board-gradient-direction="bottom-right"] {
-  --board-gradient: linear-gradient(
-    to bottom right,
-    var(--board-color, var(--board-page)),
-    var(--board-color-to)
-  );
+  --board-gradient-way: to bottom right;
+  --board-roll-width: 300%;
+  --board-roll-height: 300%;
+  --board-roll-from: calc(-200% / 3) calc(-200% / 3);
+  --board-roll-to: 0 0;
 }
 :root[data-board-gradient-direction="bottom"] {
-  --board-gradient: linear-gradient(
-    to bottom,
-    var(--board-color, var(--board-page)),
-    var(--board-color-to)
-  );
+  --board-gradient-way: to bottom;
+  --board-roll-width: 100%;
+  --board-roll-height: 300%;
+  --board-roll-from: 0 calc(-200% / 3);
+  --board-roll-to: 0 0;
 }
 :root[data-board-gradient-direction="bottom-left"] {
-  --board-gradient: linear-gradient(
-    to bottom left,
-    var(--board-color, var(--board-page)),
-    var(--board-color-to)
-  );
+  --board-gradient-way: to bottom left;
+  --board-roll-width: 300%;
+  --board-roll-height: 300%;
+  --board-roll-from: 0 calc(-200% / 3);
+  --board-roll-to: calc(-200% / 3) 0;
 }
 :root[data-board-gradient-direction="left"] {
+  --board-gradient-way: to left;
+  --board-roll-width: 300%;
+  --board-roll-height: 100%;
+  --board-roll-from: 0 0;
+  --board-roll-to: calc(-200% / 3) 0;
+}
+:root[data-board-gradient-direction="top-left"] {
+  --board-gradient-way: to top left;
+  --board-roll-width: 300%;
+  --board-roll-height: 300%;
+  --board-roll-from: 0 0;
+  --board-roll-to: calc(-200% / 3) calc(-200% / 3);
+}
+:root[data-board-gradient-direction] {
   --board-gradient: linear-gradient(
-    to left,
+    var(--board-gradient-way),
     var(--board-color, var(--board-page)),
     var(--board-color-to)
   );
-}
-:root[data-board-gradient-direction="top-left"] {
-  --board-gradient: linear-gradient(
-    to top left,
+  --board-gradient-rolled: linear-gradient(
+    var(--board-gradient-way),
+    var(--board-color, var(--board-page)),
+    var(--board-color-to),
     var(--board-color, var(--board-page)),
     var(--board-color-to)
   );
@@ -443,7 +457,8 @@
  * color of the page. Thus, headings and the text of an empty view stay legible
  * over a busy photo. The attribute is set only after the picture loaded.
  */
-:root[data-board-picture] .board-frame::before {
+:root[data-board-picture] .board-frame::before,
+:root[data-board-picture] .board-frame::after {
   display: none;
 }
 :root[data-board-picture] .board-frame {
@@ -578,4 +593,165 @@
 .board-texture-tile[data-texture="sawtooth"] {
   --tile-texture: var(--board-texture-sawtooth);
   --tile-texture-size: var(--board-texture-sawtooth-size);
+}
+
+/*
+ * The motion of the board (Settings > Board Background). state/prefs.ts sets
+ * both attributes only while the animations are on. Thus, these rules need no
+ * test of `.no-motion`, and with them off nothing here applies.
+ *
+ * All of it moves a layer with `translate` and `transform`. The compositor does
+ * that with no paint and no layout, while the main thread does other work. A
+ * moved `mask-position` or `background-position` paints the full board again on
+ * each frame.
+ */
+:root[data-board-roll] .board-frame,
+:root[data-board-roll] .board-preview,
+:root[data-board-texture-motion] .board-frame,
+:root[data-board-texture-motion] .board-texture-tile {
+  overflow: clip;
+}
+
+/*
+ * The rolling gradient: its own layer under the texture, over the still
+ * gradient of the frame. The layer holds the two colors twice, at four even
+ * stops, on a box three times the board along each axis that the gradient goes
+ * on. Thus, the board always shows one fade from the first color to the second.
+ * A move of two boards along that axis is one full period of the colors, and the
+ * last frame is the same as the first. A corner keyword keeps its lines through
+ * the other corners, because the box has the shape of the board.
+ *
+ * It moves toward the direction selected in Settings.
+ */
+:root[data-board-roll="slow"] {
+  --board-roll-time: 180s;
+}
+:root[data-board-roll="medium"] {
+  --board-roll-time: 60s;
+}
+:root[data-board-roll="fast"] {
+  --board-roll-time: 20s;
+}
+:root[data-board-roll] .board-frame::after,
+:root[data-board-roll] .board-preview::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -2;
+  width: var(--board-roll-width);
+  height: var(--board-roll-height);
+  pointer-events: none;
+  background-image: var(--board-gradient-rolled);
+  animation: board-roll var(--board-roll-time) linear infinite;
+}
+@keyframes board-roll {
+  from {
+    translate: var(--board-roll-from);
+  }
+  to {
+    translate: var(--board-roll-to);
+  }
+}
+
+/*
+ * The moving patterns. The texture layer goes past the board by `--drift-reach`
+ * on each side, and moves by `--drift`, which must be one whole repeat of the
+ * pattern. Thus, the last frame is the same as the first, and no edge comes into
+ * view (styles.test.ts checks both). Each pattern moves as the thing that it
+ * looks like: confetti falls, bubbles and hearts rise, waves roll, the stars
+ * pass, the sawtooth runs along its rows. `--drift-sway` moves a loose shape from
+ * side to side on the way. Paper, dots, grid, lines and stripes only slide.
+ */
+:root[data-board-texture="paper"] .board-frame,
+.board-texture-tile[data-texture="paper"] {
+  --drift: 160px 160px;
+  --drift-reach: 160px;
+  --drift-time: 40s;
+}
+:root[data-board-texture="dots"] .board-frame,
+.board-texture-tile[data-texture="dots"] {
+  --drift: 22px 22px;
+  --drift-reach: 22px;
+  --drift-time: 5s;
+}
+:root[data-board-texture="grid"] .board-frame,
+.board-texture-tile[data-texture="grid"] {
+  --drift: 24px 24px;
+  --drift-reach: 24px;
+  --drift-time: 6s;
+}
+:root[data-board-texture="lines"] .board-frame,
+.board-texture-tile[data-texture="lines"] {
+  --drift: 0px 28px;
+  --drift-reach: 28px;
+  --drift-time: 7s;
+}
+:root[data-board-texture="waves"] .board-frame,
+.board-texture-tile[data-texture="waves"] {
+  --drift: 46px 0px;
+  --drift-reach: 46px;
+  --drift-time: 8s;
+}
+:root[data-board-texture="confetti"] .board-frame,
+.board-texture-tile[data-texture="confetti"] {
+  --drift: 0px 320px;
+  --drift-reach: 332px;
+  --drift-sway: 12px;
+  --drift-time: 32s;
+}
+:root[data-board-texture="stars"] .board-frame,
+.board-texture-tile[data-texture="stars"] {
+  --drift: -360px 0px;
+  --drift-reach: 360px;
+  --drift-time: 72s;
+}
+:root[data-board-texture="hearts"] .board-frame,
+.board-texture-tile[data-texture="hearts"] {
+  --drift: 0px -360px;
+  --drift-reach: 372px;
+  --drift-sway: 12px;
+  --drift-time: 45s;
+}
+:root[data-board-texture="bubbles"] .board-frame,
+.board-texture-tile[data-texture="bubbles"] {
+  --drift: 0px -360px;
+  --drift-reach: 372px;
+  --drift-sway: 12px;
+  --drift-time: 30s;
+}
+/* One stripe and its gap are 32px across, thus 32px times the root of 2 along x. */
+:root[data-board-texture="stripes"] .board-frame,
+.board-texture-tile[data-texture="stripes"] {
+  --drift: calc(32px * 1.41421356) 0px;
+  --drift-reach: 46px;
+  --drift-time: 8s;
+}
+/* One tooth along a row that is turned 45 degrees (utils/boardTextures.ts). */
+:root[data-board-texture="sawtooth"] .board-frame,
+.board-texture-tile[data-texture="sawtooth"] {
+  --drift: 28.6px -28.6px;
+  --drift-reach: 29px;
+  --drift-time: 8s;
+}
+:root[data-board-texture-motion] .board-frame::before,
+:root[data-board-texture-motion]
+  .board-texture-tile:not([data-texture="none"])::before {
+  inset: calc(var(--drift-reach) * -1);
+  animation:
+    board-texture-drift var(--drift-time) linear infinite,
+    board-texture-sway 5s ease-in-out infinite alternate;
+}
+@keyframes board-texture-drift {
+  to {
+    translate: var(--drift);
+  }
+}
+@keyframes board-texture-sway {
+  from {
+    transform: translateX(calc(var(--drift-sway, 0px) * -1));
+  }
+  to {
+    transform: translateX(var(--drift-sway, 0px));
+  }
 }

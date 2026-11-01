@@ -37,6 +37,8 @@ named layers, the Escape stack).
     them can make the contrast lower.
   - Keyboard focus shows one ring in all places. You can zoom the page. Motion follows the
     reduced-motion setting of the system, unless the animations preference sets a different value.
+  - A moving board background is off by default, and only the person selects it. The animations
+    preference and the same setting of Board Background both stop it (WCAG 2.2, 2.2.2).
 - **Pointer targets**: controls are 24 by 24 px or larger, or have that size for a press when they
   look smaller (WCAG 2.2, 2.5.8). The exceptions are below.
 - **Focus in view**: the phone top bar and the sticky bars of an open note never hide a control that

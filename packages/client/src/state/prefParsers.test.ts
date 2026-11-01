@@ -143,6 +143,15 @@ describe("PREF_PARSERS", () => {
     expect(parser(1e9)).toBe(parser(parser(1e9)));
     expect(Number.isInteger(parser(37.6))).toBe(true);
   });
+
+  it("keeps the board still unless a known motion is stored", () => {
+    expect(PREF_PARSERS.boardGradientSpeed(undefined)).toBe("still");
+    expect(PREF_PARSERS.boardGradientSpeed("warp")).toBe("still");
+    expect(PREF_PARSERS.boardGradientSpeed("fast")).toBe("fast");
+    expect(PREF_PARSERS.boardTextureMotion(undefined)).toBe(false);
+    expect(PREF_PARSERS.boardTextureMotion("yes")).toBe(false);
+    expect(PREF_PARSERS.boardTextureMotion(true)).toBe(true);
+  });
 });
 
 describe("parsePrefs", () => {

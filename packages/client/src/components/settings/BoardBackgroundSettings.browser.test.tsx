@@ -3,9 +3,14 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import "#/styles.css";
 import { t } from "#/i18n/index.ts";
 import {
+  animations,
   boardColor,
   boardCustomColor,
+  boardGradient,
+  boardGradientDirection,
+  boardGradientSpeed,
   boardTexture,
+  boardTextureMotion,
   boardTextureOpacity,
   boardUsePicture,
   resolvedBoardTexture,
@@ -49,6 +54,84 @@ afterEach(() => {
   boardTexture.value = "none";
   boardTextureOpacity.value = 10;
   document.documentElement.classList.remove("dark");
+});
+
+describe("board motion", () => {
+  const root = document.documentElement;
+
+  afterEach(() => {
+    animations.value = true;
+    boardGradient.value = "none";
+    boardGradientSpeed.value = "still";
+    boardTextureMotion.value = false;
+  });
+
+  it("rolls the gradient on a layer, at the chosen speed", async () => {
+    animations.value = true;
+    boardGradient.value = "blue";
+    boardGradientDirection.value = "right";
+    await nextFrame();
+    button(t("settings.boardBackground.speed.fast")).click();
+    await nextFrame();
+
+    expect(root.dataset.boardRoll).toBe("fast");
+    const layer = getComputedStyle(board, "::after");
+    expect(layer.getPropertyValue("animation-name")).toBe("board-roll");
+    expect(layer.getPropertyValue("animation-duration")).toBe("20s");
+    // Three boards wide, one board high, for a gradient that goes sideways.
+    expect(Number.parseFloat(layer.width)).toBeCloseTo(
+      board.getBoundingClientRect().width * 3,
+    );
+    expect(Number.parseFloat(layer.height)).toBeCloseTo(
+      board.getBoundingClientRect().height,
+    );
+  });
+
+  it("has no speed to change with no gradient", async () => {
+    animations.value = true;
+    boardGradient.value = "none";
+    boardGradientSpeed.value = "fast";
+    await nextFrame();
+    expect(root.dataset.boardRoll).toBeUndefined();
+    expect(
+      button(t("settings.boardBackground.speed.fast")).matches(":disabled"),
+    ).toBe(true);
+  });
+
+  it("moves the pattern past the edge of its layer", async () => {
+    animations.value = true;
+    boardTexture.value = "confetti";
+    boardTextureMotion.value = true;
+    await nextFrame();
+
+    const layer = getComputedStyle(board, "::before");
+    expect(layer.getPropertyValue("animation-name")).toBe(
+      "board-texture-drift, board-texture-sway",
+    );
+    expect(layer.getPropertyValue("top")).toBe("-332px");
+    expect(getComputedStyle(board).getPropertyValue("overflow-x")).toBe("clip");
+  });
+
+  it("holds the board still with the animations off", async () => {
+    boardGradient.value = "blue";
+    boardGradientSpeed.value = "fast";
+    boardTexture.value = "dots";
+    boardTextureMotion.value = true;
+    animations.value = false;
+    await nextFrame();
+
+    expect(root.dataset.boardRoll).toBeUndefined();
+    expect(root.dataset.boardTextureMotion).toBeUndefined();
+    expect(getComputedStyle(board, "::before").getPropertyValue("top")).toBe(
+      "0px",
+    );
+    expect(host.textContent).toContain(t("settings.boardBackground.motionOff"));
+    // The choices stay. Thus, the board moves again with the animations on.
+    animations.value = true;
+    await nextFrame();
+    expect(root.dataset.boardRoll).toBe("fast");
+    expect(root.dataset.boardTextureMotion).toBe("");
+  });
 });
 
 describe("board background composer", () => {

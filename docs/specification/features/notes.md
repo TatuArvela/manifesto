@@ -117,6 +117,8 @@ sections, Color and Pattern. Each choice applies immediately:
   - When a second color is set, **Direction** shows eight sides and corners on a compass. Each one is
     drawn as the gradient that it makes. **Random** is in the middle. A corner goes from corner to
     corner, on a board of any shape.
+  - **Rolling Speed**: Still (the default), Slow, Medium or Fast. The colors roll toward the direction
+    without end. It is disabled without a second color.
 - **Pattern**: Plain, Paper, Dots, Grid, Lines, Waves, Confetti, Stars, Hearts, Bubbles, Stripes or
   Sawtooth (the logo in rows turned 45°, with a line between the rows that has barbs from its
   notches). The app draws it over the color. The patterns are CSS gradients and inline SVG. Thus, no
@@ -129,6 +131,12 @@ sections, Color and Pattern. Each choice applies immediately:
     color in both themes.
   - **Random** draws in a different preset on each visit. If you select it again, it selects a
     different one.
+- **Moving Pattern**: off by default. When it is on, each pattern moves in its own way: confetti
+  falls, bubbles and hearts rise, waves roll, stars pass, and the sawtooth runs along its rows. Paper,
+  dots, grid, lines and stripes slide. The tiles show the motion. Each moves one whole repeat of the
+  pattern and starts again. Thus, no jump shows.
+- With the Animations preference off, Rolling Speed and Moving Pattern are disabled and the board
+  stays still. The page tells this. Both choices stay, and apply again when Animations is on.
 - **Pattern Opacity**: a slider from 0% to 100% (10% by default) for the opacity of the pattern.
   - Each pattern is a mask over one layer that has the pattern color and this opacity. Thus, each
     mark of each pattern, in each color, has this opacity (the paper grain is noise, so its opacity

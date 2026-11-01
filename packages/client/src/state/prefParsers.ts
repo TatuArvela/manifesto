@@ -97,6 +97,8 @@ export type BoardGradientDirection =
   | "top-left";
 /** A direction, or a direction selected at random on each visit. */
 export type BoardGradientDirectionChoice = BoardGradientDirection | "random";
+/** How fast the gradient rolls in its direction. "still" does not roll it. */
+export type BoardGradientSpeed = "still" | "slow" | "medium" | "fast";
 /**
  * The shade of the dark theme: a gray with a hue, a dimmed or black shade, or a
  * tint in the hue of one of the preset colors of the board.
@@ -125,6 +127,14 @@ export const BOARD_GRADIENT_DIRECTIONS: readonly BoardGradientDirection[] = [
   "bottom-left",
   "left",
   "top-left",
+];
+
+/** Slowest first, which is the layout in Settings. */
+export const BOARD_GRADIENT_SPEEDS: readonly BoardGradientSpeed[] = [
+  "still",
+  "slow",
+  "medium",
+  "fast",
 ];
 
 export const BOARD_TEXTURES: readonly BoardTexture[] = [
@@ -452,7 +462,10 @@ export const PREF_PARSERS = {
     [...BOARD_GRADIENT_DIRECTIONS, "random"],
     "bottom-right",
   ),
+  boardGradientSpeed: oneOf(BOARD_GRADIENT_SPEEDS, "still"),
   boardTexture: parseBoardTexture,
+  /** If the pattern moves, each in its own way (preferences.css). */
+  boardTextureMotion: flag(false),
   boardInk: oneOf(BOARD_INKS, "auto"),
   boardInkColor: hexColor(DEFAULT_BOARD_INK_COLOR),
   /** The opacity of the pattern, in whole percent, whatever its color. */

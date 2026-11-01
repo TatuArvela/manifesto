@@ -61,7 +61,7 @@ export function BoardPreview({
     <fieldset
       aria-label={t("settings.boardBackground.gradient.direction")}
       data-texture={resolvedBoardTexture.value}
-      class="board-texture-tile relative h-32 rounded-xl ring-1 ring-inset ring-black/10 dark:ring-white/15"
+      class="board-texture-tile board-preview relative h-32 rounded-xl ring-1 ring-black/10 dark:ring-white/15"
     >
       {boardGradient.value !== "none" &&
         (Object.keys(HANDLE_PLACE) as BoardGradientDirectionChoice[]).map(

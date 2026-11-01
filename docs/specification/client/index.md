@@ -128,8 +128,8 @@ The state is in `packages/client/src/state/`. It is reactive through `@preact/si
   `effect()`. It contains `viewMode`, `noteSize`, `noteScale`, `sortMode`, `theme`, `lightHue`,
   `darkHue`, `defaultNoteColor`, `defaultNoteFont`, `noteQuips`, `formattingToolbar`, `stickyTopBar`,
   `defaultEditMode`, `noteCorners`, `complexShadows`, `animations`, `boardColor`, `boardCustomColor`, `boardGradient`,
-  `boardGradientCustomColor`, `boardGradientDirection`, `boardTexture`, `boardInk`, `boardInkColor`,
-  `boardTextureOpacity`, `boardUsePicture`, `boardImageStamp`, `inlineCalculations`,
+  `boardGradientCustomColor`, `boardGradientDirection`, `boardGradientSpeed`, `boardTexture`, `boardInk`,
+  `boardInkColor`, `boardTextureOpacity`, `boardTextureMotion`, `boardUsePicture`, `boardImageStamp`, `inlineCalculations`,
   `decimalSeparator`, and `locale`.
   - In connected mode, the preferences that are not in `DEVICE_PREFS` go with the account through
     `prefsSync.ts`. It reads the copy of the server at sign-in and on reconnect, sends each change
@@ -143,6 +143,8 @@ The state is in `packages/client/src/state/`. It is reactive through `@preact/si
     `data-board-gradient-direction`, `data-board-texture` and `data-board-ink`. It also sets
     `--board-custom`, `--board-gradient-custom`, `--board-ink-picked`, `--board-texture-opacity`,
     and the SVG patterns that `utils/boardTextures.ts` draws one time at load, as masks.
+  - While `animations` is on, it also sets `data-board-roll` and `data-board-texture-motion`, which
+    start the moving layers of the board. With `animations` off, the board is still.
   - The custom colors must be six-digit hex colors, because the app writes them into CSS custom
     properties.
 - **`board.ts`**: the board picture. It is in IndexedDB (`storage/boardImage.ts`), not in the

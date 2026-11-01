@@ -36,6 +36,7 @@ export type {
   BoardGradientChoice,
   BoardGradientDirection,
   BoardGradientDirectionChoice,
+  BoardGradientSpeed,
   BoardInk,
   BoardNeutral,
   BoardTexture,
@@ -59,6 +60,7 @@ export {
   ACCOUNT_PREF_KEYS,
   BOARD_COLORS,
   BOARD_GRADIENT_DIRECTIONS,
+  BOARD_GRADIENT_SPEEDS,
   BOARD_INKS,
   BOARD_NEUTRALS,
   BOARD_TEXTURES,
@@ -132,7 +134,9 @@ export const boardCustomColor = pref("boardCustomColor");
 export const boardGradient = pref("boardGradient");
 export const boardGradientCustomColor = pref("boardGradientCustomColor");
 export const boardGradientDirection = pref("boardGradientDirection");
+export const boardGradientSpeed = pref("boardGradientSpeed");
 export const boardTexture = pref("boardTexture");
+export const boardTextureMotion = pref("boardTextureMotion");
 export const boardInk = pref("boardInk");
 export const boardInkColor = pref("boardInkColor");
 export const boardTextureOpacity = pref("boardTextureOpacity");
@@ -536,6 +540,28 @@ effect(() => {
     "--board-texture-opacity",
     String(boardTextureOpacity.value / 100),
   );
+});
+
+// The motion of the board. Set only while the animations are on. Thus, with them
+// off, or with the reduced-motion setting of the OS on the first run, the board
+// has no moving layer at all, and shows its usual still gradient and texture.
+effect(() => {
+  const root = document.documentElement;
+  const speed = boardGradientSpeed.value;
+  if (
+    animations.value &&
+    speed !== "still" &&
+    resolvedBoardGradient.value !== "none"
+  ) {
+    root.dataset.boardRoll = speed;
+  } else {
+    delete root.dataset.boardRoll;
+  }
+  if (animations.value && boardTextureMotion.value) {
+    root.dataset.boardTextureMotion = "";
+  } else {
+    delete root.dataset.boardTextureMotion;
+  }
 });
 
 // The picture textures, as masks that the layer reads as it reads the gradient

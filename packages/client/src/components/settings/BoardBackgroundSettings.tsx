@@ -25,6 +25,7 @@ import {
 } from "#/state/prefs.ts";
 import { BoardCard } from "./BoardCard.tsx";
 import { BoardInkPicker } from "./BoardInkPicker.tsx";
+import { BoardPatternMotion, BoardRollSpeed } from "./BoardMotion.tsx";
 import { BoardOpacitySlider } from "./BoardOpacitySlider.tsx";
 import { BoardPalette } from "./BoardPalette.tsx";
 import { BoardPreview, BoardRerollButton } from "./BoardPreview.tsx";
@@ -161,6 +162,7 @@ export function BoardBackgroundSettings() {
               />
             </div>
             <BoardPreview composing={composing} compose={compose} />
+            <BoardRollSpeed compose={compose} />
           </section>
 
           <section class="space-y-3">
@@ -218,6 +220,7 @@ export function BoardBackgroundSettings() {
                   disabled={resolvedBoardTexture.value === "none"}
                 />
                 <BoardOpacitySlider compose={compose} />
+                <BoardPatternMotion compose={compose} />
               </div>
             </div>
           </section>
