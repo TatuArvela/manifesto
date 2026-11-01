@@ -1,4 +1,5 @@
 import {
+  isStoredImageRef,
   type LinkPreview,
   type NoteColor,
   type NoteFont,
@@ -8,7 +9,13 @@ import {
 import type { Editor } from "@milkdown/kit/core";
 import { ArrowLeft, Pin, PinOff } from "lucide-preact";
 import type { ComponentChildren } from "preact";
-import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "preact/hooks";
 import { noteColorMap, noteFontFamilies } from "#/colors.ts";
 import type { NoteMenuItem } from "#/components/card/NoteMenu.tsx";
 import { ImageGallery } from "#/components/ImageGallery.tsx";
@@ -25,6 +32,7 @@ import { useMediaQuery } from "#/hooks/useMediaQuery.ts";
 import { useNotePaste } from "#/hooks/useNotePaste.ts";
 import { usePresence } from "#/hooks/usePresence.ts";
 import { t } from "#/i18n/index.ts";
+import { attachmentObjectUrl } from "#/state/attachments.ts";
 import { closeDrawing, requestDrawing } from "#/state/drawing.ts";
 import { defaultEditMode, formattingToolbar } from "#/state/prefs.ts";
 import { PHONE_QUERY } from "#/utils/phoneSheets.ts";
@@ -160,6 +168,20 @@ export function NoteEditor({
   // textarea, and the rich editor behind it is built again from it on the way
   // back.
   const rawTextarea = rawMode ? rawTextareaRef.current : null;
+
+  // The images that the text points to (`utils/inlineImages.ts`). The editor
+  // builds one time. Thus, it reads them through a ref.
+  const imagesRef = useRef({ images, imageAlts });
+  imagesRef.current = { images, imageAlts };
+  const resolveInlineImage = useCallback(async (index: number) => {
+    const { images: list, imageAlts: alts } = imagesRef.current;
+    const image = list[index];
+    if (image === undefined) return null;
+    const src = isStoredImageRef(image)
+      ? await attachmentObjectUrl(image)
+      : image;
+    return src ? { src, alt: alts?.[index] ?? "" } : null;
+  }, []);
 
   const { uploads, attachFiles, retryUpload, dropUpload } =
     useImageUploads(onAddImages);
@@ -304,6 +326,8 @@ export function NoteEditor({
             tick={tick}
             disabled={disabled}
             onAddLink={(url) => onAddLinkPreviews([url])}
+            images={images}
+            imageAlts={imageAlts}
           />
         )}
 
@@ -329,6 +353,7 @@ export function NoteEditor({
             key={collab ? "collab" : "solo"}
             content={content}
             onChange={onContentChange}
+            resolveInlineImage={resolveInlineImage}
             disabled={disabled}
             contentLocked={contentLocked}
             rawMode={rawMode}

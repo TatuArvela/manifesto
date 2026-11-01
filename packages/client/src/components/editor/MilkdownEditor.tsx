@@ -28,6 +28,10 @@ import { checklistBar } from "#/extensions/checklistBar.ts";
 import { documentWatcher } from "#/extensions/documentWatcher.ts";
 import { configureEditorKeys, editorKeys } from "#/extensions/editorKeys.ts";
 import { inlineCalculationsPlugin } from "#/extensions/inlineCalculations.ts";
+import {
+  type InlineImageResolver,
+  inlineImageView,
+} from "#/extensions/inlineImageView.ts";
 import { itemDatesPlugin } from "#/extensions/itemDates.ts";
 import { linkTooltip } from "#/extensions/linkTooltip.ts";
 import { manifestoInlineMarks } from "#/extensions/manifestoInlineMarks.ts";
@@ -66,6 +70,8 @@ interface MilkdownEditorProps {
   onEditorReady?: (editor: Editor) => void;
   /** The editor that `onEditorReady` gave was destroyed. */
   onEditorGone?: () => void;
+  /** Shows the images of the note that the text points to. */
+  resolveInlineImage?: InlineImageResolver | undefined;
   collab?:
     | {
         ydoc: Y.Doc;
@@ -85,8 +91,11 @@ export function MilkdownEditor({
   autoFocus,
   onEditorReady,
   onEditorGone,
+  resolveInlineImage,
   collab,
 }: MilkdownEditorProps) {
+  const resolveInlineImageRef = useRef(resolveInlineImage);
+  resolveInlineImageRef.current = resolveInlineImage;
   const rawModeRef = useRef(rawMode);
   rawModeRef.current = rawMode;
   const ownTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -213,6 +222,12 @@ export function MilkdownEditor({
       .use(listener)
       .use(clipboard)
       .use(manifestoInlineMarks)
+      .use(
+        inlineImageView(
+          (index) =>
+            resolveInlineImageRef.current?.(index) ?? Promise.resolve(null),
+        ),
+      )
       .use(taskItemDraggable)
       .use(inlineCalculationsPlugin)
       .use(editorKeys)

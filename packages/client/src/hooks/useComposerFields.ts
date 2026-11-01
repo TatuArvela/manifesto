@@ -1,6 +1,7 @@
 import type { NoteColor, NoteFont } from "@manifesto/shared";
 import { useCallback, useState } from "preact/hooks";
 import type { ComposerDraft } from "#/state/composerDraft.ts";
+import { withoutImagePointer } from "#/utils/inlineImages.ts";
 import { placedImageAlts, placeImages } from "#/utils/placeImages.ts";
 import {
   type DraftLinkPreviews,
@@ -97,6 +98,8 @@ export function useComposerFields(
       update((current) => ({
         images: current.images.filter((_, i) => i !== index),
         imageAlts: current.imageAlts.filter((_, i) => i !== index),
+        // The text points to the images by position (`inlineImages.ts`).
+        content: withoutImagePointer(current.content, index),
       })),
     describeImage: (image, alt) =>
       update((current) => {

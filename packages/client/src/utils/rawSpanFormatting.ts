@@ -1,0 +1,93 @@
+import type { TextEdit } from "./formatTypes.ts";
+import { imagePointer } from "./inlineImages.ts";
+
+// The text color and text font buttons in raw mode, as edits to the Markdown:
+// `<span data-color="red">…</span>` and `<span data-font="serif">…</span>`.
+// See `extensions/pairInlineTags.ts` for how the text reads them.
+
+export type SpanAttr = "color" | "font";
+
+const CLOSE = "</span>";
+
+const openTag = (attr: SpanAttr, value: string) =>
+  `<span data-${attr}="${value}">`;
+
+/** The span of `attr` that ends exactly at `start`, and opens at `end`. */
+function wrappingSpan(
+  value: string,
+  start: number,
+  end: number,
+  attr: SpanAttr,
+): { from: number; to: number } | null {
+  if (!value.startsWith(CLOSE, end)) return null;
+  const before = value.slice(Math.max(0, start - 60), start);
+  const match = new RegExp(`<span data-${attr}="[a-z-]{1,40}">$`).exec(before);
+  if (!match) return null;
+  return { from: start - match[0].length, to: end + CLOSE.length };
+}
+
+/**
+ * The value of the `attr` span inside which the caret is, or false. Only the
+ * line of the caret counts.
+ */
+export function rawSpanValue(
+  value: string,
+  start: number,
+  attr: SpanAttr,
+): string | false {
+  const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+  const before = value.slice(lineStart, start);
+  const re = new RegExp(`<span data-${attr}="([a-z-]{1,40})">`, "g");
+  let found: string | false = false;
+  for (const m of before.matchAll(re)) {
+    const rest = before.slice((m.index ?? 0) + m[0].length);
+    found = rest.includes(CLOSE) ? false : (m[1] ?? false);
+  }
+  return found;
+}
+
+/**
+ * Gives the selection the color or font `name`, or removes the span around it
+ * for the default. A selection that is already exactly in such a span gets the
+ * new value in place of a second span.
+ */
+export function setRawSpan(
+  value: string,
+  start: number,
+  end: number,
+  attr: SpanAttr,
+  name: string,
+): TextEdit | null {
+  const clear = name === "" || name === "default";
+  const wrap = wrappingSpan(value, start, end, attr);
+  const inner = value.slice(start, end);
+  const outerFrom = wrap?.from ?? start;
+  const outerTo = wrap?.to ?? end;
+  if (clear && !wrap) return null;
+  const open = clear ? "" : openTag(attr, name);
+  const close = clear ? "" : CLOSE;
+  const caret = outerFrom + open.length;
+  return {
+    value:
+      value.slice(0, outerFrom) + open + inner + close + value.slice(outerTo),
+    selectionStart: caret,
+    selectionEnd: caret + inner.length,
+  };
+}
+
+/** Puts a pointer to image `index` (from 1) of the note at the caret. */
+export function insertRawImage(
+  value: string,
+  start: number,
+  end: number,
+  index: number,
+): TextEdit | null {
+  if (!Number.isInteger(index) || index < 1) return null;
+  const image = `![](${imagePointer(index)})`;
+  const caret = start + image.length;
+  return {
+    value: value.slice(0, start) + image + value.slice(end),
+    selectionStart: caret,
+    selectionEnd: caret,
+  };
+}

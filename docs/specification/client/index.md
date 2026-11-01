@@ -231,8 +231,11 @@ Milkdown (`callCommand(undoCommand)` / `redoCommand`). There is no separate undo
 
 Custom ProseMirror behavior is in `packages/client/src/extensions/`:
 
-- **`manifestoInlineMarks`**: adds underline, subscript and superscript marks. In markdown, they are
-  `<u>`/`<sub>`/`<sup>` tags.
+- **`manifestoInlineMarks`**: adds underline, subscript and superscript marks, and the text color and
+  text font marks. In markdown, they are `<u>`/`<sub>`/`<sup>` tags, and
+  `<span data-color>`/`<span data-font>`. `pairInlineTags.ts` pairs the tags.
+- **`inlineImageView`**: the image node of the editor. It shows a pointer to an image of the note
+  (`image:N`).
 - **`taskItemDraggable`**: drag-and-drop reorder, and indent/outdent, for checklist items. The drag
   is in `taskItemDrag.ts`. `taskItemDropTarget.ts` calculates where a drop goes. The list structure is
   in `taskListStructure.ts`.

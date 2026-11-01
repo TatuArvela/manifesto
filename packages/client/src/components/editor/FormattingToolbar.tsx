@@ -45,6 +45,11 @@ import {
   TableMenu,
   toolbarButtonClass,
 } from "./FormattingMenus.tsx";
+import {
+  InlineImageMenu,
+  TextColorMenu,
+  TextFontMenu,
+} from "./TextStyleMenus.tsx";
 
 interface FormattingToolbarProps {
   editor: Editor;
@@ -57,6 +62,9 @@ interface FormattingToolbarProps {
   tick: number;
   disabled?: boolean | undefined;
   onAddLink?: (url: string) => void;
+  /** The images of the note, which the text can show. */
+  images?: readonly string[] | undefined;
+  imageAlts?: readonly string[] | undefined;
 }
 
 function Separator() {
@@ -69,6 +77,8 @@ export function FormattingToolbar({
   tick,
   disabled,
   onAddLink,
+  images = [],
+  imageAlts,
 }: FormattingToolbarProps) {
   const [showExtras, setShowExtras] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -137,6 +147,11 @@ export function FormattingToolbar({
         "superscript",
         t("format.superscript"),
         <Superscript class="w-4 h-4" />,
+      )}
+      <TextColorMenu target={target} current={af.textColor} />
+      <TextFontMenu target={target} current={af.textFont} />
+      {images.length > 0 && (
+        <InlineImageMenu target={target} images={images} alts={imageAlts} />
       )}
       <Separator />
       {fmtBtn(

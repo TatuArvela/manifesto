@@ -1,3 +1,4 @@
+import { NoteColor, NoteFont } from "@manifesto/shared";
 import {
   remarkPluginsCtx,
   remarkStringifyOptionsCtx,
@@ -11,6 +12,8 @@ import {
   type AnyNode,
   type InlineTag,
   pairChildren,
+  TEXT_COLOR_MDAST,
+  TEXT_FONT_MDAST,
 } from "./pairInlineTags.ts";
 
 const remarkManifestoInlineMarks: Plugin<[], AnyNode> = () => {
@@ -21,7 +24,11 @@ const remarkManifestoInlineMarks: Plugin<[], AnyNode> = () => {
   };
 };
 
-function makeMarkSchema(id: string, mdastType: string, tag: InlineTag) {
+function makeMarkSchema(
+  id: string,
+  mdastType: string,
+  tag: Exclude<InlineTag, "span">,
+) {
   return $markSchema(id, () => ({
     parseDOM: [{ tag }],
     toDOM: () => [tag, 0] as [string, 0],
@@ -54,6 +61,73 @@ export const superscriptSchema = makeMarkSchema(
   "sup",
 );
 
+/**
+ * A mark with one attribute that is written as `<span data-<attr>="value">`:
+ * the color of text (a `NoteColor`) and its font (a `NoteFont`). Thus, themes
+ * give the color in each shade, as they do for a note.
+ */
+function makeSpanMarkSchema(
+  id: string,
+  mdastType: string,
+  attr: string,
+  values: readonly string[],
+) {
+  const dataAttr = `data-${attr}`;
+  return $markSchema(id, () => ({
+    attrs: { [attr]: { default: "" } },
+    parseDOM: [
+      {
+        tag: `span[${dataAttr}]`,
+        // A paste can bring any value. Only a known one, other than the
+        // default, becomes the mark. Thus, the Markdown never gets a value
+        // that the parser refuses.
+        getAttrs: (dom) => {
+          const value = (dom as HTMLElement).getAttribute(dataAttr) ?? "";
+          return values.includes(value) && value !== "default"
+            ? { [attr]: value }
+            : false;
+        },
+      },
+    ],
+    toDOM: (mark) =>
+      ["span", { [dataAttr]: mark.attrs[attr] as string }, 0] as [
+        string,
+        Record<string, string>,
+        0,
+      ],
+    parseMarkdown: {
+      match: (node) => node.type === mdastType,
+      runner: (state, node, markType) => {
+        const attrs = (node as { attrs?: Record<string, string> }).attrs;
+        state.openMark(markType, { [attr]: attrs?.[attr] ?? "" });
+        state.next(node.children ?? []);
+        state.closeMark(markType);
+      },
+    },
+    toMarkdown: {
+      match: (mark) => mark.type.name === id,
+      runner: (state, mark) => {
+        state.withMark(mark, mdastType, undefined, {
+          attrs: { [attr]: mark.attrs[attr] as string },
+        });
+      },
+    },
+  }));
+}
+
+export const textColorSchema = makeSpanMarkSchema(
+  "textColor",
+  TEXT_COLOR_MDAST,
+  "color",
+  Object.values(NoteColor),
+);
+export const textFontSchema = makeSpanMarkSchema(
+  "textFont",
+  TEXT_FONT_MDAST,
+  "font",
+  Object.values(NoteFont),
+);
+
 export const toggleUnderlineCommand = $command(
   "ToggleUnderline",
   (ctx) => () => toggleMark(underlineSchema.type(ctx)),
@@ -69,7 +143,18 @@ export const toggleSuperscriptCommand = $command(
   (ctx) => () => toggleMark(superscriptSchema.type(ctx)),
 );
 
-function makeTagHandler(tag: InlineTag): Handle {
+function makeSpanHandler(attr: string): Handle {
+  return (node, _parent, state, info) => {
+    const content = state.containerPhrasing(
+      node as unknown as Parameters<typeof state.containerPhrasing>[0],
+      info,
+    );
+    const value = (node as unknown as AnyNode).attrs?.[attr] ?? "";
+    return `<span data-${attr}="${value}">${content}</span>`;
+  };
+}
+
+function makeTagHandler(tag: Exclude<InlineTag, "span">): Handle {
   return (node, _parent, state, info) => {
     const content = state.containerPhrasing(
       node as unknown as Parameters<typeof state.containerPhrasing>[0],
@@ -91,6 +176,8 @@ export const manifestoInlineMarksConfig: MilkdownPlugin = (ctx) => () => {
       mfUnderline: makeTagHandler("u"),
       mfSubscript: makeTagHandler("sub"),
       mfSuperscript: makeTagHandler("sup"),
+      [TEXT_COLOR_MDAST]: makeSpanHandler("color"),
+      [TEXT_FONT_MDAST]: makeSpanHandler("font"),
     } as Partial<Handlers>;
     return { ...prev, handlers };
   });
@@ -101,6 +188,8 @@ export const manifestoInlineMarks: MilkdownPlugin[] = [
   underlineSchema,
   subscriptSchema,
   superscriptSchema,
+  textColorSchema,
+  textFontSchema,
   toggleUnderlineCommand,
   toggleSubscriptCommand,
   toggleSuperscriptCommand,

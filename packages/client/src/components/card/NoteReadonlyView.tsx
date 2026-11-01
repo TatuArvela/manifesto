@@ -35,6 +35,7 @@ import { TagChip } from "#/components/TagChip.tsx";
 import { TagPickerButton } from "#/components/TagPicker.tsx";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { useInlineImages } from "#/hooks/useInlineImages.ts";
 import { usePresence } from "#/hooks/usePresence.ts";
 import { getColorPickerColors, t } from "#/i18n/index.ts";
 import { addTag, togglePin } from "#/state/actions.ts";
@@ -83,12 +84,19 @@ export function NoteReadonlyView({
     CARD_POPOVER_EXIT_MS,
   );
   const reminderChipRef = useRef<HTMLButtonElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEscapeStack(true, onClose);
 
   const rendered = renderMarkdown(note.content);
   // A plugin that reads notes is drawn without images, here as on its card.
-  const html = drawnWithoutImages(note) ? withoutImages(rendered) : rendered;
+  const noImages = drawnWithoutImages(note);
+  const html = noImages ? withoutImages(rendered) : rendered;
+  useInlineImages(
+    contentRef,
+    noImages ? undefined : note.images,
+    note.imageAlts,
+  );
 
   return (
     <article
@@ -139,6 +147,7 @@ export function NoteReadonlyView({
         <div
           class="prose prose-sm dark:prose-invert max-w-none text-neutral-700 dark:text-neutral-200"
           style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
+          ref={contentRef}
           dangerouslySetInnerHTML={{ __html: html }}
         />
         {note.images.length > 0 && (

@@ -24,6 +24,24 @@ both types through a `blob:` URL.
 The [drawing pad](drawing-pad.md) puts a drawing on a note as an image. Thus, all of the rules
 below apply to it, as to a picture that you attach.
 
+## Images in the text
+
+The text of a note can show one of its images: `![](image:2)` is the second image of the list
+(`utils/inlineImages.ts`). The text has only this pointer. The bytes, the key and the description
+stay with the image in the list. Thus, the sealing, the sweep and the export do not change. An export
+keeps the order of the list, so a pointer still holds after an import.
+
+- When an image goes, the text changes with the list: each pointer to that image goes, and each
+  pointer to a later image moves down by one (`withoutImagePointer`).
+- The renderer moves a pointer from `src` to `data-image`. The sanitizer would drop the unknown
+  scheme. The view (`useInlineImages`) and the editor (`extensions/inlineImageView.ts`) then give it
+  the address of the image, as `StoredImage` does. When the text has no `alt`, the description of the
+  image is the `alt`.
+- An image in the text also stays in the gallery of the note.
+- The card of a plugin that reads notes removes it, as all of its images (`withoutImages`).
+- A public link page and a share link do not resolve a pointer. They show the description of the
+  image, or nothing.
+
 ## Describing an image
 
 Each image in an open note has a **Describe image** button. It opens the image viewer with the

@@ -39,6 +39,7 @@ import {
   recordVersion,
   versionToKeep,
 } from "#/state/versions.ts";
+import { withoutImagePointer } from "#/utils/inlineImages.ts";
 import { isPhoneLayout } from "#/utils/phoneSheets.ts";
 import { placedImageAlts, placeImages } from "#/utils/placeImages.ts";
 import { getEditorMarkdown } from "./MilkdownEditor.tsx";
@@ -357,6 +358,9 @@ export function NoteCardEditor({
         onRemoveImage={async (index) => {
           const images = await currentImages();
           if (images === null) return;
+          // The text can point to the images by position. Thus, it changes
+          // with the list (`utils/inlineImages.ts`).
+          setContent((text) => withoutImagePointer(text, index));
           await updateNote(note.id, {
             images: images.filter((_, i) => i !== index),
           });

@@ -13,6 +13,7 @@ import type { EditorState, Transaction } from "@milkdown/kit/prose/state";
 import { liftTarget } from "@milkdown/kit/prose/transform";
 import { callCommand } from "@milkdown/kit/utils";
 import type { ActiveFormats, FormatType } from "#/utils/formatTypes.ts";
+import { imagePointer } from "#/utils/inlineImages.ts";
 import { insertBlock } from "./blockInsertion.ts";
 import { toggleCodeBlock } from "./codeBlockToggle.ts";
 import { coveredRange } from "./coveredRange.ts";
@@ -42,6 +43,8 @@ export const emptyFormats: ActiveFormats = {
   underline: false,
   subscript: false,
   superscript: false,
+  textColor: false,
+  textFont: false,
   table: false,
   codeBlock: false,
 };
@@ -51,6 +54,65 @@ function isMarkActive(state: EditorState, mark: MarkType | undefined): boolean {
   const { from, $from, to, empty } = state.selection;
   if (empty) return !!mark.isInSet(state.storedMarks || $from.marks());
   return state.doc.rangeHasMark(from, to, mark);
+}
+
+/** The attribute of `mark` at the start of the selection, or false. */
+function markValue(
+  state: EditorState,
+  mark: MarkType | undefined,
+  attr: string,
+): string | false {
+  if (!mark) return false;
+  const { $from, empty } = state.selection;
+  const at = empty
+    ? state.storedMarks || $from.marks()
+    : ($from.nodeAfter?.marks ?? $from.marks());
+  const found = mark.isInSet(at);
+  return found ? (found.attrs[attr] as string) : false;
+}
+
+/**
+ * Gives the selection the color or font `value`, or removes it for the
+ * default. With no selection, it applies to the text that you type next.
+ */
+export function setSpanMark(
+  state: EditorState,
+  mark: MarkType | undefined,
+  attr: string,
+  value: string,
+): Transaction | null {
+  if (!mark) return null;
+  const { empty, from, to } = state.selection;
+  const clear = value === "" || value === "default";
+  const tr = state.tr;
+  if (empty) {
+    const marks = mark.removeFromSet(
+      state.storedMarks || state.selection.$from.marks(),
+    );
+    tr.setStoredMarks(
+      clear ? marks : mark.create({ [attr]: value }).addToSet(marks),
+    );
+    return tr;
+  }
+  tr.removeMark(from, to, mark);
+  if (!clear) tr.addMark(from, to, mark.create({ [attr]: value }));
+  return tr;
+}
+
+/**
+ * Puts the image `index` (from 1) of the note at the caret, as
+ * `![](image:<index>)`. Its description stays with the image of the note, and
+ * each view reads it from there. See `utils/inlineImages.ts`.
+ */
+export function insertInlineImage(
+  state: EditorState,
+  index: number,
+): Transaction | null {
+  const image = state.schema.nodes.image;
+  if (!image || !Number.isInteger(index) || index < 1) return null;
+  return state.tr
+    .replaceSelectionWith(image.create({ src: imagePointer(index) }))
+    .scrollIntoView();
 }
 
 function findNodeAncestor(
@@ -94,6 +156,8 @@ export function getActiveFormats(editor: Editor): ActiveFormats {
       underline: isMarkActive(state, marks.underline),
       subscript: isMarkActive(state, marks.subscript),
       superscript: isMarkActive(state, marks.superscript),
+      textColor: markValue(state, marks.textColor, "color"),
+      textFont: markValue(state, marks.textFont, "font"),
       table: !!findNodeAncestor(state, nodes.table),
       codeBlock: !!findNodeAncestor(state, nodes.code_block),
     };
@@ -151,6 +215,34 @@ export function applyFormat(
       break;
     case "superscript":
       editor.action(callCommand(toggleSuperscriptCommand.key));
+      break;
+    case "textColor":
+    case "textFont":
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const tr =
+          type === "textColor"
+            ? setSpanMark(
+                view.state,
+                view.state.schema.marks.textColor,
+                "color",
+                arg ?? "",
+              )
+            : setSpanMark(
+                view.state,
+                view.state.schema.marks.textFont,
+                "font",
+                arg ?? "",
+              );
+        if (tr) view.dispatch(tr);
+      });
+      break;
+    case "inlineImage":
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const tr = insertInlineImage(view.state, Number(arg));
+        if (tr) view.dispatch(tr);
+      });
       break;
     case "divider":
       editor.action((ctx) => {

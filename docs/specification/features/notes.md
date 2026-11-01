@@ -71,6 +71,13 @@ immediately. The editor has:
 - A formatting toolbar (headings, bold, italic, quotes, code, links, lists, checklists). In raw mode,
   its buttons insert the markdown syntax. You can hide it under Settings > Features. This hides it in
   all notes.
+- A text color and a text font for a part of the text, from the more-formatting bar. The choices are
+  the colors and the fonts of a note. In Markdown, they are `<span data-color="red">` and
+  `<span data-font="serif">`. A span with a different value, or a different attribute, stays raw
+  HTML. Each shade gives a text color its own tone, one step darker than the note color in the light
+  shade and lighter in the dark shade (`styles/text-spans.css`).
+- An image in the text. When the note has images, the more-formatting bar has "Image in text". It
+  puts one of the images of the note at the caret. See [Images in the text](attachments.md#images-in-the-text).
 - A color picker.
 - A font picker, the "T" button (Default, Serif, Monospace, Permanent Marker, Comic Relief, Rouge
   Script). On a phone, it is in the kebab menu.
