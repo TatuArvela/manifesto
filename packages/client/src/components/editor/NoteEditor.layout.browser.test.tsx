@@ -91,7 +91,10 @@ describe("the editor on a phone", () => {
     expect(text.scrollWidth).toBeGreaterThan(text.clientWidth);
     expect(text.getBoundingClientRect().right).toBeLessThanOrEqual(375);
     // Space for an overlay scrollbar, which would otherwise cover the line.
-    expect(getComputedStyle(text).paddingBottom).not.toBe("0px");
+    // The scroll timeline becomes active only after a frame.
+    await vi.waitFor(() => {
+      expect(getComputedStyle(text).paddingBottom).not.toBe("0px");
+    });
   });
 
   it("makes no room for a scrollbar under text that does not scroll", async () => {
