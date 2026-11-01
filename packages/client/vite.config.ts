@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import preact from "@preact/preset-vite";
 import tailwindcss from "@tailwindcss/vite";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 import { playwright } from "@vitest/browser-playwright";
 import {
   defaultClientConditions,
@@ -401,6 +402,17 @@ export default defineConfig(({ mode }) => {
       // Its import map sends each caller without this condition to `dist/`.
       conditions: [...defaultClientConditions, "manifesto-source"],
     },
+    server: {
+      // Listen on all addresses. Thus, a phone on the local network can open
+      // the dev server.
+      host: true,
+      // Send the API and its sockets to the dev server of Manifesto. With
+      // `VITE_MANIFESTO_SERVER=/`, a phone reaches the server through this
+      // origin, and needs no address of the server or entry in `CORS_ORIGINS`.
+      proxy: {
+        "/api": { target: "http://localhost:3001", ws: true },
+      },
+    },
     ssr: {
       resolve: {
         conditions: [...defaultServerConditions, "manifesto-source"],
@@ -409,6 +421,10 @@ export default defineConfig(({ mode }) => {
     plugins: [
       preact(),
       tailwindcss(),
+      // HTTPS with a self-signed certificate, for a phone on the local network.
+      // The browser gives Web Crypto only to a secure page, and `localhost` on
+      // the laptop is the only plain address that counts as one.
+      env.VITE_DEV_HTTPS === "on" && basicSsl(),
       cspForServer(env.VITE_MANIFESTO_SERVER),
       brandingInHtml(branding),
       VitePWA({
