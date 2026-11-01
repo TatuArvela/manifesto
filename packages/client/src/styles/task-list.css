@@ -469,9 +469,12 @@
   }
 }
 
-/* A floating drop indicator, positioned in the document body during a drag. */
+/*
+ * A floating drop indicator, positioned in the document body during a drag. It
+ * is placed on the page, not fixed: see `onPage` in taskItemDrag.ts.
+ */
 .task-item-drop-indicator {
-  position: fixed;
+  position: absolute;
   height: 2px;
   background: #3b82f6;
   border-radius: 1px;
@@ -499,7 +502,7 @@
  * and does not jump. Vertically, it follows the pointer exactly.
  */
 .task-item-drag-ghost {
-  position: fixed;
+  position: absolute;
   z-index: 1001;
   pointer-events: none;
   opacity: 0.9;

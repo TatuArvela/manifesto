@@ -12,6 +12,7 @@ paths:
   - "packages/client/src/state/ordering.ts"
   - "packages/client/src/splash.ts"
   - "packages/client/src/utils/phoneSheets.ts"
+  - "packages/client/src/utils/edgeScroll.ts"
   - "packages/client/src/utils/morph.ts"
   - "packages/client/src/storage/quota.ts"
   - "packages/client/src/styles.css"
@@ -136,7 +137,7 @@ They are not fixed over it. They go through `NoteSheet`.
 - With this arrangement only, iOS keeps the caret above the keyboard. It scrolls the page, and does
   not slide the visible area over a fixed sheet.
 
-No code reads `visualViewport`, on purpose:
+No code that sizes or places a sheet reads `visualViewport`, on purpose:
 
 - When a sheet had the size of the visual viewport, a thin part of the note was missing (Safari in a
   tab reports it too short).
@@ -145,6 +146,9 @@ No code reads `visualViewport`, on purpose:
 
 The surface of a sheet has a minimum height of `100lvh`, not `100dvh`. `dvh` changes only after
 the toolbars of the browser go, and the fixed board showed under a short note until it did.
+
+The scroll at the edge of a drag (`utils/edgeScroll.ts`) is the exception. It measures its edges on
+the visual viewport, because with the keyboard up the bottom of the window is under the keys.
 
 When the keyboard is open in a Safari tab, iOS pans the page past the bottom of the layout, and
 past the `fixed` layers. Thus, the background of the page shows there. `paintPage` gives it the

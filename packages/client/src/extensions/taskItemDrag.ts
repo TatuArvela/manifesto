@@ -181,12 +181,27 @@ function slotY(
   );
 }
 
+/**
+ * The indicator and the ghost are placed on the page, not fixed to the window.
+ * With the on-screen keyboard up, iOS draws a `fixed` element higher than the
+ * point of the same coordinates, by the amount that the page is panned. The
+ * drop, which reads the positions of the items, was correct, but the line was
+ * above it. A position on the page is the same point for both.
+ */
+function onPage(x: number, y: number): { left: string; top: string } {
+  return {
+    left: `${x + window.scrollX}px`,
+    top: `${y + window.scrollY}px`,
+  };
+}
+
 function positionIndicator(state: DragState) {
   const y = slotY(state.items, state.slot, state.sourceIdx, state.atListEnd);
   const x = levelXFor(state.view, state.items, state.targetLevel);
   const editorRect = state.view.dom.getBoundingClientRect();
-  state.indicator.style.top = `${y - INDICATOR_HEIGHT_PX / 2}px`;
-  state.indicator.style.left = `${x}px`;
+  const at = onPage(x, y - INDICATOR_HEIGHT_PX / 2);
+  state.indicator.style.top = at.top;
+  state.indicator.style.left = at.left;
   state.indicator.style.width = `${Math.max(editorRect.right - x - 4, 40)}px`;
 }
 
@@ -224,8 +239,12 @@ function createGhost(source: HTMLElement): HTMLElement {
 function positionGhost(state: DragState) {
   if (!state.ghost) return;
   const x = levelXFor(state.view, state.items, state.targetLevel);
-  state.ghost.style.left = `${x - state.sourceLabelOffsetX}px`;
-  state.ghost.style.top = `${aimY(state) - state.grabOffsetY}px`;
+  const at = onPage(
+    x - state.sourceLabelOffsetX,
+    aimY(state) - state.grabOffsetY,
+  );
+  state.ghost.style.left = at.left;
+  state.ghost.style.top = at.top;
 }
 
 /**
