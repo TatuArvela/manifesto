@@ -409,6 +409,10 @@ password.
   the answer. Thus, neither the answer nor its time tells which addresses have accounts. There is one
   link for each account each five minutes. Thus, nobody can fill the inbox of an address. If the mail
   of a link could not go out, the server does not keep the link, and it does not count.
+- The mail goes to the address that the account has, never to the address that the request typed.
+  The lookup ignores case, and on Postgres, `LOWER` in a libc locale also changes some letters that
+  are not ASCII into ASCII letters (`İ` into `i`). Thus, an address on a different domain can find
+  the account. The same rule applies to sign-in links.
 - A link works one time, for 30 minutes. The server stores its token as a SHA-256 hash. Its use ends
   all sessions and API tokens of the account, as a password change does. Two-factor sign-in stays on,
   because the link proves control of the mailbox, not of the authenticator.

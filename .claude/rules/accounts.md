@@ -141,7 +141,9 @@ password.
   counts, audits and throws a wrong answer itself. Thus, a caller only has to send back the
   challenge.
 - `mailedLinks` (`auth/local/mailedLink.ts`) sends a link. Reset by mail uses it too. Both tables are
-  in one repository (`mailedLinksRepo.ts` in each driver).
+  in one repository (`mailedLinksRepo.ts` in each driver). It sends to the stored address of the
+  account, never to the typed address. On Postgres, `LOWER` folds some letters that are not ASCII
+  into ASCII. Thus, a typed address on a different domain can find the account.
 - If the mail of a link could not go out, the server deletes the link. Thus, the link does not stay
   live without an audit entry, and it does not start the cooldown.
 - The server checks the budget only where it asks for a second factor, or where a second factor is

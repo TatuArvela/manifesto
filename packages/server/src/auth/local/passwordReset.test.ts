@@ -76,7 +76,8 @@ describe("password reset by mail", () => {
     ).toBe(204);
     await settle();
     expect(mailer.sent).toHaveLength(1);
-    expect(mailer.sent[0]?.to).toBe("ALICE@example.com");
+    // The address of the account, not the spelling that the request typed.
+    expect(mailer.sent[0]?.to).toBe("alice@example.com");
     expect(mailer.sent[0]?.text).toContain("https://notes.example/#reset=");
     const token = tokenFrom(defined(mailer.sent[0]).text);
 
@@ -99,6 +100,27 @@ describe("password reset by mail", () => {
         })
       ).status,
     ).toBe(200);
+  });
+
+  it("mails the address of the account, never a different address that the lookup matched", async () => {
+    // Postgres `LOWER` in a libc locale folds `İ` (U+0130) into `i`. Thus,
+    // `alİce@example.com` finds the account of `alice@example.com`, while mail
+    // for it goes to a different mailbox. This copies that lookup.
+    const alice = defined(await storage.users.findByUsername("alice"));
+    storage.users.findByEmail = async (email) =>
+      email.toLowerCase().replace("i\u0307", "i") === "alice@example.com"
+        ? alice
+        : null;
+    expect(
+      (
+        await post("/api/v1/auth/password-reset", {
+          email: "al\u0130ce@example.com",
+        })
+      ).status,
+    ).toBe(204);
+    await settle();
+    expect(mailer.sent).toHaveLength(1);
+    expect(mailer.sent[0]?.to).toBe("alice@example.com");
   });
 
   it("answers the same for an address nobody has, and sends nothing", async () => {

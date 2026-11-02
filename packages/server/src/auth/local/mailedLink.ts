@@ -61,6 +61,14 @@ export function mailedLinks(
     const { mailer, appUrl } = requireMail();
     const user = await storage.users.findByEmail(email);
     if (!user || !kind.eligible(user)) return;
+    // The link goes to the address that the account has, never to the address
+    // that the caller typed. The lookup ignores case, and Postgres `LOWER` in a
+    // libc locale also folds some letters that are not ASCII into ASCII (`İ`
+    // into `i`). Thus, a typed address on a different domain, which a different
+    // person owns, can find this account. If the link went there, that person
+    // would get the password or a session.
+    const to = user.email;
+    if (to === null) return;
     const latest = await kind.links.latestFor(user.id);
     if (latest && Date.now() - Date.parse(latest) < LINK_COOLDOWN_MS) return;
     const token = newSessionToken();
@@ -77,7 +85,7 @@ export function mailedLinks(
       link: `${appUrl}/#${kind.fragment}=${token}`,
       minutes: kind.minutes,
     });
-    if (!(await mailer.send({ to: email, ...message }))) {
+    if (!(await mailer.send({ to, ...message }))) {
       await kind.links.delete(tokenHash);
       return;
     }
