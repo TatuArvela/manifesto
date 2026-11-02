@@ -189,6 +189,12 @@ account or its notes:
 - To show the **secret key**, to replace it or the **recovery key**, or to start the account again
   ([Encryption](encryption.md#unlocking)).
 - To [delete the account](#deleting-your-own-account).
+- For an admin, each change to an account in the [Users view](#the-users-view): create an
+  account, give or remove admin rights, set an email address, reset a password, or delete an account.
+  Also each addition of a member to a team, because a member gets the notes shared with the team. A
+  stolen admin session could otherwise make an account of its own an admin, which stays after the
+  session ends, move the address of a different person and take the password with a reset link, or
+  put its own account in a team.
 
 An account with a password confirms with it, typed into the same form. Wrong passwords count against
 the same budget for each name as a sign-in: ten in fifteen minutes. Thus, a stolen session cannot

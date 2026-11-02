@@ -735,13 +735,19 @@ These routes need a bearer token, and the caller must be an admin. The server ch
 the database on each request (if not, `403`). They share the API limit for each user. See
 [Account Administration](features/accounts.md) for the rules.
 
+Each route that changes an account also takes the confirmation of the admin, as `password` in its
+JSON body ([Confirming a change](features/accounts.md#confirming-a-change-from-a-session)). An admin
+without a password sends `{}`, and must have signed in during the last 15 minutes. Without the
+confirmation, the server answers `403` with `confirmation_required`, `password_incorrect` or
+`reauthentication_required`.
+
 | Method   | Path                              | Description |
 |----------|-----------------------------------|-------------|
 | `GET`    | `/api/v1/admin/users`                | All accounts, by username: `{ users: AdminUser[] }` |
-| `POST`   | `/api/v1/admin/users`                | Create an account from `{ username, email? }`: `201` `{ user, temporaryPassword }` |
-| `PUT`    | `/api/v1/admin/users/:id`            | Give or remove admin rights with `{ isAdmin }`, set or clear the address with `{ email }`, or both: `{ user }` |
-| `POST`   | `/api/v1/admin/users/:id/password`   | Reset the password, and end all sessions of the account: `{ user, temporaryPassword }` |
-| `DELETE` | `/api/v1/admin/users/:id`            | Delete the account with its notes and sessions: `204` |
+| `POST`   | `/api/v1/admin/users`                | Create an account from `{ username, email?, password? }`: `201` `{ user, temporaryPassword }` |
+| `PUT`    | `/api/v1/admin/users/:id`            | Give or remove admin rights with `{ isAdmin }`, set or clear the address with `{ email }`, or both, with `password?`: `{ user }` |
+| `POST`   | `/api/v1/admin/users/:id/password`   | Reset the password, and end all sessions of the account, from `{ password? }`: `{ user, temporaryPassword }` |
+| `DELETE` | `/api/v1/admin/users/:id`            | Delete the account with its notes and sessions, from `{ password? }`: `204` |
 | `GET`    | `/api/v1/admin/checks`               | What the [setup checks](features/accounts.md#setup-checks) of the overview read: `{ appUrl, trustProxy, proxy, backup, mail }` |
 | `POST`   | `/api/v1/admin/checks/mail`          | Send a test message to the own address of the caller: `{ sent }`. `409` without a mail setup, or without an address on the account |
 

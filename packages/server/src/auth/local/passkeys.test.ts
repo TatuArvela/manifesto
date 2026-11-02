@@ -294,6 +294,7 @@ describe("passkeys", () => {
       {
         method: "POST",
         headers: authHeaders(token),
+        body: JSON.stringify({ password: "test-pass-12" }),
       },
     );
     expect(reset.status).toBe(200);

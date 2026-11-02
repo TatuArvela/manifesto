@@ -40,9 +40,23 @@ describe("admin routes", () => {
     await rig.close();
   });
 
+  /**
+   * A request of the admin. Each change to an account carries the password of
+   * the admin, as the Users view sends it. The tests of the confirmation itself
+   * use `rig.request`.
+   */
   function adminRequest(path: string, init: RequestInit = {}) {
+    const confirms =
+      path.startsWith("/users") && (init.method ?? "GET") !== "GET";
+    const body = confirms
+      ? JSON.stringify({
+          ...(init.body ? JSON.parse(String(init.body)) : {}),
+          password: "test-pass-12",
+        })
+      : init.body;
     return rig.request(`/api/v1/admin${path}`, {
       ...init,
+      ...(body !== undefined && { body }),
       headers: authHeaders(admin.token),
     });
   }
@@ -56,6 +70,44 @@ describe("admin routes", () => {
       ).user.isAdmin;
     expect(await me(admin.token)).toBe(true);
     expect(await me(bob.token)).toBe(false);
+  });
+
+  it("asks for the admin's password before each change to an account", async () => {
+    const changes: [string, string, Record<string, unknown>][] = [
+      ["POST", "/users", { username: "mallory" }],
+      ["PUT", `/users/${bob.userId}`, { isAdmin: true }],
+      ["PUT", `/users/${bob.userId}`, { email: "mallory@example.com" }],
+      ["POST", `/users/${bob.userId}/password`, {}],
+      ["DELETE", `/users/${bob.userId}`, {}],
+    ];
+    for (const [method, path, body] of changes) {
+      for (const [password, code] of [
+        [undefined, "confirmation_required"],
+        ["wrong-pass-12", "password_incorrect"],
+      ] as const) {
+        const res = await rig.request(`/api/v1/admin${path}`, {
+          method,
+          headers: authHeaders(admin.token),
+          body: JSON.stringify({
+            ...body,
+            ...(password !== undefined && { password }),
+          }),
+        });
+        expect(res.status, `${method} ${path}`).toBe(403);
+        expect(((await res.json()) as { code?: string }).code).toBe(code);
+      }
+    }
+    // Nothing changed: the account of bob is as before, and still signs in.
+    const list = (await (
+      await adminRequest("/users")
+    ).json()) as AdminUsersResponse;
+    expect(list.users.map((u) => u.username).sort()).toEqual(["admin", "bob"]);
+    const bobNow = list.users.find((u) => u.id === bob.userId);
+    expect(bobNow?.isAdmin).toBe(false);
+    expect(bobNow?.email).toBeNull();
+    expect(
+      (await signIn(rig, { username: "bob", password: "test-pass-12" })).status,
+    ).toBe(200);
   });
 
   it("refuses anyone who is not signed in, and anyone who is not an admin", async () => {
@@ -373,12 +425,18 @@ describe("admin routes under single sign-on", () => {
     const reset = await rig.request("/api/v1/admin/users/sso-bob/password", {
       method: "POST",
       headers: authHeaders(token),
+      // No password: this admin signs in through the identity provider, and
+      // did so a moment ago.
+      body: JSON.stringify({}),
     });
     expect(reset.status).toBe(404);
 
     const remove = await rig.request("/api/v1/admin/users/sso-bob", {
       method: "DELETE",
       headers: authHeaders(token),
+      // No password: this admin signs in through the identity provider, and
+      // did so a moment ago.
+      body: JSON.stringify({}),
     });
     expect(remove.status).toBe(204);
   });

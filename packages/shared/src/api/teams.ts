@@ -34,9 +34,15 @@ export interface AdminTeamResponse {
   team: AdminTeam;
 }
 
+/**
+ * A request that adds a member carries the password of the admin, because a
+ * member gets the notes shared with the team. An admin without a password
+ * leaves it out, and must have signed in during the last 15 minutes.
+ */
 export interface AdminTeamCreateRequest {
   name: string;
   memberIds?: string[];
+  password?: string;
 }
 
 /**
@@ -45,6 +51,7 @@ export interface AdminTeamCreateRequest {
 export interface AdminTeamUpdateRequest {
   name?: string;
   memberIds?: string[];
+  password?: string;
 }
 
 /** A note shared with a team, as its owner sees it. */

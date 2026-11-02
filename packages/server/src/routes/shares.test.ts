@@ -1009,7 +1009,11 @@ describe("email addresses on accounts", () => {
     const created = await rig.request("/api/v1/admin/users", {
       method: "POST",
       headers: authHeaders(admin.token),
-      body: JSON.stringify({ username: "erin", email: "erin@example.com" }),
+      body: JSON.stringify({
+        username: "erin",
+        email: "erin@example.com",
+        password: "test-pass-12",
+      }),
     });
     expect(created.status).toBe(201);
     const { user } = (await created.json()) as AdminTemporaryPasswordResponse;
@@ -1018,14 +1022,21 @@ describe("email addresses on accounts", () => {
     const dup = await rig.request("/api/v1/admin/users", {
       method: "POST",
       headers: authHeaders(admin.token),
-      body: JSON.stringify({ username: "frank", email: "ERIN@example.com" }),
+      body: JSON.stringify({
+        username: "frank",
+        email: "ERIN@example.com",
+        password: "test-pass-12",
+      }),
     });
     expect(dup.status).toBe(409);
 
     const changed = await rig.request(`/api/v1/admin/users/${user.id}`, {
       method: "PUT",
       headers: authHeaders(admin.token),
-      body: JSON.stringify({ email: "erin@work.example" }),
+      body: JSON.stringify({
+        email: "erin@work.example",
+        password: "test-pass-12",
+      }),
     });
     expect(changed.status).toBe(200);
     expect(((await changed.json()) as AdminUserResponse).user).toMatchObject({
@@ -1069,6 +1080,7 @@ describe("email addresses on accounts", () => {
     const res = await rig.request(`/api/v1/admin/users/${owner.userId}`, {
       method: "DELETE",
       headers: authHeaders(admin.token),
+      body: JSON.stringify({ password: "test-pass-12" }),
     });
     expect(res.status).toBe(204);
     expect(

@@ -83,8 +83,9 @@ An MCP token (`mfm_`, `kind: "mcp"`) has fewer rights again:
 ## Confirmation
 
 Some actions let a person with a stolen session keep the account or its notes: an email address, a
-token, a webhook, the two-factor changes, showing or replacing a key. These actions also call
-`requireConfirmation` (`auth/confirmation.ts`). The confirmation is one of these:
+token, a webhook, the two-factor changes, showing or replacing a key, each change that an admin
+makes to an account (`routes/admin.ts`), and each new member of a team (`routes/teams.ts`). These
+actions also call `requireConfirmation` (`auth/confirmation.ts`). The confirmation is one of these:
 
 - The password, counted against the sign-in budget in the shared `loginAttempts`.
 - For an account without a password, a sign-in in the last 15 minutes.

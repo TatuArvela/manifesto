@@ -76,15 +76,30 @@ export interface AdminUserResponse {
   user: AdminUser;
 }
 
+/**
+ * Each change to an account from the admin API carries the password of the
+ * admin. An admin without a password leaves it out, and must have signed in
+ * during the last 15 minutes.
+ */
 export interface AdminCreateUserRequest {
   username: string;
   email?: string;
+  password?: string;
 }
 
 /** One or both of the two. `email: null` clears it. */
 export interface AdminUpdateUserRequest {
   isAdmin?: boolean;
   email?: string | null;
+  password?: string;
+}
+
+/**
+ * `POST /api/v1/admin/users/:id/password` and `DELETE /api/v1/admin/users/:id`:
+ * only the confirmation.
+ */
+export interface AdminConfirmRequest {
+  password?: string;
 }
 
 /**

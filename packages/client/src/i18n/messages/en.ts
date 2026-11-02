@@ -1578,6 +1578,9 @@ export const en = {
   "admin.changeEmail": "Change email",
   "admin.saveEmail": "Save",
   "admin.delete": "Delete account",
+  "admin.makeAdminConfirm":
+    "Make {username} an admin? They can then manage all accounts on this server.",
+  "admin.removeAdminConfirm": "Remove the admin rights of {username}?",
   "admin.resetConfirm":
     "Reset the password of {username}? They are signed out everywhere and get a temporary password.",
   "admin.deleteConfirm":

@@ -71,6 +71,7 @@ describe("teams as share targets", () => {
 
   async function makeTeam(name: string, members: Account[]): Promise<string> {
     const res = await call(admin, "POST", "/api/v1/admin/teams", {
+      password: "test-pass-12",
       name,
       memberIds: members.map((m) => m.userId),
     });
@@ -234,6 +235,7 @@ describe("teams as share targets", () => {
     await accept(alice, note.id);
 
     const update = await call(admin, "PUT", `/api/v1/admin/teams/${team}`, {
+      password: "test-pass-12",
       memberIds: [owner.userId, bob.userId],
     });
     expect(update.status).toBe(200);
@@ -248,6 +250,7 @@ describe("teams as share targets", () => {
     await call(owner, "PUT", `/api/v1/notes/${note.id}`, { trashed: true });
 
     await call(admin, "PUT", `/api/v1/admin/teams/${team}`, {
+      password: "test-pass-12",
       memberIds: [owner.userId, alice.userId],
     });
     expect(await invitationsOf(alice)).toEqual([]);
@@ -259,11 +262,13 @@ describe("teams as share targets", () => {
   it("records who was put in a team, who was taken out, and a rename", async () => {
     const team = await makeTeam("Design", [alice]);
     await call(admin, "PUT", `/api/v1/admin/teams/${team}`, {
+      password: "test-pass-12",
       name: "Studio",
       memberIds: [bob.userId],
     });
     // Nothing changes. Thus, nothing is recorded.
     await call(admin, "PUT", `/api/v1/admin/teams/${team}`, {
+      password: "test-pass-12",
       name: "Studio",
       memberIds: [bob.userId],
     });
@@ -299,8 +304,34 @@ describe("teams as share targets", () => {
     );
   });
 
+  it("asks for the admin's password to add a member, and not to take one out", async () => {
+    const team = await makeTeam("Design", [alice]);
+    // A team with no members gives nobody a note.
+    const empty = await call(admin, "POST", "/api/v1/admin/teams", {
+      name: "Empty",
+    });
+    expect(empty.status).toBe(201);
+    for (const body of [
+      { name: "Studio", memberIds: [bob.userId] },
+      { name: "Studio", memberIds: [alice.userId, bob.userId] },
+    ]) {
+      const added = await call(admin, "POST", "/api/v1/admin/teams", body);
+      expect(added.status).toBe(403);
+      const joined = await call(admin, "PUT", `/api/v1/admin/teams/${team}`, {
+        ...body,
+        password: "wrong-pass-12",
+      });
+      expect(joined.status).toBe(403);
+    }
+    const left = await call(admin, "PUT", `/api/v1/admin/teams/${team}`, {
+      memberIds: [],
+    });
+    expect(left.status).toBe(200);
+  });
+
   it("leaves nothing behind when a member it names does not exist", async () => {
     const missing = await call(admin, "POST", "/api/v1/admin/teams", {
+      password: "test-pass-12",
       name: "Design",
       memberIds: [alice.userId, "01J00000000000000000000000"],
     });
@@ -393,6 +424,7 @@ describe("teams as share targets", () => {
     expect(res.status).toBe(403);
     await makeTeam("Design", []);
     const clash = await call(admin, "POST", "/api/v1/admin/teams", {
+      password: "test-pass-12",
       name: "Design",
     });
     expect(clash.status).toBe(409);

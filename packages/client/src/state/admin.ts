@@ -15,6 +15,7 @@ import { t } from "#/i18n/index.ts";
 import type { MessageKey } from "#/i18n/messages/index.ts";
 import { ApiError, apiJson } from "#/storage/apiRequest.ts";
 import { refreshCurrentUser } from "./account/auth.ts";
+import type { ConfirmationRefusal } from "./account/passwordConfirmation.ts";
 import { activeView, showError, showSuccess } from "./ui.ts";
 
 /**
@@ -71,6 +72,45 @@ function report(err: unknown, fallback: MessageKey, conflict?: MessageKey) {
     return;
   }
   showError(t(status === 409 && conflict ? conflict : fallback));
+}
+
+/**
+ * What a change to an account gave: it was done, it failed (and was reported),
+ * or the server wants the confirmation of the admin first. The form that asked
+ * shows the refusal next to its password field (`ConfirmationError`).
+ */
+export type AdminChange = "done" | "failed" | ConfirmationRefusal;
+
+/**
+ * The refusal of the confirmation (`auth/confirmation.ts` on the server), or
+ * null for a different failure. A 403 without one of these codes means that this
+ * user is not an admin now, which `report` handles.
+ */
+function refusalOf(err: unknown): ConfirmationRefusal | null {
+  if (!(err instanceof ApiError)) return null;
+  if (err.status === 429) return "locked";
+  if (err.status !== 403) return null;
+  if (err.code === "confirmation_required") return "password-missing";
+  if (err.code === "password_incorrect") return "password-wrong";
+  if (err.code === "reauthentication_required") return "sign-in-again";
+  return null;
+}
+
+/** The refusal to show, or `failed` after the failure was reported. */
+function refusedOrReported(
+  err: unknown,
+  fallback: MessageKey,
+  conflict?: MessageKey,
+): AdminChange {
+  const refusal = refusalOf(err);
+  if (refusal) return refusal;
+  report(err, fallback, conflict);
+  return "failed";
+}
+
+/** The confirmation as the body carries it. An admin without a password sends none. */
+function confirmation(password: string): { password?: string } {
+  return password ? { password } : {};
 }
 
 function replaceUser(user: AdminUser) {
@@ -183,41 +223,50 @@ export async function loadAdminUsers(): Promise<boolean> {
 
 export async function createAccount(
   username: string,
-  email?: string,
-): Promise<boolean> {
+  email: string | undefined,
+  password: string,
+): Promise<AdminChange> {
   try {
     const body = await request<AdminTemporaryPasswordResponse>(
       "POST",
       "/users",
-      { username, ...(email ? { email } : {}) },
+      { username, ...(email ? { email } : {}), ...confirmation(password) },
     );
-    if (!body) return false;
+    if (!body) return "failed";
     replaceUser(body.user);
     issuedPassword.value = {
       username: body.user.username,
       password: body.temporaryPassword,
       kind: "created",
     };
-    return true;
+    return "done";
   } catch (err) {
-    report(err, "admin.error.createFailed", "admin.error.usernameTaken");
-    return false;
+    return refusedOrReported(
+      err,
+      "admin.error.createFailed",
+      "admin.error.usernameTaken",
+    );
   }
 }
 
 export async function setAccountAdmin(
   id: string,
   isAdmin: boolean,
-): Promise<boolean> {
+  password: string,
+): Promise<AdminChange> {
   try {
     const body = await request<AdminUserResponse>("PUT", `/users/${id}`, {
       isAdmin,
+      ...confirmation(password),
     });
     if (body) replaceUser(body.user);
-    return true;
+    return "done";
   } catch (err) {
-    report(err, "admin.error.updateFailed", "admin.error.lastAdmin");
-    return false;
+    return refusedOrReported(
+      err,
+      "admin.error.updateFailed",
+      "admin.error.lastAdmin",
+    );
   }
 }
 
@@ -225,46 +274,56 @@ export async function setAccountAdmin(
 export async function setAccountEmail(
   id: string,
   email: string | null,
-): Promise<boolean> {
+  password: string,
+): Promise<AdminChange> {
   try {
     const body = await request<AdminUserResponse>("PUT", `/users/${id}`, {
       email,
+      ...confirmation(password),
     });
     if (body) replaceUser(body.user);
-    return true;
+    return "done";
   } catch (err) {
-    report(err, "admin.error.emailFailed");
-    return false;
+    return refusedOrReported(err, "admin.error.emailFailed");
   }
 }
 
-export async function resetAccountPassword(id: string): Promise<boolean> {
+export async function resetAccountPassword(
+  id: string,
+  password: string,
+): Promise<AdminChange> {
   try {
     const body = await request<AdminTemporaryPasswordResponse>(
       "POST",
       `/users/${id}/password`,
+      confirmation(password),
     );
-    if (!body) return false;
+    if (!body) return "failed";
     replaceUser(body.user);
     issuedPassword.value = {
       username: body.user.username,
       password: body.temporaryPassword,
       kind: "reset",
     };
-    return true;
+    return "done";
   } catch (err) {
-    report(err, "admin.error.resetFailed");
-    return false;
+    return refusedOrReported(err, "admin.error.resetFailed");
   }
 }
 
-export async function deleteAccount(id: string): Promise<boolean> {
+export async function deleteAccount(
+  id: string,
+  password: string,
+): Promise<AdminChange> {
   try {
-    await request<null>("DELETE", `/users/${id}`);
+    await request<null>("DELETE", `/users/${id}`, confirmation(password));
     adminUsers.value = (adminUsers.value ?? []).filter((u) => u.id !== id);
-    return true;
+    return "done";
   } catch (err) {
-    report(err, "admin.error.deleteFailed", "admin.error.lastAdmin");
-    return false;
+    return refusedOrReported(
+      err,
+      "admin.error.deleteFailed",
+      "admin.error.lastAdmin",
+    );
   }
 }

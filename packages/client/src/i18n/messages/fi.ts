@@ -1602,6 +1602,10 @@ export const fi: Messages = {
   "admin.changeEmail": "Vaihda sähköposti",
   "admin.saveEmail": "Tallenna",
   "admin.delete": "Poista tili",
+  "admin.makeAdminConfirm":
+    "Tehdäänkö käyttäjästä {username} ylläpitäjä? Hän voi sen jälkeen hallita kaikkia tämän palvelimen tilejä.",
+  "admin.removeAdminConfirm":
+    "Poistetaanko käyttäjän {username} ylläpito-oikeudet?",
   "admin.resetConfirm":
     "Nollataanko käyttäjän {username} salasana? Hänet kirjataan ulos kaikkialta, ja hän saa väliaikaisen salasanan.",
   "admin.deleteConfirm":

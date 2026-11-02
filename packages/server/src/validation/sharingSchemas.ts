@@ -10,7 +10,12 @@ import {
   SHARE_ROLES,
 } from "@manifesto/shared";
 import { z } from "zod";
-import { publicKey, sealed, wrappedKey } from "./fields.ts";
+import {
+  confirmationPassword,
+  publicKey,
+  sealed,
+  wrappedKey,
+} from "./fields.ts";
 
 // The request bodies of sharing: shares and invitations, the keys that go with
 // them, teams, and public links.
@@ -61,9 +66,14 @@ const teamName = z.string().trim().min(1).max(100);
 const teamMemberIds = z.array(z.string().min(1).max(64)).max(1000);
 
 /** `POST /api/v1/admin/teams`. */
+/**
+ * A request that adds a member carries the confirmation of the admin, because
+ * a member gets the notes shared with the team (`auth/confirmation.ts`).
+ */
 export const adminTeamCreateSchema = z.object({
   name: teamName,
   memberIds: teamMemberIds.exactOptional(),
+  password: confirmationPassword,
 });
 
 /** `PUT /api/v1/admin/teams/:id`. */
@@ -71,6 +81,7 @@ export const adminTeamUpdateSchema = z
   .object({
     name: teamName.exactOptional(),
     memberIds: teamMemberIds.exactOptional(),
+    password: confirmationPassword,
   })
   .refine((body) => body.name !== undefined || body.memberIds !== undefined, {
     message: "Nothing to change",

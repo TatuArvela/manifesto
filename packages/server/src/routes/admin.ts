@@ -11,6 +11,8 @@ import type {
 import { Hono } from "hono";
 import { audit } from "#/audit/audit.ts";
 import { auditPage } from "#/audit/auditPage.ts";
+import { requireConfirmation } from "#/auth/confirmation.ts";
+import type { LoginAttempts } from "#/auth/local/loginAttempts.ts";
 import type { SessionRevocations } from "#/auth/revocations.ts";
 import { endUserSessions } from "#/auth/session.ts";
 import { pickAvatarColor } from "#/auth/users.ts";
@@ -36,6 +38,7 @@ import {
   type UserSummary,
 } from "#/storage/types.ts";
 import {
+  adminConfirmSchema,
   adminCreateUserSchema,
   adminUpdateUserSchema,
 } from "#/validation/accountSchemas.ts";
@@ -48,6 +51,8 @@ interface AdminDeps {
   cfg: ServerConfig;
   storage: StorageDriver;
   revocations: SessionRevocations;
+  /** The budget for wrong passwords, shared with sign-in. */
+  loginAttempts: LoginAttempts;
   noteEvents: NoteEvents;
   teamShares: TeamShares;
   /** What the update check found last. */
@@ -93,6 +98,13 @@ function refuseGuarded(result: AdminGuardedResult): void {
  * refuses a removal of your own admin rights, a deletion of yourself, or a
  * reset of your own password from here. Each of these locks you out during your
  * work, and each has a safer route (a different admin, or Change password).
+ *
+ * Each change to an account asks for the confirmation of the admin
+ * (`requireConfirmation`), as the changes to your own account do. A stolen admin
+ * session is worth more than a different stolen session: with it, a person can
+ * make an account of their own an admin, which stays after the session ends, or
+ * move the address of a different person and take the password with the reset
+ * link. Only the reads stay without it.
  */
 export function createAdminRoutes(deps: AdminDeps) {
   const admin = new Hono<{ Variables: { auth: AuthContext } }>();
@@ -131,7 +143,8 @@ export function createAdminRoutes(deps: AdminDeps) {
     zValidator("json", adminCreateUserSchema, validatorHook),
     async (c) => {
       requireLocalProvider();
-      const { username, email } = c.req.valid("json");
+      const { username, email, password } = c.req.valid("json");
+      await requireConfirmation(deps, c.get("auth"), password);
       if (await deps.storage.users.findByUsername(username)) {
         throw new HttpError(409, "Username is already taken");
       }
@@ -185,7 +198,8 @@ export function createAdminRoutes(deps: AdminDeps) {
     async (c) => {
       const id = c.req.param("id") as string;
       refuseSelf(c, id);
-      const { isAdmin, email } = c.req.valid("json");
+      const { isAdmin, email, password } = c.req.valid("json");
+      await requireConfirmation(deps, c.get("auth"), password);
       // The address first. It is the change that the server can refuse for a
       // reason that the admin can correct. A refusal must keep the rights
       // unchanged.
@@ -224,61 +238,82 @@ export function createAdminRoutes(deps: AdminDeps) {
     },
   );
 
-  admin.post("/users/:id/password", async (c) => {
-    requireLocalProvider();
-    const id = c.req.param("id") as string;
-    refuseSelf(c, id);
-    const target = await deps.storage.users.findById(id);
-    if (!target) throw new HttpError(404, "User not found");
-    if (target.provider !== "local") {
-      throw new HttpError(409, "This account signs in through single sign-on");
-    }
-    const temporaryPassword = newTemporaryPassword();
-    await deps.storage.users.setPassword(
-      id,
-      await hashPassword(temporaryPassword, deps.cfg),
-      true,
-    );
-    // A reset is frequently necessary because a different person has the
-    // password. Thus, the person who is signed in with it now is signed out,
-    // with the sockets. A reset is also the way back in for a person who lost
-    // their authenticator and their recovery key. Thus, two-factor goes too,
-    // with the passkeys. The person can add them again. It restores the
-    // sign-in, and no key. Without a key, the notes stay locked.
-    await endUserSessions(deps.storage, deps.revocations, id);
-    await deps.storage.twoFactor.disable(id);
-    await deps.storage.passkeys.deleteByUser(id);
-    logger.info("Admin reset a password", {
-      adminId: c.get("auth").userId,
-      userId: id,
-    });
-    audit(deps.storage, c, {
-      action: "admin.password_reset",
-      actorId: c.get("auth").userId,
-      targetId: id,
-    });
-    const body: AdminTemporaryPasswordResponse = {
-      user: await summaryOf(id),
-      temporaryPassword,
-    };
-    return c.json(body);
-  });
+  admin.post(
+    "/users/:id/password",
+    zValidator("json", adminConfirmSchema, validatorHook),
+    async (c) => {
+      requireLocalProvider();
+      const id = c.req.param("id") as string;
+      refuseSelf(c, id);
+      const target = await deps.storage.users.findById(id);
+      if (!target) throw new HttpError(404, "User not found");
+      if (target.provider !== "local") {
+        throw new HttpError(
+          409,
+          "This account signs in through single sign-on",
+        );
+      }
+      await requireConfirmation(
+        deps,
+        c.get("auth"),
+        c.req.valid("json").password,
+      );
+      const temporaryPassword = newTemporaryPassword();
+      await deps.storage.users.setPassword(
+        id,
+        await hashPassword(temporaryPassword, deps.cfg),
+        true,
+      );
+      // A reset is frequently necessary because a different person has the
+      // password. Thus, the person who is signed in with it now is signed out,
+      // with the sockets. A reset is also the way back in for a person who lost
+      // their authenticator and their recovery key. Thus, two-factor goes too,
+      // with the passkeys. The person can add them again. It restores the
+      // sign-in, and no key. Without a key, the notes stay locked.
+      await endUserSessions(deps.storage, deps.revocations, id);
+      await deps.storage.twoFactor.disable(id);
+      await deps.storage.passkeys.deleteByUser(id);
+      logger.info("Admin reset a password", {
+        adminId: c.get("auth").userId,
+        userId: id,
+      });
+      audit(deps.storage, c, {
+        action: "admin.password_reset",
+        actorId: c.get("auth").userId,
+        targetId: id,
+      });
+      const body: AdminTemporaryPasswordResponse = {
+        user: await summaryOf(id),
+        temporaryPassword,
+      };
+      return c.json(body);
+    },
+  );
 
-  admin.delete("/users/:id", async (c) => {
-    const id = c.req.param("id") as string;
-    refuseSelf(c, id);
-    refuseGuarded(await deleteAccount(deps, id));
-    logger.info("Admin deleted an account", {
-      adminId: c.get("auth").userId,
-      userId: id,
-    });
-    audit(deps.storage, c, {
-      action: "admin.user_deleted",
-      actorId: c.get("auth").userId,
-      targetId: id,
-    });
-    return c.body(null, 204);
-  });
+  admin.delete(
+    "/users/:id",
+    zValidator("json", adminConfirmSchema, validatorHook),
+    async (c) => {
+      const id = c.req.param("id") as string;
+      refuseSelf(c, id);
+      await requireConfirmation(
+        deps,
+        c.get("auth"),
+        c.req.valid("json").password,
+      );
+      refuseGuarded(await deleteAccount(deps, id));
+      logger.info("Admin deleted an account", {
+        adminId: c.get("auth").userId,
+        userId: id,
+      });
+      audit(deps.storage, c, {
+        action: "admin.user_deleted",
+        actorId: c.get("auth").userId,
+        targetId: id,
+      });
+      return c.body(null, 204);
+    },
+  );
 
   /** If a newer release is available, for the account menu. */
   admin.get("/update", (c) => {

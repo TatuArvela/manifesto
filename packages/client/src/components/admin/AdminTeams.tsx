@@ -2,7 +2,12 @@ import type { AdminTeam, AdminUser } from "@manifesto/shared";
 import { Trash2, Users } from "lucide-preact";
 import { useEffect, useState } from "preact/hooks";
 import { buttonClass } from "#/components/buttonClasses.ts";
+import {
+  ConfirmationError,
+  ConfirmPasswordField,
+} from "#/components/ConfirmWithPassword.tsx";
 import { plural, t } from "#/i18n/index.ts";
+import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.ts";
 import { adminUsers } from "#/state/admin.ts";
 import { askConfirmation } from "#/state/confirm.ts";
 import {
@@ -19,6 +24,8 @@ const fieldClass =
 
 function reportWrite(result: TeamWriteResult): AdminTeam | null {
   if (result.kind === "ok") return result.team;
+  // The form shows a refusal next to its password field.
+  if (result.kind === "refused") return null;
   showError(
     t(
       result.kind === "name-taken"
@@ -154,16 +161,23 @@ function TeamRow({
     () => new Set(team.members.map((m) => m.id)),
   );
   const [busy, setBusy] = useState(false);
+  const [password, setPassword] = useState("");
+  const [refusal, setRefusal] = useState<ConfirmationRefusal | null>(null);
   const fromProvider = team.source === "oidc";
 
   const save = async () => {
     setBusy(true);
-    const saved = reportWrite(
-      await updateTeam(team.id, { memberIds: [...selected] }),
+    const result = await updateTeam(
+      team.id,
+      { memberIds: [...selected] },
+      password,
     );
     setBusy(false);
+    setRefusal(result.kind === "refused" ? result.refusal : null);
+    const saved = reportWrite(result);
     if (!saved) return;
     onChanged(saved);
+    setPassword("");
     setEditing(false);
   };
 
@@ -221,6 +235,14 @@ function TeamRow({
               </li>
             ))}
           </ul>
+          {/* A new member gets the notes of the team. Thus, the server asks
+              for the password of the admin to add one. */}
+          <ConfirmPasswordField
+            value={password}
+            onInput={setPassword}
+            inputClass={fieldClass}
+          />
+          {refusal && <ConfirmationError refusal={refusal} />}
           <div class="flex gap-2">
             <button
               type="button"
@@ -235,6 +257,8 @@ function TeamRow({
               class={buttonClass("secondary", "sm")}
               onClick={() => {
                 setSelected(new Set(team.members.map((m) => m.id)));
+                setPassword("");
+                setRefusal(null);
                 setEditing(false);
               }}
             >
