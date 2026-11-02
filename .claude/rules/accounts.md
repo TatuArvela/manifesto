@@ -181,7 +181,9 @@ A new device shows a QR code, and a signed-in device approves it (`auth/deviceSi
 
 All code that checks a password from a session counts a wrong password in `loginAttempts`. This
 includes the change of password (`/api/v1/auth/password`). The bucket for the address alone fills
-again for a stolen session that moves. With single sign-on, the server stores an address only when
+again for a stolen session that moves. A sign-in counts the name of the account that the lookup
+found, not the typed spelling. Postgres `LOWER` and `toLowerCase` fold some letters differently.
+Thus, each spelling would get its own budget. With single sign-on, the server stores an address only when
 the provider sends `email_verified: true` (`pickEmail`), unless `OIDC_UNVERIFIED_EMAIL=accept`.
 
 A temporary password gives no session. Login sends `403 password_change_required` until the same

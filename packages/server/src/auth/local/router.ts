@@ -193,17 +193,23 @@ export function createLocalAuthRouter(
     async (c) => {
       const { username, password, newPassword, otp, passkey } =
         c.req.valid("json");
-      const wait = loginAttempts.retryAfter(username);
+      const user = await deps.storage.users.findByUsername(username);
+      // The budget counts the account that the lookup found, by its own name,
+      // not the name as it was typed. The lookup folds case in the database,
+      // and Postgres `LOWER` folds `İ` into `i`, where the `toLowerCase` of the
+      // budget gives `i̇`. Thus, `admİn` found `admin` with a budget of its own,
+      // and each `i` in a name doubled the guesses before the lock.
+      const name = user?.username ?? username;
+      const wait = loginAttempts.retryAfter(name);
       if (wait > 0) {
-        // Before the lookup and the verify. Thus, a series of guesses that used
-        // its budget also stops to cost the server argon2.
+        // Before the verify. Thus, a series of guesses that used its budget
+        // also stops to cost the server argon2.
         c.header("Retry-After", String(wait));
         throw new HttpError(429, "Too many sign-in attempts");
       }
-      const user = await deps.storage.users.findByUsername(username);
       if (!user || user.passwordHash === null) {
         await spendDecoyVerify(password);
-        loginAttempts.fail(username);
+        loginAttempts.fail(name);
         audit(deps.storage, c, {
           action: "auth.sign_in_failed",
           targetId: user?.id ?? null,
@@ -219,11 +225,11 @@ export function createLocalAuthRouter(
       }
       const ok = await verifyPassword(user.passwordHash, password);
       if (!ok) {
-        loginAttempts.fail(username);
+        loginAttempts.fail(name);
         audit(deps.storage, c, {
           action: "auth.sign_in_failed",
           targetId: user.id,
-          detail: { username, reason: "password" },
+          detail: { username: user.username, reason: "password" },
         });
         throw new HttpError(401, "Invalid username or password");
       }
@@ -232,7 +238,7 @@ export function createLocalAuthRouter(
       // Thus, nobody can try all six-digit codes.
       const second = await secondFactor(c, user, otp, passkey);
       if ("challenge" in second) return c.json(second.challenge, 403);
-      loginAttempts.succeed(username);
+      loginAttempts.succeed(name);
       // A temporary password gives only the right to set a real password. No
       // session exists until it is replaced. Thus, there is no half-signed-in
       // state that all other routes must refuse. The check is after the
