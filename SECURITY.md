@@ -38,6 +38,9 @@ configuration that they document. These are examples of the most important issue
   share.
 - A person reads or changes the notes, attachments or settings of a different account without a
   share that permits it.
+- The words of a note, its images or a key that a person holds go to the server readable. Or, the
+  server or a different person can make a client use a key that is not the key of the note
+  ([Encryption](docs/specification/features/encryption.md)).
 - A note, a share link, an import or a link preview runs a script in the origin of the app.
 - An auto-notes plugin gets access to something outside its sandbox.
 - A token gets access to something that its scopes do not name. An MCP token (`mfm_`) gets access
@@ -48,16 +51,19 @@ configuration that they document. These are examples of the most important issue
 
 Some behavior is on purpose. The linked pages tell why:
 
-- **The server operator can read notes.** Notes do not have end-to-end encryption
-  ([Encryption](docs/specification/features/encryption.md), [Privacy](docs/specification/features/privacy.md)).
+- **The server knows what is around a note.** The browser seals the words of each note, but the
+  server reads who owns and shares it, its size, when it changed and when its reminder is due. An
+  operator who serves a changed client can also get the keys
+  ([What it does not protect](docs/specification/features/encryption.md#what-it-does-not-protect),
+  [Privacy](docs/specification/features/privacy.md)).
 - **All persons with a share link can read that note.** The note is in the link
   ([Sharing](docs/specification/features/sharing.md)).
 - **Open-mode data is only as private as its browser profile.** It never goes off the device.
 - **`WEBHOOKS=private` can connect to the local network**, and to loopback. That is the purpose of
   the setting ([Webhooks](docs/specification/features/webhooks.md)).
-- **An admin can export the notes of an account when the server has `ADMIN_EXPORT` on.** The owner
-  of the account sees the export on their Activity page
-  ([Privacy](docs/specification/features/privacy.md)).
+- **An admin who puts an account in a team gives it the notes shared with that team.** The People
+  list of each note shows who has it
+  ([What it does not protect](docs/specification/features/encryption.md#what-it-does-not-protect)).
 
 The software cannot control a deployment that does not agree with
 [Server Deployment](docs/specification/server/deployment.md). An example is a proxy that appends to
