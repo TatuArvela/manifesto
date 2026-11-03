@@ -4,6 +4,7 @@ import { rerollBoardInk, resolvedBoardInk } from "#/state/boardBackground.ts";
 import { type BoardInk, boardInk, boardInkColor } from "#/state/prefs.ts";
 import { INK_COLORS, type InkColor } from "#/utils/boardInk.ts";
 import { BoardCard } from "./BoardCard.tsx";
+import { CustomColorSwatch } from "./CustomColorSwatch.tsx";
 
 const ringClass = "ring-1 ring-inset ring-black/10 dark:ring-white/15";
 const selectedClass =
@@ -89,28 +90,23 @@ export function BoardInkPicker({
             title={label(choice)}
           />
         ))}
-        <label
-          class={`relative ${swatchClass} p-[3px] bg-[conic-gradient(#f87171,#facc15,#4ade80,#38bdf8,#a78bfa,#f472b6,#f87171)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-500 ${marked("custom") ? selectedClass : ""}`}
-          title={label("custom")}
+        <CustomColorSwatch
+          label={label("custom")}
+          value={boardInkColor.value}
+          marked={marked("custom")}
+          onClick={() => pick("custom")}
+          onInput={(hex) =>
+            compose(() => {
+              boardInkColor.value = hex;
+              boardInk.value = "custom";
+            })
+          }
         >
           <span
             data-board-swatch="ink-custom"
             class="board-swatch block w-full h-full rounded-full"
           />
-          <input
-            type="color"
-            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-default"
-            value={boardInkColor.value}
-            aria-label={label("custom")}
-            onClick={() => pick("custom")}
-            onInput={(e) =>
-              compose(() => {
-                boardInkColor.value = e.currentTarget.value;
-                boardInk.value = "custom";
-              })
-            }
-          />
-        </label>
+        </CustomColorSwatch>
         {colors.map(([choice, hex]) => (
           <button
             key={choice}

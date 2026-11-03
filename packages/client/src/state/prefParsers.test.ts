@@ -108,6 +108,19 @@ describe("PREF_PARSERS", () => {
     },
   );
 
+  it("reads a retired tinted grey as the neutral dark shade", () => {
+    for (const grey of ["violet", "lavender", "mauve", "steel"]) {
+      expect(PREF_PARSERS.darkHue(grey)).toBe("neutral");
+    }
+  });
+
+  it("writes only a six-digit hex colour into a custom shade", () => {
+    for (const key of ["lightCustomColor", "darkCustomColor"] as const) {
+      expect(PREF_PARSERS[key]("#ABCDEF")).toBe("#abcdef");
+      expect(PREF_PARSERS[key]("red; x: y")).toBe(parse(key, undefined));
+    }
+  });
+
   it("writes only a six-digit hex colour into the board's CSS", () => {
     const parser = PREF_PARSERS.boardCustomColor;
     expect(parser("#ABCDEF")).toBe("#abcdef");
@@ -118,7 +131,6 @@ describe("PREF_PARSERS", () => {
   });
 
   it("reads values the app once stored under another name", () => {
-    expect(PREF_PARSERS.darkHue("violet")).toBe("lavender");
     expect(PREF_PARSERS.boardTexture("cork")).toBe("paper");
     expect(
       PREF_PARSERS.defaultNoteFont(undefined, {

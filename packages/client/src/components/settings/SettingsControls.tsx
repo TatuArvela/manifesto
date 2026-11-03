@@ -151,7 +151,7 @@ export function SettingsSelect<T extends string>({
       open={open}
       onClose={() => setOpen(false)}
       placement="bottom-end"
-      panelClass="py-1 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 min-w-[160px]"
+      panelClass="py-1 max-h-[min(24rem,70vh)] overflow-y-auto bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 min-w-[160px]"
       trigger={
         <button
           type="button"

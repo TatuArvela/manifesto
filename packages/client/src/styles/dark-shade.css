@@ -1,4 +1,4 @@
-/* The tinted neutral ramp of the dark theme, and the swatches that show it. */
+/* The tinted neutral ramp of the dark theme. */
 
 /*
  * --- Dark shade ---------------------------------------------------------
@@ -9,24 +9,24 @@
  * which puts them above the `@layer theme` defaults of Tailwind, whatever the
  * specificity.
  *
- * Two controls set it. `--dark-tint-c` / `--dark-tint-h` add a hue. Each step
- * keeps the lightness of Tailwind and only gets chroma. Thus, contrast ratios
- * do not change. Chroma decreases toward the light end, because the dark theme
- * uses those steps for text. Tinted text looks like an error, but a tinted
- * surface looks like a choice. The hues go from warm to cool along the
- * violet-blue arc, at a chroma so low that each looks like a gray with a hue,
- * not like a color. The purpose is to agree with the dark mode of the OS or the
- * editor next to it, and those are in a narrow band. The preset colors of the
- * board follow at a higher chroma, for a dark theme that must look like that
- * color.
+ * Three custom properties set it. `--dark-tint-c` / `--dark-tint-h` add a hue.
+ * Each step keeps the lightness of Tailwind and only gets chroma. Thus,
+ * contrast ratios do not change. Chroma decreases toward the light end,
+ * because the dark theme uses those steps for text. Tinted text looks like an
+ * error, but a tinted surface looks like a choice.
  *
  * `--dark-dim` makes the shade darker, and does not tint. It is subtracted from
  * the lightness of the dark end, and decreases to nothing at the 400 step.
  * Thus, text keeps its contrast against a page that is fully black.
  *
- * The `[data-dark-hue]` rules are intentionally not scoped to `html`. The
- * settings swatches set the same attribute on themselves to show a sample of a
- * shade. Thus, JavaScript does not have to state these values again.
+ * The values come from `utils/themeShades.ts`, for a preset or for a custom
+ * color. `state/theme.ts` sets them on <html>, and a swatch in Settings sets
+ * them on itself to show a sample of a shade. The `:root` values are neutral
+ * gray, before the bundle runs.
+ *
+ * `.dark-ramp` gives an element the dark ramp also while the app is light.
+ * Thus, a sample of the dark theme in Settings uses the usual `neutral`
+ * utilities, and shows the same tones as the theme.
  */
 :root {
   --dark-tint-c: 0;
@@ -34,113 +34,8 @@
   --dark-dim: 0%;
 }
 
-[data-dark-hue="neutral"] {
-  --dark-tint-c: 0;
-  --dark-tint-h: 0;
-  --dark-dim: 0%;
-}
-
-[data-dark-hue="midnight"] {
-  --dark-tint-c: 0;
-  --dark-tint-h: 0;
-  --dark-dim: 8%;
-}
-
-[data-dark-hue="mauve"] {
-  --dark-tint-c: 0.014;
-  --dark-tint-h: 320;
-  --dark-dim: 0%;
-}
-
-[data-dark-hue="lavender"] {
-  --dark-tint-c: 0.014;
-  --dark-tint-h: 295;
-  --dark-dim: 0%;
-}
-
-[data-dark-hue="indigo"] {
-  --dark-tint-c: 0.014;
-  --dark-tint-h: 275;
-  --dark-dim: 0%;
-}
-
-[data-dark-hue="slate"] {
-  --dark-tint-c: 0.014;
-  --dark-tint-h: 258;
-  --dark-dim: 0%;
-}
-
-[data-dark-hue="steel"] {
-  --dark-tint-c: 0.014;
-  --dark-tint-h: 240;
-  --dark-dim: 0%;
-}
-
-[data-dark-hue="ocean"] {
-  --dark-tint-c: 0.014;
-  --dark-tint-h: 228;
-  --dark-dim: 0%;
-}
-
-[data-dark-hue="black"] {
-  --dark-tint-c: 0;
-  --dark-tint-h: 0;
-  --dark-dim: 20.5%;
-}
-
-/*
- * The preset colors of the board, as tints strong enough to look like the color
- * and not like a hue, in the hues that the light shades use.
- */
-[data-dark-hue="red"] {
-  --dark-tint-c: 0.035;
-  --dark-tint-h: 25;
-  --dark-dim: 0%;
-}
-
-[data-dark-hue="orange"] {
-  --dark-tint-c: 0.035;
-  --dark-tint-h: 55;
-  --dark-dim: 0%;
-}
-
-[data-dark-hue="yellow"] {
-  --dark-tint-c: 0.035;
-  --dark-tint-h: 100;
-  --dark-dim: 0%;
-}
-
-[data-dark-hue="green"] {
-  --dark-tint-c: 0.035;
-  --dark-tint-h: 150;
-  --dark-dim: 0%;
-}
-
-[data-dark-hue="teal"] {
-  --dark-tint-c: 0.035;
-  --dark-tint-h: 185;
-  --dark-dim: 0%;
-}
-
-[data-dark-hue="blue"] {
-  --dark-tint-c: 0.035;
-  --dark-tint-h: 255;
-  --dark-dim: 0%;
-}
-
-[data-dark-hue="purple"] {
-  --dark-tint-c: 0.035;
-  --dark-tint-h: 305;
-  --dark-dim: 0%;
-}
-
-[data-dark-hue="pink"] {
-  --dark-tint-c: 0.035;
-  --dark-tint-h: 350;
-  --dark-dim: 0%;
-}
-
-html.dark {
+html.dark,
+.dark-ramp {
   --color-neutral-50: oklch(
     98.5% calc(var(--dark-tint-c) * 0.25) var(--dark-tint-h)
   );
@@ -175,18 +70,5 @@ html.dark {
   );
   --color-neutral-950: oklch(
     max(0%, calc(14.5% - var(--dark-dim))) var(--dark-tint-c) var(--dark-tint-h)
-  );
-}
-
-/*
- * A literal sample of the theme, not an advertisement for it. The chip is the
- * 700 step, the tone with which the dark theme outlines its cards. It is light
- * enough to carry a hue this subtle, and dark enough that the two dimmed shades
- * look dimmer than the tints. More chroma would make the options easier to tell
- * apart, but would promise a tint that the user will not get.
- */
-.dark-hue-swatch {
-  background-color: oklch(
-    calc(37.1% - var(--dark-dim) * 0.6) var(--dark-tint-c) var(--dark-tint-h)
   );
 }

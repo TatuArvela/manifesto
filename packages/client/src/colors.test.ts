@@ -3,6 +3,11 @@ import { NoteColor } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
 import { boardCard, boardLabel } from "#/components/boardCard.ts";
 import {
+  MAX_DARK_DIM,
+  MAX_LIGHT_DIM,
+  presetDims,
+} from "#/utils/themeShades.ts";
+import {
   autoNoteColorMap,
   noteColorMap,
   noteText,
@@ -59,19 +64,20 @@ function shadedLightness(
   return floored ? Math.max(0, lightness) : lightness;
 }
 
-const dims = (css: string, variable: string) => [
-  ...new Set(
-    [...css.matchAll(new RegExp(`--${variable}:\\s*([\\d.]+)%`, "g"))].map(
-      ([, dim = "0"]) => Number(dim),
-    ),
-  ),
+/**
+ * Each dim that a theme can have: those of its presets, and the ends of the
+ * range of a custom color. The ramp only goes darker as the dim grows. Thus,
+ * the ends cover a custom dim between them.
+ */
+const dims = (theme: Theme, max: number) => [
+  ...new Set([0, ...presetDims(theme), max]),
 ];
 const shades: { theme: Theme; dim: number }[] = [
-  ...dims(lightShade, "light-dim").map((dim) => ({
+  ...dims("light", MAX_LIGHT_DIM).map((dim) => ({
     theme: "light" as const,
     dim,
   })),
-  ...dims(darkShade, "dark-dim").map((dim) => ({
+  ...dims("dark", MAX_DARK_DIM).map((dim) => ({
     theme: "dark" as const,
     dim,
   })),
@@ -328,6 +334,18 @@ describe("contrast on notes", () => {
       expect([...new Set(found)]).toEqual([]);
     },
   );
+
+  // A light shade tints `--color-white`. At the dim of a vivid shade, a tinted
+  // white on a blue button is under 4.5:1. Thus, white text gets the true white
+  // back (light-shade.css), and on that white the button passes.
+  it("keeps white text on a primary button legible in each light shade", () => {
+    expect(lightShade).toMatch(
+      /html:not\(\.dark\)\s*:is\([^)]*\[class~="text-white"\][^{]*\{\s*--color-white: oklch\(100% 0 0\);/,
+    );
+    expect(colour("white", "light", MAX_LIGHT_DIM)[0]).toBeLessThan(0.9);
+    const button = srgb(colour("blue-600", "light", 0));
+    expect(contrast(srgb([1, 0, 0]), button)).toBeGreaterThanOrEqual(4.5);
+  });
 
   it("keeps a tag's name legible on its chip", () => {
     const chips = Object.entries(tagChipColors).map(([color, { bg }]) => ({

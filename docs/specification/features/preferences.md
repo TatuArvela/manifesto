@@ -110,8 +110,10 @@ sets most frequently:
 | Key | Values |
 |---|---|
 | `theme` | `system` (default), `light`, `dark` |
-| `lightHue` | `white` (default), or a board color: `red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple`, `pink` |
-| `darkHue` | `neutral` (default), `midnight`, `mauve`, `lavender`, `indigo`, `slate`, `steel`, `ocean`, `black`, or a board color |
+| `lightHue` | `white` (default), a pale board color (`red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple`, `pink`), a vivid one (`vivid-red` to `vivid-pink`), or `custom` |
+| `lightCustomColor` | The `#rrggbb` color of the `custom` light shade. Its hue and chroma tint the theme, and a darker color dims the page, to a limit |
+| `darkHue` | `neutral` (default), `midnight`, `black`, a board color, or `custom` |
+| `darkCustomColor` | The `#rrggbb` color of the `custom` dark shade. A color darker than the page makes the page that dark, to black |
 | `locale` | `en`, `fi`. The default is the language of the browser |
 | `viewMode` | `grid` (default), `list` |
 | `noteSize` | `fit` (default), `square` |
