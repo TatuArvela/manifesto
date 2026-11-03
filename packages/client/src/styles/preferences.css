@@ -219,7 +219,8 @@
  * The length of one repeat of the rolling gradient, in boards, and from it the
  * length of the layer that rolls (one board more) and its move (one repeat), as
  * parts of that layer. The direction rules use them along each axis that the
- * gradient goes on.
+ * gradient goes on. It is `ROLL_REPEAT_BOARDS` of utils/boardMotion.ts, which
+ * the board painter uses.
  */
 :root {
   --board-roll-repeat: 2;
@@ -645,19 +646,25 @@
 }
 
 /*
- * The rolling gradient: a repeating linear gradient on its own layer, under the
- * texture and over the still gradient of the frame. One repeat goes from the
- * first color to the second and back, and is `--board-roll-repeat` boards long
- * along the gradient line of the board. At two, the board shows one fade from
- * the first color to the second, as the still gradient does. Thus, the roll
- * starts from the look of the board. The layer is one board longer than a
+ * The rolling gradient, where the board painter does not draw it: in the
+ * preview in Settings, and on a board without WebGL 2 (components/
+ * BoardLayers.tsx). It is a repeating linear gradient on its own layer, under
+ * the texture and over the still gradient of the frame. One repeat goes from
+ * the first color to the second and back, and is `--board-roll-repeat` boards
+ * long along the gradient line of the board. At two, the board shows one fade
+ * from the first color to the second, as the still gradient does. Thus, the
+ * roll starts from the look of the board. The layer is one board longer than a
  * repeat along each axis that the gradient goes on. A move of one repeat along
  * that axis ends where it started, and the last frame is the same as the first.
  * For a corner, a move of one board from corner to corner is one gradient line
  * of the board, measured along the line, because the layer has the shape of the
  * board.
  *
- * It moves toward the direction selected in Settings.
+ * It moves toward the direction selected in Settings, one board each 30 s at
+ * 100% (`ROLL_SECONDS_PER_BOARD`).
+ *
+ * The layer has the area of `(1 + --board-roll-repeat)` boards along each axis
+ * that it moves on: 9 boards for a corner. This is a reason for the painter.
  */
 :root[data-board-roll] .board-frame::after,
 :root[data-board-roll] .board-preview::after {
@@ -670,7 +677,7 @@
   height: var(--board-roll-height);
   pointer-events: none;
   background-image: var(--board-gradient-rolled);
-  animation: board-roll 60s linear infinite;
+  animation: board-roll calc(var(--board-roll-repeat) * 30s) linear infinite;
 }
 @keyframes board-roll {
   from {
@@ -716,25 +723,34 @@
   background-color: var(--board-ink);
 }
 /*
- * The moving pattern of the board, as the worker paints it with WebGL
- * (components/BoardLayers.tsx, utils/boardPainter.ts). It has the same place
- * and opacity as the sheets. Its CSS color is the ink, which the page reads
- * and sends to the painter. Thus, the browser resolves the ink of each theme.
+ * The moving pattern and the rolling gradient of the board, as the worker
+ * paints them with WebGL (components/BoardLayers.tsx, utils/boardPainter.ts).
+ * The painter gives the marks the opacity of the pattern. It is under the
+ * still pattern, which shows over a rolling gradient while the pattern does not
+ * move. The page reads the ink and the two colors of the gradient from the
+ * `<canvas>`, and sends them to the painter. Thus, the browser resolves the colors
+ * of each theme. The borders have no width, and draw nothing.
  */
 .board-canvas {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: -2;
   overflow: clip;
   border-radius: inherit;
   pointer-events: none;
   color: var(--board-ink);
-  opacity: var(--board-texture-opacity, 0.1);
+}
+/* The painter draws the rolling gradient. Thus, the CSS roll does not show. */
+.board-frame:has(> .board-canvas[data-roll])::after {
+  display: none;
 }
 .board-canvas > canvas {
   display: block;
   width: 100%;
   height: 100%;
+  /* On the canvas itself, because a border color does not inherit. */
+  border-top-color: var(--board-color, var(--board-page));
+  border-bottom-color: var(--board-color-to);
 }
 :root[data-board-texture-motion] .board-frame::before,
 :root[data-board-texture-motion] .board-texture-tile::before,

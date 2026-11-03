@@ -2,11 +2,17 @@ import { effect, signal } from "@preact/signals";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { boardImageUrl } from "#/state/board.ts";
 import {
+  type BoardGradientDirection,
   type BoardTexture,
+  boardGradientMoves,
+  boardGradientSpeed,
   boardTextureMoves,
+  boardTextureOpacity,
   boardTextureSpeed,
   boardUsePicture,
+  resolvedBoardGradientDirection,
 } from "#/state/prefs.ts";
+import type { RollWay } from "#/utils/boardMotion.ts";
 import { BoardPainter, canPaintBoard, rgbOf } from "#/utils/boardPainter.ts";
 import { type MovingTexture, SHEET_COUNTS } from "#/utils/boardTextures.ts";
 
@@ -37,29 +43,45 @@ export function BoardSheets({ texture }: { texture: BoardTexture }) {
 
 /**
  * True after the painter failed (no WebGL 2, or a lost context). For the rest
- * of the session, the board then moves its pattern in its CSS sheets.
+ * of the session, the board then moves its pattern in its CSS sheets, and rolls
+ * its gradient on the `::after` of the frame.
  */
 const painterFailed = signal(false);
 
+/** Where each direction of the gradient goes, across and down. */
+const ROLL_WAYS: Record<BoardGradientDirection, RollWay> = {
+  top: [0, -1],
+  "top-right": [1, -1],
+  right: [1, 0],
+  "bottom-right": [1, 1],
+  bottom: [0, 1],
+  "bottom-left": [-1, 1],
+  left: [-1, 0],
+  "top-left": [-1, -1],
+};
+
 /**
- * The moving pattern of the board. A worker paints it with WebGL on one canvas
- * (utils/boardPainter.ts). Each frame is then one layer and one draw, with no
- * work on the main thread, however many sheets the pattern has. Where the
- * browser cannot do that, the board shows the CSS sheets. The tiles in
- * Settings keep the sheets: they are small, and each canvas would need its own
- * WebGL context.
+ * The motion of the board: its moving pattern and its rolling gradient. A
+ * worker paints both with WebGL on one canvas (utils/boardPainter.ts). Each
+ * frame is then one layer and one draw, with no work on the main thread, at
+ * no more than `BOARD_FRAME_RATE`. Where the browser cannot do that, the board
+ * shows the CSS sheets and the CSS roll. The tiles and the preview in Settings
+ * keep those: they are small, and each canvas would need its own WebGL
+ * context.
  */
-export function BoardPattern({ texture }: { texture: BoardTexture }) {
-  if (!boardTextureMoves.value || texture === "none") return null;
-  // Under a picture, the pattern does not show. Thus, nothing paints it.
+export function MovingBoard({ texture }: { texture: BoardTexture }) {
+  // Under a picture, the board does not show. Thus, nothing paints it.
   if (boardImageUrl.value && boardUsePicture.value) return null;
+  const pattern =
+    boardTextureMoves.value && texture !== "none" ? texture : null;
+  if (!pattern && !boardGradientMoves.value) return null;
   if (painterFailed.value || !canPaintBoard()) {
-    return <BoardSheets texture={texture} />;
+    return pattern ? <BoardSheets texture={pattern} /> : null;
   }
-  return <BoardCanvas texture={texture} />;
+  return <BoardCanvas texture={pattern} />;
 }
 
-function BoardCanvas({ texture }: { texture: MovingTexture }) {
+function BoardCanvas({ texture }: { texture: MovingTexture | null }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const painterRef = useRef<BoardPainter | null>(null);
   const [scale, setScale] = useState(() => devicePixelRatio);
@@ -69,7 +91,7 @@ function BoardCanvas({ texture }: { texture: MovingTexture }) {
     if (!canvas) return;
     const painter = new BoardPainter(canvas, (reason) => {
       console.warn(
-        `The board painter stopped (${reason}). CSS moves the pattern.`,
+        `The board painter stopped (${reason}). CSS moves the board.`,
       );
       painterFailed.value = true;
     });
@@ -89,34 +111,57 @@ function BoardCanvas({ texture }: { texture: MovingTexture }) {
       resize.observe(canvas);
     }
 
-    // The ink follows the theme, the hue and the color of the pattern, which
-    // all are attributes or properties of the root. The canvas has the ink as
-    // its CSS color, which is how the browser resolves it.
+    // The ink and the colors of the gradient follow the theme, the hue and
+    // the choices of the board, which all are attributes or properties of the
+    // root. The canvas has them as CSS colors (preferences.css), which is how
+    // the browser resolves them.
     let ink = "";
-    const readInk = () => {
-      const color = getComputedStyle(canvas).color;
-      if (color === ink) return;
-      ink = color;
-      const rgb = rgbOf(color);
-      if (rgb) painter.setInk(rgb);
+    let roll = "";
+    const readColors = () => {
+      const style = getComputedStyle(canvas);
+      if (style.color !== ink) {
+        ink = style.color;
+        const rgb = rgbOf(ink);
+        if (rgb) painter.setInk(rgb);
+      }
+      const way = boardGradientMoves.peek()
+        ? ROLL_WAYS[resolvedBoardGradientDirection.peek()]
+        : null;
+      const key = way
+        ? `${style.borderTopColor} ${style.borderBottomColor} ${way.join()}`
+        : "";
+      if (key === roll) return;
+      roll = key;
+      const from = rgbOf(style.borderTopColor);
+      const to = rgbOf(style.borderBottomColor);
+      painter.setRoll(way && from && to ? { from, to, way } : null);
     };
-    readInk();
-    const watch = new MutationObserver(readInk);
+    readColors();
+    const watch = new MutationObserver(readColors);
     watch.observe(document.documentElement, { attributes: true });
+    const stopRoll = effect(() => {
+      // Read for the effect to run again on each change.
+      void boardGradientMoves.value;
+      void resolvedBoardGradientDirection.value;
+      readColors();
+    });
 
     const showing = () =>
       painter.setRunning(document.visibilityState === "visible");
     showing();
     document.addEventListener("visibilitychange", showing);
-    const stopSpeed = effect(() => {
+    const stopSettings = effect(() => {
       painter.setSpeed(boardTextureSpeed.value / 100);
+      painter.setRollSpeed(boardGradientSpeed.value / 100);
+      painter.setOpacity(boardTextureOpacity.value / 100);
     });
 
     return () => {
       resize.disconnect();
       watch.disconnect();
       document.removeEventListener("visibilitychange", showing);
-      stopSpeed();
+      stopRoll();
+      stopSettings();
       painter.stop();
       painterRef.current = null;
     };
@@ -127,7 +172,11 @@ function BoardCanvas({ texture }: { texture: MovingTexture }) {
   }, [texture, scale]);
 
   return (
-    <div class="board-canvas" aria-hidden="true">
+    <div
+      class="board-canvas"
+      data-roll={boardGradientMoves.value ? "" : undefined}
+      aria-hidden="true"
+    >
       <canvas ref={ref} />
     </div>
   );

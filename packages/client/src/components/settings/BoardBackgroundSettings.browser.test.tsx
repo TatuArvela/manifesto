@@ -1,7 +1,7 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import "#/styles.css";
-import { BoardPattern, BoardSheets } from "#/components/BoardLayers.tsx";
+import { BoardSheets, MovingBoard } from "#/components/BoardLayers.tsx";
 import { t } from "#/i18n/index.ts";
 import {
   animations,
@@ -134,6 +134,7 @@ describe("board motion", () => {
 
     expect(roll.playbackRate).toBe(0.5);
     expect(Number(roll.currentTime)).toBeCloseTo(30_000, -2);
+    // Two boards, one each 30 s.
     expect(getComputedStyle(board, "::after").animationDuration).toBe("60s");
   });
 
@@ -169,23 +170,66 @@ describe("board motion", () => {
   it("paints the moving pattern of the board on one canvas", async () => {
     boardTexture.value = "waves";
     boardTextureSpeed.value = 100;
-    render(<BoardPattern texture={resolvedBoardTexture.value} />, board);
+    render(<MovingBoard texture={resolvedBoardTexture.value} />, board);
     await nextFrame();
 
     // One layer, not a sheet for each row of waves.
     expect(board.querySelectorAll(".board-canvas > canvas")).toHaveLength(1);
     expect(board.querySelector(".board-sheets")).toBeNull();
-    const layer = defined(board.querySelector(".board-canvas") ?? undefined);
-    expect(getComputedStyle(layer).opacity).toBe(
-      String(boardTextureOpacity.value / 100),
+    // The painter gives the marks their opacity, not the layer.
+    const layer = defined(
+      board.querySelector<HTMLElement>(".board-canvas") ?? undefined,
     );
+    expect(getComputedStyle(layer).opacity).toBe("1");
+    expect(layer.dataset.roll).toBeUndefined();
     expect(getComputedStyle(board, "::before").display).toBe("none");
+  });
+
+  it("paints the rolling gradient on the canvas, under the still pattern", async () => {
+    boardGradient.value = "blue";
+    boardGradientSpeed.value = 100;
+    boardTexture.value = "dots";
+    render(<MovingBoard texture={resolvedBoardTexture.value} />, board);
+    await nextFrame();
+
+    const layer = defined(
+      board.querySelector<HTMLElement>(".board-canvas") ?? undefined,
+    );
+    expect(layer.dataset.roll).toBe("");
+    // The painter draws the gradient. Thus, the CSS roll does not show.
+    expect(getComputedStyle(board, "::after").display).toBe("none");
+    // The still dots show over it.
+    expect(getComputedStyle(board, "::before").display).not.toBe("none");
+    expect(Number(getComputedStyle(layer).zIndex)).toBeLessThan(
+      Number(getComputedStyle(board, "::before").zIndex),
+    );
+    // The page reads the colors from the canvas itself, not from its layer.
+    const canvas = defined(
+      layer.querySelector<HTMLCanvasElement>("canvas") ?? undefined,
+    );
+    const page = getComputedStyle(document.documentElement)
+      .getPropertyValue("--board-page")
+      .trim();
+    const blue = getComputedStyle(document.documentElement)
+      .getPropertyValue("--board-blue")
+      .trim();
+    const probe = document.createElement("span");
+    document.body.appendChild(probe);
+    const resolved = (color: string) => {
+      probe.style.color = color;
+      return getComputedStyle(probe).color;
+    };
+    const style = getComputedStyle(canvas);
+    expect(style.borderTopColor).toBe(resolved(page));
+    expect(style.borderBottomColor).toBe(resolved(blue));
+    expect(style.borderBottomColor).not.toBe(style.color);
+    probe.remove();
   });
 
   it("paints nothing with the pattern still", async () => {
     boardTexture.value = "waves";
     boardTextureSpeed.value = 0;
-    render(<BoardPattern texture={resolvedBoardTexture.value} />, board);
+    render(<MovingBoard texture={resolvedBoardTexture.value} />, board);
     await nextFrame();
     expect(board.querySelector(".board-canvas")).toBeNull();
   });

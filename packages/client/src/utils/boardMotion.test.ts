@@ -4,6 +4,12 @@ import {
   easeInOut,
   frameDue,
   type PerSheet,
+  ROLL_REPEAT_BOARDS,
+  ROLL_SECONDS_PER_BOARD,
+  type RollWay,
+  rollLine,
+  rollMix,
+  rollShift,
   SHEET_PLANS,
   sheetState,
   sheetStates,
@@ -220,5 +226,61 @@ describe("frameDue", () => {
 
   it("counts again from now after a long gap", () => {
     expect(frameDue(2000, 1000, 30)).toBe(2000);
+  });
+});
+
+describe("the rolling gradient of the painter", () => {
+  const WAYS: readonly RollWay[] = [
+    [0, -1],
+    [1, -1],
+    [1, 0],
+    [1, 1],
+    [0, 1],
+    [-1, 1],
+    [-1, 0],
+    [-1, -1],
+  ];
+
+  /** Where a point is along the line, from 0 at its start to 1 at its end. */
+  function along(way: RollWay, w: number, h: number, x: number, y: number) {
+    const { dir, length } = rollLine(way, w, h);
+    return ((x - w / 2) * dir[0] + (y - h / 2) * dir[1]) / length + 0.5;
+  }
+
+  // As a CSS `linear-gradient` to a side or a corner, on a board of any shape.
+  it.each(WAYS)("goes from end to end of the board toward %s, %s", (x, y) => {
+    const [w, h] = [1200, 700];
+    const start = [((1 - x) / 2) * w, ((1 - y) / 2) * h] as const;
+    const end = [((1 + x) / 2) * w, ((1 + y) / 2) * h] as const;
+    expect(along([x, y], w, h, ...start)).toBeCloseTo(0);
+    expect(along([x, y], w, h, ...end)).toBeCloseTo(1);
+    if (x !== 0 && y !== 0) {
+      // The middle of the fade goes through the two other corners.
+      expect(along([x, y], w, h, end[0], start[1])).toBeCloseTo(0.5);
+      expect(along([x, y], w, h, start[0], end[1])).toBeCloseTo(0.5);
+    }
+  });
+
+  it("starts from the first color, and goes to the second and back", () => {
+    expect(rollMix(0, 0)).toBe(0);
+    expect(rollMix(1, 0)).toBeCloseTo(2 / ROLL_REPEAT_BOARDS);
+    expect(rollMix(ROLL_REPEAT_BOARDS / 2, 0)).toBe(1);
+    // It moves toward the end of the line.
+    expect(rollMix(1, 1)).toBe(rollMix(0, 0));
+  });
+
+  it("moves one board in its time, and ends a repeat where it started", () => {
+    expect(rollShift(ROLL_SECONDS_PER_BOARD)).toBeCloseTo(1);
+    const repeat = ROLL_REPEAT_BOARDS * ROLL_SECONDS_PER_BOARD;
+    expect(rollShift(repeat)).toBeCloseTo(0);
+    expect(rollShift(1000 * repeat + 7)).toBeCloseTo(rollShift(7));
+  });
+
+  // The preview in Settings and a board without WebGL roll with CSS.
+  it("has the repeat and the time of the CSS roll", () => {
+    expect(css).toContain(`--board-roll-repeat: ${ROLL_REPEAT_BOARDS};`);
+    expect(css).toContain(
+      `animation: board-roll calc(var(--board-roll-repeat) * ${ROLL_SECONDS_PER_BOARD}s)`,
+    );
   });
 });

@@ -1,4 +1,9 @@
-import type { SheetState } from "./boardMotion.ts";
+import {
+  ROLL_REPEAT_BOARDS,
+  type RollWay,
+  rollLine,
+  type SheetState,
+} from "./boardMotion.ts";
 
 /**
  * The most sheets that one pattern has (`SHEET_COUNTS`). The shader loops to
@@ -17,9 +22,15 @@ void main() {
 /*
  * Each pixel samples each sheet of the pattern at its own offset, and adds its
  * mark as the stylesheet layers the sheets: each over the others, so that two
- * marks where they cross are not stronger than one.
- * The output is the ink, premultiplied by how much of the pixel the marks
- * cover. The opacity of the pattern is the CSS opacity of the canvas.
+ * marks where they cross are not stronger than one. The marks have the opacity
+ * of the pattern.
+ *
+ * With the gradient rolling (`uRoll`), the pixel first gets its color: its
+ * place along the gradient line, less the move, in a repeat that goes to the
+ * second color and back (`rollMix` in boardMotion.ts). A small dither keeps a
+ * long, slow fade from showing bands. The marks go over it, and the canvas is
+ * opaque. Without it, the output is the ink, premultiplied by how much of the
+ * pixel the marks cover.
  */
 const FRAGMENT = `#version 300 es
 precision highp float;
@@ -29,9 +40,18 @@ uniform int uCount;
 uniform vec2 uTile;
 uniform float uScale;
 uniform float uHeight;
+uniform vec2 uSize;
 uniform vec2 uOffset[${MAX_SHEETS}];
 uniform float uAlpha[${MAX_SHEETS}];
 uniform vec3 uInk;
+uniform float uOpacity;
+uniform bool uRoll;
+uniform vec3 uFrom;
+uniform vec3 uTo;
+uniform vec2 uDir;
+uniform float uLine;
+uniform float uShift;
+uniform float uRepeat;
 out vec4 color;
 
 void main() {
@@ -42,8 +62,17 @@ void main() {
     float mark = texture(uSheets, vec3((pos - uOffset[i]) / uTile, float(i))).a;
     clear *= 1.0 - mark * uAlpha[i];
   }
-  float cover = 1.0 - clear;
-  color = vec4(uInk * cover, cover);
+  float cover = (1.0 - clear) * uOpacity;
+  if (!uRoll) {
+    color = vec4(uInk * cover, cover);
+    return;
+  }
+  float along = dot(pos - uSize * 0.5, uDir) / uLine + 0.5;
+  float q = fract((along - uShift) / uRepeat);
+  vec3 ground = mix(uFrom, uTo, 1.0 - abs(2.0 * q - 1.0));
+  float noise = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+  ground += (noise - 0.5) / 255.0;
+  color = vec4(mix(ground, uInk, cover), 1.0);
 }`;
 
 function compile(
@@ -70,6 +99,13 @@ export interface SheetTiles {
   layers: ImageBitmap[];
 }
 
+/** The rolling gradient: its two colors, from 0 to 1, and where it goes. */
+export interface RollColors {
+  from: readonly [number, number, number];
+  to: readonly [number, number, number];
+  way: RollWay;
+}
+
 /**
  * The WebGL side of the board painter. It runs in the worker, on the canvas
  * that the board gave it. It throws if WebGL 2 is not there, and the board then
@@ -81,6 +117,8 @@ export class BoardGl {
   private texture: WebGLTexture | null = null;
   private count = 0;
   private tile: readonly [number, number] = [1, 1];
+  private size: readonly [number, number] = [1, 1];
+  private way: RollWay | null = null;
   private readonly offsets = new Float32Array(MAX_SHEETS * 2);
   private readonly alphas = new Float32Array(MAX_SHEETS);
 
@@ -109,13 +147,23 @@ export class BoardGl {
       "uTile",
       "uScale",
       "uHeight",
+      "uSize",
       "uOffset",
       "uAlpha",
       "uInk",
+      "uOpacity",
+      "uRoll",
+      "uFrom",
+      "uTo",
+      "uDir",
+      "uLine",
+      "uShift",
+      "uRepeat",
     ]) {
       this.at[name] = gl.getUniformLocation(program, name);
     }
     gl.uniform1i(this.at.uSheets ?? null, 0);
+    gl.uniform1f(this.at.uRepeat ?? null, ROLL_REPEAT_BOARDS);
     gl.bindVertexArray(gl.createVertexArray());
   }
 
@@ -172,29 +220,62 @@ export class BoardGl {
     this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     this.gl.uniform1f(this.at.uScale ?? null, scale);
     this.gl.uniform1f(this.at.uHeight ?? null, this.canvas.height);
+    this.gl.uniform2f(this.at.uSize ?? null, width, height);
+    this.size = [width, height];
+    this.placeRoll();
+  }
+
+  /** The opacity of the marks of the pattern, from 0 to 1. */
+  setOpacity(opacity: number) {
+    this.gl.uniform1f(this.at.uOpacity ?? null, opacity);
+  }
+
+  /** The rolling gradient, or null for a canvas with only the pattern. */
+  setRoll(roll: RollColors | null) {
+    const { gl, at } = this;
+    gl.uniform1i(at.uRoll ?? null, roll ? 1 : 0);
+    this.way = roll?.way ?? null;
+    if (!roll) return;
+    gl.uniform3f(at.uFrom ?? null, ...roll.from);
+    gl.uniform3f(at.uTo ?? null, ...roll.to);
+    this.placeRoll();
+  }
+
+  /** The gradient line, which follows the shape of the board. */
+  private placeRoll() {
+    if (!this.way) return;
+    const [width, height] = this.size;
+    const { dir, length } = rollLine(this.way, width, height);
+    this.gl.uniform2f(this.at.uDir ?? null, dir[0], dir[1]);
+    this.gl.uniform1f(this.at.uLine ?? null, length);
   }
 
   setInk([r, g, b]: readonly [number, number, number]) {
     this.gl.uniform3f(this.at.uInk ?? null, r, g, b);
   }
 
-  /** Draws one frame: each sheet as `states` puts it. */
-  draw(states: readonly SheetState[]): void {
+  /**
+   * Draws one frame: each sheet as `states` puts it, over the gradient moved
+   * by `shift` boards along its line (`rollShift` in boardMotion.ts).
+   */
+  draw(states: readonly SheetState[], shift: number): void {
     const { gl, at } = this;
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    if (!this.texture || this.count === 0) return;
+    const count = this.texture ? Math.min(this.count, states.length) : 0;
+    if (count === 0 && !this.way) return;
     const [tileX, tileY] = this.tile;
-    for (const [i, state] of states.slice(0, this.count).entries()) {
+    for (const [i, state] of states.slice(0, count).entries()) {
       // Within one tile. Thus, the shader keeps its precision.
       this.offsets[2 * i] = state.x % tileX;
       this.offsets[2 * i + 1] = state.y % tileY;
       this.alphas[i] = state.alpha;
     }
-    gl.uniform1i(at.uCount ?? null, this.count);
+    gl.uniform1i(at.uCount ?? null, count);
     gl.uniform2f(at.uTile ?? null, tileX, tileY);
     gl.uniform2fv(at.uOffset ?? null, this.offsets);
     gl.uniform1fv(at.uAlpha ?? null, this.alphas);
+    gl.uniform1f(at.uShift ?? null, shift);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 

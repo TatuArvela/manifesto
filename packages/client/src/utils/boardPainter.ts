@@ -1,4 +1,4 @@
-import type { SheetTiles } from "./boardGl.ts";
+import type { RollColors, SheetTiles } from "./boardGl.ts";
 import type { FromPainter, ToPainter } from "./boardPainterMessages.ts";
 import {
   type MovingTexture,
@@ -107,9 +107,24 @@ export class BoardPainter {
     this.send({ kind: "ink", rgb });
   }
 
-  /** The speed, where 1 is 100%. */
+  /** The speed of the pattern, where 1 is 100%. */
   setSpeed(rate: number) {
     this.send({ kind: "speed", rate });
+  }
+
+  /** The speed of the rolling gradient, where 1 is 100%. */
+  setRollSpeed(rate: number) {
+    this.send({ kind: "rollSpeed", rate });
+  }
+
+  /** The opacity of the marks of the pattern, from 0 to 1. */
+  setOpacity(opacity: number) {
+    this.send({ kind: "opacity", opacity });
+  }
+
+  /** The rolling gradient, or null while it does not roll. */
+  setRoll(roll: RollColors | null) {
+    this.send({ kind: "roll", roll });
   }
 
   setRunning(running: boolean) {
@@ -117,11 +132,19 @@ export class BoardPainter {
   }
 
   /**
-   * Draws the sheets of `texture` and sends them. A newer call wins. Never
-   * rejects: a sheet that cannot be drawn makes the painter fail.
+   * Draws the sheets of `texture` and sends them, or clears them for null (a
+   * still pattern under a rolling gradient). A newer call wins. Never rejects:
+   * a sheet that cannot be drawn makes the painter fail.
    */
-  async setPattern(texture: MovingTexture, scale: number): Promise<void> {
+  async setPattern(
+    texture: MovingTexture | null,
+    scale: number,
+  ): Promise<void> {
     const mine = ++this.generation;
+    if (texture === null) {
+      this.send({ kind: "noSheets" });
+      return;
+    }
     try {
       const tiles = await drawSheets(texture, scale);
       if (mine !== this.generation || this.failed) {

@@ -199,3 +199,64 @@ export function frameDue(
   if (gap < interval - FRAME_SLACK_MS) return null;
   return gap < 2 * interval ? lastDraw + interval : now;
 }
+
+/**
+ * The rolling gradient, as the board painter draws it. One repeat goes from
+ * the first color to the second and back, and is this many boards long along
+ * the gradient line of the board. Thus, the board shows one fade, as the still
+ * gradient does. `--board-roll-repeat` in
+ * preferences.css is the same number, for the preview in Settings and a board
+ * that rolls with CSS.
+ */
+export const ROLL_REPEAT_BOARDS = 2;
+
+/** The time in which the gradient moves one board along its line, at 100%. */
+export const ROLL_SECONDS_PER_BOARD = 30;
+
+/**
+ * Where the gradient goes, as -1, 0 or 1 across and down: `[1, 1]` is to the
+ * bottom right.
+ */
+export type RollWay = readonly [x: -1 | 0 | 1, y: -1 | 0 | 1];
+
+/**
+ * The gradient line of a board of `width` by `height`, as a CSS
+ * `linear-gradient` makes it: a unit vector, with y down, and the length of
+ * the line. For a corner, the line is at a right angle to the diagonal between
+ * the two other corners. Thus, the middle of the fade goes through those
+ * corners, on a board of any shape.
+ */
+export function rollLine(
+  [x, y]: RollWay,
+  width: number,
+  height: number,
+): { dir: readonly [number, number]; length: number } {
+  const across = x * height;
+  const down = y * width;
+  const norm = Math.hypot(across, down) || 1;
+  const dir = [across / norm, down / norm] as const;
+  return {
+    dir,
+    length: Math.abs(width * dir[0]) + Math.abs(height * dir[1]),
+  };
+}
+
+/**
+ * How far the gradient moved along its line at time `t` (seconds at 100%), in
+ * boards, inside one repeat. Thus, the shader keeps its precision.
+ */
+export function rollShift(t: number): number {
+  const boards = t / ROLL_SECONDS_PER_BOARD;
+  return boards - Math.floor(boards / ROLL_REPEAT_BOARDS) * ROLL_REPEAT_BOARDS;
+}
+
+/**
+ * The part of the second color at `along` (0 at the start of the line of the
+ * board, 1 at its end) when the gradient moved `shift` boards, from 0 to 1.
+ * The shader in boardGl.ts does the same.
+ */
+export function rollMix(along: number, shift: number): number {
+  const u = (along - shift) / ROLL_REPEAT_BOARDS;
+  const q = u - Math.floor(u);
+  return 1 - Math.abs(2 * q - 1);
+}
