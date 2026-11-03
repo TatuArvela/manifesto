@@ -61,7 +61,7 @@ function scatterFrames(count: number): Frame[] {
   }
   return centres
     .map(({ x, y }) => {
-      const width = 50 + 120 * random() ** 1.4;
+      const width = 36 + 74 * random() ** 1.4;
       const height = width * (0.7 + 0.6 * random());
       // A band, not a stroke: 7% to 13% of the short side, to the nearest
       // half px. Thus, a large frame has a thick line and a small frame a thin
@@ -96,7 +96,7 @@ function scatterFrames(count: number): Frame[] {
 }
 
 /** Exported for their test, which holds each frame on exactly one sheet. */
-export const FRAMES: readonly Frame[] = scatterFrames(24);
+export const FRAMES: readonly Frame[] = scatterFrames(32);
 
 /**
  * A rounded rectangle as a closed path, clockwise or the other way. A ring is
