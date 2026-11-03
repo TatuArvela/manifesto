@@ -145,8 +145,21 @@ The state is in `packages/client/src/state/`. It is reactive through `@preact/si
     and the SVG patterns that `utils/boardTextures.ts` draws one time at load, as masks.
   - While `animations` is on and a speed is above 0, it also sets `data-board-roll` and
     `data-board-texture-motion`. The first rolls the gradient on the `::after` of the frame. With the
-    second, `components/BoardLayers.tsx` mounts the sheets of the pattern that
-    `utils/boardTextures.ts` draws one time at load. With `animations` off, the board is still.
+    second, `BoardPattern` (`components/BoardLayers.tsx`) moves the pattern of the board. With
+    `animations` off, the board is still.
+  - The board painter draws the moving pattern with WebGL 2, in a worker, on one canvas
+    (`utils/boardPainter.ts`, `boardPainter.worker.ts`, `boardGl.ts`). Each frame is one draw on
+    one layer, and nothing of it runs on the main thread. The page draws each sheet of the pattern
+    from SVG to an image one time (a worker cannot draw an SVG), and the shader samples all of them
+    in one pass. `utils/boardMotion.ts` gives the place, opacity and light of each sheet at a time.
+    The time goes forward at the speed of the slider, so a new speed does not move the pattern. The
+    canvas has the ink as its CSS color, and the page sends the resolved color when the root changes.
+    Under a picture, or with the page hidden, nothing paints.
+  - Where the browser cannot give a canvas to a worker, or WebGL 2 fails or is lost, the board shows
+    the CSS sheets (`BoardSheets`) for the rest of the session. The tiles and the preview in Settings
+    always use the sheets: they are small, and each canvas would need its own WebGL context. The
+    sheets are masked layers that the compositor moves (`.board-sheets` in `preferences.css`).
+    `boardMotion.test.ts` holds the motion of the painter equal to the keyframes of the sheets.
   - A speed is the `playbackRate` of the running board animations, which it finds by the start of
     their names (`board-roll`, `board-sheet`). The stylesheet gives their times at
     100%. A new duration puts a layer at a new point of its loop, and a new rate does not.

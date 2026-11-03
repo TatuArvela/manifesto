@@ -715,6 +715,27 @@
   left: calc((max(var(--drift-x), 0px) + var(--sway)) * -1);
   background-color: var(--board-ink);
 }
+/*
+ * The moving pattern of the board, as the worker paints it with WebGL
+ * (components/BoardLayers.tsx, utils/boardPainter.ts). It has the same place
+ * and opacity as the sheets. Its CSS color is the ink, which the page reads
+ * and sends to the painter. Thus, the browser resolves the ink of each theme.
+ */
+.board-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: clip;
+  border-radius: inherit;
+  pointer-events: none;
+  color: var(--board-ink);
+  opacity: var(--board-texture-opacity, 0.1);
+}
+.board-canvas > canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 :root[data-board-texture-motion] .board-frame::before,
 :root[data-board-texture-motion] .board-texture-tile::before,
 :root[data-board-picture] .board-frame > .board-sheets {

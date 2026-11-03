@@ -53,7 +53,7 @@ import {
   type SharedNotePayload,
 } from "#/utils/shareLink.ts";
 import { AutoNotesView } from "./AutoNotesView.tsx";
-import { BoardSheets } from "./BoardLayers.tsx";
+import { BoardPattern } from "./BoardLayers.tsx";
 import { ConfirmDialogHost } from "./ConfirmDialog.tsx";
 import { ConnectionStatus } from "./ConnectionStatus.tsx";
 import { loadEditor } from "./editor/lazyEditor.ts";
@@ -291,7 +291,7 @@ function MainApp() {
           {/* The board behind the notes: colour, gradient and texture, which
             stay put while `main` scrolls the notes over them. */}
           <div class="board-frame flex flex-1 min-w-0">
-            <BoardSheets texture={resolvedBoardTexture.value} />
+            <BoardPattern texture={resolvedBoardTexture.value} />
             <main
               ref={mainRef}
               // The top bar of the phone is over the board. Thus, the board

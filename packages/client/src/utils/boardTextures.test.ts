@@ -3,6 +3,7 @@ import {
   CONFETTI,
   CONFETTI_TILE,
   inkHex,
+  paintedSheets,
   pictureTextures,
   SCATTER_TILE,
   SCATTERS,
@@ -158,4 +159,26 @@ describe("the sheets of the moving patterns", () => {
     // The one row path of the defs, and the rows that use it.
     expect((sawtooth[0] ?? 0) + (sawtooth[1] ?? 0) - 2).toBe(still - 1);
   });
+});
+
+describe("the sheets of the painter", () => {
+  const painted = paintedSheets();
+
+  it.each(Object.entries(painted))(
+    "draws each sheet of the %s on its tile",
+    (texture, { width, height, images }) => {
+      expect(images).toHaveLength(
+        SHEET_COUNTS[texture as keyof typeof SHEET_COUNTS],
+      );
+      for (const image of images) {
+        expect(image.startsWith("data:image/svg+xml,")).toBe(true);
+        const svg = decodeURIComponent(
+          image.slice("data:image/svg+xml,".length),
+        );
+        const size = /width='([\d.]+)' height='([\d.]+)'/.exec(svg);
+        expect(Number(size?.[1])).toBeCloseTo(width, 2);
+        expect(Number(size?.[2])).toBeCloseTo(height, 2);
+      }
+    },
+  );
 });

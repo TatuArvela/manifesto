@@ -570,3 +570,79 @@ export function sheetTextures(): Record<DrawnSheetTexture, string[]> {
     sawtooth: sheets("sawtooth", (k) => sawtooth(k === 0 ? 0 : 1)),
   };
 }
+
+/** The `data:` address in a CSS `url("...")` that `dataUrl` made. */
+function addressOf(cssUrl: string): string {
+  return cssUrl.slice('url("'.length, -'")'.length);
+}
+
+/** The tile of each sheet of a pattern, in CSS px, as the painter draws it. */
+export interface PaintedSheets {
+  width: number;
+  height: number;
+  /** One `data:` address of an SVG for each sheet, in opaque black. */
+  images: string[];
+}
+
+/** The repeat of the stripes across, and down: one stripe and its gap. */
+const STRIPE_TILE = 32 * Math.SQRT2;
+
+/**
+ * Each sheet of each moving pattern, as an SVG on one tile, for the board
+ * painter (boardPainter.ts). It draws the sheets that the stylesheet makes
+ * with gradients too: the stripes, the dots, the grid and the lines, each as
+ * one tile of the still pattern, at the place where the gradient draws it.
+ */
+export function paintedSheets(): Record<MovingTexture, PaintedSheets> {
+  const drawn = sheetTextures();
+  const tile = (size: number, sheets: string[]): PaintedSheets => ({
+    width: size,
+    height: size,
+    images: sheets.map(addressOf),
+  });
+  const half = round(STRIPE_TILE / 2);
+  const full = round(STRIPE_TILE);
+  return {
+    paper: tile(NOISE.paper.size, drawn.paper),
+    dots: tile(DOT_STEP, [
+      svg(DOT_STEP, DOT_STEP, `<circle cx='11' cy='11' r='1.5'/>`),
+    ]),
+    grid: tile(GRID_STEP, [
+      svg(
+        GRID_STEP,
+        GRID_STEP,
+        `<rect width='${GRID_STEP}' height='1'/><rect width='1' height='${GRID_STEP}'/>`,
+      ),
+    ]),
+    lines: tile(LINE_STEP, [
+      svg(
+        LINE_STEP,
+        LINE_STEP,
+        `<rect y='${LINE_STEP - 1}' width='${LINE_STEP}' height='1'/>`,
+      ),
+    ]),
+    waves: {
+      width: WAVE_TILE.width,
+      height: WAVE_TILE.height * SHEET_COUNTS.waves,
+      images: drawn.waves.map(addressOf),
+    },
+    confetti: tile(CONFETTI_TILE, drawn.confetti),
+    stars: tile(SCATTER_TILE, drawn.stars),
+    hearts: tile(SCATTER_TILE, drawn.hearts),
+    bubbles: tile(SCATTER_TILE, drawn.bubbles),
+    // The band where `x + y` is in the first half of a repeat, in the corner
+    // at the top left and in the middle of the tile.
+    stripes: tile(STRIPE_TILE, [
+      svg(
+        full,
+        full,
+        `<path d='M0 0H${half}L0 ${half}Z'/><path d='M${full} 0V${half}L${half} ${full}H0Z'/>`,
+      ),
+    ]),
+    sawtooth: {
+      width: SAWTOOTH_TILE.width,
+      height: SAWTOOTH_TILE.height,
+      images: drawn.sawtooth.map(addressOf),
+    },
+  };
+}

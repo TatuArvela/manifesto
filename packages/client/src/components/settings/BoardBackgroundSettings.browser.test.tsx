@@ -1,7 +1,7 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import "#/styles.css";
-import { BoardSheets } from "#/components/BoardLayers.tsx";
+import { BoardPattern, BoardSheets } from "#/components/BoardLayers.tsx";
 import { t } from "#/i18n/index.ts";
 import {
   animations,
@@ -164,6 +164,30 @@ describe("board motion", () => {
     // The tile of the pattern moves too.
     const tile = button(t("settings.boardBackground.texture.confetti"));
     expect(tile.querySelectorAll(".board-sheets > span")).toHaveLength(3);
+  });
+
+  it("paints the moving pattern of the board on one canvas", async () => {
+    boardTexture.value = "waves";
+    boardTextureSpeed.value = 100;
+    render(<BoardPattern texture={resolvedBoardTexture.value} />, board);
+    await nextFrame();
+
+    // One layer, not a sheet for each row of waves.
+    expect(board.querySelectorAll(".board-canvas > canvas")).toHaveLength(1);
+    expect(board.querySelector(".board-sheets")).toBeNull();
+    const layer = defined(board.querySelector(".board-canvas") ?? undefined);
+    expect(getComputedStyle(layer).opacity).toBe(
+      String(boardTextureOpacity.value / 100),
+    );
+    expect(getComputedStyle(board, "::before").display).toBe("none");
+  });
+
+  it("paints nothing with the pattern still", async () => {
+    boardTexture.value = "waves";
+    boardTextureSpeed.value = 0;
+    render(<BoardPattern texture={resolvedBoardTexture.value} />, board);
+    await nextFrame();
+    expect(board.querySelector(".board-canvas")).toBeNull();
   });
 
   it("holds the board still with the animations off", async () => {
