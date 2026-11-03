@@ -936,7 +936,7 @@
 /*
  * The rain falls on a slant of 14 degrees, as in wind, in three sheets, the
  * longest drops fastest. A loop is one tile across and four down, which ends on
- * whole tiles (`RAIN_FALL` in utils/boardTextures.ts). Thus, a sheet goes past
+ * whole tiles (`RAIN_FALL` in utils/boardScatters.ts). Thus, a sheet goes past
  * the board by four tiles at the top. It does not sway: a drop that sways
  * looks like a leaf on a string.
  */
@@ -1011,7 +1011,7 @@
 
 /*
  * The sawtooth: every other row runs the other way along its row, one tooth
- * at a time (utils/boardTextures.ts).
+ * at a time (utils/boardSawtooth.ts).
  */
 .board-sheets[data-texture="sawtooth"] > span {
   --drift-x: 28.6px;

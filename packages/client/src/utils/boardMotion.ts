@@ -1,9 +1,5 @@
-import {
-  LEAF_TILE,
-  type MovingTexture,
-  RAIN_FALL,
-  SHEET_COUNTS,
-} from "./boardTextures.ts";
+import { LEAF_TILE, RAIN_FALL } from "./boardScatters.ts";
+import { type MovingTexture, SHEET_COUNTS } from "./boardTextures.ts";
 
 /**
  * The motion of each sheet of a moving pattern, as numbers. The board painter

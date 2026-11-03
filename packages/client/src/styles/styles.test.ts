@@ -5,18 +5,16 @@ import {
   BOARD_TEXTURES,
   type BoardGradientDirection,
 } from "#/state/prefParsers.ts";
+import { CONFETTI_TILE } from "#/utils/boardConfetti.ts";
+import { FRAMES_TILE } from "#/utils/boardFrames.ts";
+import { SAWTOOTH_TILE } from "#/utils/boardSawtooth.ts";
+import { LEAF_TILE, RAIN_FALL, SCATTER_TILE } from "#/utils/boardScatters.ts";
 import {
-  CONFETTI_TILE,
   DOT_STEP,
-  FRAMES_TILE,
   GRID_STEP,
-  LEAF_TILE,
   LINE_STEP,
   LINE_WIDTH,
   PAPER_TILE,
-  RAIN_FALL,
-  SAWTOOTH_TILE,
-  SCATTER_TILE,
   SHEET_COUNTS,
   WAVE_TILE,
 } from "#/utils/boardTextures.ts";

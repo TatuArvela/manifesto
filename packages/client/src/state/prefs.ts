@@ -7,11 +7,8 @@ import {
   signal,
   untracked,
 } from "@preact/signals";
-import {
-  inkHex,
-  pictureTextures,
-  sheetTextures,
-} from "#/utils/boardTextures.ts";
+import { inkHex } from "#/utils/boardInk.ts";
+import { pictureTextures, sheetTextures } from "#/utils/boardTextures.ts";
 import {
   ACCOUNT_PREF_KEYS,
   BOARD_COLORS,

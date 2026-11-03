@@ -7,7 +7,7 @@ import {
   rerollBoardInk,
   resolvedBoardInk,
 } from "#/state/prefs.ts";
-import { INK_COLORS, type InkColor } from "#/utils/boardTextures.ts";
+import { INK_COLORS, type InkColor } from "#/utils/boardInk.ts";
 import { BoardCard } from "./BoardCard.tsx";
 
 const ringClass = "ring-1 ring-inset ring-black/10 dark:ring-white/15";

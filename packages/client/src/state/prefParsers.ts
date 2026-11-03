@@ -8,7 +8,7 @@ import {
   MAX_TEXTURE_OPACITY,
   MIN_TEXTURE_OPACITY,
   type PickedInkChoice,
-} from "#/utils/boardTextures.ts";
+} from "#/utils/boardInk.ts";
 
 // What each preference can contain, and how the code reads back a stored value:
 // the types, the lists of choices, and `PREF_PARSERS`. That is the one table
