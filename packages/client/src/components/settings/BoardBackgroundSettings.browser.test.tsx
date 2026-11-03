@@ -143,7 +143,11 @@ describe("board motion", () => {
     boardGradientSpeed.value = 100;
     await nextFrame();
     expect(root.dataset.boardRoll).toBeUndefined();
-    expect(slider(t("settings.boardBackground.speed")).disabled).toBe(true);
+    // Its card is a disabled fieldset. The `disabled` property of the input
+    // shows only its own attribute.
+    expect(
+      slider(t("settings.boardBackground.speed")).matches(":disabled"),
+    ).toBe(true);
   });
 
   it("moves the pattern in its sheets, past the edge that they come from", async () => {
@@ -290,7 +294,10 @@ describe("board background composer", () => {
     const layer = () => getComputedStyle(board, "::before");
     const mask = layer().getPropertyValue("mask-image");
     expect(mask).toContain("data:image/svg+xml");
-    const slider = host.querySelector<HTMLInputElement>('input[type="range"]');
+    // By its name: the speed of the gradient is the first slider on the page.
+    const slider = host.querySelector<HTMLInputElement>(
+      `input[aria-label="${t("settings.boardBackground.opacity")}"]`,
+    );
     if (!slider) throw new Error("no opacity slider");
     slider.value = "25";
     slider.dispatchEvent(new InputEvent("input", { bubbles: true }));
