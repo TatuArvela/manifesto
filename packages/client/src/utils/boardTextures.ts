@@ -600,13 +600,23 @@ function scatterFrames(count: number): Frame[] {
   }
   return centres
     .map(({ x, y }) => {
-      const width = 40 + 110 * random() ** 1.4;
+      const width = 50 + 120 * random() ** 1.4;
       const height = width * (0.7 + 0.6 * random());
-      const line = 2 + Math.round(random() * 8) / 2;
-      // The hole moves a little off the centre, in any direction. Thus, the
-      // line is thicker on one side and thinner on the other, but never under
+      // A band, not a stroke: 7% to 13% of the short side, to the nearest
+      // half px. Thus, a large frame has a thick line and a small frame a thin
+      // one, as on the patterns of rounded squares of the 1970s.
+      const line = Math.max(
+        2,
+        Math.round(Math.min(width, height) * (0.07 + 0.06 * random()) * 2) / 2,
+      );
+      // The hole moves off the centre, in any direction, by 15% to 45% of the
+      // line. Thus, the line is up to about twice as thick on one side as on
+      // the other, and its thin side is still a band, never under
       // `FRAME_THINNEST`.
-      const off = (line - FRAME_THINNEST) * (0.4 + 0.5 * random());
+      const off = Math.min(
+        line * (0.15 + 0.3 * random()),
+        line - FRAME_THINNEST,
+      );
       const toward = random() * 2 * Math.PI;
       return {
         x: round(x),
