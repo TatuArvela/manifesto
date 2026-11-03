@@ -127,6 +127,13 @@ export const BOARD_GRADIENT_DIRECTIONS: readonly BoardGradientDirection[] = [
   "top-left",
 ];
 
+/**
+ * The speed of a moving board layer, in whole percent of its usual speed
+ * (preferences.css). 0 holds it still. The sliders in Settings move in steps.
+ */
+export const MAX_BOARD_SPEED = 200;
+export const BOARD_SPEED_STEP = 10;
+
 export const BOARD_TEXTURES: readonly BoardTexture[] = [
   "none",
   "paper",
@@ -371,6 +378,13 @@ function oneOf<T extends string>(values: readonly T[], fallback: T) {
       : fallback;
 }
 
+/** A board speed, on a step of the slider. Still unless a number is stored. */
+function boardSpeed(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  const step = Math.round(value / BOARD_SPEED_STEP) * BOARD_SPEED_STEP;
+  return Math.min(MAX_BOARD_SPEED, Math.max(0, step));
+}
+
 function flag(fallback: boolean) {
   return (value: unknown): boolean =>
     typeof value === "boolean" ? value : fallback;
@@ -452,7 +466,11 @@ export const PREF_PARSERS = {
     [...BOARD_GRADIENT_DIRECTIONS, "random"],
     "bottom-right",
   ),
+  /** How fast the gradient rolls in its direction. 0 does not roll it. */
+  boardGradientSpeed: boardSpeed,
   boardTexture: parseBoardTexture,
+  /** How fast the pattern moves, each in its own way. 0 does not move it. */
+  boardTextureSpeed: boardSpeed,
   boardInk: oneOf(BOARD_INKS, "auto"),
   boardInkColor: hexColor(DEFAULT_BOARD_INK_COLOR),
   /** The opacity of the pattern, in whole percent, whatever its color. */

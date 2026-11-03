@@ -128,8 +128,8 @@ The state is in `packages/client/src/state/`. It is reactive through `@preact/si
   `effect()`. It contains `viewMode`, `noteSize`, `noteScale`, `sortMode`, `theme`, `lightHue`,
   `darkHue`, `defaultNoteColor`, `defaultNoteFont`, `noteQuips`, `formattingToolbar`, `stickyTopBar`,
   `defaultEditMode`, `noteCorners`, `complexShadows`, `animations`, `boardColor`, `boardCustomColor`, `boardGradient`,
-  `boardGradientCustomColor`, `boardGradientDirection`, `boardTexture`, `boardInk`, `boardInkColor`,
-  `boardTextureOpacity`, `boardUsePicture`, `boardImageStamp`, `inlineCalculations`,
+  `boardGradientCustomColor`, `boardGradientDirection`, `boardGradientSpeed`, `boardTexture`, `boardInk`,
+  `boardInkColor`, `boardTextureOpacity`, `boardTextureSpeed`, `boardUsePicture`, `boardImageStamp`, `inlineCalculations`,
   `decimalSeparator`, and `locale`.
   - In connected mode, the preferences that are not in `DEVICE_PREFS` go with the account through
     `prefsSync.ts`. It reads the copy of the server at sign-in and on reconnect, sends each change
@@ -143,6 +143,32 @@ The state is in `packages/client/src/state/`. It is reactive through `@preact/si
     `data-board-gradient-direction`, `data-board-texture` and `data-board-ink`. It also sets
     `--board-custom`, `--board-gradient-custom`, `--board-ink-picked`, `--board-texture-opacity`,
     and the SVG patterns that `utils/boardTextures.ts` draws one time at load, as masks.
+  - While `animations` is on and a speed is above 0, it also sets `data-board-roll` and
+    `data-board-texture-motion`. With either, `MovingBoard` (`components/BoardLayers.tsx`) rolls the
+    gradient and moves the pattern of the board. With `animations` off, the board is still.
+  - The board painter draws the moving pattern and the rolling gradient with WebGL 2, in a worker,
+    on one canvas (`utils/boardPainter.ts`, `boardPainter.worker.ts`, `boardGl.ts`). Each frame is
+    one draw on one layer, and nothing of it runs on the main thread. The page draws each sheet of
+    the pattern from SVG to an image one time (a worker cannot draw an SVG), and the shader samples
+    all of them in one pass. `utils/boardMotion.ts` gives the place, opacity and light of each sheet
+    at a time, and the line, the repeat and the move of the gradient. The pattern and the gradient
+    each have a time, which goes forward at the speed of its slider, so a new speed does not move
+    them. The canvas has the ink and the two colors of the gradient as CSS colors, and the page
+    sends the resolved colors when the root changes. The shader gives the marks the opacity of the
+    pattern, and dithers the gradient against bands. The canvas is under the still pattern, which
+    thus shows over a rolling gradient. Under a picture, or with the page hidden, nothing paints.
+    It draws no more than 14 frames each second (`BOARD_FRAME_RATE` in `boardMotion.ts`), because
+    the board moves slowly. On a frame that it skips, the canvas has nothing new, so the browser
+    composites nothing new for it.
+  - Where the browser cannot give a canvas to a worker, or WebGL 2 fails or is lost, the board shows
+    the CSS sheets (`BoardSheets`) and rolls the gradient on the `::after` of the frame, for the rest
+    of the session. The tiles and the preview in Settings always use the CSS layers: they are small,
+    and each canvas would need its own WebGL context. The compositor moves those layers
+    (`.board-sheets` and the roll in `preferences.css`). `boardMotion.test.ts` holds the motion of
+    the painter equal to the keyframes of the sheets, and its repeat and time equal to the roll.
+  - A speed is the `playbackRate` of the running board animations, which it finds by the start of
+    their names (`board-roll`, `board-sheet`). The stylesheet gives their times at
+    100%. A new duration puts a layer at a new point of its loop, and a new rate does not.
   - The custom colors must be six-digit hex colors, because the app writes them into CSS custom
     properties.
 - **`board.ts`**: the board picture. It is in IndexedDB (`storage/boardImage.ts`), not in the

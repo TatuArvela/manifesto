@@ -7,7 +7,11 @@ import {
   signal,
   untracked,
 } from "@preact/signals";
-import { inkHex, pictureTextures } from "#/utils/boardTextures.ts";
+import {
+  inkHex,
+  pictureTextures,
+  sheetTextures,
+} from "#/utils/boardTextures.ts";
 import {
   ACCOUNT_PREF_KEYS,
   BOARD_COLORS,
@@ -61,10 +65,12 @@ export {
   BOARD_GRADIENT_DIRECTIONS,
   BOARD_INKS,
   BOARD_NEUTRALS,
+  BOARD_SPEED_STEP,
   BOARD_TEXTURES,
   DARK_HUES,
   DEFAULT_BOARD_CUSTOM_COLOR,
   LIGHT_HUES,
+  MAX_BOARD_SPEED,
   MAX_TAG_COLORS,
   parsePrefs,
 } from "./prefParsers.ts";
@@ -132,7 +138,9 @@ export const boardCustomColor = pref("boardCustomColor");
 export const boardGradient = pref("boardGradient");
 export const boardGradientCustomColor = pref("boardGradientCustomColor");
 export const boardGradientDirection = pref("boardGradientDirection");
+export const boardGradientSpeed = pref("boardGradientSpeed");
 export const boardTexture = pref("boardTexture");
+export const boardTextureSpeed = pref("boardTextureSpeed");
 export const boardInk = pref("boardInk");
 export const boardInkColor = pref("boardInkColor");
 export const boardTextureOpacity = pref("boardTextureOpacity");
@@ -538,6 +546,104 @@ effect(() => {
   );
 });
 
+// The motion of the board. Set only while the animations are on. Thus, with them
+// off, or with the reduced-motion setting of the OS on the first run, the board
+// has no moving layer at all, and shows its usual still gradient and texture.
+/** If the gradient rolls: the frame and the preview get the rolling layer. */
+export const boardGradientMoves = computed(
+  () =>
+    animations.value &&
+    boardGradientSpeed.value > 0 &&
+    resolvedBoardGradient.value !== "none",
+);
+/** If the pattern moves: the board and the tiles show it in its sheets. */
+export const boardTextureMoves = computed(
+  () => animations.value && boardTextureSpeed.value > 0,
+);
+
+effect(() => {
+  const root = document.documentElement;
+  if (boardGradientMoves.value) root.dataset.boardRoll = "";
+  else delete root.dataset.boardRoll;
+  if (boardTextureMoves.value) root.dataset.boardTextureMotion = "";
+  else delete root.dataset.boardTextureMotion;
+});
+
+/**
+ * The rate at which a board animation plays, from its name (preferences.css),
+ * or null for an animation that is not of the board. 100% is the time that the
+ * stylesheet gives it.
+ */
+function boardPace(
+  name: string,
+  gradientSpeed: number,
+  textureSpeed: number,
+): number | null {
+  if (name.startsWith("board-roll")) return gradientSpeed / 100;
+  if (name.startsWith("board-sheet")) return textureSpeed / 100;
+  return null;
+}
+
+/**
+ * The speed is the rate of the running animations, not their duration. A new
+ * duration puts each layer at a different point of its loop, and the board
+ * jumps on each step of the slider. A new rate keeps the point where it is.
+ */
+function paceBoardAnimations(
+  running: readonly Animation[],
+  gradientSpeed: number,
+  textureSpeed: number,
+) {
+  for (const animation of running) {
+    if (!(animation instanceof CSSAnimation)) continue;
+    const pace = boardPace(
+      animation.animationName,
+      gradientSpeed,
+      textureSpeed,
+    );
+    if (pace !== null && pace > 0 && animation.playbackRate !== pace) {
+      animation.playbackRate = pace;
+    }
+  }
+}
+
+effect(() => {
+  paceBoardAnimations(
+    document.getAnimations(),
+    boardGradientSpeed.value,
+    boardTextureSpeed.value,
+  );
+});
+
+// A layer that starts (a tile in Settings, a new texture, the roll when a
+// gradient comes back) plays at the rate of the stylesheet until it gets its
+// own. The event comes in the frame after it starts. Thus, it moves for one
+// frame at that rate, which does not show. Each layer that starts sends its own
+// event, and Settings starts many together. Thus, each event paces only the
+// animations of its own element (with those of its pseudo-elements), not all of
+// the document.
+document.addEventListener("animationstart", (event) => {
+  const gradientSpeed = boardGradientSpeed.peek();
+  const textureSpeed = boardTextureSpeed.peek();
+  const target = event.target;
+  if (
+    target instanceof Element &&
+    boardPace(event.animationName, gradientSpeed, textureSpeed) !== null
+  ) {
+    paceBoardAnimations(
+      target
+        .getAnimations({ subtree: true })
+        .filter(
+          (animation) =>
+            animation.effect instanceof KeyframeEffect &&
+            animation.effect.target === target,
+        ),
+      gradientSpeed,
+      textureSpeed,
+    );
+  }
+});
+
 // The picture textures, as masks that the layer reads as it reads the gradient
 // masks. Only their shape is important. Thus, they are drawn one time, at load.
 for (const [name, image] of Object.entries(pictureTextures())) {
@@ -545,6 +651,15 @@ for (const [name, image] of Object.entries(pictureTextures())) {
     `--board-texture-${name}-mask`,
     image,
   );
+}
+// The sheets of the moving patterns, drawn in the same way (BoardSheets.tsx).
+for (const [name, images] of Object.entries(sheetTextures())) {
+  for (const [k, image] of images.entries()) {
+    document.documentElement.style.setProperty(
+      `--board-sheet-${name}-${k}`,
+      image,
+    );
+  }
 }
 
 // --- Light and dark hue ---

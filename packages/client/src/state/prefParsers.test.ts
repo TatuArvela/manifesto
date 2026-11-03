@@ -6,6 +6,7 @@ import {
   BOARD_INKS,
   BOARD_TEXTURES,
   DARK_HUES,
+  MAX_BOARD_SPEED,
   MAX_TAG_COLORS,
   PREF_KEYS,
   PREF_PARSERS,
@@ -142,6 +143,22 @@ describe("PREF_PARSERS", () => {
     const parser = PREF_PARSERS.boardTextureOpacity;
     expect(parser(1e9)).toBe(parser(parser(1e9)));
     expect(Number.isInteger(parser(37.6))).toBe(true);
+  });
+
+  it("keeps the board still unless a speed is stored", () => {
+    for (const parse of [
+      PREF_PARSERS.boardGradientSpeed,
+      PREF_PARSERS.boardTextureSpeed,
+    ]) {
+      expect(parse(undefined)).toBe(0);
+      expect(parse("fast")).toBe(0);
+      expect(parse(Number.NaN)).toBe(0);
+      expect(parse(140)).toBe(140);
+      // On a step of the slider, and inside its range.
+      expect(parse(137)).toBe(140);
+      expect(parse(-20)).toBe(0);
+      expect(parse(900)).toBe(MAX_BOARD_SPEED);
+    }
   });
 });
 

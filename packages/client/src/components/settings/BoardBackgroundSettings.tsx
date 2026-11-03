@@ -1,5 +1,6 @@
 import { Ban, ImagePlus, Shuffle, Trash2 } from "lucide-preact";
 import { useRef, useState } from "preact/hooks";
+import { BoardSheets } from "#/components/BoardLayers.tsx";
 import { t } from "#/i18n/index.ts";
 import {
   boardImageUrl,
@@ -25,6 +26,7 @@ import {
 } from "#/state/prefs.ts";
 import { BoardCard } from "./BoardCard.tsx";
 import { BoardInkPicker } from "./BoardInkPicker.tsx";
+import { BoardPatternSpeed, BoardRollSpeed } from "./BoardMotion.tsx";
 import { BoardOpacitySlider } from "./BoardOpacitySlider.tsx";
 import { BoardPalette } from "./BoardPalette.tsx";
 import { BoardPreview, BoardRerollButton } from "./BoardPreview.tsx";
@@ -161,6 +163,7 @@ export function BoardBackgroundSettings() {
               />
             </div>
             <BoardPreview composing={composing} compose={compose} />
+            <BoardRollSpeed compose={compose} />
           </section>
 
           <section class="space-y-3">
@@ -175,40 +178,43 @@ export function BoardBackgroundSettings() {
                 detail={textureLabel(texture)}
               >
                 <div class="grid grid-cols-3 gap-1.5 sm:gap-2">
-                  {TEXTURE_CHOICES.map((choice) => (
-                    <button
-                      key={choice}
-                      type="button"
-                      data-texture={
-                        choice !== "random"
-                          ? choice
-                          : texture === "random"
-                            ? resolvedBoardTexture.value
-                            : "none"
-                      }
-                      class={`board-texture-tile flex items-center justify-center h-9 sm:h-10 rounded-md cursor-pointer ${ringClass} ${composing && texture === choice ? selectedClass : ""}`}
-                      onClick={() =>
-                        compose(() => {
-                          // A new selection of "random" is how to ask for a
-                          // different one.
-                          if (choice === "random" && texture === "random") {
-                            rerollBoardTexture();
-                          }
-                          boardTexture.value = choice;
-                        })
-                      }
-                      aria-label={textureLabel(choice)}
-                      aria-pressed={composing && texture === choice}
-                      title={textureLabel(choice)}
-                    >
-                      {choice === "none" && (
-                        <Ban class="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
-                      )}
-                      {choice === "random" && (
-                        <Shuffle class="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
-                      )}
-                    </button>
-                  ))}
+                  {TEXTURE_CHOICES.map((choice) => {
+                    const shown =
+                      choice !== "random"
+                        ? choice
+                        : texture === "random"
+                          ? resolvedBoardTexture.value
+                          : "none";
+                    return (
+                      <button
+                        key={choice}
+                        type="button"
+                        data-texture={shown}
+                        class={`board-texture-tile flex items-center justify-center h-9 sm:h-10 rounded-md cursor-pointer ${ringClass} ${composing && texture === choice ? selectedClass : ""}`}
+                        onClick={() =>
+                          compose(() => {
+                            // A new selection of "random" is how to ask for a
+                            // different one.
+                            if (choice === "random" && texture === "random") {
+                              rerollBoardTexture();
+                            }
+                            boardTexture.value = choice;
+                          })
+                        }
+                        aria-label={textureLabel(choice)}
+                        aria-pressed={composing && texture === choice}
+                        title={textureLabel(choice)}
+                      >
+                        {choice === "none" && (
+                          <Ban class="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
+                        )}
+                        <BoardSheets texture={shown} />
+                        {choice === "random" && (
+                          <Shuffle class="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </BoardCard>
               <div class="space-y-2 sm:space-y-3 min-w-0">
@@ -218,6 +224,7 @@ export function BoardBackgroundSettings() {
                   disabled={resolvedBoardTexture.value === "none"}
                 />
                 <BoardOpacitySlider compose={compose} />
+                <BoardPatternSpeed compose={compose} />
               </div>
             </div>
           </section>

@@ -3,9 +3,13 @@ import {
   CONFETTI,
   CONFETTI_TILE,
   inkHex,
+  paintedSheets,
   pictureTextures,
   SCATTER_TILE,
   SCATTERS,
+  SHEET_COUNTS,
+  SHEET_SHAPES,
+  sheetTextures,
 } from "./boardTextures.ts";
 
 function svgOf(url: string): string {
@@ -110,4 +114,71 @@ describe.each(Object.entries(SCATTERS))("the scattered %s", (name, shapes) => {
     expect(crossing.length).toBeGreaterThan(0);
     expect(drawn.length).toBeGreaterThan(shapes.length);
   });
+});
+
+describe("the sheets of the moving patterns", () => {
+  const drawn = sheetTextures();
+
+  it("draws as many sheets as each pattern moves in", () => {
+    for (const [texture, images] of Object.entries(drawn)) {
+      expect(images, texture).toHaveLength(
+        SHEET_COUNTS[texture as keyof typeof drawn],
+      );
+    }
+  });
+
+  // A shape on no sheet is missing from the moving pattern. A shape on two is
+  // drawn twice.
+  it.each(Object.entries(SHEET_SHAPES))(
+    "puts each of the %s on exactly one sheet",
+    (texture, shapesOf) => {
+      const all: readonly unknown[] =
+        texture === "confetti"
+          ? CONFETTI
+          : SCATTERS[texture as keyof typeof SCATTERS];
+      const spread: unknown[] = Array.from(
+        { length: SHEET_COUNTS[texture as keyof typeof SHEET_SHAPES] },
+        (_, k) => shapesOf(k),
+      ).flat();
+      expect(spread).toHaveLength(all.length);
+      expect(new Set(spread)).toEqual(new Set(all));
+    },
+  );
+
+  it("splits the rows of the waves and of the sawtooth between sheets", () => {
+    const rows = (url: string) =>
+      (svgOf(url).match(/<(path|use) /g) ?? []).length;
+    // Row 0 is on both edges of its tile, each with its own half.
+    expect(drawn.waves.map(rows)).toEqual([2, 1, 1, 1, 1, 1, 1, 1]);
+    const heights = drawn.waves.map(
+      (url) => /M-?[\d.]+ ([\d.]+)A/.exec(svgOf(url))?.[1],
+    );
+    expect(new Set(heights).size).toBe(drawn.waves.length);
+    const sawtooth = drawn.sawtooth.map(rows);
+    const still = rows(pictureTextures().sawtooth);
+    // The one row path of the defs, and the rows that use it.
+    expect((sawtooth[0] ?? 0) + (sawtooth[1] ?? 0) - 2).toBe(still - 1);
+  });
+});
+
+describe("the sheets of the painter", () => {
+  const painted = paintedSheets();
+
+  it.each(Object.entries(painted))(
+    "draws each sheet of the %s on its tile",
+    (texture, { width, height, images }) => {
+      expect(images).toHaveLength(
+        SHEET_COUNTS[texture as keyof typeof SHEET_COUNTS],
+      );
+      for (const image of images) {
+        expect(image.startsWith("data:image/svg+xml,")).toBe(true);
+        const svg = decodeURIComponent(
+          image.slice("data:image/svg+xml,".length),
+        );
+        const size = /width='([\d.]+)' height='([\d.]+)'/.exec(svg);
+        expect(Number(size?.[1])).toBeCloseTo(width, 2);
+        expect(Number(size?.[2])).toBeCloseTo(height, 2);
+      }
+    },
+  );
 });

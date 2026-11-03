@@ -578,6 +578,11 @@ export const fi: Messages = {
   "settings.boardBackground.ink.random": "Satunnainen",
   "settings.boardBackground.ink.custom": "Oma kuvion väri",
   "settings.boardBackground.opacity": "Kuvion peittävyys",
+  "settings.boardBackground.speed": "Liukuvärin nopeus",
+  "settings.boardBackground.speed.still": "Paikallaan",
+  "settings.boardBackground.patternSpeed": "Kuvion nopeus",
+  "settings.boardBackground.motionOff":
+    "Animaatiot ovat pois päältä Ulkoasu-sivulla, joten tausta pysyy paikallaan.",
   "settings.boardBackground.texture.random": "Satunnainen",
   "settings.boardBackground.picture": "Kuva",
   "settings.boardBackground.mode.compose": "Väri ja kuvio",

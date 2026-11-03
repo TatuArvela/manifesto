@@ -123,6 +123,7 @@ sets most frequently:
 | `boardColor`, `boardGradient` | `none` (default), `white`, `gray`, `black`, a board color, `custom`, `random` |
 | `boardCustomColor`, `boardGradientCustomColor`, `boardInkColor` | a `#rrggbb` color |
 | `boardGradientDirection` | `top`, `top-right`, `right`, `bottom-right` (default), `bottom`, `bottom-left`, `left`, `top-left`, `random` |
+| `boardGradientSpeed`, `boardTextureSpeed` | a percentage of the usual speed, from 0 (default, still) to 200, in steps of 10 |
 | `boardTexture` | `none` (default), `paper`, `dots`, `grid`, `lines`, `waves`, `confetti`, `stars`, `hearts`, `bubbles`, `stripes`, `sawtooth`, `random` |
 | `boardInk` | `auto` (default), `white`, `black`, a board color, `custom`, `random` |
 | `boardTextureOpacity` | a whole percentage from 0 to 100 (default 10) |

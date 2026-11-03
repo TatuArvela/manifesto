@@ -571,6 +571,11 @@ export const en = {
   "settings.boardBackground.ink.random": "Random",
   "settings.boardBackground.ink.custom": "Custom Pattern Color",
   "settings.boardBackground.opacity": "Pattern Opacity",
+  "settings.boardBackground.speed": "Rolling Speed",
+  "settings.boardBackground.speed.still": "Still",
+  "settings.boardBackground.patternSpeed": "Pattern Speed",
+  "settings.boardBackground.motionOff":
+    "Animations are off in Appearance, so the board stays still.",
   "settings.boardBackground.texture.random": "Random",
   "settings.boardBackground.picture": "Picture",
   "settings.boardBackground.mode.compose": "Color & Pattern",

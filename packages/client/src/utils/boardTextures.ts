@@ -227,9 +227,9 @@ function confettiPiece({ x, y, strip, turn }: ConfettiPiece): string {
     .join("");
 }
 
-function confetti(): string {
+function confetti(pieces: readonly ConfettiPiece[] = CONFETTI): string {
   return dataUrl(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='${CONFETTI_TILE}' height='${CONFETTI_TILE}'>${CONFETTI.map(confettiPiece).join("")}</svg>`,
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${CONFETTI_TILE}' height='${CONFETTI_TILE}'>${pieces.map(confettiPiece).join("")}</svg>`,
   );
 }
 
@@ -379,7 +379,7 @@ function placedPath(d: string, reach: number) {
  * tile's corners measured along and across them, with a tooth and a row to
  * spare at each end, and starts on a whole tooth so the rows stay in step.
  */
-function sawtooth(): string {
+function sawtooth(parity?: 0 | 1): string {
   const turn = (SAWTOOTH_TURN * Math.PI) / 180;
   const { width, height } = SAWTOOTH_UNITS;
   const corners = [
@@ -401,6 +401,7 @@ function sawtooth(): string {
   const row = `M${first * SAWTOOTH_TOOTH} 286.378${TOOTH_TOP.repeat(teeth)}v793.622${TOOTH_FOOT.repeat(teeth)}Z`;
   const rows: string[] = [];
   for (let n = firstRow; n <= lastRow; n++) {
+    if (parity !== undefined && ((n % 2) + 2) % 2 !== parity) continue;
     rows.push(`<use href='#r' y='${round(n * SAWTOOTH_ROW)}'/>`);
   }
   return dataUrl(
@@ -431,5 +432,224 @@ export function pictureTextures(): Record<PictureTexture, string> {
       ({ r }, x, y) => `<circle cx='${x}' cy='${y}' r='${r}'/>`,
     ),
     sawtooth: sawtooth(),
+  };
+}
+
+/**
+ * The moving patterns (`.board-sheets` in preferences.css). A pattern that moves
+ * is split into sheets, each its own layer with its own motion. Thus, the parts
+ * of one pattern do not move as one flat picture:
+ *
+ * - the paper, the dots, the grid and the lines are one sheet each, which rolls
+ *   from the top left to the bottom right;
+ * - the waves are their rows, one row on each sheet, which each move in a small
+ *   circle, one after the other, so that a swell passes down the page;
+ * - the confetti, the stars, the hearts and the bubbles are spread over sheets
+ *   that fall, twinkle or rise at their own speeds;
+ * - the sawtooth is its rows, every other row on one sheet, which run against
+ *   each other.
+ *
+ * The stripes stay one sheet, which slides. Each sheet is drawn one time, as the
+ * still textures are, in opaque black on the tile of its pattern (or a whole
+ * number of them). Thus, the still and the moving pattern have the same marks.
+ *
+ * Each sheet is a masked layer the size of the board, which the compositor
+ * blends again on each frame. Thus, a pattern has no more sheets than its
+ * motion needs.
+ */
+export const SHEET_COUNTS = {
+  paper: 1,
+  dots: 1,
+  grid: 1,
+  lines: 1,
+  waves: 8,
+  confetti: 3,
+  stars: 4,
+  hearts: 3,
+  bubbles: 3,
+  stripes: 1,
+  sawtooth: 2,
+} as const;
+
+export type MovingTexture = keyof typeof SHEET_COUNTS;
+
+/**
+ * The sheets drawn here. The others are CSS gradients (preferences.css): the
+ * stripes, the dots, the grid and the lines.
+ */
+export type DrawnSheetTexture = Exclude<
+  MovingTexture,
+  "stripes" | "dots" | "grid" | "lines"
+>;
+
+/**
+ * The repeat of the gradient patterns, in px, as preferences.css draws them.
+ * styles.test.ts holds the two equal, and holds the roll of each at one repeat.
+ */
+export const DOT_STEP = 22;
+export const GRID_STEP = 24;
+export const LINE_STEP = 28;
+/**
+ * The lines, and the lines of the grid, are 2px, not 1px. On a screen mode that
+ * macOS scales, a line of 1px flickers as it moves: it crosses the pixels of
+ * the panel, and becomes thinner and thicker. A thicker line changes only at
+ * its edges.
+ */
+export const LINE_WIDTH = 2;
+export const WAVE_TILE = { width: 46, height: 36 } as const;
+export const PAPER_TILE = NOISE.paper.size;
+
+function svg(width: number, height: number, body: string): string {
+  return dataUrl(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}'>${body}</svg>`,
+  );
+}
+
+/**
+ * Row `k` of eight rows of waves, on a tile eight rows high. A row is a crest
+ * over each side edge and a trough under the middle, at the line between two
+ * tiles of the still pattern. Row 0 is on the top and the bottom edge, each edge
+ * with its own half.
+ */
+function waveSheet(k: number): string {
+  const { width, height } = WAVE_TILE;
+  const tall = height * SHEET_COUNTS.waves;
+  const r = width / 4;
+  const row = (y: number) =>
+    `<path d='M${-r} ${y}A${r} ${r} 0 0 1 ${r} ${y}A${r} ${r} 0 0 0 ${3 * r} ${y}A${r} ${r} 0 0 1 ${5 * r} ${y}'/>`;
+  const rows = k === 0 ? row(0) + row(tall) : row(height * k);
+  return svg(
+    width,
+    tall,
+    `<g fill='none' stroke='#000' stroke-width='1'>${rows}</g>`,
+  );
+}
+
+/** Every `count`-th shape, from `k`, which mixes their sizes. */
+function everyNth<T>(shapes: readonly T[], count: number, k: number): T[] {
+  return shapes.filter((_, i) => i % count === k);
+}
+
+/**
+ * The third `k` of the shapes by size, largest first, as they were placed.
+ * Thus, the near sheet has the largest shapes, and moves fastest.
+ */
+function bySize<T>(shapes: readonly T[], count: number, k: number): T[] {
+  const share = Math.ceil(shapes.length / count);
+  return shapes.slice(share * k, share * (k + 1));
+}
+
+function sheets(
+  texture: DrawnSheetTexture,
+  draw: (k: number) => string,
+): string[] {
+  return Array.from({ length: SHEET_COUNTS[texture] }, (_, k) => draw(k));
+}
+
+/**
+ * The shapes on each sheet, exported for their test, which holds each shape on
+ * exactly one sheet.
+ */
+export const SHEET_SHAPES = {
+  confetti: (k: number) => everyNth(CONFETTI, SHEET_COUNTS.confetti, k),
+  stars: (k: number) => everyNth(SCATTERS.stars, SHEET_COUNTS.stars, k),
+  hearts: (k: number) => bySize(SCATTERS.hearts, SHEET_COUNTS.hearts, k),
+  bubbles: (k: number) => bySize(SCATTERS.bubbles, SHEET_COUNTS.bubbles, k),
+};
+
+/** Each sheet of each moving pattern as a mask, each a CSS `url(...)`. */
+export function sheetTextures(): Record<DrawnSheetTexture, string[]> {
+  const circle = ({ r }: Scattered, x: number, y: number) =>
+    `<circle cx='${x}' cy='${y}' r='${r}'/>`;
+  return {
+    paper: sheets("paper", () => noise(NOISE.paper)),
+    waves: sheets("waves", waveSheet),
+    confetti: sheets("confetti", (k) => confetti(SHEET_SHAPES.confetti(k))),
+    stars: sheets("stars", (k) =>
+      scattered(SHEET_SHAPES.stars(k), placedPath(STAR, 1)),
+    ),
+    hearts: sheets("hearts", (k) =>
+      scattered(SHEET_SHAPES.hearts(k), placedPath(HEART, HEART_REACH)),
+    ),
+    bubbles: sheets("bubbles", (k) =>
+      scattered(SHEET_SHAPES.bubbles(k), circle),
+    ),
+    sawtooth: sheets("sawtooth", (k) => sawtooth(k === 0 ? 0 : 1)),
+  };
+}
+
+/** The `data:` address in a CSS `url("...")` that `dataUrl` made. */
+function addressOf(cssUrl: string): string {
+  return cssUrl.slice('url("'.length, -'")'.length);
+}
+
+/** The tile of each sheet of a pattern, in CSS px, as the painter draws it. */
+export interface PaintedSheets {
+  width: number;
+  height: number;
+  /** One `data:` address of an SVG for each sheet, in opaque black. */
+  images: string[];
+}
+
+/** The repeat of the stripes across, and down: one stripe and its gap. */
+const STRIPE_TILE = 32 * Math.SQRT2;
+
+/**
+ * Each sheet of each moving pattern, as an SVG on one tile, for the board
+ * painter (boardPainter.ts). It draws the sheets that the stylesheet makes
+ * with gradients too: the stripes, the dots, the grid and the lines, each as
+ * one tile of the still pattern, at the place where the gradient draws it.
+ */
+export function paintedSheets(): Record<MovingTexture, PaintedSheets> {
+  const drawn = sheetTextures();
+  const tile = (size: number, sheets: string[]): PaintedSheets => ({
+    width: size,
+    height: size,
+    images: sheets.map(addressOf),
+  });
+  const half = round(STRIPE_TILE / 2);
+  const full = round(STRIPE_TILE);
+  return {
+    paper: tile(NOISE.paper.size, drawn.paper),
+    dots: tile(DOT_STEP, [
+      svg(DOT_STEP, DOT_STEP, `<circle cx='11' cy='11' r='1.5'/>`),
+    ]),
+    grid: tile(GRID_STEP, [
+      svg(
+        GRID_STEP,
+        GRID_STEP,
+        `<rect width='${GRID_STEP}' height='${LINE_WIDTH}'/><rect width='${LINE_WIDTH}' height='${GRID_STEP}'/>`,
+      ),
+    ]),
+    lines: tile(LINE_STEP, [
+      svg(
+        LINE_STEP,
+        LINE_STEP,
+        `<rect y='${LINE_STEP - LINE_WIDTH}' width='${LINE_STEP}' height='${LINE_WIDTH}'/>`,
+      ),
+    ]),
+    waves: {
+      width: WAVE_TILE.width,
+      height: WAVE_TILE.height * SHEET_COUNTS.waves,
+      images: drawn.waves.map(addressOf),
+    },
+    confetti: tile(CONFETTI_TILE, drawn.confetti),
+    stars: tile(SCATTER_TILE, drawn.stars),
+    hearts: tile(SCATTER_TILE, drawn.hearts),
+    bubbles: tile(SCATTER_TILE, drawn.bubbles),
+    // The band where `x + y` is in the first half of a repeat, in the corner
+    // at the top left and in the middle of the tile.
+    stripes: tile(STRIPE_TILE, [
+      svg(
+        full,
+        full,
+        `<path d='M0 0H${half}L0 ${half}Z'/><path d='M${full} 0V${half}L${half} ${full}H0Z'/>`,
+      ),
+    ]),
+    sawtooth: {
+      width: SAWTOOTH_TILE.width,
+      height: SAWTOOTH_TILE.height,
+      images: drawn.sawtooth.map(addressOf),
+    },
   };
 }
