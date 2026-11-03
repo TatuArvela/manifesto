@@ -293,6 +293,12 @@
  * that never scrolls is neither. Thus, the top of the board was blurred under
  * the clock. When fixed, the shell also keeps the board in place under the
  * sheets of a phone (below). Before, it was fixed only then.
+ *
+ * iOS takes that color from the background of the fixed element itself, not
+ * from its content. Thus, the shell has the background of the page (`bg-white
+ * dark:bg-neutral-900` in App.tsx, the same as <body>), and a transparent shell
+ * is not sufficient. With no color to take, iOS kept the last color: the color
+ * of the top bar of a note that was closed.
  */
 .app-shell {
   position: fixed;
