@@ -353,7 +353,7 @@ browser, unless the user saved a preference.
 ### Note Colors
 
 In `colors.ts`, each `NoteColor` enum value has Tailwind utility classes for the background, hover
-and border. The map has light and dark variants (for example `bg-yellow-100 dark:bg-yellow-900`).
+and border. The map has light and dark variants (for example `bg-yellow-200 dark:bg-yellow-900`).
 Thus, themes can give different colors in each mode, and the data model does not change.
 
 ### Dark Mode
