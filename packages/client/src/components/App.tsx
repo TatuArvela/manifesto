@@ -32,7 +32,12 @@ import { takeSignInLinkToken } from "#/state/account/mailedLinks.ts";
 import { takeConsentPage } from "#/state/account/oauth.ts";
 import { consumeOidcRedirect } from "#/state/account/oidcSignIn.ts";
 import { closeDrawing, drawingRequest } from "#/state/drawing.ts";
-import { animations, stickyTopBar, viewMode } from "#/state/prefs.ts";
+import {
+  animations,
+  resolvedBoardTexture,
+  stickyTopBar,
+  viewMode,
+} from "#/state/prefs.ts";
 import { publicLinksDialog } from "#/state/publicLinks.ts";
 import { shareDialog } from "#/state/sharing.ts";
 import {
@@ -48,6 +53,7 @@ import {
   type SharedNotePayload,
 } from "#/utils/shareLink.ts";
 import { AutoNotesView } from "./AutoNotesView.tsx";
+import { BoardSheets } from "./BoardLayers.tsx";
 import { ConfirmDialogHost } from "./ConfirmDialog.tsx";
 import { ConnectionStatus } from "./ConnectionStatus.tsx";
 import { loadEditor } from "./editor/lazyEditor.ts";
@@ -285,6 +291,7 @@ function MainApp() {
           {/* The board behind the notes: colour, gradient and texture, which
             stay put while `main` scrolls the notes over them. */}
           <div class="board-frame flex flex-1 min-w-0">
+            <BoardSheets texture={resolvedBoardTexture.value} />
             <main
               ref={mainRef}
               // The top bar of the phone is over the board. Thus, the board

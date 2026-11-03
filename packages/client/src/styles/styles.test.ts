@@ -2,11 +2,19 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   BOARD_GRADIENT_DIRECTIONS,
-  BOARD_GRADIENT_SPEEDS,
   BOARD_TEXTURES,
   type BoardGradientDirection,
 } from "#/state/prefParsers.ts";
-import { CONFETTI_TILE, SAWTOOTH_TILE } from "#/utils/boardTextures.ts";
+import {
+  CONFETTI_TILE,
+  DOT_STEP,
+  GRID_STEP,
+  LINE_STEP,
+  SAWTOOTH_TILE,
+  SCATTER_TILE,
+  SHEET_COUNTS,
+  WAVE_TILE,
+} from "#/utils/boardTextures.ts";
 
 // Read from disk. Vitest makes a stylesheet imported in a test blank, also with
 // `?raw`.
@@ -86,74 +94,126 @@ function ruleOf(selector: string, opening = ""): Map<string, string> {
 describe("moving patterns", () => {
   const moving = BOARD_TEXTURES.filter((texture) => texture !== "none");
 
-  function driftOf(texture: string) {
-    const rule = ruleOf(
-      `.board-texture-tile[data-texture="${texture}"]`,
-      "\n  --drift:",
-    );
-    const [x = 0, y = 0] = (rule.get("drift") ?? "")
-      .replace("calc(32px * 1.41421356)", `${32 * Math.SQRT2}px`)
-      .split(" ")
-      .map((part) => Number.parseFloat(part));
-    return {
-      x,
-      y,
-      reach: Number.parseFloat(rule.get("drift-reach") ?? ""),
-      sway: Number.parseFloat(rule.get("drift-sway") ?? "0"),
-      time: Number.parseFloat(rule.get("drift-time") ?? ""),
-    };
+  /** The rules of the sheets of a texture: its first, then sheet `nth`. */
+  function sheetRule(texture: string, nth?: number): Map<string, string> {
+    const selector = `.board-sheets[data-texture="${texture}"] > span`;
+    return nth === undefined
+      ? ruleOf(selector)
+      : ruleOf(`${selector}:nth-child(${nth})`);
   }
 
-  it("gives each pattern a motion on the board and on its tile", () => {
-    for (const texture of moving) {
-      expect(css).toContain(
-        `:root[data-board-texture="${texture}"] .board-frame,\n.board-texture-tile[data-texture="${texture}"] {`,
+  function driftOf(texture: string, nth?: number) {
+    const first = sheetRule(texture);
+    const rule = nth === undefined ? first : sheetRule(texture, nth);
+    const px = (name: string) =>
+      Number.parseFloat(
+        (rule.get(name) ?? first.get(name) ?? "0px").replace(
+          "calc(32px * 1.41421356)",
+          `${32 * Math.SQRT2}px`,
+        ),
       );
-      expect(driftOf(texture).time).toBeGreaterThan(0);
+    return { x: px("drift-x"), y: px("drift-y") };
+  }
+
+  it("moves each pattern in as many sheets as it is drawn in", () => {
+    expect(Object.keys(SHEET_COUNTS).sort()).toEqual([...moving].sort());
+    for (const texture of moving) {
+      expect(css).toMatch(
+        new RegExp(`\\[data-texture="${texture}"\\][^{]*> span`),
+      );
     }
   });
 
   // A drift that is not a whole repeat jumps each time that the loop starts.
   it.each([
-    "paper",
-    "dots",
-    "grid",
-    "waves",
-    "confetti",
-    "stars",
-    "hearts",
-    "bubbles",
-  ])("moves %s by a whole tile", (texture) => {
-    const [width = 0, height = 0] = tileSize(texture)
-      .split(" ")
-      .map((part) => Number.parseFloat(part));
+    ["confetti", CONFETTI_TILE],
+    ["stars", SCATTER_TILE],
+    ["hearts", SCATTER_TILE],
+    ["bubbles", SCATTER_TILE],
+  ] as const)("moves %s by a whole tile", (texture, tile) => {
     const { x, y } = driftOf(texture);
-    expect(width).toBeGreaterThan(0);
-    expect(Math.abs(x) % width).toBe(0);
-    expect(Math.abs(y) % height).toBe(0);
+    expect(Math.abs(x) + Math.abs(y)).toBe(tile);
+    expect(Math.abs(x) % tile).toBe(0);
+    expect(Math.abs(y) % tile).toBe(0);
   });
 
-  it("moves the lines by one line, and the stripes by one stripe and gap", () => {
-    expect(tileSize("lines")).toBe("auto");
-    expect(css).toContain("transparent 0 27px,\n    #000 27px 28px");
-    expect(driftOf("lines").y).toBe(28);
-    expect(tileSize("stripes")).toBe("auto");
+  // A row that moves farther than the room between two rows crosses one.
+  it("moves each row of waves in a small circle, in place", () => {
+    const rule = sheetRule("waves");
+    expect(driftOf("waves")).toEqual({ x: 0, y: 0 });
+    const sway = Number.parseFloat(rule.get("sway") ?? "");
+    const bob = Number.parseFloat(rule.get("bob") ?? "");
+    expect(sway).toBeGreaterThan(0);
+    expect(bob).toBeGreaterThan(0);
+    expect(2 * bob).toBeLessThan(WAVE_TILE.height - WAVE_TILE.width / 2);
+  });
+
+  it("moves the stripes by one stripe and gap", () => {
     expect(css).toContain("#000 0 16px,\n    transparent 16px 32px");
     expect(driftOf("stripes").x * Math.SQRT1_2).toBeCloseTo(32);
   });
 
-  it("moves the sawtooth by one tooth along its row", () => {
+  it("runs the rows of the sawtooth against each other, one tooth each", () => {
     // The tile holds five teeth along a row, which goes across its diagonal.
-    const { x, y } = driftOf("sawtooth");
-    expect(x).toBeCloseTo(SAWTOOTH_TILE.width / 10);
-    expect(y).toBeCloseTo(-SAWTOOTH_TILE.height / 10);
+    const tooth = { x: SAWTOOTH_TILE.width / 10, y: SAWTOOTH_TILE.height / 10 };
+    expect(driftOf("sawtooth").x).toBeCloseTo(tooth.x);
+    expect(driftOf("sawtooth").y).toBeCloseTo(-tooth.y);
+    expect(driftOf("sawtooth", 2).x).toBeCloseTo(-tooth.x);
+    expect(driftOf("sawtooth", 2).y).toBeCloseTo(tooth.y);
   });
 
-  // Less reach than the move and the sway shows the edge of the layer.
-  it.each(moving)("keeps the edge of the %s layer out of view", (texture) => {
-    const { x, y, reach, sway } = driftOf(texture);
-    expect(reach).toBeGreaterThanOrEqual(Math.abs(x) + sway);
-    expect(reach).toBeGreaterThanOrEqual(Math.abs(y));
+  it("keeps the marks of the paper and of the waves of light in place", () => {
+    expect(driftOf("paper")).toEqual({ x: 0, y: 0 });
+    const glint = css.slice(
+      css.indexOf("The dots, the grid and the lines: eight sheets"),
+    );
+    const block = glint.slice(glint.indexOf("{"), glint.indexOf("}"));
+    expect(block).toContain("board-sheet-glint");
+    expect(block).not.toContain("--drift");
+  });
+
+  it("draws the sheets on the repeat of the still pattern", () => {
+    expect(tileSize("dots")).toBe(`${DOT_STEP}px ${DOT_STEP}px`);
+    expect(tileSize("grid")).toBe(`${GRID_STEP}px ${GRID_STEP}px`);
+    expect(css).toContain(
+      `transparent 0 ${LINE_STEP - 1}px,\n    #000 ${LINE_STEP - 1}px ${LINE_STEP}px`,
+    );
+    expect(tileSize("waves")).toBe(
+      `${WAVE_TILE.width}px ${WAVE_TILE.height}px`,
+    );
+  });
+
+  // The sheet goes past the board on the side that it comes from. A sign that
+  // is the wrong way round shows the edge of the sheet.
+  it("puts the reach of a sheet on the side that it comes from", () => {
+    const span = ruleOf(".board-sheets > span", "\n  --drift-x: 0px;");
+    expect(span.get("drift-x")).toBe("0px");
+    const block = css.slice(css.indexOf(".board-sheets > span {"));
+    const inset = (side: string) =>
+      new RegExp(`\\n  ${side}: ([^;]+);`).exec(block)?.[1];
+    expect(inset("top")).toBe(
+      "calc((max(var(--drift-y), 0px) + var(--bob)) * -1)",
+    );
+    expect(inset("left")).toBe(
+      "calc((max(var(--drift-x), 0px) + var(--sway)) * -1)",
+    );
+    expect(inset("bottom")).toBe(
+      "calc((max(var(--drift-y) * -1, 0px) + var(--bob)) * -1)",
+    );
+    expect(inset("right")).toBe(
+      "calc((max(var(--drift-x) * -1, 0px) + var(--sway)) * -1)",
+    );
+  });
+
+  // state/prefs.ts finds the speed of an animation from the start of its name.
+  it("names each board animation for the slider that sets its speed", () => {
+    const names = [...css.matchAll(/@keyframes (board-[a-z-]+)/g)].map(
+      ([, name = ""]) => name,
+    );
+    expect(names.length).toBeGreaterThan(0);
+    for (const name of names) {
+      expect(name).toMatch(/^board-(roll|sheet)/);
+    }
   });
 
   it("clips the frame only while something moves past it", () => {
@@ -171,7 +231,7 @@ function tileSize(texture: string): string {
 }
 
 describe("the rolling gradient", () => {
-  const TWO_BOARDS = "calc(-200% / 3)";
+  const ONE_REPEAT = "var(--board-roll-move)";
 
   /** Where the layer goes along each axis, as -1, 0 or 1 for each direction. */
   const WAYS: Record<BoardGradientDirection, readonly [number, number]> = {
@@ -192,43 +252,57 @@ describe("the rolling gradient", () => {
   });
 
   it.each(Object.entries(WAYS))(
-    "rolls %s on a box as wide as it moves, by two boards",
+    "rolls %s on a box one board longer than a repeat, by one repeat",
     (direction, [x, y]) => {
       const rule = ruleOf(
         `:root[data-board-gradient-direction="${direction}"]`,
       );
       // The sign of the move, in a line and in a column, from the two ends.
-      const offset = (way: number) => (way === 0 ? "0" : TWO_BOARDS);
+      const offset = (way: number) => (way === 0 ? "0" : ONE_REPEAT);
       const from = `${x > 0 ? offset(x) : "0"} ${y > 0 ? offset(y) : "0"}`;
       const to = `${x < 0 ? offset(x) : "0"} ${y < 0 ? offset(y) : "0"}`;
       expect(rule.get("board-roll-from")).toBe(from);
       expect(rule.get("board-roll-to")).toBe(to);
-      expect(rule.get("board-roll-width")).toBe(x === 0 ? "100%" : "300%");
-      expect(rule.get("board-roll-height")).toBe(y === 0 ? "100%" : "300%");
+      expect(rule.get("board-roll-width")).toBe(
+        x === 0 ? "100%" : "var(--board-roll-long)",
+      );
+      expect(rule.get("board-roll-height")).toBe(
+        y === 0 ? "100%" : "var(--board-roll-long)",
+      );
       expect(rule.get("board-gradient-way")).toBe(
         `to ${direction.replace("-", " ")}`,
       );
     },
   );
 
-  it("repeats the two colors at the four stops that the box needs", () => {
+  // A repeat is `--board-roll-repeat` boards of a box one board longer. Thus,
+  // a move of one repeat ends where it started.
+  it("repeats the two colors and back, over one repeat of the box", () => {
     const rolled =
-      /--board-gradient-rolled:\s*linear-gradient\(([^;]+)\);/.exec(css);
-    expect(layers(rolled?.[1] ?? "").map((stop) => stop.trim())).toEqual([
+      /--board-gradient-rolled:\s*repeating-linear-gradient\(([^;]+)\);/.exec(
+        css,
+      );
+    const part = (percent: number) =>
+      `calc(${percent}% * var(--board-roll-repeat) / (1 + var(--board-roll-repeat)))`;
+    expect(
+      layers(rolled?.[1] ?? "").map((stop) => stop.replace(/\s+/g, " ").trim()),
+    ).toEqual([
       "var(--board-gradient-way)",
-      "var(--board-color, var(--board-page))",
-      "var(--board-color-to)",
-      "var(--board-color, var(--board-page))",
-      "var(--board-color-to)",
+      "var(--board-color, var(--board-page)) 0%",
+      `var(--board-color-to) ${part(50)}`,
+      `var(--board-color, var(--board-page)) ${part(100)}`,
     ]);
   });
 
-  it("gives each speed a time", () => {
-    for (const speed of BOARD_GRADIENT_SPEEDS) {
-      if (speed === "still") continue;
-      expect(
-        ruleOf(`:root[data-board-roll="${speed}"]`).get("board-roll-time"),
-      ).toMatch(/^\d+s$/);
-    }
+  it("makes the layer one board longer than a repeat, and moves it one repeat", () => {
+    const root = ruleOf(":root", "\n  --board-roll-repeat:");
+    const repeat = Number(root.get("board-roll-repeat"));
+    expect(repeat).toBeGreaterThanOrEqual(1);
+    expect(root.get("board-roll-long")).toBe(
+      "calc((1 + var(--board-roll-repeat)) * 100%)",
+    );
+    expect(root.get("board-roll-move")?.replace(/\s+/g, " ")).toBe(
+      "calc( var(--board-roll-repeat) / (1 + var(--board-roll-repeat)) * -100% )",
+    );
   });
 });

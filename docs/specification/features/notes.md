@@ -117,8 +117,10 @@ sections, Color and Pattern. Each choice applies immediately:
   - When a second color is set, **Direction** shows eight sides and corners on a compass. Each one is
     drawn as the gradient that it makes. **Random** is in the middle. A corner goes from corner to
     corner, on a board of any shape.
-  - **Rolling Speed**: Still (the default), Slow, Medium or Fast. The colors roll toward the direction
-    without end. It is disabled without a second color.
+  - **Rolling Speed**: a slider from Still (0%, the default) to 200%, in steps of 10%. While it rolls,
+    the gradient repeats: from the first color to the second and back, one repeat across two boards.
+    Thus, the board shows one fade, as the still gradient does. The repeats roll toward the direction
+    without end. At 100%, one repeat takes 60 seconds. It is disabled without a second color.
 - **Pattern**: Plain, Paper, Dots, Grid, Lines, Waves, Confetti, Stars, Hearts, Bubbles, Stripes or
   Sawtooth (the logo in rows turned 45°, with a line between the rows that has barbs from its
   notches). The app draws it over the color. The patterns are CSS gradients and inline SVG. Thus, no
@@ -131,12 +133,23 @@ sections, Color and Pattern. Each choice applies immediately:
     color in both themes.
   - **Random** draws in a different preset on each visit. If you select it again, it selects a
     different one.
-- **Moving Pattern**: off by default. When it is on, each pattern moves in its own way: confetti
-  falls, bubbles and hearts rise, waves roll, stars pass, and the sawtooth runs along its rows. Paper,
-  dots, grid, lines and stripes slide. The tiles show the motion. Each moves one whole repeat of the
-  pattern and starts again. Thus, no jump shows.
-- With the Animations preference off, Rolling Speed and Moving Pattern are disabled and the board
-  stays still. The page tells this. Both choices stay, and apply again when Animations is on.
+- **Pattern Speed**: a slider from Still (0%, the default) to 200%, in steps of 10%. Each pattern
+  moves in its own way, in sheets that each move on their own time, not as one picture:
+  - The paper grain changes slowly, as two grains fade into each other.
+  - A soft wave of light passes over the dots and the grid along the diagonal, and down the lines.
+    The marks stay in place.
+  - Each row of waves moves in a small circle, as water does, one row after the other. Thus, a swell
+    passes down the page.
+  - Confetti falls, and hearts and bubbles rise, in three sheets at three speeds, each with its own
+    sway. The largest hearts and bubbles move fastest.
+  - Stars twinkle in four sheets and pass slowly.
+  - Stripes slide, and every other row of the sawtooth runs the other way along its row.
+  - The tiles show the motion. Each sheet moves one whole repeat of its pattern and starts again.
+    Thus, no jump shows.
+- A change of either speed keeps each layer where it is, and only changes how fast it goes. Thus, the
+  board does not jump while you move the slider.
+- With the Animations preference off, Rolling Speed and Pattern Speed are disabled and the board
+  stays still. The page tells this. Both speeds stay, and apply again when Animations is on.
 - **Pattern Opacity**: a slider from 0% to 100% (10% by default) for the opacity of the pattern.
   - Each pattern is a mask over one layer that has the pattern color and this opacity. Thus, each
     mark of each pattern, in each color, has this opacity (the paper grain is noise, so its opacity

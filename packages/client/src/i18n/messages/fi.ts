@@ -580,10 +580,7 @@ export const fi: Messages = {
   "settings.boardBackground.opacity": "Kuvion peittävyys",
   "settings.boardBackground.speed": "Liukuvärin nopeus",
   "settings.boardBackground.speed.still": "Paikallaan",
-  "settings.boardBackground.speed.slow": "Hidas",
-  "settings.boardBackground.speed.medium": "Keskitaso",
-  "settings.boardBackground.speed.fast": "Nopea",
-  "settings.boardBackground.patternMotion": "Liikkuva kuvio",
+  "settings.boardBackground.patternSpeed": "Kuvion nopeus",
   "settings.boardBackground.motionOff":
     "Animaatiot ovat pois päältä Ulkoasu-sivulla, joten tausta pysyy paikallaan.",
   "settings.boardBackground.texture.random": "Satunnainen",

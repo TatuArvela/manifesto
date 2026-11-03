@@ -573,10 +573,7 @@ export const en = {
   "settings.boardBackground.opacity": "Pattern Opacity",
   "settings.boardBackground.speed": "Rolling Speed",
   "settings.boardBackground.speed.still": "Still",
-  "settings.boardBackground.speed.slow": "Slow",
-  "settings.boardBackground.speed.medium": "Medium",
-  "settings.boardBackground.speed.fast": "Fast",
-  "settings.boardBackground.patternMotion": "Moving Pattern",
+  "settings.boardBackground.patternSpeed": "Pattern Speed",
   "settings.boardBackground.motionOff":
     "Animations are off in Appearance, so the board stays still.",
   "settings.boardBackground.texture.random": "Random",

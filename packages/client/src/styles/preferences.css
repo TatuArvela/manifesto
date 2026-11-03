@@ -215,61 +215,76 @@
 :root[data-board-gradient="custom"] {
   --board-color-to: var(--board-gradient-custom-shade);
 }
+/*
+ * The length of one repeat of the rolling gradient, in boards, and from it the
+ * length of the layer that rolls (one board more) and its move (one repeat), as
+ * parts of that layer. The direction rules use them along each axis that the
+ * gradient goes on.
+ */
+:root {
+  --board-roll-repeat: 2;
+  --board-roll-long: calc((1 + var(--board-roll-repeat)) * 100%);
+  --board-roll-move: calc(
+    var(--board-roll-repeat) /
+    (1 + var(--board-roll-repeat)) *
+    -100%
+  );
+}
 :root[data-board-gradient-direction="top"] {
   --board-gradient-way: to top;
   --board-roll-width: 100%;
-  --board-roll-height: 300%;
+  --board-roll-height: var(--board-roll-long);
   --board-roll-from: 0 0;
-  --board-roll-to: 0 calc(-200% / 3);
+  --board-roll-to: 0 var(--board-roll-move);
 }
 :root[data-board-gradient-direction="top-right"] {
   --board-gradient-way: to top right;
-  --board-roll-width: 300%;
-  --board-roll-height: 300%;
-  --board-roll-from: calc(-200% / 3) 0;
-  --board-roll-to: 0 calc(-200% / 3);
+  --board-roll-width: var(--board-roll-long);
+  --board-roll-height: var(--board-roll-long);
+  --board-roll-from: var(--board-roll-move) 0;
+  --board-roll-to: 0 var(--board-roll-move);
 }
 :root[data-board-gradient-direction="right"] {
   --board-gradient-way: to right;
-  --board-roll-width: 300%;
+  --board-roll-width: var(--board-roll-long);
   --board-roll-height: 100%;
-  --board-roll-from: calc(-200% / 3) 0;
+  --board-roll-from: var(--board-roll-move) 0;
   --board-roll-to: 0 0;
 }
 :root[data-board-gradient-direction="bottom-right"] {
   --board-gradient-way: to bottom right;
-  --board-roll-width: 300%;
-  --board-roll-height: 300%;
-  --board-roll-from: calc(-200% / 3) calc(-200% / 3);
+  --board-roll-width: var(--board-roll-long);
+  --board-roll-height: var(--board-roll-long);
+  --board-roll-from: var(--board-roll-move) var(--board-roll-move);
   --board-roll-to: 0 0;
 }
 :root[data-board-gradient-direction="bottom"] {
   --board-gradient-way: to bottom;
   --board-roll-width: 100%;
-  --board-roll-height: 300%;
-  --board-roll-from: 0 calc(-200% / 3);
+  --board-roll-height: var(--board-roll-long);
+  --board-roll-from: 0 var(--board-roll-move);
   --board-roll-to: 0 0;
 }
 :root[data-board-gradient-direction="bottom-left"] {
   --board-gradient-way: to bottom left;
-  --board-roll-width: 300%;
-  --board-roll-height: 300%;
-  --board-roll-from: 0 calc(-200% / 3);
-  --board-roll-to: calc(-200% / 3) 0;
+  --board-roll-width: var(--board-roll-long);
+  --board-roll-height: var(--board-roll-long);
+  --board-roll-from: 0 var(--board-roll-move);
+  --board-roll-to: var(--board-roll-move) 0;
 }
 :root[data-board-gradient-direction="left"] {
   --board-gradient-way: to left;
-  --board-roll-width: 300%;
+  --board-roll-width: var(--board-roll-long);
   --board-roll-height: 100%;
   --board-roll-from: 0 0;
-  --board-roll-to: calc(-200% / 3) 0;
+  --board-roll-to: var(--board-roll-move) 0;
 }
 :root[data-board-gradient-direction="top-left"] {
   --board-gradient-way: to top left;
-  --board-roll-width: 300%;
-  --board-roll-height: 300%;
+  --board-roll-width: var(--board-roll-long);
+  --board-roll-height: var(--board-roll-long);
   --board-roll-from: 0 0;
-  --board-roll-to: calc(-200% / 3) calc(-200% / 3);
+  --board-roll-to: var(--board-roll-move) var(--board-roll-move);
 }
 :root[data-board-gradient-direction] {
   --board-gradient: linear-gradient(
@@ -277,12 +292,13 @@
     var(--board-color, var(--board-page)),
     var(--board-color-to)
   );
-  --board-gradient-rolled: linear-gradient(
+  --board-gradient-rolled: repeating-linear-gradient(
     var(--board-gradient-way),
-    var(--board-color, var(--board-page)),
-    var(--board-color-to),
-    var(--board-color, var(--board-page)),
+    var(--board-color, var(--board-page)) 0%,
     var(--board-color-to)
+      calc(50% * var(--board-roll-repeat) / (1 + var(--board-roll-repeat))),
+    var(--board-color, var(--board-page))
+      calc(100% * var(--board-roll-repeat) / (1 + var(--board-roll-repeat)))
   );
 }
 
@@ -364,6 +380,8 @@
   --board-texture-hearts-size: 360px 360px;
   --board-texture-sawtooth: var(--board-texture-sawtooth-mask);
   --board-texture-sawtooth-size: 286px 286px;
+  /* The one sheet of the moving stripes (the others are drawn by state/prefs.ts). */
+  --board-sheet-stripes-0: var(--board-texture-stripes);
 }
 
 /*
@@ -597,13 +615,20 @@
 
 /*
  * The motion of the board (Settings > Board Background). state/prefs.ts sets
- * both attributes only while the animations are on. Thus, these rules need no
+ * both attributes only while the animations are on, and components/
+ * BoardLayers.tsx mounts the moving layers only then. Thus, these rules need no
  * test of `.no-motion`, and with them off nothing here applies.
  *
- * All of it moves a layer with `translate` and `transform`. The compositor does
- * that with no paint and no layout, while the main thread does other work. A
- * moved `mask-position` or `background-position` paints the full board again on
- * each frame.
+ * All of it moves a layer with `translate`, `transform` and `opacity`.
+ * The compositor plays those with no paint and no layout, while the main thread
+ * does other work. A moved `mask-position` or `background-position` paints the
+ * full board again on each frame.
+ *
+ * Each time here is the time at a speed of 100%. The sliders change the rate of
+ * the running animations (`playbackRate`, state/prefs.ts), not these times. A
+ * new time puts each layer at a different point of its loop, and the board
+ * jumps. Thus, the name of each animation starts with `board-roll` or
+ * `board-sheet`, which is how state/prefs.ts finds its speed.
  */
 :root[data-board-roll] .board-frame,
 :root[data-board-roll] .board-preview,
@@ -613,25 +638,20 @@
 }
 
 /*
- * The rolling gradient: its own layer under the texture, over the still
- * gradient of the frame. The layer holds the two colors twice, at four even
- * stops, on a box three times the board along each axis that the gradient goes
- * on. Thus, the board always shows one fade from the first color to the second.
- * A move of two boards along that axis is one full period of the colors, and the
- * last frame is the same as the first. A corner keyword keeps its lines through
- * the other corners, because the box has the shape of the board.
+ * The rolling gradient: a repeating linear gradient on its own layer, under the
+ * texture and over the still gradient of the frame. One repeat goes from the
+ * first color to the second and back, and is `--board-roll-repeat` boards long
+ * along the gradient line of the board. At two, the board shows one fade from
+ * the first color to the second, as the still gradient does. Thus, the roll
+ * starts from the look of the board. The layer is one board longer than a
+ * repeat along each axis that the gradient goes on. A move of one repeat along
+ * that axis ends where it started, and the last frame is the same as the first.
+ * For a corner, a move of one board from corner to corner is one gradient line
+ * of the board, measured along the line, because the layer has the shape of the
+ * board.
  *
  * It moves toward the direction selected in Settings.
  */
-:root[data-board-roll="slow"] {
-  --board-roll-time: 180s;
-}
-:root[data-board-roll="medium"] {
-  --board-roll-time: 60s;
-}
-:root[data-board-roll="fast"] {
-  --board-roll-time: 20s;
-}
 :root[data-board-roll] .board-frame::after,
 :root[data-board-roll] .board-preview::after {
   content: "";
@@ -643,7 +663,7 @@
   height: var(--board-roll-height);
   pointer-events: none;
   background-image: var(--board-gradient-rolled);
-  animation: board-roll var(--board-roll-time) linear infinite;
+  animation: board-roll 60s linear infinite;
 }
 @keyframes board-roll {
   from {
@@ -655,103 +675,191 @@
 }
 
 /*
- * The moving patterns. The texture layer goes past the board by `--drift-reach`
- * on each side, and moves by `--drift`, which must be one whole repeat of the
- * pattern. Thus, the last frame is the same as the first, and no edge comes into
- * view (styles.test.ts checks both). Each pattern moves as the thing that it
- * looks like: confetti falls, bubbles and hearts rise, waves roll, the stars
- * pass, the sawtooth runs along its rows. `--drift-sway` moves a loose shape from
- * side to side on the way. Paper, dots, grid, lines and stripes only slide.
+ * The moving pattern, in its sheets (components/BoardLayers.tsx,
+ * utils/boardTextures.ts). The still pattern under them is hidden. The group has
+ * the opacity of the pattern. Thus, where the marks of two sheets cross, they are
+ * not stronger than one mark.
+ *
+ * A sheet that drifts moves by `--drift-x` and `--drift-y`, which must be one
+ * whole repeat of its tile. Thus, the last frame is the same as the first
+ * (styles.test.ts checks this). The sheet goes past the board by that distance
+ * on the side that it comes from, and by `--sway` and `--bob` on each side.
+ * Thus, no edge of it comes into view. `--k` is the number of the sheet, from
+ * 0, and gives each sheet its own time and start.
  */
-:root[data-board-texture="paper"] .board-frame,
-.board-texture-tile[data-texture="paper"] {
-  --drift: 160px 160px;
-  --drift-reach: 160px;
-  --drift-time: 40s;
+.board-sheets {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  overflow: clip;
+  pointer-events: none;
+  opacity: var(--board-texture-opacity, 0.1);
 }
-:root[data-board-texture="dots"] .board-frame,
-.board-texture-tile[data-texture="dots"] {
-  --drift: 22px 22px;
-  --drift-reach: 22px;
-  --drift-time: 5s;
-}
-:root[data-board-texture="grid"] .board-frame,
-.board-texture-tile[data-texture="grid"] {
-  --drift: 24px 24px;
-  --drift-reach: 24px;
-  --drift-time: 6s;
-}
-:root[data-board-texture="lines"] .board-frame,
-.board-texture-tile[data-texture="lines"] {
-  --drift: 0px 28px;
-  --drift-reach: 28px;
-  --drift-time: 7s;
-}
-:root[data-board-texture="waves"] .board-frame,
-.board-texture-tile[data-texture="waves"] {
-  --drift: 46px 0px;
-  --drift-reach: 46px;
-  --drift-time: 8s;
-}
-:root[data-board-texture="confetti"] .board-frame,
-.board-texture-tile[data-texture="confetti"] {
-  --drift: 0px 320px;
-  --drift-reach: 332px;
-  --drift-sway: 12px;
-  --drift-time: 32s;
-}
-:root[data-board-texture="stars"] .board-frame,
-.board-texture-tile[data-texture="stars"] {
-  --drift: -360px 0px;
-  --drift-reach: 360px;
-  --drift-time: 72s;
-}
-:root[data-board-texture="hearts"] .board-frame,
-.board-texture-tile[data-texture="hearts"] {
-  --drift: 0px -360px;
-  --drift-reach: 372px;
-  --drift-sway: 12px;
-  --drift-time: 45s;
-}
-:root[data-board-texture="bubbles"] .board-frame,
-.board-texture-tile[data-texture="bubbles"] {
-  --drift: 0px -360px;
-  --drift-reach: 372px;
-  --drift-sway: 12px;
-  --drift-time: 30s;
-}
-/* One stripe and its gap are 32px across, thus 32px times the root of 2 along x. */
-:root[data-board-texture="stripes"] .board-frame,
-.board-texture-tile[data-texture="stripes"] {
-  --drift: calc(32px * 1.41421356) 0px;
-  --drift-reach: 46px;
-  --drift-time: 8s;
-}
-/* One tooth along a row that is turned 45 degrees (utils/boardTextures.ts). */
-:root[data-board-texture="sawtooth"] .board-frame,
-.board-texture-tile[data-texture="sawtooth"] {
-  --drift: 28.6px -28.6px;
-  --drift-reach: 29px;
-  --drift-time: 8s;
+.board-sheets > span {
+  --drift-x: 0px;
+  --drift-y: 0px;
+  --sway: 0px;
+  --bob: 0px;
+  position: absolute;
+  top: calc((max(var(--drift-y), 0px) + var(--bob)) * -1);
+  right: calc((max(var(--drift-x) * -1, 0px) + var(--sway)) * -1);
+  bottom: calc((max(var(--drift-y) * -1, 0px) + var(--bob)) * -1);
+  left: calc((max(var(--drift-x), 0px) + var(--sway)) * -1);
+  background-color: var(--board-ink);
 }
 :root[data-board-texture-motion] .board-frame::before,
-:root[data-board-texture-motion]
-  .board-texture-tile:not([data-texture="none"])::before {
-  inset: calc(var(--drift-reach) * -1);
-  animation:
-    board-texture-drift var(--drift-time) linear infinite,
-    board-texture-sway 5s ease-in-out infinite alternate;
+:root[data-board-texture-motion] .board-texture-tile::before,
+:root[data-board-picture] .board-frame > .board-sheets {
+  display: none;
 }
-@keyframes board-texture-drift {
+@keyframes board-sheet-drift {
   to {
-    translate: var(--drift);
+    translate: var(--drift-x) var(--drift-y);
   }
 }
-@keyframes board-texture-sway {
+@keyframes board-sheet-sway {
   from {
-    transform: translateX(calc(var(--drift-sway, 0px) * -1));
+    transform: translate(calc(var(--sway) * -1), calc(var(--bob) * -1));
   }
   to {
-    transform: translateX(var(--drift-sway, 0px));
+    transform: translate(var(--sway), var(--bob));
   }
+}
+/*
+ * A circle, as two swings: across, and up and down a quarter of a turn later
+ * (a delay of a quarter of the time). Each swing eases at its ends, as a sine
+ * does. Two properties, so that the two can play together.
+ */
+@keyframes board-sheet-orbit-x {
+  0%,
+  100% {
+    translate: calc(var(--sway) * -1) 0;
+  }
+  50% {
+    translate: var(--sway) 0;
+  }
+}
+@keyframes board-sheet-orbit-y {
+  0%,
+  100% {
+    transform: translateY(calc(var(--bob) * -1));
+  }
+  50% {
+    transform: translateY(var(--bob));
+  }
+}
+/* A sheet that lights and dims, from `--glint-low` to fully drawn and back. */
+@keyframes board-sheet-glint {
+  0%,
+  100% {
+    opacity: var(--glint-low);
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* The paper: two grains, each fading in while the other fades out. */
+.board-sheets[data-texture="paper"] > span {
+  --glint-low: 0;
+  animation: board-sheet-glint 9s ease-in-out infinite;
+  animation-delay: calc(var(--k) * -4.5s);
+}
+
+/*
+ * The dots, the grid and the lines: eight sheets, lit one after the other, a
+ * second apart. Thus, a soft wave of light passes over the marks, along the
+ * diagonal for the dots and the grid, and down the page for the lines. The
+ * marks themselves stay in place.
+ */
+.board-sheets:is(
+  [data-texture="dots"],
+  [data-texture="grid"],
+  [data-texture="lines"]
+) > span {
+  --glint-low: 0.3;
+  animation: board-sheet-glint 8s ease-in-out infinite;
+  animation-delay: calc((var(--k) - 8) * 1s);
+}
+
+/*
+ * The waves: eight rows, one on each sheet. Each row moves in a small circle,
+ * as water does under a wave: across with one animation, and up and down with
+ * a second one, a quarter of a turn later. Each row starts its circle half a
+ * second after the row above it. Thus, a swell passes down the page, the rows
+ * gather and spread as it goes, and no row slides against another one.
+ */
+.board-sheets[data-texture="waves"] > span {
+  --sway: 6px;
+  --bob: 4px;
+  animation:
+    board-sheet-orbit-x 4s ease-in-out infinite,
+    board-sheet-orbit-y 4s ease-in-out infinite;
+  animation-delay:
+    calc((var(--k) - 8) * 0.5s), calc((var(--k) - 8) * 0.5s - 1s);
+}
+
+/*
+ * The confetti, the hearts and the bubbles: sheets that fall or rise at their
+ * own speeds, each swaying on its own time. The hearts and the bubbles are
+ * spread by size, the largest on sheet 0. Thus, the near ones move fastest, as
+ * they seem to. The confetti is spread with its sizes mixed.
+ */
+.board-sheets[data-texture="confetti"] > span {
+  --drift-y: 320px;
+  --sway: 12px;
+  animation:
+    board-sheet-drift calc(22s + var(--k) * 9s) linear infinite,
+    board-sheet-sway calc(3.1s + var(--k) * 1.1s) ease-in-out infinite alternate;
+  animation-delay: 0s, calc(var(--k) * -1.7s);
+}
+.board-sheets[data-texture="hearts"] > span {
+  --drift-y: -360px;
+  --sway: 10px;
+  animation:
+    board-sheet-drift calc(34s + var(--k) * 12s) linear infinite,
+    board-sheet-sway calc(4s + var(--k) * 1.3s) ease-in-out infinite alternate;
+  animation-delay: 0s, calc(var(--k) * -2.1s);
+}
+.board-sheets[data-texture="bubbles"] > span {
+  --drift-y: -360px;
+  --sway: 8px;
+  animation:
+    board-sheet-drift calc(18s + var(--k) * 8s) linear infinite,
+    board-sheet-sway calc(2.4s + var(--k) * 0.8s) ease-in-out infinite alternate;
+  animation-delay: 0s, calc(var(--k) * -1.1s);
+}
+
+/*
+ * The stars: four sheets that twinkle, each on its own time, while all of them
+ * pass slowly together.
+ */
+.board-sheets[data-texture="stars"] > span {
+  --drift-x: -360px;
+  --glint-low: 0.25;
+  animation:
+    board-sheet-drift 96s linear infinite,
+    board-sheet-glint calc(2.6s + var(--k) * 0.9s) ease-in-out infinite;
+  animation-delay: 0s, calc(var(--k) * -1.3s);
+}
+
+/* The stripes slide across, one stripe and its gap at a time. */
+.board-sheets[data-texture="stripes"] > span {
+  --drift-x: calc(32px * 1.41421356);
+  animation: board-sheet-drift 8s linear infinite;
+}
+
+/*
+ * The sawtooth: every other row runs the other way along its row, one tooth
+ * at a time (utils/boardTextures.ts).
+ */
+.board-sheets[data-texture="sawtooth"] > span {
+  --drift-x: 28.6px;
+  --drift-y: -28.6px;
+  animation: board-sheet-drift 8s linear infinite;
+}
+.board-sheets[data-texture="sawtooth"] > span:nth-child(2) {
+  --drift-x: -28.6px;
+  --drift-y: 28.6px;
 }

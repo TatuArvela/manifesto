@@ -6,6 +6,9 @@ import {
   pictureTextures,
   SCATTER_TILE,
   SCATTERS,
+  SHEET_COUNTS,
+  SHEET_SHAPES,
+  sheetTextures,
 } from "./boardTextures.ts";
 
 function svgOf(url: string): string {
@@ -109,5 +112,64 @@ describe.each(Object.entries(SCATTERS))("the scattered %s", (name, shapes) => {
     );
     expect(crossing.length).toBeGreaterThan(0);
     expect(drawn.length).toBeGreaterThan(shapes.length);
+  });
+});
+
+describe("the sheets of the moving patterns", () => {
+  const drawn = sheetTextures();
+
+  it("draws as many sheets as each pattern moves in", () => {
+    for (const [texture, images] of Object.entries(drawn)) {
+      expect(images, texture).toHaveLength(
+        SHEET_COUNTS[texture as keyof typeof drawn],
+      );
+    }
+  });
+
+  // A shape on no sheet is missing from the moving pattern. A shape on two is
+  // drawn twice.
+  it.each(Object.entries(SHEET_SHAPES))(
+    "puts each of the %s on exactly one sheet",
+    (texture, shapesOf) => {
+      const all: readonly unknown[] =
+        texture === "confetti"
+          ? CONFETTI
+          : SCATTERS[texture as keyof typeof SCATTERS];
+      const spread: unknown[] = Array.from(
+        { length: SHEET_COUNTS[texture as keyof typeof SHEET_SHAPES] },
+        (_, k) => shapesOf(k),
+      ).flat();
+      expect(spread).toHaveLength(all.length);
+      expect(new Set(spread)).toEqual(new Set(all));
+    },
+  );
+
+  it("lights each dot on one step of the wave", () => {
+    const dots = drawn.dots.flatMap((url) => [
+      ...svgOf(url).matchAll(/cx='([\d.]+)' cy='([\d.]+)'/g),
+    ]);
+    const places = dots.map(([, x, y]) => `${x} ${y}`);
+    expect(places).toHaveLength(SHEET_COUNTS.dots ** 2);
+    expect(new Set(places).size).toBe(places.length);
+  });
+
+  it("splits the rows of the waves and of the sawtooth between sheets", () => {
+    const rows = (url: string) =>
+      (svgOf(url).match(/<(path|use) /g) ?? []).length;
+    // Row 0 is on both edges of its tile, each with its own half.
+    expect(drawn.waves.map(rows)).toEqual([2, 1, 1, 1, 1, 1, 1, 1]);
+    const heights = drawn.waves.map(
+      (url) => /M-?[\d.]+ ([\d.]+)A/.exec(svgOf(url))?.[1],
+    );
+    expect(new Set(heights).size).toBe(drawn.waves.length);
+    const sawtooth = drawn.sawtooth.map(rows);
+    const still = rows(pictureTextures().sawtooth);
+    // The one row path of the defs, and the rows that use it.
+    expect((sawtooth[0] ?? 0) + (sawtooth[1] ?? 0) - 2).toBe(still - 1);
+  });
+
+  it("gives the second grain of the paper its own noise", () => {
+    expect(svgOf(drawn.paper[0] ?? "")).toContain("seed='0'");
+    expect(svgOf(drawn.paper[1] ?? "")).not.toContain("seed='0'");
   });
 });

@@ -129,7 +129,7 @@ The state is in `packages/client/src/state/`. It is reactive through `@preact/si
   `darkHue`, `defaultNoteColor`, `defaultNoteFont`, `noteQuips`, `formattingToolbar`, `stickyTopBar`,
   `defaultEditMode`, `noteCorners`, `complexShadows`, `animations`, `boardColor`, `boardCustomColor`, `boardGradient`,
   `boardGradientCustomColor`, `boardGradientDirection`, `boardGradientSpeed`, `boardTexture`, `boardInk`,
-  `boardInkColor`, `boardTextureOpacity`, `boardTextureMotion`, `boardUsePicture`, `boardImageStamp`, `inlineCalculations`,
+  `boardInkColor`, `boardTextureOpacity`, `boardTextureSpeed`, `boardUsePicture`, `boardImageStamp`, `inlineCalculations`,
   `decimalSeparator`, and `locale`.
   - In connected mode, the preferences that are not in `DEVICE_PREFS` go with the account through
     `prefsSync.ts`. It reads the copy of the server at sign-in and on reconnect, sends each change
@@ -143,8 +143,13 @@ The state is in `packages/client/src/state/`. It is reactive through `@preact/si
     `data-board-gradient-direction`, `data-board-texture` and `data-board-ink`. It also sets
     `--board-custom`, `--board-gradient-custom`, `--board-ink-picked`, `--board-texture-opacity`,
     and the SVG patterns that `utils/boardTextures.ts` draws one time at load, as masks.
-  - While `animations` is on, it also sets `data-board-roll` and `data-board-texture-motion`, which
-    start the moving layers of the board. With `animations` off, the board is still.
+  - While `animations` is on and a speed is above 0, it also sets `data-board-roll` and
+    `data-board-texture-motion`. The first rolls the gradient on the `::after` of the frame. With the
+    second, `components/BoardLayers.tsx` mounts the sheets of the pattern that
+    `utils/boardTextures.ts` draws one time at load. With `animations` off, the board is still.
+  - A speed is the `playbackRate` of the running board animations, which it finds by the start of
+    their names (`board-roll`, `board-sheet`). The stylesheet gives their times at
+    100%. A new duration puts a layer at a new point of its loop, and a new rate does not.
   - The custom colors must be six-digit hex colors, because the app writes them into CSS custom
     properties.
 - **`board.ts`**: the board picture. It is in IndexedDB (`storage/boardImage.ts`), not in the

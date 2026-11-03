@@ -227,9 +227,9 @@ function confettiPiece({ x, y, strip, turn }: ConfettiPiece): string {
     .join("");
 }
 
-function confetti(): string {
+function confetti(pieces: readonly ConfettiPiece[] = CONFETTI): string {
   return dataUrl(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='${CONFETTI_TILE}' height='${CONFETTI_TILE}'>${CONFETTI.map(confettiPiece).join("")}</svg>`,
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${CONFETTI_TILE}' height='${CONFETTI_TILE}'>${pieces.map(confettiPiece).join("")}</svg>`,
   );
 }
 
@@ -379,7 +379,7 @@ function placedPath(d: string, reach: number) {
  * tile's corners measured along and across them, with a tooth and a row to
  * spare at each end, and starts on a whole tooth so the rows stay in step.
  */
-function sawtooth(): string {
+function sawtooth(parity?: 0 | 1): string {
   const turn = (SAWTOOTH_TURN * Math.PI) / 180;
   const { width, height } = SAWTOOTH_UNITS;
   const corners = [
@@ -401,6 +401,7 @@ function sawtooth(): string {
   const row = `M${first * SAWTOOTH_TOOTH} 286.378${TOOTH_TOP.repeat(teeth)}v793.622${TOOTH_FOOT.repeat(teeth)}Z`;
   const rows: string[] = [];
   for (let n = firstRow; n <= lastRow; n++) {
+    if (parity !== undefined && ((n % 2) + 2) % 2 !== parity) continue;
     rows.push(`<use href='#r' y='${round(n * SAWTOOTH_ROW)}'/>`);
   }
   return dataUrl(
@@ -412,10 +413,10 @@ function dataUrl(svg: string): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
-function noise(texture: Noise): string {
+function noise(texture: Noise, seed = 0): string {
   const matrix = `0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ${GRAIN_SLOPE} ${GRAIN_OFFSET}`;
   return dataUrl(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='${texture.size}' height='${texture.size}'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='${texture.frequency}' numOctaves='${texture.octaves}' stitchTiles='stitch'/><feColorMatrix values='${matrix}'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`,
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${texture.size}' height='${texture.size}'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='${texture.frequency}' numOctaves='${texture.octaves}' seed='${seed}' stitchTiles='stitch'/><feColorMatrix values='${matrix}'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`,
   );
 }
 
@@ -431,5 +432,168 @@ export function pictureTextures(): Record<PictureTexture, string> {
       ({ r }, x, y) => `<circle cx='${x}' cy='${y}' r='${r}'/>`,
     ),
     sawtooth: sawtooth(),
+  };
+}
+
+/**
+ * The moving patterns (`.board-sheets` in preferences.css). A pattern that moves
+ * is split into sheets, each its own layer with its own motion. Thus, the parts
+ * of one pattern do not move as one flat picture:
+ *
+ * - the paper is two grains that fade into each other;
+ * - the dots, the grid and the lines are lit in steps along a diagonal or down
+ *   the page, one sheet for each step, so that a soft wave of light passes;
+ * - the waves are their rows, one row on each sheet, which each move in a small
+ *   circle, one after the other, so that a swell passes down the page;
+ * - the confetti, the stars, the hearts and the bubbles are spread over sheets
+ *   that fall, twinkle or rise at their own speeds;
+ * - the sawtooth is its rows, every other row on one sheet, which run against
+ *   each other.
+ *
+ * The stripes stay one sheet, which slides. Each sheet is drawn one time, as the
+ * still textures are, in opaque black on the tile of its pattern (or a whole
+ * number of them). Thus, the still and the moving pattern have the same marks.
+ */
+export const SHEET_COUNTS = {
+  paper: 2,
+  dots: 8,
+  grid: 8,
+  lines: 8,
+  waves: 8,
+  confetti: 3,
+  stars: 4,
+  hearts: 3,
+  bubbles: 3,
+  stripes: 1,
+  sawtooth: 2,
+} as const;
+
+export type MovingTexture = keyof typeof SHEET_COUNTS;
+
+/** The sheets drawn here. The stripes are a CSS gradient (preferences.css). */
+export type DrawnSheetTexture = Exclude<MovingTexture, "stripes">;
+
+/**
+ * The repeat of the gradient patterns, in px, as preferences.css draws them.
+ * styles.test.ts holds the two equal.
+ */
+export const DOT_STEP = 22;
+export const GRID_STEP = 24;
+export const LINE_STEP = 28;
+export const WAVE_TILE = { width: 46, height: 36 } as const;
+
+function svg(width: number, height: number, body: string): string {
+  return dataUrl(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}'>${body}</svg>`,
+  );
+}
+
+/** The dots on the diagonal `k` of a square of eight by eight. */
+function dotSheet(k: number): string {
+  const steps = SHEET_COUNTS.dots;
+  const side = DOT_STEP * steps;
+  const marks: string[] = [];
+  for (let i = 0; i < steps; i++) {
+    const j = (((k - i) % steps) + steps) % steps;
+    marks.push(
+      `<circle cx='${DOT_STEP * i + DOT_STEP / 2}' cy='${DOT_STEP * j + DOT_STEP / 2}' r='1.5'/>`,
+    );
+  }
+  return svg(side, side, marks.join(""));
+}
+
+/** Row `k` and column `k` of a square of eight by eight cells. */
+function gridSheet(k: number): string {
+  const side = GRID_STEP * SHEET_COUNTS.grid;
+  return svg(
+    side,
+    side,
+    `<rect y='${GRID_STEP * k}' width='${side}' height='1'/><rect x='${GRID_STEP * k}' width='1' height='${side}'/>`,
+  );
+}
+
+/** Line `k` of eight, at the foot of its row as the gradient draws it. */
+function lineSheet(k: number): string {
+  const height = LINE_STEP * SHEET_COUNTS.lines;
+  return svg(
+    LINE_STEP,
+    height,
+    `<rect y='${LINE_STEP * (k + 1) - 1}' width='${LINE_STEP}' height='1'/>`,
+  );
+}
+
+/**
+ * Row `k` of eight rows of waves, on a tile eight rows high. A row is a crest
+ * over each side edge and a trough under the middle, at the line between two
+ * tiles of the still pattern. Row 0 is on the top and the bottom edge, each edge
+ * with its own half.
+ */
+function waveSheet(k: number): string {
+  const { width, height } = WAVE_TILE;
+  const tall = height * SHEET_COUNTS.waves;
+  const r = width / 4;
+  const row = (y: number) =>
+    `<path d='M${-r} ${y}A${r} ${r} 0 0 1 ${r} ${y}A${r} ${r} 0 0 0 ${3 * r} ${y}A${r} ${r} 0 0 1 ${5 * r} ${y}'/>`;
+  const rows = k === 0 ? row(0) + row(tall) : row(height * k);
+  return svg(
+    width,
+    tall,
+    `<g fill='none' stroke='#000' stroke-width='1'>${rows}</g>`,
+  );
+}
+
+/** Every `count`-th shape, from `k`, which mixes their sizes. */
+function everyNth<T>(shapes: readonly T[], count: number, k: number): T[] {
+  return shapes.filter((_, i) => i % count === k);
+}
+
+/**
+ * The third `k` of the shapes by size, largest first, as they were placed.
+ * Thus, the near sheet has the largest shapes, and moves fastest.
+ */
+function bySize<T>(shapes: readonly T[], count: number, k: number): T[] {
+  const share = Math.ceil(shapes.length / count);
+  return shapes.slice(share * k, share * (k + 1));
+}
+
+function sheets(
+  texture: DrawnSheetTexture,
+  draw: (k: number) => string,
+): string[] {
+  return Array.from({ length: SHEET_COUNTS[texture] }, (_, k) => draw(k));
+}
+
+/**
+ * The shapes on each sheet, exported for their test, which holds each shape on
+ * exactly one sheet.
+ */
+export const SHEET_SHAPES = {
+  confetti: (k: number) => everyNth(CONFETTI, SHEET_COUNTS.confetti, k),
+  stars: (k: number) => everyNth(SCATTERS.stars, SHEET_COUNTS.stars, k),
+  hearts: (k: number) => bySize(SCATTERS.hearts, SHEET_COUNTS.hearts, k),
+  bubbles: (k: number) => bySize(SCATTERS.bubbles, SHEET_COUNTS.bubbles, k),
+};
+
+/** Each sheet of each moving pattern as a mask, each a CSS `url(...)`. */
+export function sheetTextures(): Record<DrawnSheetTexture, string[]> {
+  const circle = ({ r }: Scattered, x: number, y: number) =>
+    `<circle cx='${x}' cy='${y}' r='${r}'/>`;
+  return {
+    paper: sheets("paper", (k) => noise(NOISE.paper, k * 7)),
+    dots: sheets("dots", dotSheet),
+    grid: sheets("grid", gridSheet),
+    lines: sheets("lines", lineSheet),
+    waves: sheets("waves", waveSheet),
+    confetti: sheets("confetti", (k) => confetti(SHEET_SHAPES.confetti(k))),
+    stars: sheets("stars", (k) =>
+      scattered(SHEET_SHAPES.stars(k), placedPath(STAR, 1)),
+    ),
+    hearts: sheets("hearts", (k) =>
+      scattered(SHEET_SHAPES.hearts(k), placedPath(HEART, HEART_REACH)),
+    ),
+    bubbles: sheets("bubbles", (k) =>
+      scattered(SHEET_SHAPES.bubbles(k), circle),
+    ),
+    sawtooth: sheets("sawtooth", (k) => sawtooth(k === 0 ? 0 : 1)),
   };
 }

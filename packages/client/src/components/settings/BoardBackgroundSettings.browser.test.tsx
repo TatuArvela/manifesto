@@ -1,6 +1,7 @@
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import "#/styles.css";
+import { BoardSheets } from "#/components/BoardLayers.tsx";
 import { t } from "#/i18n/index.ts";
 import {
   animations,
@@ -10,11 +11,12 @@ import {
   boardGradientDirection,
   boardGradientSpeed,
   boardTexture,
-  boardTextureMotion,
   boardTextureOpacity,
+  boardTextureSpeed,
   boardUsePicture,
   resolvedBoardTexture,
 } from "#/state/prefs.ts";
+import { defined } from "#/test/defined.ts";
 import { BoardBackgroundSettings } from "./BoardBackgroundSettings.tsx";
 
 let host: HTMLDivElement;
@@ -60,77 +62,130 @@ describe("board motion", () => {
   const root = document.documentElement;
 
   afterEach(() => {
+    render(null, board);
     animations.value = true;
     boardGradient.value = "none";
-    boardGradientSpeed.value = "still";
-    boardTextureMotion.value = false;
+    boardGradientSpeed.value = 0;
+    boardTextureSpeed.value = 0;
   });
 
-  it("rolls the gradient on a layer, at the chosen speed", async () => {
-    animations.value = true;
+  function slider(label: string): HTMLInputElement {
+    const found = host.querySelector<HTMLInputElement>(
+      `input[aria-label="${label}"]`,
+    );
+    if (!found) throw new Error(`no slider for ${label}`);
+    return found;
+  }
+
+  function slide(label: string, value: number) {
+    const input = slider(label);
+    input.value = String(value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  function boardAnimation(name: string): CSSAnimation {
+    const found = document
+      .getAnimations()
+      .find(
+        (animation): animation is CSSAnimation =>
+          animation instanceof CSSAnimation && animation.animationName === name,
+      );
+    if (!found) throw new Error(`no animation ${name}`);
+    return found;
+  }
+
+  /** The sheets of the pattern, in the frame of the test, as App puts them. */
+  function mountLayers() {
+    render(<BoardSheets texture={resolvedBoardTexture.value} />, board);
+  }
+
+  it("rolls the gradient on a layer, at the speed of the slider", async () => {
     boardGradient.value = "blue";
     boardGradientDirection.value = "right";
     await nextFrame();
-    button(t("settings.boardBackground.speed.fast")).click();
+    slide(t("settings.boardBackground.speed"), 200);
+    mountLayers();
+    await nextFrame();
     await nextFrame();
 
-    expect(root.dataset.boardRoll).toBe("fast");
+    expect(root.dataset.boardRoll).toBe("");
     const layer = getComputedStyle(board, "::after");
     expect(layer.getPropertyValue("animation-name")).toBe("board-roll");
-    expect(layer.getPropertyValue("animation-duration")).toBe("20s");
-    // Three boards wide, one board high, for a gradient that goes sideways.
+    // A repeat of two boards, and one board more, for a gradient that goes
+    // sideways. One board high.
     expect(Number.parseFloat(layer.width)).toBeCloseTo(
       board.getBoundingClientRect().width * 3,
     );
     expect(Number.parseFloat(layer.height)).toBeCloseTo(
       board.getBoundingClientRect().height,
     );
+    expect(boardAnimation("board-roll").playbackRate).toBe(2);
+  });
+
+  // A new duration would put the layer at a new point of its loop.
+  it("keeps the layer where it is when the speed changes", async () => {
+    boardGradient.value = "blue";
+    boardGradientSpeed.value = 100;
+    await nextFrame();
+    await nextFrame();
+    const roll = boardAnimation("board-roll");
+    roll.currentTime = 30_000;
+    slide(t("settings.boardBackground.speed"), 50);
+
+    expect(roll.playbackRate).toBe(0.5);
+    expect(Number(roll.currentTime)).toBeCloseTo(30_000, -2);
+    expect(getComputedStyle(board, "::after").animationDuration).toBe("60s");
   });
 
   it("has no speed to change with no gradient", async () => {
-    animations.value = true;
     boardGradient.value = "none";
-    boardGradientSpeed.value = "fast";
+    boardGradientSpeed.value = 100;
     await nextFrame();
     expect(root.dataset.boardRoll).toBeUndefined();
-    expect(
-      button(t("settings.boardBackground.speed.fast")).matches(":disabled"),
-    ).toBe(true);
+    expect(slider(t("settings.boardBackground.speed")).disabled).toBe(true);
   });
 
-  it("moves the pattern past the edge of its layer", async () => {
-    animations.value = true;
+  it("moves the pattern in its sheets, past the edge that they come from", async () => {
     boardTexture.value = "confetti";
-    boardTextureMotion.value = true;
+    await nextFrame();
+    slide(t("settings.boardBackground.patternSpeed"), 100);
+    mountLayers();
     await nextFrame();
 
-    const layer = getComputedStyle(board, "::before");
-    expect(layer.getPropertyValue("animation-name")).toBe(
-      "board-texture-drift, board-texture-sway",
-    );
-    expect(layer.getPropertyValue("top")).toBe("-332px");
+    const sheets = board.querySelectorAll(".board-sheets > span");
+    expect(sheets).toHaveLength(3);
+    const first = getComputedStyle(defined(sheets[0]));
+    expect(first.animationName).toBe("board-sheet-drift, board-sheet-sway");
+    // It falls by one tile. Thus, it starts one tile above the board.
+    expect(first.top).toBe("-320px");
+    expect(first.bottom).toBe("0px");
+    expect(getComputedStyle(board, "::before").display).toBe("none");
     expect(getComputedStyle(board).getPropertyValue("overflow-x")).toBe("clip");
+    // The tile of the pattern moves too.
+    const tile = button(t("settings.boardBackground.texture.confetti"));
+    expect(tile.querySelectorAll(".board-sheets > span")).toHaveLength(3);
   });
 
   it("holds the board still with the animations off", async () => {
     boardGradient.value = "blue";
-    boardGradientSpeed.value = "fast";
+    boardGradientSpeed.value = 200;
     boardTexture.value = "dots";
-    boardTextureMotion.value = true;
+    boardTextureSpeed.value = 100;
     animations.value = false;
+    mountLayers();
     await nextFrame();
 
     expect(root.dataset.boardRoll).toBeUndefined();
     expect(root.dataset.boardTextureMotion).toBeUndefined();
-    expect(getComputedStyle(board, "::before").getPropertyValue("top")).toBe(
-      "0px",
-    );
+    expect(board.querySelector(".board-sheets")).toBeNull();
+    expect(getComputedStyle(board, "::before").display).not.toBe("none");
     expect(host.textContent).toContain(t("settings.boardBackground.motionOff"));
     // The choices stay. Thus, the board moves again with the animations on.
     animations.value = true;
     await nextFrame();
-    expect(root.dataset.boardRoll).toBe("fast");
+    expect(root.dataset.boardRoll).toBe("");
     expect(root.dataset.boardTextureMotion).toBe("");
+    expect(board.querySelectorAll(".board-sheets > span")).toHaveLength(8);
   });
 });
 
