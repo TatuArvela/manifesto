@@ -10,6 +10,7 @@ import {
   DOT_STEP,
   GRID_STEP,
   LINE_STEP,
+  LINE_WIDTH,
   PAPER_TILE,
   SAWTOOTH_TILE,
   SCATTER_TILE,
@@ -197,11 +198,17 @@ describe("moving patterns", () => {
     }
   });
 
+  it("draws the lines of the grid at the width of the lines", () => {
+    expect(css).toContain(
+      `linear-gradient(#000 ${LINE_WIDTH}px, transparent ${LINE_WIDTH}px),\n    linear-gradient(90deg, #000 ${LINE_WIDTH}px, transparent ${LINE_WIDTH}px);`,
+    );
+  });
+
   it("draws the sheets on the repeat of the still pattern", () => {
     expect(tileSize("dots")).toBe(`${DOT_STEP}px ${DOT_STEP}px`);
     expect(tileSize("grid")).toBe(`${GRID_STEP}px ${GRID_STEP}px`);
     expect(css).toContain(
-      `transparent 0 ${LINE_STEP - 1}px,\n    #000 ${LINE_STEP - 1}px ${LINE_STEP}px`,
+      `transparent 0 ${LINE_STEP - LINE_WIDTH}px,\n    #000 ${LINE_STEP - LINE_WIDTH}px ${LINE_STEP}px`,
     );
     expect(tileSize("waves")).toBe(
       `${WAVE_TILE.width}px ${WAVE_TILE.height}px`,

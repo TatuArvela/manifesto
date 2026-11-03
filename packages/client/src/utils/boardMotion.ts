@@ -49,11 +49,11 @@ export interface SheetPlan {
 }
 
 export const SHEET_PLANS: Record<MovingTexture, SheetPlan> = {
-  // On a screen mode that macOS scales (not half of the panel), the thin marks
-  // of these four flicker as they move: they cross the pixels of the panel,
-  // and become thinner and thicker. Soft edges (the look changes) and steps of
-  // whole pixels (2 px looked slow and jerky) did not fix it. The page cannot
-  // know the pixels of the panel.
+  // On a screen mode that macOS scales (not half of the panel), a line of 1px
+  // flickers as it moves: it crosses the pixels of the panel, and becomes
+  // thinner and thicker. The page cannot know the pixels of the panel. Soft
+  // edges changed the look, and steps of 2px looked slow and jerky. Lines of
+  // 2px (`LINE_WIDTH` in boardTextures.ts) fixed it for the lines and the grid.
   paper: { drift: { x: 160, y: 160, seconds: [40, 0] } },
   dots: { drift: { x: 22, y: 22, seconds: [5, 0] } },
   grid: { drift: { x: 24, y: 24, seconds: [6, 0] } },

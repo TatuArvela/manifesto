@@ -325,13 +325,13 @@
   );
   --board-texture-dots-size: 22px 22px;
   --board-texture-grid:
-    linear-gradient(#000 1px, transparent 1px),
-    linear-gradient(90deg, #000 1px, transparent 1px);
+    linear-gradient(#000 2px, transparent 2px),
+    linear-gradient(90deg, #000 2px, transparent 2px);
   --board-texture-grid-size: 24px 24px, 24px 24px;
   --board-texture-lines: repeating-linear-gradient(
     to bottom,
-    transparent 0 27px,
-    #000 27px 28px
+    transparent 0 26px,
+    #000 26px 28px
   );
   --board-texture-lines-size: auto;
   --board-texture-confetti: var(--board-texture-confetti-mask);
@@ -791,9 +791,9 @@
 /*
  * The paper, the dots, the grid and the lines roll from the top left to the
  * bottom right, by one repeat of their pattern in each loop. Each is one sheet,
- * the still pattern, at the size of the still pattern. On a screen mode that
- * macOS scales, their thin marks flicker as they move (SHEET_PLANS in
- * utils/boardMotion.ts tells what did not fix it).
+ * the still pattern, at the size of the still pattern. The lines and the grid
+ * are 2px, because a line of 1px that moves flickers on a screen mode that
+ * macOS scales (SHEET_PLANS in utils/boardMotion.ts).
  */
 .board-sheets[data-texture="paper"] > span {
   --drift-x: 160px;

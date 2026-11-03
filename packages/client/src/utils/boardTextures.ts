@@ -489,6 +489,13 @@ export type DrawnSheetTexture = Exclude<
 export const DOT_STEP = 22;
 export const GRID_STEP = 24;
 export const LINE_STEP = 28;
+/**
+ * The lines, and the lines of the grid, are 2px, not 1px. On a screen mode that
+ * macOS scales, a line of 1px flickers as it moves: it crosses the pixels of
+ * the panel, and becomes thinner and thicker. A thicker line changes only at
+ * its edges.
+ */
+export const LINE_WIDTH = 2;
 export const WAVE_TILE = { width: 46, height: 36 } as const;
 export const PAPER_TILE = NOISE.paper.size;
 
@@ -611,14 +618,14 @@ export function paintedSheets(): Record<MovingTexture, PaintedSheets> {
       svg(
         GRID_STEP,
         GRID_STEP,
-        `<rect width='${GRID_STEP}' height='1'/><rect width='1' height='${GRID_STEP}'/>`,
+        `<rect width='${GRID_STEP}' height='${LINE_WIDTH}'/><rect width='${LINE_WIDTH}' height='${GRID_STEP}'/>`,
       ),
     ]),
     lines: tile(LINE_STEP, [
       svg(
         LINE_STEP,
         LINE_STEP,
-        `<rect y='${LINE_STEP - 1}' width='${LINE_STEP}' height='1'/>`,
+        `<rect y='${LINE_STEP - LINE_WIDTH}' width='${LINE_STEP}' height='${LINE_WIDTH}'/>`,
       ),
     ]),
     waves: {
