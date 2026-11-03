@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CONFETTI,
   CONFETTI_TILE,
+  FRAME_THINNEST,
   FRAMES,
   FRAMES_TILE,
   inkHex,
@@ -143,6 +144,16 @@ describe("the frames", () => {
         );
       }
     }
+  });
+
+  // A side thinner than that flickers as it moves on a scaled screen.
+  it("moves each hole off the centre, and keeps each side wide enough", () => {
+    for (const { line, hole } of FRAMES) {
+      expect(Math.abs(hole.x)).toBeLessThanOrEqual(line - FRAME_THINNEST);
+      expect(Math.abs(hole.y)).toBeLessThanOrEqual(line - FRAME_THINNEST);
+    }
+    const moved = FRAMES.filter(({ hole }) => Math.hypot(hole.x, hole.y) > 0.5);
+    expect(moved.length).toBeGreaterThan(FRAMES.length / 2);
   });
 
   // A frame that crosses an edge and is drawn on one side only shows the seam

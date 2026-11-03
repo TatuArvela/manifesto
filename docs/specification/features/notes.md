@@ -125,10 +125,11 @@ sections, Color and Pattern. Each choice applies immediately:
     in 30 seconds. It is disabled without a second color.
 - **Pattern**: Plain, Paper, Dots, Grid, Lines, Waves, Confetti, Stars, Hearts, Bubbles, Rain,
   Snowflakes, Maple Leaves, Sakura Petals, Stripes, Frames (rounded outlines of many sizes and line
-  widths, over each other) or Sawtooth (the logo in rows turned 45°, with a line between the rows
-  that has barbs from its notches). The app draws it over the color. The patterns are CSS gradients
-  and inline SVG. Thus, no image files are necessary. **Random** puts a different pattern (never
-  Plain) on the board on each visit. If you select it again, it selects a different one.
+  widths, over each other, each with its hole a little off its centre) or Sawtooth (the logo in rows
+  turned 45°, with a line between the rows that has barbs from its notches). The app draws it over
+  the color. The patterns are CSS gradients and inline SVG. Thus, no image files are necessary.
+  **Random** puts a different pattern (never Plain) on the board on each visit. If you select it
+  again, it selects a different one.
 - **Pattern Color**:
   - Gray (the default, between White and Black) draws each pattern in ink that follows the theme:
     black in light, white in dark.

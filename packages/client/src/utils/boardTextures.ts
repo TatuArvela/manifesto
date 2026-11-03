@@ -547,7 +547,10 @@ function placedPath(d: string, reach: number) {
 /** The tile the frames float on, in px: wider, because a frame is large. */
 export const FRAMES_TILE = 480;
 
-/** A rounded frame: its centre, its size, its corner and the width of its line. */
+/**
+ * A rounded frame: its centre, its size, its corner, the width of its line,
+ * and how far its hole is off the centre of the frame.
+ */
 export interface Frame {
   x: number;
   y: number;
@@ -555,7 +558,14 @@ export interface Frame {
   height: number;
   corner: number;
   line: number;
+  hole: { x: number; y: number };
 }
+
+/**
+ * The thinnest side of a frame, in px. As the lines, a thinner mark flickers
+ * as it moves on a screen mode that macOS scales.
+ */
+export const FRAME_THINNEST = 1.5;
 
 /**
  * Frames that float over each other, as rounded outlines of many sizes and
@@ -592,13 +602,23 @@ function scatterFrames(count: number): Frame[] {
     .map(({ x, y }) => {
       const width = 40 + 110 * random() ** 1.4;
       const height = width * (0.7 + 0.6 * random());
+      const line = 2 + Math.round(random() * 8) / 2;
+      // The hole moves a little off the centre, in any direction. Thus, the
+      // line is thicker on one side and thinner on the other, but never under
+      // `FRAME_THINNEST`.
+      const off = (line - FRAME_THINNEST) * (0.4 + 0.5 * random());
+      const toward = random() * 2 * Math.PI;
       return {
         x: round(x),
         y: round(y),
         width: round(width),
         height: round(height),
         corner: round(Math.min(width, height) * (0.18 + 0.1 * random())),
-        line: 2 + Math.round(random() * 8) / 2,
+        line,
+        hole: {
+          x: round(off * Math.cos(toward)),
+          y: round(off * Math.sin(toward)),
+        },
       };
     })
     .sort((a, b) => b.width * b.height - a.width * a.height);
@@ -632,9 +652,12 @@ function roundedRect(
     : `M${round(left + r)} ${top}${arc(left, top + r)}V${round(bottom - r)}${arc(left + r, bottom)}H${round(right - r)}${arc(right, bottom - r)}V${round(top + r)}${arc(right - r, top)}Z`;
 }
 
-/** A frame as a ring, the line centred on its outline. */
+/**
+ * A frame as a ring, the line centred on its outline, and the hole moved off
+ * the centre by `hole`.
+ */
 function frameRing(frame: Frame, x: number, y: number): string {
-  const { width, height, corner, line } = frame;
+  const { width, height, corner, line, hole } = frame;
   const half = line / 2;
   const outer = roundedRect(
     x - width / 2 - half,
@@ -645,8 +668,8 @@ function frameRing(frame: Frame, x: number, y: number): string {
     true,
   );
   const inner = roundedRect(
-    x - width / 2 + half,
-    y - height / 2 + half,
+    x - width / 2 + half + hole.x,
+    y - height / 2 + half + hole.y,
     width - line,
     height - line,
     corner - half,
