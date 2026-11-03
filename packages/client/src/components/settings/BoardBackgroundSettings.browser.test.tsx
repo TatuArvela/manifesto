@@ -185,7 +185,12 @@ describe("board motion", () => {
     await nextFrame();
     expect(root.dataset.boardRoll).toBe("");
     expect(root.dataset.boardTextureMotion).toBe("");
-    expect(board.querySelectorAll(".board-sheets > span")).toHaveLength(8);
+    // The dots roll in one sheet, from the top left.
+    const sheets = board.querySelectorAll(".board-sheets > span");
+    expect(sheets).toHaveLength(1);
+    const sheet = getComputedStyle(defined(sheets[0]));
+    expect(sheet.animationName).toBe("board-sheet-drift");
+    expect([sheet.left, sheet.top]).toEqual(["-22px", "-22px"]);
   });
 });
 

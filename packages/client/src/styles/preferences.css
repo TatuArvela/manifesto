@@ -380,8 +380,15 @@
   --board-texture-hearts-size: 360px 360px;
   --board-texture-sawtooth: var(--board-texture-sawtooth-mask);
   --board-texture-sawtooth-size: 286px 286px;
-  /* The one sheet of the moving stripes (the others are drawn by state/prefs.ts). */
+  /*
+   * The sheets that are CSS gradients: one each for the stripes, the dots, the
+   * grid and the lines, which is the still pattern (state/prefs.ts sets the
+   * others).
+   */
   --board-sheet-stripes-0: var(--board-texture-stripes);
+  --board-sheet-dots-0: var(--board-texture-dots);
+  --board-sheet-lines-0: var(--board-texture-lines);
+  --board-sheet-grid-0: var(--board-texture-grid);
 }
 
 /*
@@ -760,27 +767,34 @@
   }
 }
 
-/* The paper: two grains, each fading in while the other fades out. */
-.board-sheets[data-texture="paper"] > span {
-  --glint-low: 0;
-  animation: board-sheet-glint 9s ease-in-out infinite;
-  animation-delay: calc(var(--k) * -4.5s);
-}
-
 /*
- * The dots, the grid and the lines: eight sheets, lit one after the other, a
- * second apart. Thus, a soft wave of light passes over the marks, along the
- * diagonal for the dots and the grid, and down the page for the lines. The
- * marks themselves stay in place.
+ * The paper, the dots, the grid and the lines roll from the top left to the
+ * bottom right, by one repeat of their pattern in each loop. Each is one sheet,
+ * the still pattern, at the size of the still pattern. On a screen mode that
+ * macOS scales, their thin marks flicker as they move (SHEET_PLANS in
+ * utils/boardMotion.ts tells what did not fix it).
  */
-.board-sheets:is(
-  [data-texture="dots"],
-  [data-texture="grid"],
-  [data-texture="lines"]
-) > span {
-  --glint-low: 0.3;
-  animation: board-sheet-glint 8s ease-in-out infinite;
-  animation-delay: calc((var(--k) - 8) * 1s);
+.board-sheets[data-texture="paper"] > span {
+  --drift-x: 160px;
+  --drift-y: 160px;
+  animation: board-sheet-drift 40s linear infinite;
+}
+.board-sheets[data-texture="dots"] > span {
+  --drift-x: 22px;
+  --drift-y: 22px;
+  mask-size: var(--board-texture-dots-size);
+  animation: board-sheet-drift 5s linear infinite;
+}
+.board-sheets[data-texture="grid"] > span {
+  --drift-x: 24px;
+  --drift-y: 24px;
+  mask-size: var(--board-texture-grid-size);
+  animation: board-sheet-drift 6s linear infinite;
+}
+.board-sheets[data-texture="lines"] > span {
+  --drift-x: 28px;
+  --drift-y: 28px;
+  animation: board-sheet-drift 7s linear infinite;
 }
 
 /*

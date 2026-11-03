@@ -144,15 +144,6 @@ describe("the sheets of the moving patterns", () => {
     },
   );
 
-  it("lights each dot on one step of the wave", () => {
-    const dots = drawn.dots.flatMap((url) => [
-      ...svgOf(url).matchAll(/cx='([\d.]+)' cy='([\d.]+)'/g),
-    ]);
-    const places = dots.map(([, x, y]) => `${x} ${y}`);
-    expect(places).toHaveLength(SHEET_COUNTS.dots ** 2);
-    expect(new Set(places).size).toBe(places.length);
-  });
-
   it("splits the rows of the waves and of the sawtooth between sheets", () => {
     const rows = (url: string) =>
       (svgOf(url).match(/<(path|use) /g) ?? []).length;
@@ -166,10 +157,5 @@ describe("the sheets of the moving patterns", () => {
     const still = rows(pictureTextures().sawtooth);
     // The one row path of the defs, and the rows that use it.
     expect((sawtooth[0] ?? 0) + (sawtooth[1] ?? 0) - 2).toBe(still - 1);
-  });
-
-  it("gives the second grain of the paper its own noise", () => {
-    expect(svgOf(drawn.paper[0] ?? "")).toContain("seed='0'");
-    expect(svgOf(drawn.paper[1] ?? "")).not.toContain("seed='0'");
   });
 });

@@ -10,6 +10,7 @@ import {
   DOT_STEP,
   GRID_STEP,
   LINE_STEP,
+  PAPER_TILE,
   SAWTOOTH_TILE,
   SCATTER_TILE,
   SHEET_COUNTS,
@@ -85,7 +86,7 @@ function ruleOf(selector: string, opening = ""): Map<string, string> {
   const end = css.indexOf("}", start);
   expect(start, selector).toBeGreaterThanOrEqual(0);
   return new Map(
-    [...css.slice(start, end).matchAll(/--([a-z-]+):\s*([^;]+);/g)].map(
+    [...css.slice(start, end).matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)].map(
       ([, name = "", value = ""]) => [name, value],
     ),
   );
@@ -162,14 +163,38 @@ describe("moving patterns", () => {
     expect(driftOf("sawtooth", 2).y).toBeCloseTo(tooth.y);
   });
 
-  it("keeps the marks of the paper and of the waves of light in place", () => {
-    expect(driftOf("paper")).toEqual({ x: 0, y: 0 });
-    const glint = css.slice(
-      css.indexOf("The dots, the grid and the lines: eight sheets"),
-    );
-    const block = glint.slice(glint.indexOf("{"), glint.indexOf("}"));
-    expect(block).toContain("board-sheet-glint");
-    expect(block).not.toContain("--drift");
+  // A roll that is not one whole repeat jumps each time that the loop starts.
+  it.each([
+    ["paper", PAPER_TILE],
+    ["dots", DOT_STEP],
+    ["grid", GRID_STEP],
+    ["lines", LINE_STEP],
+  ] as const)(
+    "rolls the %s from the top left to the bottom right, one repeat at a time",
+    (texture, step) => {
+      expect(driftOf(texture)).toEqual({ x: step, y: step });
+      expect(SHEET_COUNTS[texture]).toBe(1);
+    },
+  );
+
+  // The sheet is the still pattern, at the size of the still pattern.
+  it("rolls the still pattern of the dots, the grid and the lines", () => {
+    for (const texture of ["dots", "grid", "lines"]) {
+      expect(css).toContain(
+        `--board-sheet-${texture}-0: var(--board-texture-${texture});`,
+      );
+    }
+    for (const texture of ["dots", "grid"]) {
+      expect(
+        css.slice(
+          css.indexOf(`.board-sheets[data-texture="${texture}"] > span {`),
+        ),
+      ).toMatch(
+        new RegExp(
+          `^[^}]*mask-size: var\\(--board-texture-${texture}-size\\);`,
+        ),
+      );
+    }
   });
 
   it("draws the sheets on the repeat of the still pattern", () => {

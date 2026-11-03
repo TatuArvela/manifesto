@@ -413,10 +413,10 @@ function dataUrl(svg: string): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
-function noise(texture: Noise, seed = 0): string {
+function noise(texture: Noise): string {
   const matrix = `0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ${GRAIN_SLOPE} ${GRAIN_OFFSET}`;
   return dataUrl(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='${texture.size}' height='${texture.size}'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='${texture.frequency}' numOctaves='${texture.octaves}' seed='${seed}' stitchTiles='stitch'/><feColorMatrix values='${matrix}'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`,
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${texture.size}' height='${texture.size}'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='${texture.frequency}' numOctaves='${texture.octaves}' stitchTiles='stitch'/><feColorMatrix values='${matrix}'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`,
   );
 }
 
@@ -440,9 +440,8 @@ export function pictureTextures(): Record<PictureTexture, string> {
  * is split into sheets, each its own layer with its own motion. Thus, the parts
  * of one pattern do not move as one flat picture:
  *
- * - the paper is two grains that fade into each other;
- * - the dots, the grid and the lines are lit in steps along a diagonal or down
- *   the page, one sheet for each step, so that a soft wave of light passes;
+ * - the paper, the dots, the grid and the lines are one sheet each, which rolls
+ *   from the top left to the bottom right;
  * - the waves are their rows, one row on each sheet, which each move in a small
  *   circle, one after the other, so that a swell passes down the page;
  * - the confetti, the stars, the hearts and the bubbles are spread over sheets
@@ -453,12 +452,16 @@ export function pictureTextures(): Record<PictureTexture, string> {
  * The stripes stay one sheet, which slides. Each sheet is drawn one time, as the
  * still textures are, in opaque black on the tile of its pattern (or a whole
  * number of them). Thus, the still and the moving pattern have the same marks.
+ *
+ * Each sheet is a masked layer the size of the board, which the compositor
+ * blends again on each frame. Thus, a pattern has no more sheets than its
+ * motion needs.
  */
 export const SHEET_COUNTS = {
-  paper: 2,
-  dots: 8,
-  grid: 8,
-  lines: 8,
+  paper: 1,
+  dots: 1,
+  grid: 1,
+  lines: 1,
   waves: 8,
   confetti: 3,
   stars: 4,
@@ -470,55 +473,28 @@ export const SHEET_COUNTS = {
 
 export type MovingTexture = keyof typeof SHEET_COUNTS;
 
-/** The sheets drawn here. The stripes are a CSS gradient (preferences.css). */
-export type DrawnSheetTexture = Exclude<MovingTexture, "stripes">;
+/**
+ * The sheets drawn here. The others are CSS gradients (preferences.css): the
+ * stripes, the dots, the grid and the lines.
+ */
+export type DrawnSheetTexture = Exclude<
+  MovingTexture,
+  "stripes" | "dots" | "grid" | "lines"
+>;
 
 /**
  * The repeat of the gradient patterns, in px, as preferences.css draws them.
- * styles.test.ts holds the two equal.
+ * styles.test.ts holds the two equal, and holds the roll of each at one repeat.
  */
 export const DOT_STEP = 22;
 export const GRID_STEP = 24;
 export const LINE_STEP = 28;
 export const WAVE_TILE = { width: 46, height: 36 } as const;
+export const PAPER_TILE = NOISE.paper.size;
 
 function svg(width: number, height: number, body: string): string {
   return dataUrl(
     `<svg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}'>${body}</svg>`,
-  );
-}
-
-/** The dots on the diagonal `k` of a square of eight by eight. */
-function dotSheet(k: number): string {
-  const steps = SHEET_COUNTS.dots;
-  const side = DOT_STEP * steps;
-  const marks: string[] = [];
-  for (let i = 0; i < steps; i++) {
-    const j = (((k - i) % steps) + steps) % steps;
-    marks.push(
-      `<circle cx='${DOT_STEP * i + DOT_STEP / 2}' cy='${DOT_STEP * j + DOT_STEP / 2}' r='1.5'/>`,
-    );
-  }
-  return svg(side, side, marks.join(""));
-}
-
-/** Row `k` and column `k` of a square of eight by eight cells. */
-function gridSheet(k: number): string {
-  const side = GRID_STEP * SHEET_COUNTS.grid;
-  return svg(
-    side,
-    side,
-    `<rect y='${GRID_STEP * k}' width='${side}' height='1'/><rect x='${GRID_STEP * k}' width='1' height='${side}'/>`,
-  );
-}
-
-/** Line `k` of eight, at the foot of its row as the gradient draws it. */
-function lineSheet(k: number): string {
-  const height = LINE_STEP * SHEET_COUNTS.lines;
-  return svg(
-    LINE_STEP,
-    height,
-    `<rect y='${LINE_STEP * (k + 1) - 1}' width='${LINE_STEP}' height='1'/>`,
   );
 }
 
@@ -579,10 +555,7 @@ export function sheetTextures(): Record<DrawnSheetTexture, string[]> {
   const circle = ({ r }: Scattered, x: number, y: number) =>
     `<circle cx='${x}' cy='${y}' r='${r}'/>`;
   return {
-    paper: sheets("paper", (k) => noise(NOISE.paper, k * 7)),
-    dots: sheets("dots", dotSheet),
-    grid: sheets("grid", gridSheet),
-    lines: sheets("lines", lineSheet),
+    paper: sheets("paper", () => noise(NOISE.paper)),
     waves: sheets("waves", waveSheet),
     confetti: sheets("confetti", (k) => confetti(SHEET_SHAPES.confetti(k))),
     stars: sheets("stars", (k) =>
