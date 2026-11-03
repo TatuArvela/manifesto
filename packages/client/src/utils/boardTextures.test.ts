@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   CONFETTI,
   CONFETTI_TILE,
+  FRAMES,
+  FRAMES_TILE,
   inkHex,
   paintedSheets,
   pictureTextures,
@@ -9,6 +11,7 @@ import {
   SCATTERS,
   SHEET_COUNTS,
   SHEET_SHAPES,
+  scatterTile,
   sheetTextures,
 } from "./boardTextures.ts";
 
@@ -32,6 +35,11 @@ describe("pictureTextures", () => {
       "hearts",
       "confetti",
       "bubbles",
+      "rain",
+      "snow",
+      "leaves",
+      "petals",
+      "frames",
       "sawtooth",
     ] as const) {
       expect(svgOf(textures[name]), name).not.toMatch(/fill|opacity/);
@@ -74,9 +82,10 @@ describe("confetti", () => {
 });
 
 describe.each(Object.entries(SCATTERS))("the scattered %s", (name, shapes) => {
+  const tile = scatterTile(name as keyof typeof SCATTERS);
   const apart = (a: number, b: number) => {
     const d = Math.abs(a - b);
-    return Math.min(d, SCATTER_TILE - d);
+    return Math.min(d, tile - d);
   };
 
   it("keeps every shape clear of the others, across the tile's edges too", () => {
@@ -91,28 +100,57 @@ describe.each(Object.entries(SCATTERS))("the scattered %s", (name, shapes) => {
 
   it("leaves no bare patch much wider than the largest shape", () => {
     let widest = 0;
-    for (let x = 0; x < SCATTER_TILE; x += 4) {
-      for (let y = 0; y < SCATTER_TILE; y += 4) {
+    for (let x = 0; x < tile; x += 4) {
+      for (let y = 0; y < tile; y += 4) {
         const nearest = Math.min(
           ...shapes.map((s) => Math.hypot(apart(x, s.x), apart(y, s.y)) - s.r),
         );
         widest = Math.max(widest, nearest);
       }
     }
-    // The scatters leave 21px to 31px. A bare seam, as a scatter kept inside
-    // its tile left, would show here first.
-    expect(widest).toBeLessThan(34);
+    // The scatters leave 21px to 31px, more on the larger tile of the leaves
+    // (its shapes are larger too). A bare seam, as a scatter kept inside its
+    // tile left, would show here first.
+    expect(widest).toBeLessThan((34 * tile) / SCATTER_TILE);
   });
 
   it("draws a shape that crosses an edge again on the far side", () => {
     const svg = svgOf(pictureTextures()[name as keyof typeof SCATTERS]);
-    const drawn = svg.match(/<(circle|path) /g) ?? [];
+    const drawn = svg.match(/<(circle|path|rect|use) /g) ?? [];
     const crossing = shapes.filter(
-      ({ x, y, r }) =>
-        x < r || x > SCATTER_TILE - r || y < r || y > SCATTER_TILE - r,
+      ({ x, y, r }) => x < r || x > tile - r || y < r || y > tile - r,
     );
     expect(crossing.length).toBeGreaterThan(0);
     expect(drawn.length).toBeGreaterThan(shapes.length);
+  });
+});
+
+describe("the frames", () => {
+  it("puts each centre on the tile, largest first", () => {
+    expect(FRAMES.length).toBeGreaterThan(20);
+    for (const [i, frame] of FRAMES.entries()) {
+      expect(frame.x).toBeGreaterThanOrEqual(0);
+      expect(frame.x).toBeLessThan(FRAMES_TILE);
+      expect(frame.y).toBeGreaterThanOrEqual(0);
+      expect(frame.y).toBeLessThan(FRAMES_TILE);
+      // The inner outline of the ring has room for itself.
+      expect(frame.width).toBeGreaterThan(2 * frame.line);
+      expect(frame.height).toBeGreaterThan(2 * frame.line);
+      const before = FRAMES[i - 1];
+      if (before) {
+        expect(before.width * before.height).toBeGreaterThanOrEqual(
+          frame.width * frame.height,
+        );
+      }
+    }
+  });
+
+  // A frame that crosses an edge and is drawn on one side only shows the seam
+  // of the tile as a frame that is cut.
+  it("draws a frame that crosses an edge again on the far side", () => {
+    const svg = svgOf(pictureTextures().frames);
+    const drawn = svg.match(/<path /g) ?? [];
+    expect(drawn.length).toBeGreaterThan(FRAMES.length);
   });
 });
 
@@ -132,15 +170,17 @@ describe("the sheets of the moving patterns", () => {
   it.each(Object.entries(SHEET_SHAPES))(
     "puts each of the %s on exactly one sheet",
     (texture, shapesOf) => {
-      const all: readonly unknown[] =
-        texture === "confetti"
-          ? CONFETTI
-          : SCATTERS[texture as keyof typeof SCATTERS];
+      const all: readonly unknown[] | undefined = {
+        confetti: CONFETTI,
+        frames: FRAMES,
+        ...SCATTERS,
+      }[texture];
+      expect(all, texture).toBeDefined();
       const spread: unknown[] = Array.from(
         { length: SHEET_COUNTS[texture as keyof typeof SHEET_SHAPES] },
         (_, k) => shapesOf(k),
       ).flat();
-      expect(spread).toHaveLength(all.length);
+      expect(spread).toHaveLength(all?.length ?? 0);
       expect(new Set(spread)).toEqual(new Set(all));
     },
   );

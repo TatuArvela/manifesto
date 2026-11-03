@@ -123,11 +123,12 @@ sections, Color and Pattern. Each choice applies immediately:
     slowly. It starts from the first color, at the side or corner that the still gradient starts
     from. The repeats roll toward the direction without end. At 100%, the gradient moves one board
     in 30 seconds. It is disabled without a second color.
-- **Pattern**: Plain, Paper, Dots, Grid, Lines, Waves, Confetti, Stars, Hearts, Bubbles, Stripes or
-  Sawtooth (the logo in rows turned 45°, with a line between the rows that has barbs from its
-  notches). The app draws it over the color. The patterns are CSS gradients and inline SVG. Thus, no
-  image files are necessary. **Random** puts a different pattern (never Plain) on the board on each
-  visit. If you select it again, it selects a different one.
+- **Pattern**: Plain, Paper, Dots, Grid, Lines, Waves, Confetti, Stars, Hearts, Bubbles, Rain,
+  Snowflakes, Maple Leaves, Sakura Petals, Stripes, Frames (rounded outlines of many sizes and line
+  widths, over each other) or Sawtooth (the logo in rows turned 45°, with a line between the rows
+  that has barbs from its notches). The app draws it over the color. The patterns are CSS gradients
+  and inline SVG. Thus, no image files are necessary. **Random** puts a different pattern (never
+  Plain) on the board on each visit. If you select it again, it selects a different one.
 - **Pattern Color**:
   - Gray (the default, between White and Black) draws each pattern in ink that follows the theme:
     black in light, white in dark.
@@ -142,6 +143,13 @@ sections, Color and Pattern. Each choice applies immediately:
     passes down the page.
   - Confetti falls, and hearts and bubbles rise, in three sheets at three speeds, each with its own
     sway. The largest hearts and bubbles move fastest.
+  - Rain falls on a slant of 14 degrees, as in wind, in three sheets. The longest drops are the
+    widest and fall fastest. The painter draws it at 30 frames each second, not 14, because it moves
+    about ten times as fast as the other patterns.
+  - Snowflakes, maple leaves and sakura petals fall in three sheets by size, the largest fastest,
+    each sheet with its own sway. The snow falls slowest, and the leaves sway widest.
+  - Frames float slowly up in three sheets by size, the largest fastest, with a small sway. Thus,
+    they pass over each other.
   - Stars twinkle in four sheets and pass slowly.
   - Stripes slide, and every other row of the sawtooth runs the other way along its row.
   - The tiles show the motion. Each sheet moves one whole repeat of its pattern and starts again.

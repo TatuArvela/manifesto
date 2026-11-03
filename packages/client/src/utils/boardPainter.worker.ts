@@ -1,8 +1,8 @@
 /// <reference lib="webworker" />
 import { BoardGl } from "./boardGl.ts";
 import {
-  BOARD_FRAME_RATE,
   frameDue,
+  frameRateOf,
   rollShift,
   sheetStates,
 } from "./boardMotion.ts";
@@ -18,7 +18,8 @@ import type { MovingTexture } from "./boardTextures.ts";
  * speed of its slider. A new speed changes only how fast it goes from now.
  * Thus, the board does not jump.
  *
- * It draws no more than `BOARD_FRAME_RATE` frames each second (`frameDue` in
+ * It draws no more than `BOARD_FRAME_RATE` frames each second, or the own rate
+ * of a pattern that moves fast (`frameDue` and `frameRateOf` in
  * boardMotion.ts). On a frame that it skips, the canvas has nothing new, and
  * the browser composites nothing new for it.
  */
@@ -73,7 +74,7 @@ function paint(now: number) {
     rollTime += step * rollRate;
   }
   last = now;
-  const due = frameDue(now, lastDraw, BOARD_FRAME_RATE);
+  const due = frameDue(now, lastDraw, frameRateOf(texture));
   if (due !== null) {
     lastDraw = due;
     painter.draw(

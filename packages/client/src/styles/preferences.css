@@ -310,8 +310,8 @@
  * and `.board-texture-tile`). Thus, a texture is only a shape, drawn in opaque
  * black. A change of the color or opacity of the pattern draws none of them
  * again, and each mark of each texture has the one opacity. Most are gradients.
- * The paper grain, the stars, the hearts, the confetti, the bubbles and the
- * sawtooth are SVG, drawn one time at load by state/prefs.ts
+ * The paper grain, the stars, the hearts, the confetti, the bubbles, the rain,
+ * the snow, the leaves, the petals, the frames and the sawtooth are SVG, drawn one time at load by state/prefs.ts
  * (utils/boardTextures.ts), because some are calculated, not written. A texture
  * of several layers lists one size for each layer. A shorter list cycles
  * (styles.test.ts checks this for each texture).
@@ -379,6 +379,16 @@
   --board-texture-stars-size: 360px 360px;
   --board-texture-hearts: var(--board-texture-hearts-mask);
   --board-texture-hearts-size: 360px 360px;
+  --board-texture-rain: var(--board-texture-rain-mask);
+  --board-texture-rain-size: 360px 360px;
+  --board-texture-snow: var(--board-texture-snow-mask);
+  --board-texture-snow-size: 360px 360px;
+  --board-texture-leaves: var(--board-texture-leaves-mask);
+  --board-texture-leaves-size: 480px 480px;
+  --board-texture-petals: var(--board-texture-petals-mask);
+  --board-texture-petals-size: 360px 360px;
+  --board-texture-frames: var(--board-texture-frames-mask);
+  --board-texture-frames-size: 480px 480px;
   --board-texture-sawtooth: var(--board-texture-sawtooth-mask);
   --board-texture-sawtooth-size: 286px 286px;
   /*
@@ -440,6 +450,26 @@
 :root[data-board-texture="stripes"] {
   --board-texture: var(--board-texture-stripes);
   --board-texture-size: var(--board-texture-stripes-size);
+}
+:root[data-board-texture="rain"] {
+  --board-texture: var(--board-texture-rain);
+  --board-texture-size: var(--board-texture-rain-size);
+}
+:root[data-board-texture="snow"] {
+  --board-texture: var(--board-texture-snow);
+  --board-texture-size: var(--board-texture-snow-size);
+}
+:root[data-board-texture="leaves"] {
+  --board-texture: var(--board-texture-leaves);
+  --board-texture-size: var(--board-texture-leaves-size);
+}
+:root[data-board-texture="petals"] {
+  --board-texture: var(--board-texture-petals);
+  --board-texture-size: var(--board-texture-petals-size);
+}
+:root[data-board-texture="frames"] {
+  --board-texture: var(--board-texture-frames);
+  --board-texture-size: var(--board-texture-frames-size);
 }
 :root[data-board-texture="sawtooth"] {
   --board-texture: var(--board-texture-sawtooth);
@@ -615,6 +645,26 @@
 .board-texture-tile[data-texture="stripes"] {
   --tile-texture: var(--board-texture-stripes);
   --tile-texture-size: var(--board-texture-stripes-size);
+}
+.board-texture-tile[data-texture="rain"] {
+  --tile-texture: var(--board-texture-rain);
+  --tile-texture-size: var(--board-texture-rain-size);
+}
+.board-texture-tile[data-texture="snow"] {
+  --tile-texture: var(--board-texture-snow);
+  --tile-texture-size: var(--board-texture-snow-size);
+}
+.board-texture-tile[data-texture="leaves"] {
+  --tile-texture: var(--board-texture-leaves);
+  --tile-texture-size: var(--board-texture-leaves-size);
+}
+.board-texture-tile[data-texture="petals"] {
+  --tile-texture: var(--board-texture-petals);
+  --tile-texture-size: var(--board-texture-petals-size);
+}
+.board-texture-tile[data-texture="frames"] {
+  --tile-texture: var(--board-texture-frames);
+  --tile-texture-size: var(--board-texture-frames-size);
 }
 .board-texture-tile[data-texture="sawtooth"] {
   --tile-texture: var(--board-texture-sawtooth);
@@ -881,6 +931,63 @@
     board-sheet-drift calc(18s + var(--k) * 8s) linear infinite,
     board-sheet-sway calc(2.4s + var(--k) * 0.8s) ease-in-out infinite alternate;
   animation-delay: 0s, calc(var(--k) * -1.1s);
+}
+
+/*
+ * The rain falls on a slant of 14 degrees, as in wind, in three sheets, the
+ * longest drops fastest. A loop is one tile across and four down, which ends on
+ * whole tiles (`RAIN_FALL` in utils/boardTextures.ts). Thus, a sheet goes past
+ * the board by four tiles at the top. It does not sway: a drop that sways
+ * looks like a leaf on a string.
+ */
+.board-sheets[data-texture="rain"] > span {
+  --drift-x: -360px;
+  --drift-y: 1440px;
+  animation: board-sheet-drift calc(17s + var(--k) * 8s) linear infinite;
+}
+
+/*
+ * The snow, the maple leaves and the sakura petals fall in three sheets by
+ * size, the largest fastest, and each sheet sways on its own time. The snow
+ * falls slowest, and the leaves sway widest.
+ */
+.board-sheets[data-texture="snow"] > span {
+  --drift-y: 360px;
+  --sway: 14px;
+  animation:
+    board-sheet-drift calc(36s + var(--k) * 14s) linear infinite,
+    board-sheet-sway calc(5s + var(--k) * 1.6s) ease-in-out infinite alternate;
+  animation-delay: 0s, calc(var(--k) * -2.3s);
+}
+.board-sheets[data-texture="leaves"] > span {
+  --drift-y: 480px;
+  --sway: 20px;
+  animation:
+    board-sheet-drift calc(36s + var(--k) * 12s) linear infinite,
+    board-sheet-sway calc(4.2s + var(--k) * 1.4s) ease-in-out infinite alternate;
+  animation-delay: 0s, calc(var(--k) * -1.9s);
+}
+.board-sheets[data-texture="petals"] > span {
+  --drift-y: 360px;
+  --sway: 16px;
+  animation:
+    board-sheet-drift calc(24s + var(--k) * 9s) linear infinite,
+    board-sheet-sway calc(3.4s + var(--k) * 1.2s) ease-in-out infinite alternate;
+  animation-delay: 0s, calc(var(--k) * -1.5s);
+}
+
+/*
+ * The frames float slowly up in three sheets by size, the largest fastest, and
+ * each sheet sways a little on its own time. Thus, the frames pass over each
+ * other.
+ */
+.board-sheets[data-texture="frames"] > span {
+  --drift-y: -480px;
+  --sway: 8px;
+  animation:
+    board-sheet-drift calc(60s + var(--k) * 30s) linear infinite,
+    board-sheet-sway calc(7s + var(--k) * 2.3s) ease-in-out infinite alternate;
+  animation-delay: 0s, calc(var(--k) * -3.1s);
 }
 
 /*

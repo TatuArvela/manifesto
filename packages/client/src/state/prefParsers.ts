@@ -61,7 +61,12 @@ export type BoardTexture =
   | "stars"
   | "hearts"
   | "bubbles"
+  | "rain"
+  | "snow"
+  | "leaves"
+  | "petals"
   | "stripes"
+  | "frames"
   | "sawtooth";
 /**
  * The color of the textures: the faint ink of the theme, white, black, a
@@ -145,7 +150,12 @@ export const BOARD_TEXTURES: readonly BoardTexture[] = [
   "stars",
   "hearts",
   "bubbles",
+  "rain",
+  "snow",
+  "leaves",
+  "petals",
   "stripes",
+  "frames",
   "sawtooth",
 ];
 

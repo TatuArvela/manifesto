@@ -1,6 +1,7 @@
 /**
  * The board textures that are pictures, not gradients: the paper grain, which
- * is SVG turbulence, and the stars, hearts, confetti, bubbles and sawtooth.
+ * is SVG turbulence, and the stars, hearts, confetti, bubbles, rain, snow,
+ * leaves, petals, frames and sawtooth.
  * Each texture is a mask over one layer behind the board, which takes the color
  * of the pattern as its background, and the opacity of the pattern as its own
  * (`.board-frame::before` in preferences.css). Thus, these are drawn one time,
@@ -14,6 +15,11 @@ export type PictureTexture =
   | "hearts"
   | "confetti"
   | "bubbles"
+  | "rain"
+  | "snow"
+  | "leaves"
+  | "petals"
+  | "frames"
   | "sawtooth";
 
 /**
@@ -234,10 +240,16 @@ function confetti(pieces: readonly ConfettiPiece[] = CONFETTI): string {
 }
 
 /**
- * The tile the bubbles, stars and hearts are scattered on, in px: wide for
- * the same reason as the confetti's.
+ * The tile the bubbles, stars, hearts, rain, snow and petals are scattered
+ * on, in px: wide for the same reason as the confetti's.
  */
 export const SCATTER_TILE = 360;
+
+/**
+ * The tile of the maple leaves, in px: wider, because a leaf is large. A maple
+ * leaf smaller than about 20px shows as a blot, not as its lobes.
+ */
+export const LEAF_TILE = 480;
 
 /** A shape of a scatter: its centre, the radius it reaches, its turn. */
 export interface Scattered {
@@ -255,6 +267,8 @@ interface ScatterKind {
   largest: number;
   /** The most a shape is turned either way, in degrees. */
   turn: number;
+  /** The tile, in px, if not `SCATTER_TILE`. */
+  tile?: number;
 }
 
 /** The least clear space between two shapes, in px. */
@@ -272,6 +286,7 @@ const SCATTER_GAP = 4;
  */
 function scatter(kind: ScatterKind): Scattered[] {
   const random = seeded(kind.seed);
+  const tile = kind.tile ?? SCATTER_TILE;
   const spread = kind.largest - kind.smallest;
   const radii = Array.from(
     { length: kind.count },
@@ -281,13 +296,13 @@ function scatter(kind: ScatterKind): Scattered[] {
   for (const r of radii) {
     let best = { x: 0, y: 0, clear: Number.NEGATIVE_INFINITY };
     for (let tries = 0; tries < 80; tries++) {
-      const x = random() * SCATTER_TILE;
-      const y = random() * SCATTER_TILE;
+      const x = random() * tile;
+      const y = random() * tile;
       let clear = Number.POSITIVE_INFINITY;
       for (const other of placed) {
         const d = Math.hypot(
-          across(x, other.x, SCATTER_TILE),
-          across(y, other.y, SCATTER_TILE),
+          across(x, other.x, tile),
+          across(y, other.y, tile),
         );
         clear = Math.min(clear, d - other.r - r);
       }
@@ -329,7 +344,44 @@ export const SCATTERS = {
     largest: 12,
     turn: 15,
   }),
+  // A drop is a streak, as long as its circle is wide. Each falls on the same
+  // slant (`RAIN_TURN`). Thus, none is turned on its own.
+  rain: scatter({
+    seed: 20261103,
+    count: 150,
+    smallest: 3,
+    largest: 16,
+    turn: 0,
+  }),
+  // A flake has six arms. Thus, a turn of 30 degrees either way is any turn.
+  snow: scatter({
+    seed: 20261104,
+    count: 90,
+    smallest: 3,
+    largest: 9,
+    turn: 30,
+  }),
+  leaves: scatter({
+    seed: 20261105,
+    count: 70,
+    smallest: 10,
+    largest: 21,
+    turn: 180,
+    tile: LEAF_TILE,
+  }),
+  petals: scatter({
+    seed: 20261106,
+    count: 110,
+    smallest: 4,
+    largest: 8,
+    turn: 180,
+  }),
 } as const satisfies Record<string, readonly Scattered[]>;
+
+/** The tile of each scatter, in px. */
+export function scatterTile(name: keyof typeof SCATTERS): number {
+  return name === "leaves" ? LEAF_TILE : SCATTER_TILE;
+}
 
 /** A five-pointed star reaching 1 from its centre, its inner points 0.42. */
 const STAR = `M${Array.from({ length: 10 }, (_, i) => {
@@ -342,35 +394,286 @@ const STAR = `M${Array.from({ length: 10 }, (_, i) => {
 const HEART = "M0 7 C-9.33 0.78 -8.56 -7 0 -2.72 C8.56 -7 9.33 0.78 0 7Z";
 const HEART_REACH = 9;
 
+/**
+ * Where the rain falls in one loop, in px: one tile across and four down.
+ * Thus, it falls on a slant of 14 degrees, as in wind, and the loop ends on
+ * whole tiles. A drop on a slant that does not repeat on the tile jumps each
+ * time that the loop starts.
+ */
+export const RAIN_FALL = { x: -SCATTER_TILE, y: 4 * SCATTER_TILE } as const;
+
+/** The turn of each drop, in degrees, along the way that it falls. */
+const RAIN_TURN = round(
+  (Math.atan2(-RAIN_FALL.x, RAIN_FALL.y) * 180) / Math.PI,
+);
+
+/**
+ * A bar from one point to another, `width` wide, as a closed path. Each bar
+ * goes around in the same direction. Thus, where bars cross, the nonzero fill
+ * joins them, and makes no hole.
+ */
+function bar(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  width: number,
+): string {
+  const length = Math.hypot(x2 - x1, y2 - y1);
+  const nx = (-(y2 - y1) / length) * (width / 2);
+  const ny = ((x2 - x1) / length) * (width / 2);
+  const points = [
+    [x1 + nx, y1 + ny],
+    [x2 + nx, y2 + ny],
+    [x2 - nx, y2 - ny],
+    [x1 - nx, y1 - ny],
+  ];
+  return `M${points.map(([x = 0, y = 0]) => `${round(x)} ${round(y)}`).join(" L")}Z`;
+}
+
+/**
+ * A snowflake reaching 1 from its centre: six arms, each with two branches
+ * past its middle that point out.
+ */
+const SNOWFLAKE = Array.from({ length: 6 }, (_, i) => {
+  const angle = (i * Math.PI) / 3 - Math.PI / 2;
+  const dx = Math.cos(angle);
+  const dy = Math.sin(angle);
+  const fork = { x: 0.55 * dx, y: 0.55 * dy };
+  const branches = [-1, 1].map((side) => {
+    const turn = angle + (side * Math.PI) / 4;
+    return bar(
+      fork.x,
+      fork.y,
+      fork.x + 0.36 * Math.cos(turn),
+      fork.y + 0.36 * Math.sin(turn),
+      0.14,
+    );
+  });
+  return bar(0, 0, dx, dy, 0.17) + branches.join("");
+}).join("");
+
+/**
+ * The right half of a maple leaf, from the tip of its top lobe down to its
+ * stem: the top lobe, a side lobe that points up and out, and a small lobe
+ * under it. The left half is the same, the other way round.
+ */
+const MAPLE_HALF: readonly (readonly [number, number])[] = [
+  [1.3, -7.4],
+  [3, -8.2],
+  [2.4, -4],
+  [4.6, -4.6],
+  [5, -3.6],
+  [9.2, -5],
+  [7.6, -1.6],
+  [9, -0.4],
+  [4.2, 1.2],
+  [5.6, 3.6],
+  [1.6, 2.8],
+  [0.7, 3.2],
+  [0.7, 7.5],
+];
+
+/** A maple leaf about twenty units wide, reaching about 10.5 from its centre. */
+const MAPLE_LEAF = `M0 -10 L${[
+  ...MAPLE_HALF,
+  ...[...MAPLE_HALF].reverse().map(([x, y]) => [-x, y] as const),
+]
+  .map(([x, y]) => `${x} ${y}`)
+  .join(" L")}Z`;
+const MAPLE_REACH = 10.5;
+
+/**
+ * A sakura petal reaching 1 from its centre: narrow at its base, widest past
+ * its middle, and round at its top, with a small notch in it.
+ */
+const PETAL =
+  "M0 1C0.45 0.75 0.78 0.05 0.62 -0.55C0.55 -0.85 0.32 -1 0.16 -0.97L0 -0.78L-0.16 -0.97C-0.32 -1 -0.55 -0.85 -0.62 -0.55C-0.78 0.05 -0.45 0.75 0 1Z";
+
 /** Where a shape is drawn: its place, and again past each edge it crosses. */
-function placesOf({ x, y, r }: Scattered): [number, number][] {
+function placesOf(
+  { x, y, r }: Scattered,
+  tile = SCATTER_TILE,
+): [number, number][] {
   const xs = [x];
   const ys = [y];
-  if (x < r) xs.push(x + SCATTER_TILE);
-  if (x > SCATTER_TILE - r) xs.push(x - SCATTER_TILE);
-  if (y < r) ys.push(y + SCATTER_TILE);
-  if (y > SCATTER_TILE - r) ys.push(y - SCATTER_TILE);
+  if (x < r) xs.push(x + tile);
+  if (x > tile - r) xs.push(x - tile);
+  if (y < r) ys.push(y + tile);
+  if (y > tile - r) ys.push(y - tile);
   return xs.flatMap((px) => ys.map((py): [number, number] => [px, py]));
 }
 
 function scattered(
   shapes: readonly Scattered[],
   draw: (shape: Scattered, x: number, y: number) => string,
+  defs = "",
+  tile = SCATTER_TILE,
 ): string {
   const drawn = shapes
     .flatMap((shape) =>
-      placesOf(shape).map(([x, y]) => draw(shape, round(x), round(y))),
+      placesOf(shape, tile).map(([x, y]) => draw(shape, round(x), round(y))),
     )
     .join("");
   return dataUrl(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='${SCATTER_TILE}' height='${SCATTER_TILE}'>${drawn}</svg>`,
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${tile}' height='${tile}'>${defs}${drawn}</svg>`,
   );
 }
+
+/**
+ * A path drawn one time in the defs, and used at each shape's place, turn and
+ * size. For a long path (the snowflake), each copy of it would make the mask
+ * many times larger.
+ */
+function usedPath(d: string): {
+  defs: string;
+  draw: (shape: Scattered, x: number, y: number) => string;
+} {
+  return {
+    defs: `<defs><path id='s' d='${d}'/></defs>`,
+    draw: ({ r, turn }, x, y) =>
+      `<use href='#s' transform='translate(${x} ${y}) rotate(${turn}) scale(${r})'/>`,
+  };
+}
+
+const FLAKE = usedPath(SNOWFLAKE);
 
 /** A path drawn at a shape's place, turn and size. */
 function placedPath(d: string, reach: number) {
   return ({ r, turn }: Scattered, x: number, y: number) =>
     `<path transform='translate(${x} ${y}) rotate(${turn}) scale(${round(r / reach)})' d='${d}'/>`;
+}
+
+/** The tile the frames float on, in px: wider, because a frame is large. */
+export const FRAMES_TILE = 480;
+
+/** A rounded frame: its centre, its size, its corner and the width of its line. */
+export interface Frame {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  corner: number;
+  line: number;
+}
+
+/**
+ * Frames that float over each other, as rounded outlines of many sizes and
+ * line widths. They cross, which is the look, but their centres spread as the
+ * confetti does: each goes in the best of an increasing number of random
+ * places, the place farthest from the centres already down, measured around
+ * the edges of the tile. Thus, no part of the tile is crowded or bare. They are
+ * sorted largest first, as the bubbles are. Thus, the near sheet has the
+ * largest frames.
+ */
+function scatterFrames(count: number): Frame[] {
+  const random = seeded(20261107);
+  const centres: { x: number; y: number }[] = [];
+  for (let i = 0; i < count; i++) {
+    let best = { x: 0, y: 0, room: -1 };
+    for (let tries = 0; tries < 3 * i + 1; tries++) {
+      const x = random() * FRAMES_TILE;
+      const y = random() * FRAMES_TILE;
+      let room = Number.POSITIVE_INFINITY;
+      for (const other of centres) {
+        room = Math.min(
+          room,
+          Math.hypot(
+            across(x, other.x, FRAMES_TILE),
+            across(y, other.y, FRAMES_TILE),
+          ),
+        );
+      }
+      if (room > best.room) best = { x, y, room };
+    }
+    centres.push({ x: best.x, y: best.y });
+  }
+  return centres
+    .map(({ x, y }) => {
+      const width = 40 + 110 * random() ** 1.4;
+      const height = width * (0.7 + 0.6 * random());
+      return {
+        x: round(x),
+        y: round(y),
+        width: round(width),
+        height: round(height),
+        corner: round(Math.min(width, height) * (0.18 + 0.1 * random())),
+        line: 2 + Math.round(random() * 8) / 2,
+      };
+    })
+    .sort((a, b) => b.width * b.height - a.width * a.height);
+}
+
+/** Exported for their test, which holds each frame on exactly one sheet. */
+export const FRAMES: readonly Frame[] = scatterFrames(24);
+
+/**
+ * A rounded rectangle as a closed path, clockwise or the other way. A ring is
+ * one of each: the nonzero fill leaves the inner one empty, and where two rings
+ * cross, it joins them.
+ */
+function roundedRect(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  corner: number,
+  clockwise: boolean,
+): string {
+  const r = round(Math.max(0, Math.min(corner, width / 2, height / 2)));
+  const left = round(x);
+  const top = round(y);
+  const right = round(x + width);
+  const bottom = round(y + height);
+  const arc = (toX: number, toY: number) =>
+    `A${r} ${r} 0 0 ${clockwise ? 1 : 0} ${round(toX)} ${round(toY)}`;
+  return clockwise
+    ? `M${round(left + r)} ${top}H${round(right - r)}${arc(right, top + r)}V${round(bottom - r)}${arc(right - r, bottom)}H${round(left + r)}${arc(left, bottom - r)}V${round(top + r)}${arc(left + r, top)}Z`
+    : `M${round(left + r)} ${top}${arc(left, top + r)}V${round(bottom - r)}${arc(left + r, bottom)}H${round(right - r)}${arc(right, bottom - r)}V${round(top + r)}${arc(right - r, top)}Z`;
+}
+
+/** A frame as a ring, the line centred on its outline. */
+function frameRing(frame: Frame, x: number, y: number): string {
+  const { width, height, corner, line } = frame;
+  const half = line / 2;
+  const outer = roundedRect(
+    x - width / 2 - half,
+    y - height / 2 - half,
+    width + line,
+    height + line,
+    corner + half,
+    true,
+  );
+  const inner = roundedRect(
+    x - width / 2 + half,
+    y - height / 2 + half,
+    width - line,
+    height - line,
+    corner - half,
+    false,
+  );
+  return `<path d='${outer}${inner}'/>`;
+}
+
+/**
+ * The frames as SVG, each again past each edge that it crosses. Thus, it is
+ * never cut.
+ */
+function frames(shown: readonly Frame[] = FRAMES): string {
+  const drawn = shown.flatMap((frame) => {
+    const reachX = frame.width / 2 + frame.line;
+    const reachY = frame.height / 2 + frame.line;
+    const xs = [frame.x];
+    const ys = [frame.y];
+    if (frame.x < reachX) xs.push(frame.x + FRAMES_TILE);
+    if (frame.x > FRAMES_TILE - reachX) xs.push(frame.x - FRAMES_TILE);
+    if (frame.y < reachY) ys.push(frame.y + FRAMES_TILE);
+    if (frame.y > FRAMES_TILE - reachY) ys.push(frame.y - FRAMES_TILE);
+    return xs.flatMap((x) => ys.map((y) => frameRing(frame, x, y)));
+  });
+  return dataUrl(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${FRAMES_TILE}' height='${FRAMES_TILE}'>${drawn.join("")}</svg>`,
+  );
 }
 
 /**
@@ -420,6 +723,22 @@ function noise(texture: Noise): string {
   );
 }
 
+/**
+ * A drop of rain: a streak as long as its circle is wide, with a round head at
+ * the bottom and a thin tail at the top, turned along the way that it falls. A
+ * longer drop is nearer. Thus, it is also wider. Its head is 1.5px wide or
+ * more: a thinner mark flickers as it moves on a screen mode that macOS
+ * scales. Only the tail is thinner, and it fades as it should.
+ */
+function drop({ r }: Scattered, x: number, y: number): string {
+  const half = round((1.5 + 0.08 * r) / 2);
+  // The curve of the head ends inside the circle of the drop. Thus, the copy
+  // of a drop past an edge of the tile has all of it.
+  const neck = round(r - 1.3 * half);
+  const curl = round(r);
+  return `<path transform='translate(${x} ${y}) rotate(${RAIN_TURN})' d='M-0.2 ${-r}L0.2 ${-r}L${half} ${neck}C${half} ${curl} ${-half} ${curl} ${-half} ${neck}Z'/>`;
+}
+
 /** Every picture texture as a mask, each a CSS `url(...)`. */
 export function pictureTextures(): Record<PictureTexture, string> {
   return {
@@ -431,6 +750,16 @@ export function pictureTextures(): Record<PictureTexture, string> {
       SCATTERS.bubbles,
       ({ r }, x, y) => `<circle cx='${x}' cy='${y}' r='${r}'/>`,
     ),
+    rain: scattered(SCATTERS.rain, drop),
+    snow: scattered(SCATTERS.snow, FLAKE.draw, FLAKE.defs),
+    leaves: scattered(
+      SCATTERS.leaves,
+      placedPath(MAPLE_LEAF, MAPLE_REACH),
+      "",
+      LEAF_TILE,
+    ),
+    petals: scattered(SCATTERS.petals, placedPath(PETAL, 1)),
+    frames: frames(),
     sawtooth: sawtooth(),
   };
 }
@@ -444,8 +773,9 @@ export function pictureTextures(): Record<PictureTexture, string> {
  *   from the top left to the bottom right;
  * - the waves are their rows, one row on each sheet, which each move in a small
  *   circle, one after the other, so that a swell passes down the page;
- * - the confetti, the stars, the hearts and the bubbles are spread over sheets
- *   that fall, twinkle or rise at their own speeds;
+ * - the confetti, the stars, the hearts, the bubbles, the rain, the snow, the
+ *   leaves, the petals and the frames are spread over sheets that fall,
+ *   twinkle, rise or float at their own speeds;
  * - the sawtooth is its rows, every other row on one sheet, which run against
  *   each other.
  *
@@ -467,7 +797,12 @@ export const SHEET_COUNTS = {
   stars: 4,
   hearts: 3,
   bubbles: 3,
+  rain: 3,
+  snow: 3,
+  leaves: 3,
+  petals: 3,
   stripes: 1,
+  frames: 3,
   sawtooth: 2,
 } as const;
 
@@ -555,6 +890,11 @@ export const SHEET_SHAPES = {
   stars: (k: number) => everyNth(SCATTERS.stars, SHEET_COUNTS.stars, k),
   hearts: (k: number) => bySize(SCATTERS.hearts, SHEET_COUNTS.hearts, k),
   bubbles: (k: number) => bySize(SCATTERS.bubbles, SHEET_COUNTS.bubbles, k),
+  rain: (k: number) => bySize(SCATTERS.rain, SHEET_COUNTS.rain, k),
+  snow: (k: number) => bySize(SCATTERS.snow, SHEET_COUNTS.snow, k),
+  leaves: (k: number) => bySize(SCATTERS.leaves, SHEET_COUNTS.leaves, k),
+  petals: (k: number) => bySize(SCATTERS.petals, SHEET_COUNTS.petals, k),
+  frames: (k: number) => bySize(FRAMES, SHEET_COUNTS.frames, k),
 };
 
 /** Each sheet of each moving pattern as a mask, each a CSS `url(...)`. */
@@ -574,6 +914,22 @@ export function sheetTextures(): Record<DrawnSheetTexture, string[]> {
     bubbles: sheets("bubbles", (k) =>
       scattered(SHEET_SHAPES.bubbles(k), circle),
     ),
+    rain: sheets("rain", (k) => scattered(SHEET_SHAPES.rain(k), drop)),
+    snow: sheets("snow", (k) =>
+      scattered(SHEET_SHAPES.snow(k), FLAKE.draw, FLAKE.defs),
+    ),
+    leaves: sheets("leaves", (k) =>
+      scattered(
+        SHEET_SHAPES.leaves(k),
+        placedPath(MAPLE_LEAF, MAPLE_REACH),
+        "",
+        LEAF_TILE,
+      ),
+    ),
+    petals: sheets("petals", (k) =>
+      scattered(SHEET_SHAPES.petals(k), placedPath(PETAL, 1)),
+    ),
+    frames: sheets("frames", (k) => frames(SHEET_SHAPES.frames(k))),
     sawtooth: sheets("sawtooth", (k) => sawtooth(k === 0 ? 0 : 1)),
   };
 }
@@ -637,6 +993,11 @@ export function paintedSheets(): Record<MovingTexture, PaintedSheets> {
     stars: tile(SCATTER_TILE, drawn.stars),
     hearts: tile(SCATTER_TILE, drawn.hearts),
     bubbles: tile(SCATTER_TILE, drawn.bubbles),
+    rain: tile(SCATTER_TILE, drawn.rain),
+    snow: tile(SCATTER_TILE, drawn.snow),
+    leaves: tile(LEAF_TILE, drawn.leaves),
+    petals: tile(SCATTER_TILE, drawn.petals),
+    frames: tile(FRAMES_TILE, drawn.frames),
     // The band where `x + y` is in the first half of a repeat, in the corner
     // at the top left and in the middle of the tile.
     stripes: tile(STRIPE_TILE, [

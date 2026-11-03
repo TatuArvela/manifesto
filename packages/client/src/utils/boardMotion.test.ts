@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  BOARD_FRAME_RATE,
   easeInOut,
   frameDue,
+  frameRateOf,
   type PerSheet,
   ROLL_REPEAT_BOARDS,
   ROLL_SECONDS_PER_BOARD,
@@ -226,6 +228,22 @@ describe("frameDue", () => {
 
   it("counts again from now after a long gap", () => {
     expect(frameDue(2000, 1000, 30)).toBe(2000);
+  });
+});
+
+describe("frameRateOf", () => {
+  it("draws most patterns, and a board with no pattern, at the board rate", () => {
+    expect(frameRateOf(null)).toBe(BOARD_FRAME_RATE);
+    expect(frameRateOf("snow")).toBe(BOARD_FRAME_RATE);
+  });
+
+  // At the board rate, a drop on the near sheet of the rain jumps 6px in one
+  // frame.
+  it("draws the rain at its own rate, so that a drop moves 3px at most", () => {
+    const drift = SHEET_PLANS.rain.drift;
+    const seconds = drift?.seconds[0] ?? 0;
+    const fastest = Math.hypot(drift?.x ?? 0, drift?.y ?? 0) / seconds;
+    expect(fastest / frameRateOf("rain")).toBeLessThanOrEqual(3);
   });
 });
 
