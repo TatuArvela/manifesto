@@ -1,20 +1,22 @@
 import type { Signal } from "@preact/signals";
 import { formatPercent, t } from "#/i18n/index.ts";
 import {
+  resolvedBoardGradient,
+  resolvedBoardTexture,
+} from "#/state/boardBackground.ts";
+import {
   animations,
   BOARD_SPEED_STEP,
   boardGradientSpeed,
   boardTextureSpeed,
   MAX_BOARD_SPEED,
-  resolvedBoardGradient,
-  resolvedBoardTexture,
 } from "#/state/prefs.ts";
 import { BoardCard } from "./BoardCard.tsx";
 
 /**
  * A speed of the board, from still to twice its usual speed. The board follows
- * the slider while it moves, with no jump (state/prefs.ts changes the rate of
- * the running layers, not their time).
+ * the slider while it moves, with no jump (state/boardBackground.ts changes
+ * the rate of the running layers, not their time).
  */
 function BoardSpeedSlider({
   legend,
@@ -82,9 +84,9 @@ export function BoardRollSpeed({
 }
 
 /**
- * How fast the pattern moves. Each pattern has its own motion (preferences.css),
- * and the tiles show it. With no pattern, or with the animations off, it has
- * nothing to change. Thus, it is disabled.
+ * How fast the pattern moves. Each pattern has its own motion
+ * (board-motion.css), and the tiles show it. With no pattern, or with the
+ * animations off, it has nothing to change. Thus, it is disabled.
  */
 export function BoardPatternSpeed({
   compose,

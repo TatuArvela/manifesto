@@ -47,7 +47,7 @@ The animation moves the content in place. Do not remount it with a `key`, becaus
 measurements of the masonry grid. The animation starts from a layout effect. If it starts after
 paint, the new view shows fully for one frame first. `App` calls the hook after `usePaneSlide`.
 Thus, if a sidebar opens in the same change, the sidebar starts from closed when the code measures
-the cards. The `.no-motion` override in `styles/preferences.css` does not apply to a Web Animation.
+the cards. The `.no-motion` override in `styles/appearance.css` does not apply to a Web Animation.
 Thus, the hooks read the `animations` preference themselves.
 
 ## Tags sidebar

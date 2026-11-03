@@ -4,7 +4,7 @@ import { type MovingTexture, SHEET_COUNTS } from "./boardTextures.ts";
 /**
  * The motion of each sheet of a moving pattern, as numbers. The board painter
  * (boardPainter.worker.ts) reads it on each frame. It is the same motion as the
- * keyframes of `.board-sheets` in preferences.css, which the tiles in Settings
+ * keyframes of `.board-sheets` in board-motion.css, which the tiles in Settings
  * and the board without WebGL still play. boardMotion.test.ts holds the two
  * equal.
  *
@@ -235,12 +235,12 @@ export function frameDue(
 }
 
 /**
- * The rolling gradient, as the board painter draws it. One repeat goes from
- * the first color to the second and back, and is this many boards long along
- * the gradient line of the board. Thus, the board shows half of one fade at a
- * time, and the turns at each color pass slowly. `--board-roll-repeat` in
- * preferences.css is the same number, for the preview in Settings and a board
- * that rolls with CSS.
+ * The rolling gradient, as the board painter draws it. One repeat goes from the
+ * first color to the second and back, and is this many boards long along the
+ * gradient line of the board. Thus, the board shows half of one fade at a time,
+ * and the turns at each color pass slowly. `--board-roll-repeat` in
+ * board-background.css is the same number, for the preview in Settings and a
+ * board that rolls with CSS.
  */
 export const ROLL_REPEAT_BOARDS = 4;
 

@@ -10,7 +10,9 @@
 @import "./styles/dark-shade.css";
 @import "./styles/light-shade.css";
 @import "./styles/popovers.css";
-@import "./styles/preferences.css";
+@import "./styles/appearance.css";
+@import "./styles/board-background.css";
+@import "./styles/board-motion.css";
 @import "./styles/note-cards.css";
 @import "./styles/prose.css";
 @import "./styles/editor.css";

@@ -1,12 +1,7 @@
 import { Shuffle } from "lucide-preact";
 import { t } from "#/i18n/index.ts";
-import {
-  type BoardInk,
-  boardInk,
-  boardInkColor,
-  rerollBoardInk,
-  resolvedBoardInk,
-} from "#/state/prefs.ts";
+import { rerollBoardInk, resolvedBoardInk } from "#/state/boardBackground.ts";
+import { type BoardInk, boardInk, boardInkColor } from "#/state/prefs.ts";
 import { INK_COLORS, type InkColor } from "#/utils/boardInk.ts";
 import { BoardCard } from "./BoardCard.tsx";
 

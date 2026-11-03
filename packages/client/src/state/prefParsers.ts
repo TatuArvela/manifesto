@@ -144,7 +144,7 @@ export const BOARD_GRADIENT_DIRECTIONS: readonly BoardGradientDirection[] = [
 
 /**
  * The speed of a moving board layer, in whole percent of its usual speed
- * (preferences.css). 0 holds it still. The sliders in Settings move in steps.
+ * (board-motion.css). 0 holds it still. The sliders in Settings move in steps.
  */
 export const MAX_BOARD_SPEED = 200;
 export const BOARD_SPEED_STEP = 10;

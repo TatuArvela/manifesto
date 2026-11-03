@@ -1,6 +1,12 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  rerollBoardColor,
+  rerollBoardTexture,
+  resolvedBoardColor,
+  resolvedBoardTexture,
+} from "./boardBackground.ts";
+import {
   animations,
   BOARD_COLORS,
   boardColor,
@@ -14,14 +20,11 @@ import {
   noteQuips,
   noteSize,
   parsePrefs,
-  rerollBoardColor,
-  rerollBoardTexture,
-  resolvedBoardColor,
-  resolvedBoardTexture,
   sortMode,
   theme,
   viewMode,
 } from "./prefs.ts";
+import "./theme.ts";
 
 const PREFS_KEY = "manifesto:prefs";
 

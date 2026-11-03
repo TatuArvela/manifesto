@@ -2,8 +2,9 @@
  * Puts the saved theme on <html> before the first paint.
  *
  * state/prefs.ts owns all other parts of the preferences. It owns this key, and
- * applies the class again when it loads. This copy exists only because that
- * module is part of the bundle, and the bundle runs after the browser painted.
+ * state/theme.ts applies the class again when it loads. This copy exists only
+ * because that module is part of the bundle, and the bundle runs after the
+ * browser painted.
  * Without it, the loading screen, and then the app behind it, would show white
  * for a moment before a dark theme. It reads the same two values as prefs.ts,
  * and writes the same class. Thus, the two always agree.
