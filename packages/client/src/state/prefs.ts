@@ -589,8 +589,12 @@ function boardPace(
  * duration puts each layer at a different point of its loop, and the board
  * jumps on each step of the slider. A new rate keeps the point where it is.
  */
-function paceBoardAnimations(gradientSpeed: number, textureSpeed: number) {
-  for (const animation of document.getAnimations()) {
+function paceBoardAnimations(
+  running: readonly Animation[],
+  gradientSpeed: number,
+  textureSpeed: number,
+) {
+  for (const animation of running) {
     if (!(animation instanceof CSSAnimation)) continue;
     const pace = boardPace(
       animation.animationName,
@@ -604,18 +608,39 @@ function paceBoardAnimations(gradientSpeed: number, textureSpeed: number) {
 }
 
 effect(() => {
-  paceBoardAnimations(boardGradientSpeed.value, boardTextureSpeed.value);
+  paceBoardAnimations(
+    document.getAnimations(),
+    boardGradientSpeed.value,
+    boardTextureSpeed.value,
+  );
 });
 
 // A layer that starts (a tile in Settings, a new texture, the roll when a
 // gradient comes back) plays at the rate of the stylesheet until it gets its
 // own. The event comes in the frame after it starts. Thus, it moves for one
-// frame at that rate, which does not show.
+// frame at that rate, which does not show. Each layer that starts sends its own
+// event, and Settings starts many together. Thus, each event paces only the
+// animations of its own element (with those of its pseudo-elements), not all of
+// the document.
 document.addEventListener("animationstart", (event) => {
   const gradientSpeed = boardGradientSpeed.peek();
   const textureSpeed = boardTextureSpeed.peek();
-  if (boardPace(event.animationName, gradientSpeed, textureSpeed) !== null) {
-    paceBoardAnimations(gradientSpeed, textureSpeed);
+  const target = event.target;
+  if (
+    target instanceof Element &&
+    boardPace(event.animationName, gradientSpeed, textureSpeed) !== null
+  ) {
+    paceBoardAnimations(
+      target
+        .getAnimations({ subtree: true })
+        .filter(
+          (animation) =>
+            animation.effect instanceof KeyframeEffect &&
+            animation.effect.target === target,
+        ),
+      gradientSpeed,
+      textureSpeed,
+    );
   }
 });
 
