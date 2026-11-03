@@ -118,9 +118,11 @@ sections, Color and Pattern. Each choice applies immediately:
     drawn as the gradient that it makes. **Random** is in the middle. A corner goes from corner to
     corner, on a board of any shape.
   - **Rolling Speed**: a slider from Still (0%, the default) to 200%, in steps of 10%. While it rolls,
-    the gradient repeats: from the first color to the second and back, one repeat across two boards.
-    Thus, the board shows one fade, as the still gradient does. The repeats roll toward the direction
-    without end. At 100%, one repeat takes 60 seconds. It is disabled without a second color.
+    the gradient repeats: from the first color to the second and back, one repeat across four
+    boards. Thus, the board shows half of one fade at a time, and the turns at each color pass
+    slowly. It starts from the first color, at the side or corner that the still gradient starts
+    from. The repeats roll toward the direction without end. At 100%, the gradient moves one board
+    in 30 seconds. It is disabled without a second color.
 - **Pattern**: Plain, Paper, Dots, Grid, Lines, Waves, Confetti, Stars, Hearts, Bubbles, Stripes or
   Sawtooth (the logo in rows turned 45°, with a line between the rows that has barbs from its
   notches). The app draws it over the color. The patterns are CSS gradients and inline SVG. Thus, no

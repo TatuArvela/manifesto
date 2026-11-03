@@ -134,8 +134,8 @@ describe("board motion", () => {
 
     expect(roll.playbackRate).toBe(0.5);
     expect(Number(roll.currentTime)).toBeCloseTo(30_000, -2);
-    // Two boards, one each 30 s.
-    expect(getComputedStyle(board, "::after").animationDuration).toBe("60s");
+    // Four boards, one each 30 s.
+    expect(getComputedStyle(board, "::after").animationDuration).toBe("120s");
   });
 
   it("has no speed to change with no gradient", async () => {

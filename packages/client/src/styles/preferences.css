@@ -223,7 +223,7 @@
  * the board painter uses.
  */
 :root {
-  --board-roll-repeat: 2;
+  --board-roll-repeat: 4;
   --board-roll-long: calc((1 + var(--board-roll-repeat)) * 100%);
   --board-roll-move: calc(
     var(--board-roll-repeat) /
@@ -651,9 +651,10 @@
  * BoardLayers.tsx). It is a repeating linear gradient on its own layer, under
  * the texture and over the still gradient of the frame. One repeat goes from
  * the first color to the second and back, and is `--board-roll-repeat` boards
- * long along the gradient line of the board. At two, the board shows one fade
- * from the first color to the second, as the still gradient does. Thus, the
- * roll starts from the look of the board. The layer is one board longer than a
+ * long along the gradient line of the board. Thus, the board shows half of one
+ * fade at a time, and the turns at each color pass slowly. It starts from the
+ * first color, at the side or corner that the still gradient starts from. The
+ * layer is one board longer than a
  * repeat along each axis that the gradient goes on. A move of one repeat along
  * that axis ends where it started, and the last frame is the same as the first.
  * For a corner, a move of one board from corner to corner is one gradient line
@@ -664,7 +665,7 @@
  * 100% (`ROLL_SECONDS_PER_BOARD`).
  *
  * The layer has the area of `(1 + --board-roll-repeat)` boards along each axis
- * that it moves on: 9 boards for a corner. This is a reason for the painter.
+ * that it moves on: 25 boards for a corner. This is a reason for the painter.
  */
 :root[data-board-roll] .board-frame::after,
 :root[data-board-roll] .board-preview::after {
