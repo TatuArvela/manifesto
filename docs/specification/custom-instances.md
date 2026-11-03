@@ -135,8 +135,10 @@ sed -i '' 's/Manifesto/Corporate Notes/g' index.html 404.html manifest.webmanife
 cp ~/acme-brand/*.svg ~/acme-brand/icon-1024.png .
 ```
 
-This changes `<title>`, `<meta name="application-name">`, `<meta name="description">`, and the
-`name` / `short_name` / `description` of the manifest. `404.html` is a copy of `index.html` for the
+This changes `<title>`, `<meta name="application-name">`, `<meta name="apple-mobile-web-app-title">`,
+`<meta name="description">`, and the `name` / `short_name` / `description` of the manifest. With an
+instance name, put that name in `apple-mobile-web-app-title`, `name` and `short_name` in place of
+the name of the app. `404.html` is a copy of `index.html` for the
 SPA fallback. Thus, it needs the same change.
 
 **Do not change the JS bundle.** It is minified. The `manifesto:` prefixes inside it are
@@ -147,7 +149,8 @@ browser.
 
 | Surface | Set by |
 |---|---|
-| Window title, header, login screen, crash screen, PWA name | `VITE_APP_NAME` |
+| Window title, header, login screen, crash screen | `VITE_APP_NAME` |
+| The name of the installed PWA and of a home-screen shortcut | `VITE_INSTANCE_NAME`, or `VITE_APP_NAME` without an instance |
 | The mark of the app in the header, login and loading screens and welcome dialog | `VITE_APP_LOGO` (or `logo.svg` in `VITE_APP_ICONS_DIR`) |
 | Which copy this is: adjacent to the name in the header and tab, on the login and loading screens, in About and in the authenticator entry | `VITE_INSTANCE_NAME` |
 | The logo of the instance, in About and (with the next row) the header and loading screen | `VITE_INSTANCE_LOGO` |

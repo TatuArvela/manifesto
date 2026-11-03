@@ -1,6 +1,6 @@
 {
-  "name": "%APP_NAME%",
-  "short_name": "%APP_NAME%",
+  "name": "%HOME_SCREEN_NAME%",
+  "short_name": "%HOME_SCREEN_NAME%",
   "description": "%APP_DESCRIPTION%",
   "start_url": "./",
   "scope": "./",
