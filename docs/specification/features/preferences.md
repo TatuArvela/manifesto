@@ -117,6 +117,7 @@ sets most frequently:
 | `noteSize` | `fit` (default), `square` |
 | `noteCorners` | `straight` (default), `rounded` |
 | `noteTilt` | `tidy` (default), `messy` |
+| `noteFinish` | `matte` (default), `glossy`, `glass` |
 | `defaultNoteColor` | `default` (default), `red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple`, `pink`, `brown`, `gray`, `random` |
 | `defaultEditMode` | `normal` (default), `raw` |
 | `confirmBeforeDelete`, `complexShadows`, `inlineCalculations`, `noteQuips`, `formattingToolbar`, `checkedItemsLast`, `checklistProgress`, `linkPreviewCards` | `true` or `false` |

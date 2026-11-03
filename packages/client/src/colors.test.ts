@@ -122,13 +122,17 @@ function contrast(a: number[], b: number[]): number {
   return ((light ?? 0) + 0.05) / ((dark ?? 0) + 0.05);
 }
 
-/** The color that a utility list gives one property in one theme. */
+/**
+ * The color that a utility list gives one property in one theme. An alpha from
+ * a variable (`/(--note-alpha)`) is 100% unless a rule sets it, and the glossy
+ * test sets it itself. Thus, it is dropped.
+ */
 function utility(classes: string, prefix: string, theme: Theme): string {
   const lead = theme === "dark" ? `dark:${prefix}-` : `${prefix}-`;
   const name = classes
     .split(/\s+/)
     .filter((c) => c.startsWith(lead))
-    .map((c) => c.slice(lead.length))
+    .map((c) => c.slice(lead.length).replace(/\/\(--[a-z-]+\)$/, ""))
     .find((value) => palette.has(value.split("/")[0] ?? ""));
   if (name === undefined) throw new Error(`no ${prefix} in ${classes}`);
   return name;
@@ -200,6 +204,130 @@ describe("contrast on notes", () => {
   it("keeps a note's text and icons legible on every colour and shade", () => {
     expect(failures(noteSurfaces, roles)).toEqual([]);
   });
+
+  // A glossy or glass card shows the board through its color, and a glossy
+  // card puts a sheen of white over it. The board can be any color. Thus, the
+  // test puts each note over a black and a white board, which are the two
+  // ends, after the filter of the glass, under no sheen and under the strongest
+  // part of it.
+  it.each(["glossy", "glass"])(
+    "keeps the text and icons of a %s note legible over any board",
+    (finish) => {
+      const noteCss = read("./styles/note-cards.css");
+      const ruleOf = (selector: string) => {
+        const start = noteCss.indexOf(`${selector} {`);
+        expect(start, selector).toBeGreaterThanOrEqual(0);
+        return noteCss.slice(start, noteCss.indexOf("\n}", start));
+      };
+      /** The last rule of `rules` that sets `property`, or "". */
+      const lastWith = (rules: string[], property: string) =>
+        rules.filter((r) => r.includes(`${property}:`)).at(-1) ?? "";
+      const finishOf = (...selectors: string[]) => {
+        const rules = selectors.map(ruleOf);
+        const alpha = /--note-alpha: ([\d.]+)%;/.exec(
+          lastWith(rules, "--note-alpha"),
+        )?.[1];
+        expect(alpha, selectors[0]).toBeDefined();
+        const sheens = [
+          ...lastWith(rules, "background-image").matchAll(
+            /rgb\(255 255 255 \/ ([\d.]+)\)/g,
+          ),
+        ].map(([, a = "0"]) => Number(a));
+        const filter = lastWith(rules, "backdrop-filter");
+        const amount = (name: string) =>
+          Number(new RegExp(`${name}\\(([\\d.]+)\\)`).exec(filter)?.[1] ?? 1);
+        // Each step of the ramp that the card moves, to the step that it reads.
+        const moved = new Map(
+          [
+            ...rules
+              .join("\n")
+              .matchAll(/--color-(neutral-\d+): var\(--ramp-(\d+)\);/g),
+          ].map(([, step = "", to = ""]) => [step, `neutral-${to}`]),
+        );
+        return {
+          alpha: Number(alpha) / 100,
+          sheens: [0, ...sheens],
+          contrast: amount("contrast"),
+          brightness: amount("brightness"),
+          moved,
+        };
+      };
+      const base = `:root[data-note-finish="${finish}"] .note-finish`;
+      const looks: Record<Theme, ReturnType<typeof finishOf>> = {
+        light: finishOf(
+          base,
+          `:root:not(.dark)[data-note-finish="${finish}"] .note-finish`,
+        ),
+        dark: finishOf(
+          base,
+          `:root.dark[data-note-finish="${finish}"] .note-finish`,
+        ),
+      };
+      // Each step that a card reads is held on the root.
+      for (const { moved } of Object.values(looks)) {
+        expect(moved.size).toBeGreaterThan(2);
+        for (const to of moved.values()) {
+          expect(noteCss).toContain(
+            `--ramp-${to.slice(8)}: var(--color-${to});`,
+          );
+        }
+      }
+
+      const mix = (top: number[], under: number[], a: number) =>
+        top.map((v, i) => v * a + (under[i] ?? 0) * (1 - a));
+      const clamp = (v: number) => Math.min(1, Math.max(0, v));
+      const linear = (v: number) =>
+        v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+      const encoded = (v: number) =>
+        v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055;
+      /**
+       * A board channel after `contrast()` and `brightness()`. A browser can
+       * apply them to the encoded or to the linear value. Thus, both.
+       */
+      const filtered = (v: number, c: number, b: number) => {
+        const f = (x: number) => clamp(clamp((x - 0.5) * c + 0.5) * b);
+        return [f(v), encoded(f(linear(v)))];
+      };
+
+      const found: string[] = [];
+      for (const { theme, dim } of shades) {
+        const look = looks[theme];
+        const tone = (classes: string) => {
+          const [name = "", a] = utility(classes, "text", theme).split("/");
+          const step = look.moved.get(name) ?? name;
+          return a === undefined ? step : `${step}/${a}`;
+        };
+        const boards = [0, 1].flatMap((v) =>
+          filtered(v, look.contrast, look.brightness),
+        );
+        for (const surface of noteSurfaces) {
+          const name = utility(surface.classes, "bg", theme);
+          // The surface of a note never reads a step that a card moves.
+          expect(look.moved.has(name), `${surface.label} ${theme}`).toBe(false);
+          const note = srgb(colour(name, theme, dim));
+          for (const board of boards) {
+            for (const sheen of look.sheens) {
+              const bg = mix(
+                [1, 1, 1],
+                mix(note, [board, board, board], look.alpha),
+                sheen,
+              );
+              for (const text of roles) {
+                const fg = over(tone(text.classes), bg, theme, dim);
+                const ratio = contrast(fg, bg);
+                if (ratio < text.needs) {
+                  found.push(
+                    `${text.label} on ${finish} ${surface.label} over ${board.toFixed(2)}, sheen ${sheen}, ${theme} dim ${dim}%: ${ratio.toFixed(2)}`,
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+      expect([...new Set(found)]).toEqual([]);
+    },
+  );
 
   it("keeps a tag's name legible on its chip", () => {
     const chips = Object.entries(tagChipColors).map(([color, { bg }]) => ({

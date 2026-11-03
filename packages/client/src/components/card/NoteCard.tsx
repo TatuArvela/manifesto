@@ -293,7 +293,7 @@ export const NoteCard = memo(function NoteCard({
           ref={cardRef}
           class={clsx(
             colors.bg,
-            "note-surface",
+            "note-surface note-finish",
             // The selection is an outline, never a change of border width or
             // ring. Cards have an automatic height, and the masonry grid spans
             // rows from the measured height. Thus, a border that grows by 1px

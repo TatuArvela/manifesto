@@ -259,6 +259,29 @@ and does not say that there are no notes.
 - The list view stays level. Its cards have the full width of the board, and one degree there makes a
   visible step at the edge.
 
+**Finish** (Settings, Appearance, Notes, selected from a small sample board of each) is **Matte**
+by default: each card is opaque. The two other finishes make each card on the board translucent:
+
+- **Glossy**: the color is mostly opaque (82% in the light theme, 90% in the dark theme), and the
+  card blurs the board under it. A sheen of light goes from the top left corner, and the top edge is
+  bright.
+- **Glass**: the card is semi-transparent (59% in the light theme, 60% in the dark theme), with a
+  small blur. Thus, the board shows through clearly, and more vivid than it is. A bright rim goes
+  around the card, with a soft glow inside it along the top and the bottom edges, and a curved
+  reflection of light goes across the top. The text has a soft halo: light behind dark text, dark
+  behind light text. The glass tints
+  the board under it: in the light theme, it makes the board lighter and less strong, but never
+  white; in the dark theme, it makes the board darker, as smoked glass does. Thus, a black or a white
+  board does not show through as black or white.
+- On both, the text and the icons of the card are stronger than usual (darker in the light theme,
+  lighter in the dark theme): one step on Glossy, two steps on Glass. Thus, they stay at 4.5:1 (3:1
+  for an icon) over any board, from black to white. A test measures each note color over both.
+- An auto-note keeps its own thick border.
+- Only the cards on the board get the finish. An open note, the composer and the dialogs stay
+  opaque.
+- The blur has a cost: each card blurs the board again when the board changes under it, as a moving
+  pattern does on each frame.
+
 ## Selecting Notes
 
 You can pin, tag, recolor, archive or delete selected notes together from the header. While a note

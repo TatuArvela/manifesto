@@ -29,6 +29,16 @@ export type DecimalSeparator = "auto" | "." | ",";
 export type NoteCorners = "straight" | "rounded";
 /** If the cards are level on the board, or each one tilts a little. */
 export type NoteTilt = "tidy" | "messy";
+/**
+ * The surface of a card on the board: opaque, translucent with a sheen, or
+ * clear glass (note-cards.css).
+ */
+export type NoteFinish = "matte" | "glossy" | "glass";
+export const NOTE_FINISHES: readonly NoteFinish[] = [
+  "matte",
+  "glossy",
+  "glass",
+];
 export type EditMode = "normal" | "raw";
 /** A color that a tag can get: any note color other than the plain one. */
 export type TagColor = Exclude<NoteColor, NoteColor.Default>;
@@ -426,6 +436,7 @@ export const PREF_PARSERS = {
   // The curled shadow of a sheet of paper under each card. Off, a card has a
   // plain, even shadow.
   complexShadows: flag(true),
+  noteFinish: oneOf<NoteFinish>(NOTE_FINISHES, "matte"),
   // The default on the first run follows the OS setting. After the user changes
   // the toggle, their choice wins.
   animations: (value: unknown): boolean =>

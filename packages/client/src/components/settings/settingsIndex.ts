@@ -23,6 +23,7 @@ export const SETTINGS_INDEX: readonly {
   { tab: "appearance", label: "settings.noteTilt" },
   { tab: "appearance", label: "settings.noteCorners" },
   { tab: "appearance", label: "settings.complexShadows" },
+  { tab: "appearance", label: "settings.noteFinish" },
   { tab: "appearance", label: "settings.stickyTopBar" },
   { tab: "appearance", label: "settings.animations" },
   { tab: "appearance", label: "settings.noteQuips" },
