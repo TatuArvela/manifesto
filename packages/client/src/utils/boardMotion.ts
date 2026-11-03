@@ -164,3 +164,38 @@ export function sheetStates(texture: MovingTexture, t: number): SheetState[] {
     sheetState(texture, k, t),
   );
 }
+
+/**
+ * The most frames each second that the board painter draws. Each frame costs
+ * the GPU a pass over the full board, and the screen a new frame. The patterns
+ * move slowly: at 100%, most move 4 to 6 px each second, less than half a px
+ * each frame at this rate. Thus, more frames look almost the same, and cost
+ * more. A screen of 120 Hz would otherwise get 120 draws each second.
+ */
+export const BOARD_FRAME_RATE = 14;
+
+/**
+ * A frame of the screen comes a little early or late. A draw that is due within
+ * this time is not skipped.
+ */
+const FRAME_SLACK_MS = 2;
+
+/**
+ * If the board painter draws on the frame of the screen at `now` (ms), at no
+ * more than `fps` draws each second. It returns the time to count the next
+ * draw from, or null to skip this frame. The next draw counts from the time
+ * when this one was due, not from `now`. Thus, 25 fps on a screen of 60 Hz
+ * gives 25 draws each second, not 20. After a long gap (a slow frame), it
+ * counts from `now`.
+ */
+export function frameDue(
+  now: number,
+  lastDraw: number | null,
+  fps: number,
+): number | null {
+  if (lastDraw === null) return now;
+  const interval = 1000 / fps;
+  const gap = now - lastDraw;
+  if (gap < interval - FRAME_SLACK_MS) return null;
+  return gap < 2 * interval ? lastDraw + interval : now;
+}

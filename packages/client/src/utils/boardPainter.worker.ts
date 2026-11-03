@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 import { BoardGl } from "./boardGl.ts";
-import { sheetStates } from "./boardMotion.ts";
+import { BOARD_FRAME_RATE, frameDue, sheetStates } from "./boardMotion.ts";
 import type { FromPainter, ToPainter } from "./boardPainterMessages.ts";
 import type { MovingTexture } from "./boardTextures.ts";
 
@@ -11,6 +11,10 @@ import type { MovingTexture } from "./boardTextures.ts";
  *
  * The time of the pattern goes forward at the speed of the slider. A new speed
  * changes only how fast it goes from now. Thus, the board does not jump.
+ *
+ * It draws no more than `BOARD_FRAME_RATE` frames each second (`frameDue` in
+ * boardMotion.ts). On a frame that it skips, the canvas has nothing new, and
+ * the browser composites nothing new for it.
  */
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -21,6 +25,8 @@ let running = true;
 /** The time of the pattern, in seconds at a speed of 100%. */
 let time = 0;
 let last: number | null = null;
+/** The time that the last draw counts from, or null to draw on the next frame. */
+let lastDraw: number | null = null;
 let frame: number | null = null;
 
 /**
@@ -56,8 +62,10 @@ function paint(now: number) {
     time += Math.min((now - last) / 1000, MAX_STEP_SECONDS) * rate;
   }
   last = now;
-  if (texture) {
-    painter.draw(sheetStates(texture, time));
+  const due = frameDue(now, lastDraw, BOARD_FRAME_RATE);
+  if (due !== null) {
+    lastDraw = due;
+    if (texture) painter.draw(sheetStates(texture, time));
   }
   schedule();
 }
@@ -72,6 +80,7 @@ function stop() {
   if (frame !== null) cancelFrame(frame);
   frame = null;
   last = null;
+  lastDraw = null;
 }
 
 self.onmessage = (event: MessageEvent<ToPainter>) => {
@@ -89,15 +98,20 @@ self.onmessage = (event: MessageEvent<ToPainter>) => {
   }
   if (!painter) return;
   switch (message.kind) {
+    // A new size clears the canvas, and new sheets or ink change the look.
+    // Thus, each of them draws on the next frame, not when the next draw is due.
     case "size":
       painter.setSize(message.width, message.height, message.scale);
+      lastDraw = null;
       break;
     case "sheets":
       painter.setSheets(message.tiles);
       texture = message.texture;
+      lastDraw = null;
       break;
     case "ink":
       painter.setInk(message.rgb);
+      lastDraw = null;
       break;
     case "speed":
       rate = message.rate;

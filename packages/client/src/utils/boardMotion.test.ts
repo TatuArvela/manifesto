@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   easeInOut,
+  frameDue,
   type PerSheet,
   SHEET_PLANS,
   sheetState,
@@ -175,5 +176,49 @@ describe("the motion of the sheets", () => {
     for (const texture of textures) {
       expect(sheetStates(texture, 1)).toHaveLength(SHEET_COUNTS[texture]);
     }
+  });
+});
+
+describe("frameDue", () => {
+  /** The draws in one second of a screen at `hz`, at no more than `fps`. */
+  function drawsInASecond(hz: number, fps: number): number {
+    let lastDraw: number | null = null;
+    let draws = 0;
+    for (let frame = 0; frame < hz; frame++) {
+      const due = frameDue((frame * 1000) / hz, lastDraw, fps);
+      if (due === null) continue;
+      lastDraw = due;
+      draws++;
+    }
+    return draws;
+  }
+
+  it("draws on the first frame", () => {
+    expect(frameDue(1234, null, 5)).toBe(1234);
+  });
+
+  it("draws at the chosen rate on screens of each rate", () => {
+    expect(drawsInASecond(60, 60)).toBe(60);
+    expect(drawsInASecond(60, 30)).toBe(30);
+    expect(drawsInASecond(60, 25)).toBe(25);
+    expect(drawsInASecond(60, 14)).toBe(14);
+    expect(drawsInASecond(120, 14)).toBe(14);
+    expect(drawsInASecond(60, 5)).toBe(5);
+    expect(drawsInASecond(120, 60)).toBe(60);
+    expect(drawsInASecond(120, 30)).toBe(30);
+    expect(drawsInASecond(144, 60)).toBe(60);
+  });
+
+  it("never draws faster than the screen", () => {
+    expect(drawsInASecond(30, 60)).toBe(30);
+  });
+
+  // A frame that comes a little early is not skipped.
+  it("draws on a frame that is a little early", () => {
+    expect(frameDue(1032, 1000, 30)).toBeCloseTo(1033.33);
+  });
+
+  it("counts again from now after a long gap", () => {
+    expect(frameDue(2000, 1000, 30)).toBe(2000);
   });
 });

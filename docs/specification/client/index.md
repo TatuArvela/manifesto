@@ -154,7 +154,9 @@ The state is in `packages/client/src/state/`. It is reactive through `@preact/si
     in one pass. `utils/boardMotion.ts` gives the place, opacity and light of each sheet at a time.
     The time goes forward at the speed of the slider, so a new speed does not move the pattern. The
     canvas has the ink as its CSS color, and the page sends the resolved color when the root changes.
-    Under a picture, or with the page hidden, nothing paints.
+    Under a picture, or with the page hidden, nothing paints. It draws no more than 14 frames each
+    second (`BOARD_FRAME_RATE` in `boardMotion.ts`), because the patterns move slowly. On a frame
+    that it skips, the canvas has nothing new, so the browser composites nothing new for it.
   - Where the browser cannot give a canvas to a worker, or WebGL 2 fails or is lost, the board shows
     the CSS sheets (`BoardSheets`) for the rest of the session. The tiles and the preview in Settings
     always use the sheets: they are small, and each canvas would need its own WebGL context. The
