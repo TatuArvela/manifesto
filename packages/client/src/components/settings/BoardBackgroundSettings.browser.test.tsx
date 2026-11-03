@@ -17,6 +17,7 @@ import {
   resolvedBoardTexture,
 } from "#/state/prefs.ts";
 import { defined } from "#/test/defined.ts";
+import { ROLL_REPEAT_BOARDS } from "#/utils/boardMotion.ts";
 import { BoardBackgroundSettings } from "./BoardBackgroundSettings.tsx";
 
 let host: HTMLDivElement;
@@ -111,10 +112,10 @@ describe("board motion", () => {
     expect(root.dataset.boardRoll).toBe("");
     const layer = getComputedStyle(board, "::after");
     expect(layer.getPropertyValue("animation-name")).toBe("board-roll");
-    // A repeat of two boards, and one board more, for a gradient that goes
-    // sideways. One board high.
+    // A repeat, and one board more, for a gradient that goes sideways. One
+    // board high.
     expect(Number.parseFloat(layer.width)).toBeCloseTo(
-      board.getBoundingClientRect().width * 3,
+      board.getBoundingClientRect().width * (1 + ROLL_REPEAT_BOARDS),
     );
     expect(Number.parseFloat(layer.height)).toBeCloseTo(
       board.getBoundingClientRect().height,
