@@ -1,3 +1,9 @@
+import {
+  drawLeaf,
+  LEAF_DEFS,
+  type LeafLook,
+  leafLooks,
+} from "./boardLeaves.ts";
 import { across, dataUrl, round, seeded } from "./boardSvg.ts";
 
 /**
@@ -222,36 +228,6 @@ const SNOWFLAKE = Array.from({ length: 6 }, (_, i) => {
 }).join("");
 
 /**
- * The right half of a maple leaf, from the tip of its top lobe down to its
- * stem: the top lobe, a side lobe that points up and out, and a small lobe
- * under it. The left half is the same, the other way round.
- */
-const MAPLE_HALF: readonly (readonly [number, number])[] = [
-  [1.3, -7.4],
-  [3, -8.2],
-  [2.4, -4],
-  [4.6, -4.6],
-  [5, -3.6],
-  [9.2, -5],
-  [7.6, -1.6],
-  [9, -0.4],
-  [4.2, 1.2],
-  [5.6, 3.6],
-  [1.6, 2.8],
-  [0.7, 3.2],
-  [0.7, 7.5],
-];
-
-/** A maple leaf about twenty units wide, reaching about 10.5 from its centre. */
-const MAPLE_LEAF = `M0 -10 L${[
-  ...MAPLE_HALF,
-  ...[...MAPLE_HALF].reverse().map(([x, y]) => [-x, y] as const),
-]
-  .map(([x, y]) => `${x} ${y}`)
-  .join(" L")}Z`;
-const MAPLE_REACH = 10.5;
-
-/**
  * A sakura petal reaching 1 from its centre: narrow at its base, widest past
  * its middle, and round at its top, with a small notch in it.
  */
@@ -306,6 +282,28 @@ function usedPath(d: string): {
 
 const FLAKE = usedPath(SNOWFLAKE);
 
+/**
+ * The look of each leaf (boardLeaves.ts), from a generator of its own. Thus,
+ * a new look does not move the leaves, and the still pattern and each sheet
+ * draw the same leaf in the same way.
+ */
+const LEAF_LOOKS = (() => {
+  const looks = leafLooks(SCATTERS.leaves.length, seeded(20261111));
+  return new Map(SCATTERS.leaves.map((leaf, i) => [leaf, looks[i]]));
+})();
+
+const FLAT_LEAF: LeafLook = { shape: 0, across: 1, along: 1 };
+
+function leaf(shape: Scattered, x: number, y: number): string {
+  return drawLeaf(
+    LEAF_LOOKS.get(shape) ?? FLAT_LEAF,
+    shape.r,
+    shape.turn,
+    x,
+    y,
+  );
+}
+
 /** A path drawn at a shape's place, turn and size. */
 function placedPath(d: string, reach: number) {
   return ({ r, turn }: Scattered, x: number, y: number) =>
@@ -345,7 +343,7 @@ const DRAWS: Record<
   hearts: { draw: placedPath(HEART, HEART_REACH) },
   rain: { draw: drop },
   snow: FLAKE,
-  leaves: { draw: placedPath(MAPLE_LEAF, MAPLE_REACH) },
+  leaves: { draw: leaf, defs: LEAF_DEFS },
   petals: { draw: placedPath(PETAL, 1) },
 };
 

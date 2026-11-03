@@ -149,6 +149,10 @@ sections, Color and Pattern. Each choice applies immediately:
     about ten times as fast as the other patterns.
   - Snowflakes, maple leaves and sakura petals fall in three sheets by size, the largest fastest,
     each sheet with its own sway. The snow falls slowest, and the leaves sway widest.
+  - The maple leaves are not all one leaf seen from above. There are four shapes: a broad leaf, a
+    full leaf with wide toothed lobes, a broad leaf with a long curved stem, and a leaf that tumbles
+    edge-on with a long thin stem. Some leaves are also tilted, squashed across or along themselves,
+    as a leaf that turns in the air is seen at an angle.
   - Frames float slowly up in three sheets by size, the largest fastest, with a small sway. Thus,
     they pass over each other.
   - Stars twinkle in four sheets and pass slowly.
