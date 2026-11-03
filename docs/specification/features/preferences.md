@@ -117,6 +117,7 @@ sets most frequently:
 | `noteSize` | `fit` (default), `square` |
 | `noteCorners` | `straight` (default), `rounded` |
 | `noteTilt` | `tidy` (default), `messy` |
+| `noteFinish` | `matte` (default), `glossy`, `glass` |
 | `defaultNoteColor` | `default` (default), `red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple`, `pink`, `brown`, `gray`, `random` |
 | `defaultEditMode` | `normal` (default), `raw` |
 | `confirmBeforeDelete`, `complexShadows`, `inlineCalculations`, `noteQuips`, `formattingToolbar`, `checkedItemsLast`, `checklistProgress`, `linkPreviewCards` | `true` or `false` |
@@ -124,7 +125,7 @@ sets most frequently:
 | `boardCustomColor`, `boardGradientCustomColor`, `boardInkColor` | a `#rrggbb` color |
 | `boardGradientDirection` | `top`, `top-right`, `right`, `bottom-right` (default), `bottom`, `bottom-left`, `left`, `top-left`, `random` |
 | `boardGradientSpeed`, `boardTextureSpeed` | a percentage of the usual speed, from 0 (default, still) to 200, in steps of 10 |
-| `boardTexture` | `none` (default), `paper`, `dots`, `grid`, `lines`, `waves`, `confetti`, `stars`, `hearts`, `bubbles`, `stripes`, `sawtooth`, `random` |
+| `boardTexture` | `none` (default), `paper`, `dots`, `grid`, `lines`, `waves`, `confetti`, `stars`, `hearts`, `bubbles`, `rain`, `snow`, `leaves`, `petals`, `stripes`, `frames`, `sawtooth`, `random` |
 | `boardInk` | `auto` (default), `white`, `black`, a board color, `custom`, `random` |
 | `boardTextureOpacity` | a whole percentage from 0 to 100 (default 10) |
 | `noteScale`, `animations`, `stickyTopBar`, `openLinksInBrowser` | the device preferences: `big` or `small`, and `true` or `false`. They apply only on a first visit |

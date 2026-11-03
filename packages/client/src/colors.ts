@@ -8,79 +8,85 @@ export interface ColorClasses {
   toggleTrack: string;
 }
 
+/**
+ * The color of each note. A surface draws it at `--note-alpha`, which is 100%
+ * unless a glossy or glass card on the board sets it lower (note-cards.css). The
+ * property does not inherit. Thus, a surface inside such a card stays
+ * opaque.
+ */
 export const noteColorMap: Record<NoteColor, ColorClasses> = {
   [NoteColor.Default]: {
-    bg: "bg-white dark:bg-neutral-800",
+    bg: "bg-white/(--note-alpha) dark:bg-neutral-800/(--note-alpha)",
     hover: "hover:bg-neutral-50 dark:hover:bg-neutral-750",
     border: "border-neutral-200 dark:border-neutral-700",
     ring: "ring-neutral-300 dark:ring-neutral-600",
     toggleTrack: "bg-neutral-100 dark:bg-neutral-700",
   },
   [NoteColor.Red]: {
-    bg: "bg-red-100 dark:bg-red-900",
+    bg: "bg-red-100/(--note-alpha) dark:bg-red-900/(--note-alpha)",
     hover: "hover:bg-red-200 dark:hover:bg-red-800",
     border: "border-transparent",
     ring: "ring-red-300 dark:ring-red-700",
     toggleTrack: "bg-red-200 dark:bg-red-800",
   },
   [NoteColor.Orange]: {
-    bg: "bg-orange-100 dark:bg-orange-900",
+    bg: "bg-orange-100/(--note-alpha) dark:bg-orange-900/(--note-alpha)",
     hover: "hover:bg-orange-200 dark:hover:bg-orange-800",
     border: "border-transparent",
     ring: "ring-orange-300 dark:ring-orange-700",
     toggleTrack: "bg-orange-200 dark:bg-orange-800",
   },
   [NoteColor.Yellow]: {
-    bg: "bg-yellow-100 dark:bg-yellow-900",
+    bg: "bg-yellow-100/(--note-alpha) dark:bg-yellow-900/(--note-alpha)",
     hover: "hover:bg-yellow-200 dark:hover:bg-yellow-800",
     border: "border-transparent",
     ring: "ring-yellow-300 dark:ring-yellow-700",
     toggleTrack: "bg-yellow-200 dark:bg-yellow-800",
   },
   [NoteColor.Green]: {
-    bg: "bg-green-100 dark:bg-green-900",
+    bg: "bg-green-100/(--note-alpha) dark:bg-green-900/(--note-alpha)",
     hover: "hover:bg-green-200 dark:hover:bg-green-800",
     border: "border-transparent",
     ring: "ring-green-300 dark:ring-green-700",
     toggleTrack: "bg-green-200 dark:bg-green-800",
   },
   [NoteColor.Teal]: {
-    bg: "bg-teal-100 dark:bg-teal-900",
+    bg: "bg-teal-100/(--note-alpha) dark:bg-teal-900/(--note-alpha)",
     hover: "hover:bg-teal-200 dark:hover:bg-teal-800",
     border: "border-transparent",
     ring: "ring-teal-300 dark:ring-teal-700",
     toggleTrack: "bg-teal-200 dark:bg-teal-800",
   },
   [NoteColor.Blue]: {
-    bg: "bg-blue-100 dark:bg-blue-900",
+    bg: "bg-blue-100/(--note-alpha) dark:bg-blue-900/(--note-alpha)",
     hover: "hover:bg-blue-200 dark:hover:bg-blue-800",
     border: "border-transparent",
     ring: "ring-blue-300 dark:ring-blue-700",
     toggleTrack: "bg-blue-200 dark:bg-blue-800",
   },
   [NoteColor.Purple]: {
-    bg: "bg-purple-100 dark:bg-purple-900",
+    bg: "bg-purple-100/(--note-alpha) dark:bg-purple-900/(--note-alpha)",
     hover: "hover:bg-purple-200 dark:hover:bg-purple-800",
     border: "border-transparent",
     ring: "ring-purple-300 dark:ring-purple-700",
     toggleTrack: "bg-purple-200 dark:bg-purple-800",
   },
   [NoteColor.Pink]: {
-    bg: "bg-pink-100 dark:bg-pink-900",
+    bg: "bg-pink-100/(--note-alpha) dark:bg-pink-900/(--note-alpha)",
     hover: "hover:bg-pink-200 dark:hover:bg-pink-800",
     border: "border-transparent",
     ring: "ring-pink-300 dark:ring-pink-700",
     toggleTrack: "bg-pink-200 dark:bg-pink-800",
   },
   [NoteColor.Brown]: {
-    bg: "bg-taupe-300 dark:bg-taupe-800",
+    bg: "bg-taupe-300/(--note-alpha) dark:bg-taupe-800/(--note-alpha)",
     hover: "hover:bg-taupe-400 dark:hover:bg-taupe-700",
     border: "border-transparent",
     ring: "ring-taupe-500 dark:ring-taupe-600",
     toggleTrack: "bg-taupe-400 dark:bg-taupe-700",
   },
   [NoteColor.Gray]: {
-    bg: "bg-neutral-200 dark:bg-neutral-700",
+    bg: "bg-neutral-200/(--note-alpha) dark:bg-neutral-700/(--note-alpha)",
     hover: "hover:bg-neutral-300 dark:hover:bg-neutral-600",
     border: "border-transparent",
     ring: "ring-neutral-400 dark:ring-neutral-500",
@@ -117,47 +123,47 @@ export const autoNoteColorMap: Record<
   Pick<ColorClasses, "bg" | "border">
 > = {
   [NoteColor.Default]: {
-    bg: "bg-white dark:bg-neutral-900",
+    bg: "bg-white/(--note-alpha) dark:bg-neutral-900/(--note-alpha)",
     border: "border-4 border-neutral-200 dark:border-neutral-700",
   },
   [NoteColor.Red]: {
-    bg: "bg-red-50 dark:bg-red-950",
+    bg: "bg-red-50/(--note-alpha) dark:bg-red-950/(--note-alpha)",
     border: "border-4 border-red-200 dark:border-red-800",
   },
   [NoteColor.Orange]: {
-    bg: "bg-orange-50 dark:bg-orange-950",
+    bg: "bg-orange-50/(--note-alpha) dark:bg-orange-950/(--note-alpha)",
     border: "border-4 border-orange-200 dark:border-orange-800",
   },
   [NoteColor.Yellow]: {
-    bg: "bg-yellow-50 dark:bg-yellow-950",
+    bg: "bg-yellow-50/(--note-alpha) dark:bg-yellow-950/(--note-alpha)",
     border: "border-4 border-yellow-200 dark:border-yellow-800",
   },
   [NoteColor.Green]: {
-    bg: "bg-green-50 dark:bg-green-950",
+    bg: "bg-green-50/(--note-alpha) dark:bg-green-950/(--note-alpha)",
     border: "border-4 border-green-200 dark:border-green-800",
   },
   [NoteColor.Teal]: {
-    bg: "bg-teal-50 dark:bg-teal-950",
+    bg: "bg-teal-50/(--note-alpha) dark:bg-teal-950/(--note-alpha)",
     border: "border-4 border-teal-200 dark:border-teal-800",
   },
   [NoteColor.Blue]: {
-    bg: "bg-blue-50 dark:bg-blue-950",
+    bg: "bg-blue-50/(--note-alpha) dark:bg-blue-950/(--note-alpha)",
     border: "border-4 border-blue-200 dark:border-blue-800",
   },
   [NoteColor.Purple]: {
-    bg: "bg-purple-50 dark:bg-purple-950",
+    bg: "bg-purple-50/(--note-alpha) dark:bg-purple-950/(--note-alpha)",
     border: "border-4 border-purple-200 dark:border-purple-800",
   },
   [NoteColor.Pink]: {
-    bg: "bg-pink-50 dark:bg-pink-950",
+    bg: "bg-pink-50/(--note-alpha) dark:bg-pink-950/(--note-alpha)",
     border: "border-4 border-pink-200 dark:border-pink-800",
   },
   [NoteColor.Brown]: {
-    bg: "bg-taupe-100 dark:bg-taupe-900",
+    bg: "bg-taupe-100/(--note-alpha) dark:bg-taupe-900/(--note-alpha)",
     border: "border-4 border-taupe-300 dark:border-taupe-700",
   },
   [NoteColor.Gray]: {
-    bg: "bg-neutral-100 dark:bg-neutral-800",
+    bg: "bg-neutral-100/(--note-alpha) dark:bg-neutral-800/(--note-alpha)",
     border: "border-4 border-neutral-300 dark:border-neutral-600",
   },
 };

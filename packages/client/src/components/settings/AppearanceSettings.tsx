@@ -8,6 +8,7 @@ import {
   stickyTopBar,
 } from "#/state/prefs.ts";
 import { BoardStylePicker } from "./BoardStylePicker.tsx";
+import { NoteFinishPicker } from "./NoteFinishPicker.tsx";
 import { SettingsGroup, SettingsRow } from "./SettingsControls.tsx";
 import { ThemePicker } from "./ThemePicker.tsx";
 
@@ -43,6 +44,10 @@ export function AppearanceSettings() {
             }}
             label={t("settings.complexShadows")}
           />
+        </SettingsRow>
+
+        <SettingsRow label={t("settings.noteFinish")} alignTop>
+          <NoteFinishPicker />
         </SettingsRow>
       </SettingsGroup>
 

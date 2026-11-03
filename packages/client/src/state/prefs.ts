@@ -7,11 +7,8 @@ import {
   signal,
   untracked,
 } from "@preact/signals";
-import {
-  inkHex,
-  pictureTextures,
-  sheetTextures,
-} from "#/utils/boardTextures.ts";
+import { inkHex } from "#/utils/boardInk.ts";
+import { pictureTextures, sheetTextures } from "#/utils/boardTextures.ts";
 import {
   ACCOUNT_PREF_KEYS,
   BOARD_COLORS,
@@ -119,6 +116,7 @@ export const decimalSeparator = pref("decimalSeparator");
 export const noteCorners = pref("noteCorners");
 export const noteTilt = pref("noteTilt");
 export const complexShadows = pref("complexShadows");
+export const noteFinish = pref("noteFinish");
 export const animations = pref("animations");
 export const lightHue = pref("lightHue");
 export const darkHue = pref("darkHue");
@@ -485,6 +483,17 @@ effect(() => {
     "notes-messy",
     noteTilt.value === "messy",
   );
+});
+
+// --- Note finish ---
+
+// An attribute on <html>, absent for matte. Each card carries `note-finish`,
+// whatever the setting, and the stylesheet gives it the finish of the board
+// (note-cards.css).
+effect(() => {
+  const root = document.documentElement;
+  if (noteFinish.value === "matte") delete root.dataset.noteFinish;
+  else root.dataset.noteFinish = noteFinish.value;
 });
 
 // --- Motion ---

@@ -123,11 +123,13 @@ sections, Color and Pattern. Each choice applies immediately:
     slowly. It starts from the first color, at the side or corner that the still gradient starts
     from. The repeats roll toward the direction without end. At 100%, the gradient moves one board
     in 30 seconds. It is disabled without a second color.
-- **Pattern**: Plain, Paper, Dots, Grid, Lines, Waves, Confetti, Stars, Hearts, Bubbles, Stripes or
-  Sawtooth (the logo in rows turned 45°, with a line between the rows that has barbs from its
-  notches). The app draws it over the color. The patterns are CSS gradients and inline SVG. Thus, no
-  image files are necessary. **Random** puts a different pattern (never Plain) on the board on each
-  visit. If you select it again, it selects a different one.
+- **Pattern**: Plain, Paper, Dots, Grid, Lines, Waves, Confetti, Stars, Hearts, Bubbles, Rain,
+  Snowflakes, Maple Leaves, Sakura Petals, Stripes, Frames (rounded outlines of many sizes and line
+  widths, over each other, each with its hole a little off its centre) or Sawtooth (the logo in rows
+  turned 45°, with a line between the rows that has barbs from its notches). The app draws it over
+  the color. The patterns are CSS gradients and inline SVG. Thus, no image files are necessary.
+  **Random** puts a different pattern (never Plain) on the board on each visit. If you select it
+  again, it selects a different one.
 - **Pattern Color**:
   - Gray (the default, between White and Black) draws each pattern in ink that follows the theme:
     black in light, white in dark.
@@ -142,6 +144,17 @@ sections, Color and Pattern. Each choice applies immediately:
     passes down the page.
   - Confetti falls, and hearts and bubbles rise, in three sheets at three speeds, each with its own
     sway. The largest hearts and bubbles move fastest.
+  - Rain falls on a slant of 14 degrees, as in wind, in three sheets. The longest drops are the
+    widest and fall fastest. The painter draws it at 30 frames each second, not 14, because it moves
+    about ten times as fast as the other patterns.
+  - Snowflakes, maple leaves and sakura petals fall in three sheets by size, the largest fastest,
+    each sheet with its own sway. The snow falls slowest, and the leaves sway widest.
+  - The maple leaves are not all one leaf seen from above. There are four shapes: a broad leaf, a
+    full leaf with wide toothed lobes, a broad leaf with a long curved stem, and a leaf that tumbles
+    edge-on with a long thin stem. Some leaves are also tilted, squashed across or along themselves,
+    as a leaf that turns in the air is seen at an angle.
+  - Frames float slowly up in three sheets by size, the largest fastest, with a small sway. Thus,
+    they pass over each other.
   - Stars twinkle in four sheets and pass slowly.
   - Stripes slide, and every other row of the sawtooth runs the other way along its row.
   - The tiles show the motion. Each sheet moves one whole repeat of its pattern and starts again.
@@ -250,6 +263,29 @@ and does not say that there are no notes.
 - A card becomes level while the pointer is on it, while it has focus, or while you hold it.
 - The list view stays level. Its cards have the full width of the board, and one degree there makes a
   visible step at the edge.
+
+**Finish** (Settings, Appearance, Notes, selected from a small sample board of each) is **Matte**
+by default: each card is opaque. The two other finishes make each card on the board translucent:
+
+- **Glossy**: the color is mostly opaque (82% in the light theme, 90% in the dark theme), and the
+  card blurs the board under it. A sheen of light goes from the top left corner, and the top edge is
+  bright.
+- **Glass**: the card is semi-transparent (59% in the light theme, 60% in the dark theme), with a
+  small blur. Thus, the board shows through clearly, and more vivid than it is. A bright rim goes
+  around the card, with a soft glow inside it along the top and the bottom edges, and a curved
+  reflection of light goes across the top. The text has a soft halo: light behind dark text, dark
+  behind light text. The glass tints
+  the board under it: in the light theme, it makes the board lighter and less strong, but never
+  white; in the dark theme, it makes the board darker, as smoked glass does. Thus, a black or a white
+  board does not show through as black or white.
+- On both, the text and the icons of the card are stronger than usual (darker in the light theme,
+  lighter in the dark theme): one step on Glossy, two steps on Glass. Thus, they stay at 4.5:1 (3:1
+  for an icon) over any board, from black to white. A test measures each note color over both.
+- An auto-note keeps its own thick border.
+- Only the cards on the board get the finish. An open note, the composer and the dialogs stay
+  opaque.
+- The blur has a cost: each card blurs the board again when the board changes under it, as a moving
+  pattern does on each frame.
 
 ## Selecting Notes
 

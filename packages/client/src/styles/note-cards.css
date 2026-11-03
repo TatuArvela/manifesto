@@ -60,6 +60,180 @@
 }
 
 /*
+ * The opacity of the color of a note. Each note surface draws its color at
+ * `--note-alpha` (`noteColorMap` in colors.ts). It does not inherit, and it is
+ * 100% unless a rule sets it on that element. Thus, only a card on the board
+ * is ever translucent, and a surface inside it (or an open note, a sheet, a
+ * dialog) stays opaque.
+ */
+@property --note-alpha {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+
+/*
+ * The finish of a card (Settings > Appearance > Notes > Finish). A card on the
+ * board is matte (opaque) by default. Glossy and glass cards are translucent,
+ * and blur the board under them. `data-note-finish` on <html> is the finish,
+ * and each card carries `note-finish`.
+ *
+ * - Glossy: the color is mostly opaque, with a sheen of light from the top
+ *   left and a bright top edge.
+ * - Glass: the color is thin, and the blur is small. Thus, the board shows
+ *   through clearly, and more vivid than it is. A bright rim goes around the
+ *   card, with a soft glow inside it along the top and the bottom edges, and a
+ *   curved reflection of light goes across the top. The text has a soft halo:
+ *   light behind dark text, dark behind light text. The rim is a layer over
+ *   the card (`::after`), because the `box-shadow` of the card is its shadow
+ *   on the board. Its glow reaches only into the padding of the card. The
+ *   reflection is under the text, and the test measures the text over it. The
+ *   glass changes the board under
+ *   it, as tinted glass does. In the light theme, `contrast()` pulls the board
+ *   toward a middle gray and `brightness()` moves that gray up, but not so far
+ *   that a light board turns white. In the dark theme, `brightness()` alone
+ *   makes the board darker, as smoked glass does, and keeps all its contrast.
+ *   Thus, a black or a white board does not show through as black or white.
+ *
+ * The board can be any color: a custom board can be black in the light theme,
+ * and a picture or a white pattern almost white in the dark theme. Thus, the
+ * text of a card is on a mix of the note and the board, and the usual tones go
+ * under 4.5:1. A translucent card makes each tone of text stronger than usual
+ * (darker in the light theme, lighter in the dark theme): one step on glossy,
+ * two on glass. It moves the steps of the neutral ramp, which each text class,
+ * prose.css and task-list.css read. Thus, nothing that draws text on a card
+ * needs its own rule. The surfaces of the notes do not use the steps that move.
+ * The edges are borders, where no text is. An auto-note keeps its own thick
+ * border.
+ *
+ * The rules go from the lowest specificity to the highest, as the lint asks.
+ *
+ * colors.test.ts reads the alpha, the sheen, the filter of the board and the
+ * moved steps from these rules. It measures the text against each note color
+ * over a black and a white board, in each shade.
+ *
+ * The cost is the blur: each card blurs the board under it again when the board
+ * changes, as a moving pattern does on each frame that it draws.
+ */
+:root {
+  /*
+   * The ramp of the page, held for a translucent card. A custom property
+   * inherits as its resolved value. Thus, a card can read the color of another
+   * step here while it gives its own steps new values.
+   */
+  --ramp-50: var(--color-neutral-50);
+  --ramp-100: var(--color-neutral-100);
+  --ramp-200: var(--color-neutral-200);
+  --ramp-300: var(--color-neutral-300);
+  --ramp-600: var(--color-neutral-600);
+  --ramp-700: var(--color-neutral-700);
+  --ramp-800: var(--color-neutral-800);
+  --ramp-900: var(--color-neutral-900);
+  --ramp-950: var(--color-neutral-950);
+}
+
+:root[data-note-finish="glossy"] .note-finish {
+  --note-alpha: 82%;
+  background-image: linear-gradient(
+    160deg,
+    rgb(255 255 255 / 0.5) 0%,
+    rgb(255 255 255 / 0.12) 45%,
+    rgb(255 255 255 / 0) 70%
+  );
+  backdrop-filter: blur(10px) saturate(1.4);
+}
+/*
+ * The saturation comes before the contrast and the brightness. Thus, those two
+ * set the range of each channel of the board under the glass last.
+ */
+:root[data-note-finish="glass"] .note-finish {
+  --note-alpha: 59%;
+  background-image: radial-gradient(
+    140% 70% at 50% 0%,
+    rgb(255 255 255 / 0.55),
+    rgb(255 255 255 / 0.15) 55%,
+    rgb(255 255 255 / 0) 75%
+  );
+  backdrop-filter: blur(2px) saturate(1.8) contrast(0.7) brightness(1.17);
+}
+:root:not(.dark)[data-note-finish="glossy"] .note-finish {
+  --color-neutral-500: var(--ramp-600);
+  --color-neutral-600: var(--ramp-700);
+  --color-neutral-700: var(--ramp-800);
+  --color-neutral-800: var(--ramp-900);
+  --color-neutral-900: var(--ramp-950);
+  color: var(--color-neutral-900);
+}
+:root:not(.dark)[data-note-finish="glass"] .note-finish {
+  --color-neutral-500: var(--ramp-700);
+  --color-neutral-600: var(--ramp-800);
+  --color-neutral-700: var(--ramp-900);
+  --color-neutral-800: var(--ramp-950);
+  --color-neutral-900: var(--ramp-950);
+  color: var(--color-neutral-900);
+  text-shadow: 0 0 4px rgb(255 255 255 / 70%);
+}
+:root.dark[data-note-finish="glossy"] .note-finish {
+  --note-alpha: 90%;
+  --color-neutral-100: var(--ramp-50);
+  --color-neutral-200: var(--ramp-100);
+  --color-neutral-300: var(--ramp-200);
+  --color-neutral-400: var(--ramp-300);
+  color: var(--color-neutral-100);
+  background-image: linear-gradient(
+    160deg,
+    rgb(255 255 255 / 0.06) 0%,
+    rgb(255 255 255 / 0.02) 45%,
+    rgb(255 255 255 / 0) 70%
+  );
+}
+:root.dark[data-note-finish="glass"] .note-finish {
+  --note-alpha: 60%;
+  --color-neutral-100: var(--ramp-50);
+  --color-neutral-200: var(--ramp-50);
+  --color-neutral-300: var(--ramp-100);
+  --color-neutral-400: var(--ramp-200);
+  color: var(--color-neutral-100);
+  text-shadow: 0 1px 3px rgb(0 0 0 / 60%);
+  background-image: radial-gradient(
+    140% 70% at 50% 0%,
+    rgb(255 255 255 / 0.05),
+    rgb(255 255 255 / 0.015) 55%,
+    rgb(255 255 255 / 0) 75%
+  );
+  backdrop-filter: blur(2px) saturate(1.8) brightness(0.32);
+}
+:root[data-note-finish="glossy"] .note-finish.border {
+  border-top-color: rgb(255 255 255 / 80%);
+}
+:root[data-note-finish="glass"] .note-finish.border {
+  border-color: rgb(255 255 255 / 60%);
+}
+:root.dark[data-note-finish="glossy"] .note-finish.border {
+  border-top-color: rgb(255 255 255 / 18%);
+}
+:root.dark[data-note-finish="glass"] .note-finish.border {
+  border-color: rgb(255 255 255 / 15%);
+}
+:root[data-note-finish="glass"] .note-finish::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 50%),
+    inset 0 10px 12px -10px rgb(255 255 255 / 90%),
+    inset 0 -8px 10px -8px rgb(255 255 255 / 60%);
+}
+:root.dark[data-note-finish="glass"] .note-finish::after {
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 14%),
+    inset 0 10px 12px -10px rgb(255 255 255 / 30%),
+    inset 0 -8px 10px -8px rgb(255 255 255 / 12%);
+}
+
+/*
  * Registered as a length. Thus, the depth animates when a card is hovered: an
  * unregistered custom property only jumps from one value to the other.
  */

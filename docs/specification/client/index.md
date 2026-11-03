@@ -127,7 +127,7 @@ The state is in `packages/client/src/state/`. It is reactive through `@preact/si
 - **`prefs.ts`**: user preferences, kept in `localStorage` under `manifesto:prefs` through a debounced
   `effect()`. It contains `viewMode`, `noteSize`, `noteScale`, `sortMode`, `theme`, `lightHue`,
   `darkHue`, `defaultNoteColor`, `defaultNoteFont`, `noteQuips`, `formattingToolbar`, `stickyTopBar`,
-  `defaultEditMode`, `noteCorners`, `complexShadows`, `animations`, `boardColor`, `boardCustomColor`, `boardGradient`,
+  `defaultEditMode`, `noteCorners`, `complexShadows`, `noteFinish`, `animations`, `boardColor`, `boardCustomColor`, `boardGradient`,
   `boardGradientCustomColor`, `boardGradientDirection`, `boardGradientSpeed`, `boardTexture`, `boardInk`,
   `boardInkColor`, `boardTextureOpacity`, `boardTextureSpeed`, `boardUsePicture`, `boardImageStamp`, `inlineCalculations`,
   `decimalSeparator`, and `locale`.
@@ -142,7 +142,9 @@ The state is in `packages/client/src/state/`. It is reactive through `@preact/si
   - It sets the attributes that make the board: `data-board-color`, `data-board-gradient`,
     `data-board-gradient-direction`, `data-board-texture` and `data-board-ink`. It also sets
     `--board-custom`, `--board-gradient-custom`, `--board-ink-picked`, `--board-texture-opacity`,
-    and the SVG patterns that `utils/boardTextures.ts` draws one time at load, as masks.
+    and the SVG patterns that `utils/boardTextures.ts` draws one time at load, as masks. Each
+    pattern that is a picture has its own file in `utils/` (`boardScatters.ts`, `boardLeaves.ts`,
+    `boardConfetti.ts`, `boardFrames.ts`, `boardSawtooth.ts`), which `boardTextures.ts` lists.
   - While `animations` is on and a speed is above 0, it also sets `data-board-roll` and
     `data-board-texture-motion`. With either, `MovingBoard` (`components/BoardLayers.tsx`) rolls the
     gradient and moves the pattern of the board. With `animations` off, the board is still.

@@ -5,15 +5,16 @@ import {
   BOARD_TEXTURES,
   type BoardGradientDirection,
 } from "#/state/prefParsers.ts";
+import { CONFETTI_TILE } from "#/utils/boardConfetti.ts";
+import { FRAMES_TILE } from "#/utils/boardFrames.ts";
+import { SAWTOOTH_TILE } from "#/utils/boardSawtooth.ts";
+import { LEAF_TILE, RAIN_FALL, SCATTER_TILE } from "#/utils/boardScatters.ts";
 import {
-  CONFETTI_TILE,
   DOT_STEP,
   GRID_STEP,
   LINE_STEP,
   LINE_WIDTH,
   PAPER_TILE,
-  SAWTOOTH_TILE,
-  SCATTER_TILE,
   SHEET_COUNTS,
   WAVE_TILE,
 } from "#/utils/boardTextures.ts";
@@ -69,6 +70,16 @@ describe("board textures", () => {
     expect(sizes.get("confetti")?.trim()).toBe(
       `${CONFETTI_TILE}px ${CONFETTI_TILE}px`,
     );
+  });
+
+  it.each([
+    ["rain", SCATTER_TILE],
+    ["snow", SCATTER_TILE],
+    ["leaves", LEAF_TILE],
+    ["petals", SCATTER_TILE],
+    ["frames", FRAMES_TILE],
+  ] as const)("tiles the %s at the size they are drawn on", (texture, tile) => {
+    expect(sizes.get(texture)?.trim()).toBe(`${tile}px ${tile}px`);
   });
 
   it("tiles the sawtooth at the size it is drawn on", () => {
@@ -132,11 +143,24 @@ describe("moving patterns", () => {
     ["stars", SCATTER_TILE],
     ["hearts", SCATTER_TILE],
     ["bubbles", SCATTER_TILE],
+    ["snow", SCATTER_TILE],
+    ["leaves", LEAF_TILE],
+    ["petals", SCATTER_TILE],
+    ["frames", FRAMES_TILE],
   ] as const)("moves %s by a whole tile", (texture, tile) => {
     const { x, y } = driftOf(texture);
     expect(Math.abs(x) + Math.abs(y)).toBe(tile);
     expect(Math.abs(x) % tile).toBe(0);
     expect(Math.abs(y) % tile).toBe(0);
+  });
+
+  // A slant that does not end on whole tiles jumps each time that the loop
+  // starts.
+  it("lets the rain fall on its slant by whole tiles", () => {
+    expect(driftOf("rain")).toEqual(RAIN_FALL);
+    expect(Math.abs(RAIN_FALL.x) % SCATTER_TILE).toBe(0);
+    expect(Math.abs(RAIN_FALL.y) % SCATTER_TILE).toBe(0);
+    expect(RAIN_FALL.y).toBeGreaterThan(0);
   });
 
   // A row that moves farther than the room between two rows crosses one.

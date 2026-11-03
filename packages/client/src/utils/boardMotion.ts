@@ -1,3 +1,4 @@
+import { LEAF_TILE, RAIN_FALL } from "./boardScatters.ts";
 import { type MovingTexture, SHEET_COUNTS } from "./boardTextures.ts";
 
 /**
@@ -46,6 +47,12 @@ export interface SheetPlan {
     readonly seconds: PerSheet;
     readonly delay: PerSheet;
   };
+  /**
+   * The most frames each second that the painter draws this pattern with, in
+   * place of `BOARD_FRAME_RATE`. Only for a pattern that moves too far in one
+   * frame at that rate to look smooth.
+   */
+  readonly frameRate?: number;
 }
 
 export const SHEET_PLANS: Record<MovingTexture, SheetPlan> = {
@@ -75,7 +82,29 @@ export const SHEET_PLANS: Record<MovingTexture, SheetPlan> = {
     drift: { x: -360, y: 0, seconds: [96, 0] },
     glint: { low: 0.25, seconds: [2.6, 0.9], delay: [0, -1.3] },
   },
+  // Rain falls about ten times as fast as the other patterns move. At 14
+  // frames each second, a drop on the near sheet jumps 6px in each frame.
+  rain: {
+    drift: { x: RAIN_FALL.x, y: RAIN_FALL.y, seconds: [17, 8] },
+    frameRate: 30,
+  },
+  snow: {
+    drift: { x: 0, y: 360, seconds: [36, 14] },
+    sway: { by: 14, seconds: [5, 1.6], delay: [0, -2.3] },
+  },
+  leaves: {
+    drift: { x: 0, y: LEAF_TILE, seconds: [36, 12] },
+    sway: { by: 20, seconds: [4.2, 1.4], delay: [0, -1.9] },
+  },
+  petals: {
+    drift: { x: 0, y: 360, seconds: [24, 9] },
+    sway: { by: 16, seconds: [3.4, 1.2], delay: [0, -1.5] },
+  },
   stripes: { drift: { x: 32 * Math.SQRT2, y: 0, seconds: [8, 0] } },
+  frames: {
+    drift: { x: 0, y: -480, seconds: [60, 30] },
+    sway: { by: 8, seconds: [7, 2.3], delay: [0, -3.1] },
+  },
   sawtooth: {
     drift: { x: 28.6, y: -28.6, seconds: [8, 0], against: true },
   },
@@ -173,6 +202,11 @@ export function sheetStates(texture: MovingTexture, t: number): SheetState[] {
  * more. A screen of 120 Hz would otherwise get 120 draws each second.
  */
 export const BOARD_FRAME_RATE = 14;
+
+/** The most frames each second that the painter draws `texture` with. */
+export function frameRateOf(texture: MovingTexture | null): number {
+  return (texture ? SHEET_PLANS[texture].frameRate : null) ?? BOARD_FRAME_RATE;
+}
 
 /**
  * A frame of the screen comes a little early or late. A draw that is due within
