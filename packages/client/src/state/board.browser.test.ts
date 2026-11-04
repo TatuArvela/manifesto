@@ -7,6 +7,8 @@ import {
   removeBoardImage,
   setBoardImage,
 } from "./board.ts";
+// It sets the composition on <html> (`data-board-color`, `data-board-texture`).
+import "./boardBackground.ts";
 import {
   boardColor,
   boardImageStamp,
