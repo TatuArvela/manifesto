@@ -126,7 +126,7 @@ The state is in `packages/client/src/state/`. It is reactive through `@preact/si
   away after five seconds, unless the pointer is on the stack or the stack has focus.
 - **`prefs.ts`**: user preferences, kept in `localStorage` under `manifesto:prefs` through a debounced
   `effect()`. It contains `viewMode`, `noteSize`, `noteScale`, `sortMode`, `theme`, `lightHue`,
-  `darkHue`, `defaultNoteColor`, `defaultNoteFont`, `noteQuips`, `formattingToolbar`, `stickyTopBar`,
+  `darkHue`, `lightCustomColor`, `darkCustomColor`, `defaultNoteColor`, `defaultNoteFont`, `noteQuips`, `formattingToolbar`, `stickyTopBar`,
   `defaultEditMode`, `noteCorners`, `complexShadows`, `noteFinish`, `animations`, `boardColor`, `boardCustomColor`, `boardGradient`,
   `boardGradientCustomColor`, `boardGradientDirection`, `boardGradientSpeed`, `boardTexture`, `boardInk`,
   `boardInkColor`, `boardTextureOpacity`, `boardTextureSpeed`, `boardUsePicture`, `boardImageStamp`, `inlineCalculations`,
@@ -135,11 +135,15 @@ The state is in `packages/client/src/state/`. It is reactive through `@preact/si
     `prefsSync.ts`. It reads the copy of the server at sign-in and on reconnect, sends each change
     from here as a patch, and adopts `prefs:updated` from the app socket
     ([Preferences](../features/preferences.md)).
-  - It also controls how those preferences show. It toggles the `dark` class on `<html>`, and listens
-    for changes of the system preference. It sets the `notes-rounded` and `no-motion` classes. It sets
-    the `data-light-hue` and `data-dark-hue` attributes, from which the stylesheet makes the neutral
-    ramp of each theme (the light one also tints `--color-white`).
-  - It sets the attributes that make the board: `data-board-color`, `data-board-gradient`,
+  - It also controls how the note and motion preferences show. It sets the `notes-rounded` and
+    `no-motion` classes.
+  - `theme.ts` applies the theme. It toggles the `dark` class on `<html>`, and listens for changes of
+    the system preference. It sets the tint of each theme (`--light-tint-c`, `--light-tint-h`,
+    `--light-dim`, and the same for dark), from which the stylesheet makes the neutral ramp of each
+    theme (the light one also tints `--color-white`). `utils/themeShades.ts` has the tint of each
+    preset, and makes the tint of a custom color.
+  - `boardBackground.ts` resolves each "random" choice of the board for the tab, and sets the
+    attributes that make the board: `data-board-color`, `data-board-gradient`,
     `data-board-gradient-direction`, `data-board-texture` and `data-board-ink`. It also sets
     `--board-custom`, `--board-gradient-custom`, `--board-ink-picked`, `--board-texture-opacity`,
     and the SVG patterns that `utils/boardTextures.ts` draws one time at load, as masks. Each
@@ -166,7 +170,7 @@ The state is in `packages/client/src/state/`. It is reactive through `@preact/si
     the CSS sheets (`BoardSheets`) and rolls the gradient on the `::after` of the frame, for the rest
     of the session. The tiles and the preview in Settings always use the CSS layers: they are small,
     and each canvas would need its own WebGL context. The compositor moves those layers
-    (`.board-sheets` and the roll in `preferences.css`). `boardMotion.test.ts` holds the motion of
+    (`.board-sheets` and the roll in `board-motion.css`). `boardMotion.test.ts` holds the motion of
     the painter equal to the keyframes of the sheets, and its repeat and time equal to the roll.
   - A speed is the `playbackRate` of the running board animations, which it finds by the start of
     their names (`board-roll`, `board-sheet`). The stylesheet gives their times at
@@ -351,16 +355,17 @@ browser, unless the user saved a preference.
 ### Note Colors
 
 In `colors.ts`, each `NoteColor` enum value has Tailwind utility classes for the background, hover
-and border. The map has light and dark variants (for example `bg-yellow-100 dark:bg-yellow-900`).
+and border. The map has light and dark variants (for example `bg-yellow-200 dark:bg-yellow-900`).
 Thus, themes can give different colors in each mode, and the data model does not change.
 
 ### Dark Mode
 
 The preference has three values (`system`, `light` or `dark`), stored in `prefs.ts`. A signal
-`effect` toggles the `dark` class on `<html>`. In system mode, it also subscribes to changes of
-`prefers-color-scheme`. Settings, Appearance shows the three values as sample windows
-(`ThemePicker`). Each sample has the shade selected for it. The selects for the light and dark shades
-are under the light and dark samples.
+`effect` in `theme.ts` toggles the `dark` class on `<html>`. In system mode, it also subscribes to
+changes of `prefers-color-scheme`. Settings, Appearance shows the three values as sample windows
+(`ThemePicker`). Each sample has the shade selected for it, with plain notes in outline, so that the
+shade is what shows. The selects for the light and dark shades are under the light and dark samples.
+When a shade is `custom`, a color field shows under its select.
 
 ## Responsive Design
 

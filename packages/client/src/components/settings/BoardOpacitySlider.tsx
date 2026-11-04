@@ -1,5 +1,6 @@
 import { formatPercent, t } from "#/i18n/index.ts";
-import { boardTextureOpacity, resolvedBoardTexture } from "#/state/prefs.ts";
+import { resolvedBoardTexture } from "#/state/boardBackground.ts";
+import { boardTextureOpacity } from "#/state/prefs.ts";
 import { MAX_TEXTURE_OPACITY, MIN_TEXTURE_OPACITY } from "#/utils/boardInk.ts";
 import { BoardCard } from "./BoardCard.tsx";
 

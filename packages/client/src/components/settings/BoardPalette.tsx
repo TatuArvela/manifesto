@@ -6,6 +6,7 @@ import {
 } from "#/state/prefs.ts";
 import { BoardCard } from "./BoardCard.tsx";
 import { boardColorLabel } from "./boardLabels.ts";
+import { CustomColorSwatch } from "./CustomColorSwatch.tsx";
 
 const ringClass = "ring-1 ring-inset ring-black/10 dark:ring-white/15";
 const selectedClass =
@@ -91,25 +92,18 @@ export function BoardPalette({
           <Shuffle class="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
         </button>
         {BOARD_NEUTRALS.map(swatch)}
-        {/* The native picker, under a swatch that shows what it holds. The
-            rainbow rim is what says "any colour" before one is set. */}
-        <label
-          class={`relative ${swatchClass} p-[3px] bg-[conic-gradient(#f87171,#facc15,#4ade80,#38bdf8,#a78bfa,#f472b6,#f87171)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-500 ${marked("custom") ? selectedClass : ""}`}
-          title={label("custom")}
+        <CustomColorSwatch
+          label={label("custom")}
+          value={customValue}
+          marked={marked("custom")}
+          onClick={() => onPick("custom")}
+          onInput={onCustom}
         >
           <span
             data-board-swatch={customSwatch}
             class="board-swatch block w-full h-full rounded-full"
           />
-          <input
-            type="color"
-            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            value={customValue}
-            aria-label={label("custom")}
-            onClick={() => onPick("custom")}
-            onInput={(e) => onCustom(e.currentTarget.value)}
-          />
-        </label>
+        </CustomColorSwatch>
         {BOARD_COLORS.map(swatch)}
       </div>
     </BoardCard>

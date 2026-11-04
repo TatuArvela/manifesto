@@ -3,14 +3,16 @@ import { BoardSheets } from "#/components/BoardLayers.tsx";
 import { buttonClass } from "#/components/buttonClasses.ts";
 import { t } from "#/i18n/index.ts";
 import {
-  type BoardGradientDirection,
-  type BoardGradientDirectionChoice,
-  boardGradient,
-  boardGradientDirection,
   boardRerolls,
   rerollBoardBackground,
   rerollBoardGradientDirection,
   resolvedBoardTexture,
+} from "#/state/boardBackground.ts";
+import {
+  type BoardGradientDirection,
+  type BoardGradientDirectionChoice,
+  boardGradient,
+  boardGradientDirection,
 } from "#/state/prefs.ts";
 
 const selectedClass =

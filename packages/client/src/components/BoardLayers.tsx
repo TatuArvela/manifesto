@@ -2,15 +2,17 @@ import { effect, signal } from "@preact/signals";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { boardImageUrl } from "#/state/board.ts";
 import {
+  boardGradientMoves,
+  boardTextureMoves,
+  resolvedBoardGradientDirection,
+} from "#/state/boardBackground.ts";
+import {
   type BoardGradientDirection,
   type BoardTexture,
-  boardGradientMoves,
   boardGradientSpeed,
-  boardTextureMoves,
   boardTextureOpacity,
   boardTextureSpeed,
   boardUsePicture,
-  resolvedBoardGradientDirection,
 } from "#/state/prefs.ts";
 import type { RollWay } from "#/utils/boardMotion.ts";
 import { BoardPainter, canPaintBoard, rgbOf } from "#/utils/boardPainter.ts";
@@ -20,7 +22,7 @@ import { type MovingTexture, SHEET_COUNTS } from "#/utils/boardTextures.ts";
  * The pattern in its sheets, each its own layer with its own motion
  * (`SHEET_COUNTS` in utils/boardTextures.ts). They exist only while the pattern
  * moves (`boardTextureMoves`), and each moves with `translate`, `transform` and
- * `opacity` alone, which the compositor plays with no paint (preferences.css).
+ * `opacity` alone, which the compositor plays with no paint (board-motion.css).
  * While they show, the still pattern under them is hidden. The rolling gradient
  * needs no element: it is the `::after` of the frame.
  */
@@ -111,9 +113,9 @@ function BoardCanvas({ texture }: { texture: MovingTexture | null }) {
       resize.observe(canvas);
     }
 
-    // The ink and the colors of the gradient follow the theme, the hue and
-    // the choices of the board, which all are attributes or properties of the
-    // root. The canvas has them as CSS colors (preferences.css), which is how
+    // The ink and the colors of the gradient follow the theme, the hue and the
+    // choices of the board, which all are attributes or properties of the root.
+    // The canvas has them as CSS colors (board-background.css), which is how
     // the browser resolves them.
     let ink = "";
     let roll = "";

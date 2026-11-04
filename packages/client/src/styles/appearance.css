@@ -1,0 +1,65 @@
+/*
+ * What the appearance preferences switch on <html>: motion, note corners and
+ * note tilt. The board is in board-background.css and board-motion.css.
+ */
+
+/*
+ * The motion preference (Settings > Animations), toggled on <html> by
+ * state/prefs.ts. Its default is the `prefers-reduced-motion` setting of the
+ * OS.
+ *
+ * Durations collapse to a value near zero, not `animation: none`, because
+ * several components complete their work on `animationend`. The settings panel
+ * only unmounts when its slide-out fires one. If the animation stopped fully,
+ * that event would never arrive, and the panel would stay on the screen
+ * forever. A 0.01ms animation still fires it on the next frame.
+ */
+/* biome-ignore-start lint/complexity/noImportantStyles: the reduced-motion
+   override has to beat every animation the app declares, including inline
+   ones, since that is the whole point of the block. */
+:root.no-motion,
+:root.no-motion *,
+:root.no-motion *::before,
+:root.no-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+/* biome-ignore-end lint/complexity/noImportantStyles: end of the override. */
+
+/*
+ * The note corner style: a user preference (Settings > Note Corners). Each note
+ * surface reads this one variable: the cards, the create-note stack, and the
+ * editor. state/prefs.ts toggles `.notes-rounded` on <html>.
+ */
+:root {
+  --note-radius: 0px;
+}
+
+:root.notes-rounded {
+  --note-radius: 0.5rem;
+}
+
+.note-surface {
+  border-radius: var(--note-radius);
+}
+
+/*
+ * The note tilt: a user preference (Settings > Appearance > Notes). Each card
+ * in the grid carries its own angle as `--note-tilt` (utils/noteTilt.ts), and a
+ * messy board, `.notes-messy` on <html>, tilts it by that much. `rotate` is its
+ * own property. Thus, it adds to the `transform` of the drag and of the
+ * reorder, and does not replace it. A card becomes straight when the pointer is
+ * on it, or when it is picked up or opened, as a note does when a person
+ * reaches for it.
+ */
+:root.notes-messy .note-tilt {
+  rotate: var(--note-tilt, 0deg);
+}
+
+:root.notes-messy .note-tilt:is(:hover, :focus-within, .note-held) {
+  rotate: 0deg;
+}

@@ -8,6 +8,14 @@ import {
   setBoardImage,
 } from "#/state/board.ts";
 import {
+  rerollBoardColor,
+  rerollBoardGradient,
+  rerollBoardTexture,
+  resolvedBoardColor,
+  resolvedBoardGradient,
+  resolvedBoardTexture,
+} from "#/state/boardBackground.ts";
+import {
   BOARD_TEXTURES,
   type BoardTextureChoice,
   boardColor,
@@ -17,12 +25,6 @@ import {
   boardImageStamp,
   boardTexture,
   boardUsePicture,
-  rerollBoardColor,
-  rerollBoardGradient,
-  rerollBoardTexture,
-  resolvedBoardColor,
-  resolvedBoardGradient,
-  resolvedBoardTexture,
 } from "#/state/prefs.ts";
 import { BoardCard } from "./BoardCard.tsx";
 import { BoardInkPicker } from "./BoardInkPicker.tsx";

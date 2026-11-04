@@ -14,6 +14,8 @@ import { isOAuthConsentPath } from "./state/account/oauth.ts";
 import { locale } from "./state/prefs.ts";
 import { publicLinkToken } from "./state/publicLinks.ts";
 import { serverSetupProblem } from "./utils/serverCsp.ts";
+import "./state/boardBackground.ts";
+import "./state/theme.ts";
 import "./assets/fonts/fonts.css";
 import "./styles.css";
 

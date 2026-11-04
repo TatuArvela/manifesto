@@ -103,8 +103,8 @@ the screen, or applied, before the bundle exists. When an app starts from a home
 browser chrome to look at while it loads.
 
 - `theme-init.js` does the same two reads of `manifesto:prefs` as `prefs.ts`, and writes the same
-  `dark` class. It is a separate file, not an inline script, because the CSP of the page permits
-  scripts only from `'self'`.
+  `dark` class as `state/theme.ts`. It is a separate file, not an inline script, because the CSP of
+  the page permits scripts only from `'self'`.
 - The splash goes away when the first real screen is there, not on the first render, which is an
   empty board. `splash.ts` fades it after two conditions: `revealApp()` is called (notes loaded, the
   sign-in screen, a crash or a setup error), and the fonts for that screen have arrived. It also

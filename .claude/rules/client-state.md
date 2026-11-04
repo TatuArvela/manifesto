@@ -108,6 +108,10 @@ debounced `effect()`.
   tab (the `storage` event, `setAccountPrefsFromServer`). Each tab gets the account preferences on
   its own socket. A tab saves each time it adopts the copy of the server. When the app took the full
   blob, a late echo in one tab put back a value that was just changed in a different tab.
+- `prefs.ts` holds the signals, and applies only the note and motion classes. `theme.ts` applies the
+  theme and the tint of each shade, and `boardBackground.ts` resolves and applies the board. Both
+  import `prefs.ts`, never the opposite. `main.tsx` imports both for their effects. A test that
+  reads what one of them sets on `<html>` imports that module.
 - `serverDefaults.ts` contains the defaults of the host (`DEFAULT_PREFS`, `defaultPrefs` in
   `/api/v1/capabilities`). This module has no side effects, and imports no state. Thus, `auth.ts`
   and `prefsSync.ts` can both set it, and neither loads the other or `prefs.ts`.

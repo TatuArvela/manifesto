@@ -1,23 +1,23 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  rerollBoardColor,
+  rerollBoardTexture,
+  resolvedBoardColor,
+  resolvedBoardTexture,
+} from "./boardBackground.ts";
+import {
   animations,
   BOARD_COLORS,
   boardColor,
   boardTexture,
-  darkHue,
   defaultNoteColor,
   defaultNoteFont,
-  lightHue,
   locale,
   noteCorners,
   noteQuips,
   noteSize,
   parsePrefs,
-  rerollBoardColor,
-  rerollBoardTexture,
-  resolvedBoardColor,
-  resolvedBoardTexture,
   sortMode,
   theme,
   viewMode,
@@ -309,34 +309,16 @@ describe("darkHue", () => {
     expect(parsePrefs("{}").darkHue).toBe("neutral");
   });
 
-  it("round-trips a persisted value", () => {
-    expect(parsePrefs('{"darkHue":"slate"}').darkHue).toBe("slate");
-  });
-
-  it("accepts the dimmed shades alongside the tints", () => {
+  it("accepts the dimmed shades, the preset colours and custom", () => {
     expect(parsePrefs('{"darkHue":"midnight"}').darkHue).toBe("midnight");
     expect(parsePrefs('{"darkHue":"black"}').darkHue).toBe("black");
-  });
-
-  it("reads the shade once called violet as lavender", () => {
-    expect(parsePrefs('{"darkHue":"violet"}').darkHue).toBe("lavender");
-  });
-
-  it("accepts the preset colours after the greys", () => {
     expect(parsePrefs('{"darkHue":"teal"}').darkHue).toBe("teal");
+    expect(parsePrefs('{"darkHue":"custom"}').darkHue).toBe("custom");
   });
 
-  it("falls back to neutral for an unrecognised value", () => {
+  it("falls back to neutral for a retired grey or an unrecognised value", () => {
+    expect(parsePrefs('{"darkHue":"slate"}').darkHue).toBe("neutral");
     expect(parsePrefs('{"darkHue":"chartreuse"}').darkHue).toBe("neutral");
-  });
-
-  it("publishes the hue on <html> for the stylesheet to key off", () => {
-    const previous = darkHue.value;
-    darkHue.value = "mauve";
-    expect(document.documentElement.dataset.darkHue).toBe("mauve");
-    darkHue.value = "neutral";
-    expect(document.documentElement.dataset.darkHue).toBe("neutral");
-    darkHue.value = previous;
   });
 });
 
@@ -346,22 +328,15 @@ describe("lightHue", () => {
     expect(parsePrefs("{}").lightHue).toBe("white");
   });
 
-  it("round-trips a preset colour", () => {
+  it("round-trips a pale, a vivid and a custom shade", () => {
     expect(parsePrefs('{"lightHue":"pink"}').lightHue).toBe("pink");
+    expect(parsePrefs('{"lightHue":"vivid-pink"}').lightHue).toBe("vivid-pink");
+    expect(parsePrefs('{"lightHue":"custom"}').lightHue).toBe("custom");
   });
 
   it("falls back to white for a dark shade or an unrecognised value", () => {
     expect(parsePrefs('{"lightHue":"midnight"}').lightHue).toBe("white");
     expect(parsePrefs('{"lightHue":"chartreuse"}').lightHue).toBe("white");
-  });
-
-  it("publishes the hue on <html> for the stylesheet to key off", () => {
-    const previous = lightHue.value;
-    lightHue.value = "blue";
-    expect(document.documentElement.dataset.lightHue).toBe("blue");
-    lightHue.value = "white";
-    expect(document.documentElement.dataset.lightHue).toBe("white");
-    lightHue.value = previous;
   });
 });
 

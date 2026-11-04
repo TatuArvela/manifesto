@@ -21,7 +21,9 @@ import {
 
 // Read from disk. Vitest makes a stylesheet imported in a test blank, also with
 // `?raw`.
-const css = readFileSync(new URL("./preferences.css", import.meta.url), "utf8");
+const css = ["board-background.css", "board-motion.css"]
+  .map((name) => readFileSync(new URL(`./${name}`, import.meta.url), "utf8"))
+  .join("\n");
 
 /** Splits a CSS value on its top-level commas, as a layer list is. */
 function layers(value: string): string[] {

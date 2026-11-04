@@ -12,12 +12,12 @@ import { dataUrl, round, svg } from "./boardSvg.ts";
 /**
  * The board textures that are pictures, not gradients: the paper grain, which
  * is SVG turbulence, and the stars, hearts, confetti, bubbles, rain, snow,
- * leaves, petals, frames and sawtooth.
- * Each texture is a mask over one layer behind the board, which takes the color
- * of the pattern as its background, and the opacity of the pattern as its own
- * (`.board-frame::before` in preferences.css). Thus, these are drawn one time,
- * in opaque black, and given to the stylesheet as they are. Only their shape is
- * read, and neither the color nor the opacity draws them again.
+ * leaves, petals, frames and sawtooth. Each texture is a mask over one layer
+ * behind the board, which takes the color of the pattern as its background, and
+ * the opacity of the pattern as its own (`.board-frame::before` in
+ * board-background.css). Thus, these are drawn one time, in opaque black, and
+ * given to the stylesheet as they are. Only their shape is read, and neither
+ * the color nor the opacity draws them again.
  */
 export type PictureTexture =
   | "paper"
@@ -78,9 +78,9 @@ export function pictureTextures(): Record<PictureTexture, string> {
 }
 
 /**
- * The moving patterns (`.board-sheets` in preferences.css). A pattern that moves
- * is split into sheets, each its own layer with its own motion. Thus, the parts
- * of one pattern do not move as one flat picture:
+ * The moving patterns (`.board-sheets` in board-motion.css). A pattern that
+ * moves is split into sheets, each its own layer with its own motion. Thus, the
+ * parts of one pattern do not move as one flat picture:
  *
  * - the paper, the dots, the grid and the lines are one sheet each, which rolls
  *   from the top left to the bottom right;
@@ -122,8 +122,8 @@ export const SHEET_COUNTS = {
 export type MovingTexture = keyof typeof SHEET_COUNTS;
 
 /**
- * The sheets drawn here. The others are CSS gradients (preferences.css): the
- * stripes, the dots, the grid and the lines.
+ * The sheets drawn here. The others are CSS gradients (board-background.css):
+ * the stripes, the dots, the grid and the lines.
  */
 export type DrawnSheetTexture = Exclude<
   MovingTexture,
@@ -131,8 +131,9 @@ export type DrawnSheetTexture = Exclude<
 >;
 
 /**
- * The repeat of the gradient patterns, in px, as preferences.css draws them.
- * styles.test.ts holds the two equal, and holds the roll of each at one repeat.
+ * The repeat of the gradient patterns, in px, as board-background.css draws
+ * them. styles.test.ts holds the two equal, and holds the roll of each at one
+ * repeat.
  */
 export const DOT_STEP = 22;
 

@@ -31,13 +31,9 @@ import {
 import { takeSignInLinkToken } from "#/state/account/mailedLinks.ts";
 import { takeConsentPage } from "#/state/account/oauth.ts";
 import { consumeOidcRedirect } from "#/state/account/oidcSignIn.ts";
+import { resolvedBoardTexture } from "#/state/boardBackground.ts";
 import { closeDrawing, drawingRequest } from "#/state/drawing.ts";
-import {
-  animations,
-  resolvedBoardTexture,
-  stickyTopBar,
-  viewMode,
-} from "#/state/prefs.ts";
+import { animations, stickyTopBar, viewMode } from "#/state/prefs.ts";
 import { publicLinksDialog } from "#/state/publicLinks.ts";
 import { shareDialog } from "#/state/sharing.ts";
 import {

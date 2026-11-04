@@ -9,6 +9,15 @@ import {
   MIN_TEXTURE_OPACITY,
   type PickedInkChoice,
 } from "#/utils/boardInk.ts";
+import {
+  DARK_HUES,
+  DEFAULT_DARK_CUSTOM_COLOR,
+  DEFAULT_LIGHT_CUSTOM_COLOR,
+  LIGHT_HUES,
+} from "#/utils/themeShades.ts";
+
+export type { DarkHue, LightHue } from "#/utils/themeShades.ts";
+export { DARK_HUES, LIGHT_HUES };
 
 // What each preference can contain, and how the code reads back a stored value:
 // the types, the lists of choices, and `PREF_PARSERS`. That is the one table
@@ -112,24 +121,6 @@ export type BoardGradientDirection =
   | "top-left";
 /** A direction, or a direction selected at random on each visit. */
 export type BoardGradientDirectionChoice = BoardGradientDirection | "random";
-/**
- * The shade of the dark theme: a gray with a hue, a dimmed or black shade, or a
- * tint in the hue of one of the preset colors of the board.
- */
-export type DarkHue =
-  | "neutral"
-  | "midnight"
-  | "mauve"
-  | "lavender"
-  | "indigo"
-  | "slate"
-  | "steel"
-  | "ocean"
-  | "black"
-  | BoardColor;
-/** The shade of the light theme: plain white, or a tint of a preset color. */
-export type LightHue = "white" | BoardColor;
-
 /** In compass order from the top, which is the layout in Settings. */
 export const BOARD_GRADIENT_DIRECTIONS: readonly BoardGradientDirection[] = [
   "top",
@@ -144,7 +135,7 @@ export const BOARD_GRADIENT_DIRECTIONS: readonly BoardGradientDirection[] = [
 
 /**
  * The speed of a moving board layer, in whole percent of its usual speed
- * (preferences.css). 0 holds it still. The sliders in Settings move in steps.
+ * (board-motion.css). 0 holds it still. The sliders in Settings move in steps.
  */
 export const MAX_BOARD_SPEED = 200;
 export const BOARD_SPEED_STEP = 10;
@@ -304,24 +295,6 @@ const DECIMAL_SEPARATOR_VALUES: readonly DecimalSeparator[] = [
   ",",
 ];
 
-// Neutral and the near-black next to it, then the tints from warm to cool along
-// the violet-blue arc, with true black at the far end.
-export const DARK_HUES: readonly DarkHue[] = [
-  "neutral",
-  "midnight",
-  "mauve",
-  "lavender",
-  "indigo",
-  "slate",
-  "steel",
-  "ocean",
-  "black",
-  ...BOARD_COLORS,
-];
-
-/** White, then the preset colors in the order of the board. */
-export const LIGHT_HUES: readonly LightHue[] = ["white", ...BOARD_COLORS];
-
 /**
  * The default of the animations preference on the first run: follow the
  * accessibility setting of the OS. After the user changes the toggle, their
@@ -442,9 +415,13 @@ export const PREF_PARSERS = {
   animations: (value: unknown): boolean =>
     typeof value === "boolean" ? value : !prefersReducedMotion(),
   lightHue: oneOf(LIGHT_HUES, "white"),
-  // Lavender had the name violet until purple joined the list next to it.
-  darkHue: (value: unknown) =>
-    oneOf(DARK_HUES, "neutral")(value === "violet" ? "lavender" : value),
+  // The tinted grays that the list had before the custom color go back to
+  // neutral: a custom color makes each of them.
+  darkHue: oneOf(DARK_HUES, "neutral"),
+  /** The color of the "custom" light shade (`utils/themeShades.ts`). */
+  lightCustomColor: hexColor(DEFAULT_LIGHT_CUSTOM_COLOR),
+  /** The color of the "custom" dark shade. */
+  darkCustomColor: hexColor(DEFAULT_DARK_CUSTOM_COLOR),
   noteQuips: flag(true),
   formattingToolbar: flag(true),
   /**

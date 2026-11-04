@@ -290,7 +290,7 @@
     visibility: hidden;
   }
 
-  /* The card leans on a messy board (preferences.css), and its shadow with it. */
+  /* The card leans on a messy board (appearance.css), and its shadow with it. */
   :root.notes-messy
     &:has(> .note-tilt):not(:hover, :focus-within)
     > .note-curl-shadow {

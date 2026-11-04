@@ -1,7 +1,4 @@
-/*
- * The tinted page and neutral ramp of the light theme, and the swatches that
- * show it.
- */
+/* The tinted page and neutral ramp of the light theme. */
 
 /*
  * --- Light shade --------------------------------------------------------
@@ -14,16 +11,23 @@
  * theme. The few white glyphs on colored buttons get the same faint hue, which
  * you cannot see at that lightness.
  *
- * `--light-tint-c` / `--light-tint-h` are the hue, in the hue of one of the
- * preset colors of the board. Chroma decreases toward the dark end, which is
- * the text of the light theme, for the reason that the dark ramp decreases
- * toward its light end. `--light-dim` makes the surfaces less than full white,
- * which can carry no color, only sufficiently to make space for the hue. The
- * 500 step goes down with them. It is the secondary text of the app, at 4.7:1
- * on white, and a dimmed page alone put it under 4.5:1 (`colors.test.ts`).
+ * `--light-tint-c` / `--light-tint-h` are the hue. Chroma decreases toward the
+ * dark end, which is the text of the light theme, for the reason that the dark
+ * ramp decreases toward its light end. `--light-dim` makes the surfaces less
+ * than full white, which can carry no color, only sufficiently to make space
+ * for the hue. A vivid shade dims to the lightness of the 200 step of Tailwind,
+ * for much more chroma. The steps to 800 go down with the page, most of them
+ * less than the one before. Thus, a border stays visible on the page, and the
+ * gray text keeps 4.5:1 on it (`colors.test.ts`). The 500 step, the secondary
+ * text, goes down the full dim, because it is at 4.7:1 on white.
  *
- * The `[data-light-hue]` rules are not scoped to `html`. Thus, the settings
- * swatches can set the attribute on themselves to show a sample of a shade.
+ * White glyphs (`text-white` on a blue button, over a photo) stay pure white.
+ * A tinted white at the lightness of a vivid page is under 4.5:1 on the
+ * buttons. Thus, an element that draws its text in white gets the true white
+ * back for itself and its content.
+ *
+ * The values come from `utils/themeShades.ts`, and `.light-ramp` gives an
+ * element this ramp in the dark theme, as for the dark shade.
  */
 :root {
   --light-tint-c: 0;
@@ -31,65 +35,8 @@
   --light-dim: 0%;
 }
 
-[data-light-hue="white"] {
-  --light-tint-c: 0;
-  --light-tint-h: 0;
-  --light-dim: 0%;
-}
-
-[data-light-hue="red"] {
-  --light-tint-c: 0.03;
-  --light-tint-h: 25;
-  --light-dim: 2.5%;
-}
-
-[data-light-hue="orange"] {
-  --light-tint-c: 0.03;
-  --light-tint-h: 55;
-  --light-dim: 2.5%;
-}
-
-/*
- * Yellow needs more chroma than the other colors to look like a color at this
- * lightness.
- */
-[data-light-hue="yellow"] {
-  --light-tint-c: 0.045;
-  --light-tint-h: 100;
-  --light-dim: 2.5%;
-}
-
-[data-light-hue="green"] {
-  --light-tint-c: 0.03;
-  --light-tint-h: 150;
-  --light-dim: 2.5%;
-}
-
-[data-light-hue="teal"] {
-  --light-tint-c: 0.03;
-  --light-tint-h: 185;
-  --light-dim: 2.5%;
-}
-
-[data-light-hue="blue"] {
-  --light-tint-c: 0.03;
-  --light-tint-h: 255;
-  --light-dim: 2.5%;
-}
-
-[data-light-hue="purple"] {
-  --light-tint-c: 0.03;
-  --light-tint-h: 305;
-  --light-dim: 2.5%;
-}
-
-[data-light-hue="pink"] {
-  --light-tint-c: 0.03;
-  --light-tint-h: 350;
-  --light-dim: 2.5%;
-}
-
-html:not(.dark) {
+html:not(.dark),
+.light-ramp {
   --color-white: oklch(
     calc(100% - var(--light-dim)) var(--light-tint-c) var(--light-tint-h)
   );
@@ -100,27 +47,32 @@ html:not(.dark) {
     calc(97% - var(--light-dim)) var(--light-tint-c) var(--light-tint-h)
   );
   --color-neutral-200: oklch(
-    calc(92.2% - var(--light-dim) * 0.5) calc(var(--light-tint-c) * 0.9)
+    calc(92.2% - var(--light-dim) * 0.75) calc(var(--light-tint-c) * 0.9)
       var(--light-tint-h)
   );
   --color-neutral-300: oklch(
-    87% calc(var(--light-tint-c) * 0.8) var(--light-tint-h)
+    calc(87% - var(--light-dim)) calc(var(--light-tint-c) * 0.8)
+      var(--light-tint-h)
   );
   --color-neutral-400: oklch(
-    70.8% calc(var(--light-tint-c) * 0.6) var(--light-tint-h)
+    calc(70.8% - var(--light-dim) * 0.75) calc(var(--light-tint-c) * 0.6)
+      var(--light-tint-h)
   );
   --color-neutral-500: oklch(
     calc(55.6% - var(--light-dim)) calc(var(--light-tint-c) * 0.45)
       var(--light-tint-h)
   );
   --color-neutral-600: oklch(
-    43.9% calc(var(--light-tint-c) * 0.35) var(--light-tint-h)
+    calc(43.9% - var(--light-dim) * 0.5) calc(var(--light-tint-c) * 0.35)
+      var(--light-tint-h)
   );
   --color-neutral-700: oklch(
-    37.1% calc(var(--light-tint-c) * 0.3) var(--light-tint-h)
+    calc(37.1% - var(--light-dim) * 0.25) calc(var(--light-tint-c) * 0.3)
+      var(--light-tint-h)
   );
   --color-neutral-800: oklch(
-    26.9% calc(var(--light-tint-c) * 0.25) var(--light-tint-h)
+    calc(26.9% - var(--light-dim) * 0.25) calc(var(--light-tint-c) * 0.25)
+      var(--light-tint-h)
   );
   --color-neutral-900: oklch(
     20.5% calc(var(--light-tint-c) * 0.2) var(--light-tint-h)
@@ -130,12 +82,13 @@ html:not(.dark) {
   );
 }
 
-/*
- * A literal sample, as the dark swatch is: the white on which the page and the
- * top bar are drawn. The ring around it makes White different from the panel.
- */
-.light-hue-swatch {
-  background-color: oklch(
-    calc(100% - var(--light-dim)) var(--light-tint-c) var(--light-tint-h)
-  );
+html:not(.dark)
+  :is(
+    [class~="text-white"],
+    [class^="text-white/"],
+    [class*=" text-white/"],
+    [class*="hover:text-white"],
+    [class*="placeholder:text-white"]
+  ) {
+  --color-white: oklch(100% 0 0);
 }

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import "#/styles.css";
 import { BoardSheets, MovingBoard } from "#/components/BoardLayers.tsx";
 import { t } from "#/i18n/index.ts";
+import { resolvedBoardTexture } from "#/state/boardBackground.ts";
 import {
   animations,
   boardColor,
@@ -14,7 +15,6 @@ import {
   boardTextureOpacity,
   boardTextureSpeed,
   boardUsePicture,
-  resolvedBoardTexture,
 } from "#/state/prefs.ts";
 import { defined } from "#/test/defined.ts";
 import { ROLL_REPEAT_BOARDS } from "#/utils/boardMotion.ts";
