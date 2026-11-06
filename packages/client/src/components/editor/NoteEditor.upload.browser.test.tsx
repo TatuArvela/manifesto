@@ -246,6 +246,20 @@ describe("attaching an image", () => {
     );
   }
 
+  // A button over an image in the header. The images in the text have
+  // buttons with the same names.
+  const headerButton = (dialog: HTMLElement, label: string) =>
+    [
+      ...dialog.querySelectorAll<HTMLElement>(`button[aria-label="${label}"]`),
+    ].find((button) => !button.closest(".ProseMirror")) ?? null;
+
+  // The header follows the text that the editor reports, 200ms after a
+  // change. Done saves that text too. Thus, the tests wait for the header.
+  const headerEmpty = (dialog: HTMLElement) =>
+    vi.waitFor(() =>
+      expect(headerButton(dialog, t("editor.deleteImage"))).toBeNull(),
+    );
+
   const done = (dialog: HTMLElement) =>
     (
       dialog.querySelector(
@@ -261,10 +275,7 @@ describe("attaching an image", () => {
     await vi.waitFor(() =>
       expect(dialog.querySelector(".ProseMirror img")).not.toBeNull(),
     );
-    // The header has no image, so it has no button to draw on one.
-    expect(
-      dialog.querySelector(`button[aria-label="${t("editor.drawOnImage")}"]`),
-    ).toBeNull();
+    await headerEmpty(dialog);
     done(dialog);
     await vi.waitFor(() => expect(notes.value).toHaveLength(1));
     expect(notes.value[0]?.images).toEqual([REF]);
@@ -286,10 +297,10 @@ describe("attaching an image", () => {
     await vi.waitFor(() =>
       expect(dialog.querySelector(".ProseMirror img")).toBeNull(),
     );
-    // Deleted from the note, not only from the text: the header is empty too.
-    expect(
-      dialog.querySelector(`button[aria-label="${t("editor.drawOnImage")}"]`),
-    ).toBeNull();
+    // Deleted from the note, not only from the text: the header stays empty
+    // after the editor reports its text, 200ms after the change.
+    await new Promise((r) => setTimeout(r, 400));
+    expect(headerButton(dialog, t("editor.deleteImage"))).toBeNull();
   });
 
   it("moves an image out of the text to the header, and keeps it", async () => {
@@ -352,9 +363,7 @@ describe("attaching an image", () => {
     );
     expect(dialog.textContent).not.toContain(t("editor.placeImageHint"));
     // In the text now, so not in the header.
-    expect(
-      dialog.querySelector(`button[aria-label="${t("editor.imageIntoText")}"]`),
-    ).toBeNull();
+    await headerEmpty(dialog);
   });
 
   it("puts a copied image in the text one time, not also from its address", async () => {
@@ -366,6 +375,7 @@ describe("attaching an image", () => {
     await vi.waitFor(() =>
       expect(dialog.querySelector(".ProseMirror img")).not.toBeNull(),
     );
+    await headerEmpty(dialog);
     done(dialog);
     await vi.waitFor(() => expect(notes.value).toHaveLength(1));
     expect(notes.value[0]?.content).not.toContain("example.com");
