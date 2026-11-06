@@ -137,6 +137,7 @@ Where each one shows:
 | Surface | App name | App logo | Instance | Organization |
 |---|---|---|---|---|
 | Window title | yes, unless `VITE_TITLE_APP_NAME=off` and there is an instance | | first, as "Foo QA project · Manifesto" | |
+| Installed app and home-screen shortcut (manifest `name` and `short_name`, `apple-mobile-web-app-title`) | only if there is no instance | | its name alone, as "Foo QA project" | |
 | Header (Notes view), `app` brand | yes | yes | adjacent to the name, muted. On a phone, it is the first item to go | |
 | Header (Notes view), `instance` brand | | | its logo and name, in place of those of the app | |
 | Browser tab icon, `instance` brand | | | its logo, if it has one, in place of `favicon.svg` | |
@@ -218,7 +219,7 @@ edits, not one.
 
 | File | What to change |
 |---|---|
-| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="description">`, the `app-logo`, `instance-name`, `instance-logo`, `header-brand`, `title-app-name`, `org-name` and `org-logo` meta tags (and the `-dark` tag of each logo), `<meta name="welcome-dialog">` to switch off the welcome, and `<meta name="privacy-url">` for the privacy notice |
+| `index.html` | `<title>`, `<meta name="application-name">`, `<meta name="apple-mobile-web-app-title">`, `<meta name="description">`, the `app-logo`, `instance-name`, `instance-logo`, `header-brand`, `title-app-name`, `org-name` and `org-logo` meta tags (and the `-dark` tag of each logo), `<meta name="welcome-dialog">` to switch off the welcome, and `<meta name="privacy-url">` for the privacy notice |
 | `404.html` | the same tags (it is a copy of `index.html` for the SPA fallback) |
 | `manifest.webmanifest` | `name`, `short_name`, `description` |
 | `logo.svg`, `favicon.svg`, `icon-1024.png` | replace them with your own files |
@@ -228,6 +229,10 @@ edits, not one.
 sed -i '' 's/Manifesto/Corporate Notes/g' index.html 404.html manifest.webmanifest
 cp ~/acme-brand/*.svg ~/acme-brand/icon-1024.png .
 ```
+
+If you set an instance name, also put it in `apple-mobile-web-app-title` and in the `name` and
+`short_name` of the manifest. These are the name under the icon of the installed app and of a
+shortcut on the home screen. The `sed` above writes the name of the app there.
 
 The `application-name` meta tag wins over the value of the build. Thus, this works on all builds. Do
 not change the JS bundle. It is minified. The `manifesto:` prefixes inside it are `localStorage`

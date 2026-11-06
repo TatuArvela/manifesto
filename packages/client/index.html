@@ -10,9 +10,10 @@
          block clickjacking through cross-origin iframes. -->
     <title>%APP_NAME%</title>
     <!-- To rebrand a prebuilt bundle, change the name here, in <title> above,
-         and in manifest.webmanifest. Replace favicon.svg / icon-1024.png /
-         logo.svg next to this file. The app reads its name from the tag below
-         at startup. Thus, no rebuild is necessary. -->
+         in apple-mobile-web-app-title below, and in manifest.webmanifest.
+         Replace favicon.svg / icon-1024.png / logo.svg next to this file. The
+         app reads its name from the tag below at startup. Thus, no rebuild is
+         necessary. -->
     <meta name="application-name" content="%APP_NAME%" />
     <meta name="description" content="%APP_DESCRIPTION%" />
     <!-- The mark of the app, a file next to this one (inverted in dark mode, so
@@ -60,6 +61,10 @@
          it runs as an app. src/launchImage.ts draws the images themselves from
          #splash below. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- The name that iOS gives a shortcut on the home screen, the same as the
+         name in manifest.webmanifest: the name of the instance, or the name of
+         the app if there is no instance. -->
+    <meta name="apple-mobile-web-app-title" content="%HOME_SCREEN_NAME%" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#2563eb" />
     <!-- Blocking on purpose. It decides the theme of the page, and all content

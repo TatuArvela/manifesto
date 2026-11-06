@@ -37,6 +37,10 @@ again in a different way. Do not add a special case.
 - The name and mark of the deployment (`INSTANCE_NAME`, `INSTANCE_LOGO`, `ORG_NAME`, `ORG_LOGO`) are
   shown in addition to those of the app. They are null unless you set them.
 - Only `HEADER_BRAND` puts the instance in the top bar. About always shows the name of the app.
+- The installed app and a home-screen shortcut take the name of the instance, or the name of the app
+  if there is no instance. `%HOME_SCREEN_NAME%` in `vite.config.ts` writes it into the manifest and
+  into `apple-mobile-web-app-title`. Two copies on one phone are then not two icons with the same
+  name.
 
 Each one is a meta tag in `index.html` over a build-time value (`__APP_NAME__`, `__BRANDING__`). The
 logo variables are files. The build publishes them as `app-logo.<ext>`, `instance-logo.<ext>` and

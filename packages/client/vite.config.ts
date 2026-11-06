@@ -175,17 +175,27 @@ function escapeHtml(value: string): string {
     .replaceAll('"', "&quot;");
 }
 
+/** Enough for a value inside a JSON string, between its quotes. */
+function escapeJson(value: string): string {
+  return JSON.stringify(value).slice(1, -1);
+}
+
 function applyBranding(
   src: string,
   branding: Branding,
   encode: (value: string) => string = (value) => value,
 ) {
+  // The name under the icon of an installed app or a home-screen shortcut: the
+  // instance, because that tells two copies apart on one phone, and the app
+  // when there is no instance.
+  const homeScreenName = branding.instanceName || branding.appName;
   return src
     .replaceAll("%APP_NAME%", encode(branding.appName))
     .replaceAll("%APP_DESCRIPTION%", encode(branding.appDescription))
     .replaceAll("%APP_WELCOME%", branding.appWelcome)
     .replaceAll("%APP_LOGO%", branding.appLogo?.name ?? "logo.svg")
     .replaceAll("%INSTANCE_NAME%", encode(branding.instanceName))
+    .replaceAll("%HOME_SCREEN_NAME%", encode(homeScreenName))
     .replaceAll("%INSTANCE_LOGO%", branding.instanceLogo?.name ?? "")
     .replaceAll("%HEADER_BRAND%", branding.headerBrand)
     .replaceAll("%TITLE_APP_NAME%", branding.titleAppName)
@@ -312,7 +322,10 @@ function brandLogos(branding: Branding): Plugin {
 /**
  * Finishes `manifest.webmanifest`, which ships as a template in `public/`:
  *
- * - `%APP_NAME%` / `%APP_DESCRIPTION%` → the configured branding.
+ * - `%HOME_SCREEN_NAME%` / `%APP_DESCRIPTION%` → the configured branding. The
+ *   name is that of the instance, or of the app if there is no instance. Each
+ *   value is escaped for JSON. If not, a quote in a name makes the manifest
+ *   invalid, and the browser ignores it.
  * - `./` → the base URL, because iOS Safari does not reliably resolve relative
  *   paths in a manifest (start_url/scope/icons).
  *
@@ -326,7 +339,7 @@ function finalizeWebManifest(branding: Branding): Plugin {
   let publicDir = "public";
   let base = "/";
   const render = (src: string) =>
-    applyBranding(src, branding).replaceAll('"./', `"${base}`);
+    applyBranding(src, branding, escapeJson).replaceAll('"./', `"${base}`);
   return {
     name: "finalize-web-manifest",
     configResolved(config) {
