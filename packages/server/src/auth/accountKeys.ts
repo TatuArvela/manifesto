@@ -85,7 +85,10 @@ async function recoveryKeysOf(
   verifier: string,
   status: 401 | 403,
 ): Promise<StoredAccountKeys> {
-  const wait = deps.loginAttempts.retryAfter(username);
+  // The name of the account that the lookup found, as at `/login`. The typed
+  // spelling can fold differently in the database and in the budget.
+  const name = user?.username ?? username;
+  const wait = deps.loginAttempts.retryAfter(name);
   if (wait > 0) throw tooManyAttempts(c, wait);
   const stored = user ? await deps.storage.accountKeys.get(user.id) : null;
   // The comparison occurs also when there is nothing to compare with. Thus, a
@@ -95,7 +98,7 @@ async function recoveryKeysOf(
     hashToken(verifier),
   );
   if (!stored || !matches) {
-    deps.loginAttempts.fail(username);
+    deps.loginAttempts.fail(name);
     audit(deps.storage, c, {
       action: "auth.sign_in_failed",
       targetId: user?.id ?? null,

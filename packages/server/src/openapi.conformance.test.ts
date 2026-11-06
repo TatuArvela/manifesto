@@ -335,6 +335,7 @@ describe("the OpenAPI document against the server's answers", () => {
     const team = await call(owner, "post", "/api/v1/admin/teams", {
       name: "Travellers",
       memberIds: [owner.userId, other.userId],
+      password: "test-pass-12",
     });
     expect(team.status).toBe(201);
     const teamId = (team.body as { team: { id: string } }).team.id;

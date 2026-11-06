@@ -375,6 +375,21 @@ describe("local auth router", () => {
       expect((await attempt("bob", "password-5678", 901)).status).toBe(200);
     });
 
+    it("counts a spelling that the lookup folds into the account as that account", async () => {
+      // Postgres `LOWER` in a libc locale folds `İ` (U+0130) into `i`, and
+      // `toLowerCase` folds it into `i̇`. This copies that lookup. Before, the
+      // spelling had a budget of its own, and each `i` doubled the guesses.
+      await registerTestUser(proxied, "alice", "password-1234");
+      const alice = await proxied.storage.users.findByUsername("alice");
+      const lookup = proxied.storage.users.findByUsername;
+      proxied.storage.users.findByUsername = async (name) =>
+        name.toLowerCase().replace("i̇", "i") === "alice" ? alice : lookup(name);
+      for (let i = 0; i < MAX_LOGIN_FAILURES; i++) {
+        expect((await attempt("alice", "wrong-password", i)).status).toBe(401);
+      }
+      expect((await attempt("alİce", "password-1234", 900)).status).toBe(429);
+    });
+
     it("counts wrong current passwords at a password change on the same budget", async () => {
       const { token } = await registerTestUser(
         proxied,

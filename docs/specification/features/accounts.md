@@ -189,6 +189,12 @@ account or its notes:
 - To show the **secret key**, to replace it or the **recovery key**, or to start the account again
   ([Encryption](encryption.md#unlocking)).
 - To [delete the account](#deleting-your-own-account).
+- For an admin, each change to an account in the [Users view](#the-users-view): create an
+  account, give or remove admin rights, set an email address, reset a password, or delete an account.
+  Also each addition of a member to a team, because a member gets the notes shared with the team. A
+  stolen admin session could otherwise make an account of its own an admin, which stays after the
+  session ends, move the address of a different person and take the password with a reset link, or
+  put its own account in a team.
 
 An account with a password confirms with it, typed into the same form. Wrong passwords count against
 the same budget for each name as a sign-in: ten in fifteen minutes. Thus, a stolen session cannot
@@ -409,6 +415,10 @@ password.
   the answer. Thus, neither the answer nor its time tells which addresses have accounts. There is one
   link for each account each five minutes. Thus, nobody can fill the inbox of an address. If the mail
   of a link could not go out, the server does not keep the link, and it does not count.
+- The mail goes to the address that the account has, never to the address that the request typed.
+  The lookup ignores case, and on Postgres, `LOWER` in a libc locale also changes some letters that
+  are not ASCII into ASCII letters (`İ` into `i`). Thus, an address on a different domain can find
+  the account. The same rule applies to sign-in links.
 - A link works one time, for 30 minutes. The server stores its token as a SHA-256 hash. Its use ends
   all sessions and API tokens of the account, as a password change does. Two-factor sign-in stays on,
   because the link proves control of the mailbox, not of the authenticator.

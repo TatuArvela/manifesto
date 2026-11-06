@@ -209,19 +209,32 @@ export const passwordChangeSchema = z.object({
   newPassword: passwordSchema,
 });
 
+/**
+ * Each change that an admin makes to an account carries the confirmation of
+ * that admin (`auth/confirmation.ts`). A stolen admin session could otherwise
+ * make an account of its own an admin, or move the address of a different
+ * person and take the password with the reset link.
+ */
 export const adminCreateUserSchema = z.object({
   username: usernameSchema,
   email: emailSchema.exactOptional(),
+  password: confirmationPassword,
 });
 
 export const adminUpdateUserSchema = z
   .object({
     isAdmin: z.boolean().exactOptional(),
     email: emailSchema.nullable().exactOptional(),
+    password: confirmationPassword,
   })
   .refine((body) => body.isAdmin !== undefined || body.email !== undefined, {
     message: "Nothing to change",
   });
+
+/** A password reset or a deletion by an admin: only the confirmation. */
+export const adminConfirmSchema = z.object({
+  password: confirmationPassword,
+});
 
 /**
  * `POST /api/v1/push/subscriptions`: what `PushSubscription.toJSON()` gives.

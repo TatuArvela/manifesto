@@ -9,6 +9,10 @@ import type {
   TeamsResponse,
 } from "@manifesto/shared";
 import { apiFetch } from "#/storage/apiRequest.ts";
+import {
+  type ConfirmationRefusal,
+  confirmationRefusal,
+} from "./account/passwordConfirmation.ts";
 
 /**
  * Teams: the own teams of the signed-in user, with which to share a note, and
@@ -76,10 +80,14 @@ export async function listAdminTeams(): Promise<AdminTeam[] | null> {
 
 export type TeamWriteResult =
   | { kind: "ok"; team: AdminTeam }
-  | { kind: "name-taken" | "failed" };
+  | { kind: "name-taken" | "failed" }
+  /** The server wants the confirmation of the admin to add a member. */
+  | { kind: "refused"; refusal: ConfirmationRefusal };
 
 async function teamWrite(res: Response | null): Promise<TeamWriteResult> {
   if (res?.status === 409) return { kind: "name-taken" };
+  const refusal = res && (await confirmationRefusal(res));
+  if (refusal) return { kind: "refused", refusal };
   if (!res?.ok) return { kind: "failed" };
   return { kind: "ok", team: ((await res.json()) as AdminTeamResponse).team };
 }
@@ -91,11 +99,21 @@ export async function createTeam(
   return teamWrite(await apiFetch("POST", "/admin/teams", { name, memberIds }));
 }
 
+/**
+ * A change that adds a member carries the password of the admin (`""` for an
+ * admin without one), because a member gets the notes shared with the team.
+ */
 export async function updateTeam(
   id: string,
   changes: { name?: string; memberIds?: string[] },
+  password = "",
 ): Promise<TeamWriteResult> {
-  return teamWrite(await apiFetch("PUT", `/admin/teams/${id}`, changes));
+  return teamWrite(
+    await apiFetch("PUT", `/admin/teams/${id}`, {
+      ...changes,
+      ...(password && { password }),
+    }),
+  );
 }
 
 export async function deleteTeam(id: string): Promise<boolean> {

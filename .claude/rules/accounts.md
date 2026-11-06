@@ -83,8 +83,9 @@ An MCP token (`mfm_`, `kind: "mcp"`) has fewer rights again:
 ## Confirmation
 
 Some actions let a person with a stolen session keep the account or its notes: an email address, a
-token, a webhook, the two-factor changes, showing or replacing a key. These actions also call
-`requireConfirmation` (`auth/confirmation.ts`). The confirmation is one of these:
+token, a webhook, the two-factor changes, showing or replacing a key, each change that an admin
+makes to an account (`routes/admin.ts`), and each new member of a team (`routes/teams.ts`). These
+actions also call `requireConfirmation` (`auth/confirmation.ts`). The confirmation is one of these:
 
 - The password, counted against the sign-in budget in the shared `loginAttempts`.
 - For an account without a password, a sign-in in the last 15 minutes.
@@ -141,7 +142,9 @@ password.
   counts, audits and throws a wrong answer itself. Thus, a caller only has to send back the
   challenge.
 - `mailedLinks` (`auth/local/mailedLink.ts`) sends a link. Reset by mail uses it too. Both tables are
-  in one repository (`mailedLinksRepo.ts` in each driver).
+  in one repository (`mailedLinksRepo.ts` in each driver). It sends to the stored address of the
+  account, never to the typed address. On Postgres, `LOWER` folds some letters that are not ASCII
+  into ASCII. Thus, a typed address on a different domain can find the account.
 - If the mail of a link could not go out, the server deletes the link. Thus, the link does not stay
   live without an audit entry, and it does not start the cooldown.
 - The server checks the budget only where it asks for a second factor, or where a second factor is
@@ -178,7 +181,9 @@ A new device shows a QR code, and a signed-in device approves it (`auth/deviceSi
 
 All code that checks a password from a session counts a wrong password in `loginAttempts`. This
 includes the change of password (`/api/v1/auth/password`). The bucket for the address alone fills
-again for a stolen session that moves. With single sign-on, the server stores an address only when
+again for a stolen session that moves. A sign-in counts the name of the account that the lookup
+found, not the typed spelling. Postgres `LOWER` and `toLowerCase` fold some letters differently.
+Thus, each spelling would get its own budget. With single sign-on, the server stores an address only when
 the provider sends `email_verified: true` (`pickEmail`), unless `OIDC_UNVERIFIED_EMAIL=accept`.
 
 A temporary password gives no session. Login sends `403 password_change_required` until the same

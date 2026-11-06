@@ -357,6 +357,7 @@ export function createApp(deps: AppDeps): AppHandle {
       teamShares,
       storage,
       revocations,
+      loginAttempts,
       noteEvents,
       updateStatus: deps.updateStatus,
       mail: cfg.mail ? mailer : null,

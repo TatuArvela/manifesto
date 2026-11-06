@@ -49,7 +49,7 @@ describe("audit log", () => {
     await rig.request(`/api/v1/admin/users/${bob.userId}`, {
       method: "PUT",
       headers: authHeaders(admin.token),
-      body: JSON.stringify({ isAdmin: true }),
+      body: JSON.stringify({ isAdmin: true, password: "test-pass-12" }),
     });
     const { entries } = await log();
     expect(entries.slice(0, 3).map((e) => e.action)).toEqual([
@@ -135,7 +135,7 @@ describe("audit log", () => {
     await rig.request(`/api/v1/admin/users/${bob.userId}`, {
       method: "PUT",
       headers: { ...authHeaders(admin.token), ...from("203.0.113.9") },
-      body: JSON.stringify({ isAdmin: true }),
+      body: JSON.stringify({ isAdmin: true, password: "test-pass-12" }),
     });
     const { entries } = await activity(bob.token);
     const granted = entries.find((e) => e.action === "admin.admin_granted");

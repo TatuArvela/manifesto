@@ -1,4 +1,5 @@
 import {
+  adminConfirmSchema,
   adminCreateUserSchema,
   adminUpdateUserSchema,
 } from "#/validation/accountSchemas.ts";
@@ -158,6 +159,7 @@ export const ADMIN_OPERATIONS: Operation[] = [
     summary: "Issue a temporary password; the user's sessions end",
     auth: "admin",
     limits: ["user"],
+    body: adminConfirmSchema,
     responses: ok("AdminTemporaryPasswordResponse"),
   },
   {
@@ -167,6 +169,7 @@ export const ADMIN_OPERATIONS: Operation[] = [
     summary: "Delete an account and its notes",
     auth: "admin",
     limits: ["user"],
+    body: adminConfirmSchema,
     responses: noContent,
   },
 ];

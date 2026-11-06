@@ -1,5 +1,6 @@
 import type {
   AccountKeysSetupRequest,
+  AdminConfirmRequest,
   AdminCreateUserRequest,
   AdminUpdateUserRequest,
   ApiTokenCreateRequest,
@@ -35,6 +36,7 @@ import type {
 import type {
   accountKeysSetupSchema,
   accountPrefsUpdateSchema,
+  adminConfirmSchema,
   adminCreateUserSchema,
   adminUpdateUserSchema,
   authMeUpdateSchema,
@@ -136,6 +138,7 @@ export type WireTypeChecks = [
   Assert<Matches<Body<typeof passwordChangeSchema>, PasswordChangeRequest>>,
   Assert<Matches<Body<typeof adminCreateUserSchema>, AdminCreateUserRequest>>,
   Assert<Matches<Body<typeof adminUpdateUserSchema>, AdminUpdateUserRequest>>,
+  Assert<Matches<Body<typeof adminConfirmSchema>, AdminConfirmRequest>>,
   Assert<Matches<Body<typeof shareCreateSchema>, ShareCreateRequest>>,
   Assert<Matches<Body<typeof shareUpdateSchema>, ShareUpdateRequest>>,
   Assert<Matches<Body<typeof heldKeySchema>, HeldKeyRequest>>,

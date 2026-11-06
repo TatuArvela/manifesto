@@ -99,7 +99,9 @@ describe("admin actions", () => {
         201,
       ),
     );
-    expect(await createAccount("Carol")).toBe(true);
+    expect(await createAccount("Carol", undefined, "admin-pass-1")).toBe(
+      "done",
+    );
     expect(adminUsers.value?.map((u) => u.username)).toEqual([
       "admin",
       "Carol",
@@ -112,6 +114,7 @@ describe("admin actions", () => {
     });
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
       username: "Carol",
+      password: "admin-pass-1",
     });
   });
 
@@ -119,7 +122,9 @@ describe("admin actions", () => {
     fetchMock.mockResolvedValueOnce(
       json({ error: "Username is already taken" }, 409),
     );
-    expect(await createAccount("bob")).toBe(false);
+    expect(await createAccount("bob", undefined, "admin-pass-1")).toBe(
+      "failed",
+    );
     expect(toasts.value.map((toast) => toast.message)).toEqual([
       "That username is already taken.",
     ]);
@@ -129,7 +134,7 @@ describe("admin actions", () => {
   it("replaces an account whose admin rights changed", async () => {
     adminUsers.value = [user()];
     fetchMock.mockResolvedValueOnce(json({ user: user({ isAdmin: true }) }));
-    expect(await setAccountAdmin("u-bob", true)).toBe(true);
+    expect(await setAccountAdmin("u-bob", true, "admin-pass-1")).toBe("done");
     expect(adminUsers.value?.[0]?.isAdmin).toBe(true);
     expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("PUT");
   });
@@ -138,7 +143,7 @@ describe("admin actions", () => {
     fetchMock.mockResolvedValueOnce(
       json({ error: "The server must keep at least one admin" }, 409),
     );
-    expect(await deleteAccount("u-admin")).toBe(false);
+    expect(await deleteAccount("u-admin", "admin-pass-1")).toBe("failed");
     expect(toasts.value[0]?.message).toBe(
       "The server needs at least one admin.",
     );
@@ -152,7 +157,7 @@ describe("admin actions", () => {
         temporaryPassword: "wxyz-2345-6789-abcd",
       }),
     );
-    expect(await resetAccountPassword("u-bob")).toBe(true);
+    expect(await resetAccountPassword("u-bob", "admin-pass-1")).toBe("done");
     expect(issuedPassword.value).toMatchObject({
       username: "bob",
       kind: "reset",
@@ -162,8 +167,32 @@ describe("admin actions", () => {
   it("drops a deleted account from the list", async () => {
     adminUsers.value = [user({ id: "u-admin" }), user()];
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
-    expect(await deleteAccount("u-bob")).toBe(true);
+    expect(await deleteAccount("u-bob", "admin-pass-1")).toBe("done");
     expect(adminUsers.value?.map((u) => u.id)).toEqual(["u-admin"]);
+  });
+
+  it("gives back a refused confirmation for the form, and stays in the view", async () => {
+    fetchMock.mockResolvedValueOnce(
+      json(
+        { error: "The password is not right", code: "password_incorrect" },
+        403,
+      ),
+    );
+    expect(await setAccountAdmin("u-bob", true, "wrong")).toBe(
+      "password-wrong",
+    );
+    fetchMock.mockResolvedValueOnce(
+      json({ error: "Sign in again", code: "reauthentication_required" }, 403),
+    );
+    // An admin without a password sends none, and the server asks for a new
+    // sign-in.
+    expect(await deleteAccount("u-bob", "")).toBe("sign-in-again");
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({});
+    fetchMock.mockResolvedValueOnce(json({ error: "Too many" }, 429));
+    expect(await resetAccountPassword("u-bob", "x")).toBe("locked");
+    expect(toasts.value).toEqual([]);
+    expect(activeView.value).toBe("admin");
+    expect(adminUsers.value).not.toBeNull();
   });
 
   it("takes someone who has lost admin rights back to their notes", async () => {
@@ -183,7 +212,7 @@ describe("admin actions", () => {
 
   it("reports a network failure and resolves", async () => {
     fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
-    expect(await setAccountAdmin("u-bob", true)).toBe(false);
+    expect(await setAccountAdmin("u-bob", true, "admin-pass-1")).toBe("failed");
     expect(toasts.value[0]?.message).toBe("Could not change admin rights.");
   });
 });

@@ -161,7 +161,7 @@ describe("two-factor sign-in", () => {
     const reset = await call(
       "POST",
       `/api/v1/admin/users/${alice?.id}/password`,
-      undefined,
+      { password: "test-pass-12" },
       bob,
     );
     expect(reset.status).toBe(200);

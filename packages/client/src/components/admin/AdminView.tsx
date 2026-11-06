@@ -14,6 +14,10 @@ import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { Avatar } from "#/components/Avatar.tsx";
 import { boardCard } from "#/components/boardCard.ts";
 import { buttonClass } from "#/components/buttonClasses.ts";
+import {
+  ConfirmationError,
+  ConfirmPasswordField,
+} from "#/components/ConfirmWithPassword.tsx";
 import { menuItemClass, menuPanelClass } from "#/components/card/NoteMenu.tsx";
 import { Dropdown } from "#/components/Dropdown.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
@@ -23,7 +27,9 @@ import {
   currentUser,
   fetchCapabilities,
 } from "#/state/account/auth.ts";
+import type { ConfirmationRefusal } from "#/state/account/passwordConfirmation.ts";
 import {
+  type AdminChange,
   adminUsers,
   createAccount,
   deleteAccount,
@@ -183,6 +189,8 @@ const fieldClass =
 function CreateAccountForm({ onDone }: { onDone: () => void }) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [refusal, setRefusal] = useState<ConfirmationRefusal | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEscapeStack(true, onDone);
@@ -192,11 +200,16 @@ function CreateAccountForm({ onDone }: { onDone: () => void }) {
     const name = username.trim();
     if (!name || busy) return;
     setBusy(true);
-    // The failure was already reported. The form stays open, so that you can
+    // A failure was already reported. The form stays open, so that you can
     // correct it.
-    const created = await createAccount(name, email.trim() || undefined);
+    const created = await createAccount(
+      name,
+      email.trim() || undefined,
+      password,
+    );
     setBusy(false);
-    if (created) onDone();
+    setRefusal(refusalIn(created));
+    if (created === "done") onDone();
   };
 
   return (
@@ -234,6 +247,11 @@ function CreateAccountForm({ onDone }: { onDone: () => void }) {
           class={fieldClass}
         />
       </label>
+      <AdminConfirmation
+        password={password}
+        onPassword={setPassword}
+        refusal={refusal}
+      />
       <button
         type="submit"
         class={buttonClass("primary", "sm")}
@@ -249,6 +267,45 @@ function CreateAccountForm({ onDone }: { onDone: () => void }) {
         {t("admin.cancel")}
       </button>
     </form>
+  );
+}
+
+/** The refusal in what a change gave, or null when it was not refused. */
+function refusalIn(change: AdminChange): ConfirmationRefusal | null {
+  return change === "done" || change === "failed" ? null : change;
+}
+
+/**
+ * The password of the admin for a change to an account, and why the server
+ * refused the last try. The server asks for it on each change, because a stolen
+ * admin session could otherwise give itself an account that stays an admin.
+ */
+function AdminConfirmation({
+  password,
+  onPassword,
+  refusal,
+}: {
+  password: string;
+  onPassword: (value: string) => void;
+  refusal: ConfirmationRefusal | null;
+}) {
+  return (
+    <>
+      {currentUser.value?.hasPassword === true && (
+        <div class="flex-1 min-w-48">
+          <ConfirmPasswordField
+            value={password}
+            onInput={onPassword}
+            inputClass={fieldClass}
+          />
+        </div>
+      )}
+      {refusal && (
+        <div class="w-full">
+          <ConfirmationError refusal={refusal} />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -348,19 +405,41 @@ function UserRow({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirming, setConfirming] = useState<
-    "reset" | "delete" | "email" | null
+    "admin" | "reset" | "delete" | "email" | null
   >(null);
+  const [password, setPassword] = useState("");
+  const [refusal, setRefusal] = useState<ConfirmationRefusal | null>(null);
   const [busy, setBusy] = useState(false);
   const canReset = passwordsHere && user.provider === "local";
 
-  const run = async (action: () => Promise<boolean>) => {
+  const ask = (what: "admin" | "reset" | "delete" | "email") => {
     setMenuOpen(false);
+    setPassword("");
+    setRefusal(null);
+    setConfirming(what);
+  };
+
+  const run = async (action: () => Promise<AdminChange>) => {
     setBusy(true);
-    await action();
+    const result = await action();
     // A deleted row is already gone from the list, and nothing here stays after
-    // it.
+    // it. A refusal keeps the question open, with the reason under it.
     setBusy(false);
-    setConfirming(null);
+    const refused = refusalIn(result);
+    setRefusal(refused);
+    if (!refused) setConfirming(null);
+  };
+
+  const confirmed = (event: Event) => {
+    event.preventDefault();
+    if (busy) return;
+    if (confirming === "admin") {
+      void run(() => setAccountAdmin(user.id, !user.isAdmin, password));
+    } else if (confirming === "delete") {
+      void run(() => deleteAccount(user.id, password));
+    } else if (confirming === "reset") {
+      void run(() => resetAccountPassword(user.id, password));
+    }
   };
 
   const meta = [
@@ -431,7 +510,7 @@ function UserRow({
             <button
               type="button"
               class={menuItemClass}
-              onClick={() => run(() => setAccountAdmin(user.id, !user.isAdmin))}
+              onClick={() => ask("admin")}
             >
               {user.isAdmin ? (
                 <ShieldOff class="w-4 h-4" />
@@ -443,10 +522,7 @@ function UserRow({
             <button
               type="button"
               class={menuItemClass}
-              onClick={() => {
-                setMenuOpen(false);
-                setConfirming("email");
-              }}
+              onClick={() => ask("email")}
             >
               <AtSign class="w-4 h-4" />
               {t("admin.changeEmail")}
@@ -455,10 +531,7 @@ function UserRow({
               <button
                 type="button"
                 class={menuItemClass}
-                onClick={() => {
-                  setMenuOpen(false);
-                  setConfirming("reset");
-                }}
+                onClick={() => ask("reset")}
               >
                 <KeyRound class="w-4 h-4" />
                 {t("admin.resetPassword")}
@@ -467,10 +540,7 @@ function UserRow({
             <button
               type="button"
               class={`${menuItemClass} text-red-600 dark:text-red-400`}
-              onClick={() => {
-                setMenuOpen(false);
-                setConfirming("delete");
-              }}
+              onClick={() => ask("delete")}
             >
               <Trash2 class="w-4 h-4" />
               {t("admin.delete")}
@@ -483,49 +553,58 @@ function UserRow({
         <EmailForm user={user} onDone={() => setConfirming(null)} />
       )}
 
-      {(confirming === "reset" || confirming === "delete") && (
-        <div class="mt-3 ml-12 p-3 rounded-lg bg-neutral-50 dark:bg-neutral-700/50 border border-neutral-200 dark:border-neutral-600">
-          <p class="text-sm text-neutral-600 dark:text-neutral-300 mb-3">
+      {(confirming === "admin" ||
+        confirming === "reset" ||
+        confirming === "delete") && (
+        <form
+          onSubmit={confirmed}
+          class="mt-3 ml-12 p-3 rounded-lg bg-neutral-50 dark:bg-neutral-700/50 border border-neutral-200 dark:border-neutral-600 flex flex-wrap items-end gap-2"
+        >
+          <p class="w-full text-sm text-neutral-600 dark:text-neutral-300 mb-1">
             {t(
               confirming === "delete"
                 ? "admin.deleteConfirm"
-                : "admin.resetConfirm",
+                : confirming === "reset"
+                  ? "admin.resetConfirm"
+                  : user.isAdmin
+                    ? "admin.removeAdminConfirm"
+                    : "admin.makeAdminConfirm",
               { username: user.username },
             )}
           </p>
-          <div class="flex flex-wrap gap-2">
-            <button
-              type="button"
-              class={
-                confirming === "delete"
-                  ? buttonClass("danger", "sm")
-                  : buttonClass("primary", "sm")
-              }
-              disabled={busy}
-              onClick={() =>
-                run(() =>
-                  confirming === "delete"
-                    ? deleteAccount(user.id)
-                    : resetAccountPassword(user.id),
-                )
-              }
-            >
-              {t(
-                confirming === "delete"
-                  ? "admin.delete"
-                  : "admin.resetPassword",
-              )}
-            </button>
-            <button
-              type="button"
-              class={buttonClass("secondary", "sm")}
-              disabled={busy}
-              onClick={() => setConfirming(null)}
-            >
-              {t("admin.cancel")}
-            </button>
-          </div>
-        </div>
+          <AdminConfirmation
+            password={password}
+            onPassword={setPassword}
+            refusal={refusal}
+          />
+          <button
+            type="submit"
+            class={
+              confirming === "delete"
+                ? buttonClass("danger", "sm")
+                : buttonClass("primary", "sm")
+            }
+            disabled={busy}
+          >
+            {t(
+              confirming === "delete"
+                ? "admin.delete"
+                : confirming === "reset"
+                  ? "admin.resetPassword"
+                  : user.isAdmin
+                    ? "admin.removeAdmin"
+                    : "admin.makeAdmin",
+            )}
+          </button>
+          <button
+            type="button"
+            class={buttonClass("secondary", "sm")}
+            disabled={busy}
+            onClick={() => setConfirming(null)}
+          >
+            {t("admin.cancel")}
+          </button>
+        </form>
       )}
     </li>
   );
@@ -538,6 +617,8 @@ function UserRow({
  */
 function EmailForm({ user, onDone }: { user: AdminUser; onDone: () => void }) {
   const [email, setEmail] = useState(user.email ?? "");
+  const [password, setPassword] = useState("");
+  const [refusal, setRefusal] = useState<ConfirmationRefusal | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEscapeStack(true, onDone);
@@ -547,11 +628,16 @@ function EmailForm({ user, onDone }: { user: AdminUser; onDone: () => void }) {
     if (busy) return;
     setBusy(true);
     const next = email.trim();
-    // The failure was already reported. The form stays open, so that you can
+    // A failure was already reported. The form stays open, so that you can
     // correct it.
-    const saved = await setAccountEmail(user.id, next.length > 0 ? next : null);
+    const saved = await setAccountEmail(
+      user.id,
+      next.length > 0 ? next : null,
+      password,
+    );
     setBusy(false);
-    if (saved) onDone();
+    setRefusal(refusalIn(saved));
+    if (saved === "done") onDone();
   };
 
   return (
@@ -574,6 +660,11 @@ function EmailForm({ user, onDone }: { user: AdminUser; onDone: () => void }) {
           class={fieldClass}
         />
       </label>
+      <AdminConfirmation
+        password={password}
+        onPassword={setPassword}
+        refusal={refusal}
+      />
       <button
         type="submit"
         class={buttonClass("primary", "sm")}

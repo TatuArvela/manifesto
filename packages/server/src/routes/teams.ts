@@ -11,6 +11,8 @@ import type {
 } from "@manifesto/shared";
 import { type Context, Hono } from "hono";
 import { audit } from "#/audit/audit.ts";
+import { requireConfirmation } from "#/auth/confirmation.ts";
+import type { LoginAttempts } from "#/auth/local/loginAttempts.ts";
 import { nowIso } from "#/lib/time.ts";
 import { newId } from "#/lib/ulid.ts";
 import type { AuthContext } from "#/middleware/authBearer.ts";
@@ -167,7 +169,10 @@ export function registerTeamShareRoutes(notes: AuthedApp, deps: TeamDeps) {
  * set them here. You can rename it only there. Thus, also not here. Registered
  * on the admin router, behind its session-only admin check.
  */
-export function registerAdminTeamRoutes(admin: AuthedApp, deps: TeamDeps) {
+export function registerAdminTeamRoutes(
+  admin: AuthedApp,
+  deps: TeamDeps & { loginAttempts: LoginAttempts },
+) {
   const { storage, teamShares } = deps;
 
   async function adminTeam(team: StoredTeam): Promise<AdminTeam> {
@@ -256,7 +261,12 @@ export function registerAdminTeamRoutes(admin: AuthedApp, deps: TeamDeps) {
     "/teams",
     zValidator("json", adminTeamCreateSchema, validatorHook),
     async (c) => {
-      const { name, memberIds } = c.req.valid("json");
+      const { name, memberIds, password } = c.req.valid("json");
+      // A member gets the notes shared with the team. Thus, a stolen admin
+      // session must not be able to add its own account without the password.
+      if (memberIds && memberIds.length > 0) {
+        await requireConfirmation(deps, c.get("auth"), password);
+      }
       if (memberIds) await checkMembers(memberIds);
       const id = newId();
       const created = await storage.teams.create({
@@ -286,12 +296,20 @@ export function registerAdminTeamRoutes(admin: AuthedApp, deps: TeamDeps) {
     zValidator("json", adminTeamUpdateSchema, validatorHook),
     async (c) => {
       const team = await found(c.req.param("id") as string);
-      const { name, memberIds } = c.req.valid("json");
+      const { name, memberIds, password } = c.req.valid("json");
       if (team.source === "oidc") {
         throw new HttpError(
           409,
           "This team follows a group at the identity provider",
         );
+      }
+      if (memberIds) {
+        // Only an addition gives notes. A removal takes them away, and a way to
+        // take access away never asks for more.
+        const current = new Set(await storage.teams.members(team.id));
+        if (memberIds.some((id) => !current.has(id))) {
+          await requireConfirmation(deps, c.get("auth"), password);
+        }
       }
       if (memberIds) await checkMembers(memberIds);
       if (name !== undefined && name !== team.name) {
