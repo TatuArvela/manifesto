@@ -235,6 +235,155 @@ describe("attaching an image", () => {
     expect(notes.value[0]?.images).toEqual([REDRAWN, OTHER]);
   });
 
+  function paste(target: HTMLElement, extra: Record<string, string> = {}) {
+    const data = new DataTransfer();
+    for (const [type, value] of Object.entries(extra))
+      data.setData(type, value);
+    data.items.add(new File([PNG], "dot.png", { type: "image/png" }));
+    target.focus();
+    target.dispatchEvent(
+      new ClipboardEvent("paste", { clipboardData: data, bubbles: true }),
+    );
+  }
+
+  const done = (dialog: HTMLElement) =>
+    (
+      dialog.querySelector(
+        `button[aria-label="${t("editor.done")}"]`,
+      ) as HTMLElement
+    ).click();
+
+  it("puts an image pasted into the text at the caret, not in the header", async () => {
+    storeWith(vi.fn(async () => REF));
+    const dialog = await openDraft();
+    paste(dialog.querySelector<HTMLElement>(".ProseMirror") as HTMLElement);
+    await vi.waitFor(() => expect(putImage).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() =>
+      expect(dialog.querySelector(".ProseMirror img")).not.toBeNull(),
+    );
+    // The header has no image, so it has no button to draw on one.
+    expect(
+      dialog.querySelector(`button[aria-label="${t("editor.drawOnImage")}"]`),
+    ).toBeNull();
+    done(dialog);
+    await vi.waitFor(() => expect(notes.value).toHaveLength(1));
+    expect(notes.value[0]?.images).toEqual([REF]);
+    expect(notes.value[0]?.content).toContain("![](image:1)");
+  });
+
+  it("gives an image in the text the buttons of the header", async () => {
+    storeWith(vi.fn(async () => REF));
+    const dialog = await openDraft();
+    paste(dialog.querySelector<HTMLElement>(".ProseMirror") as HTMLElement);
+    const button = (label: string) =>
+      dialog.querySelector<HTMLElement>(
+        `.ProseMirror button[aria-label="${label}"]`,
+      );
+    await vi.waitFor(() =>
+      expect(button(t("editor.drawOnImage"))).not.toBeNull(),
+    );
+    button(t("editor.deleteImage"))?.click();
+    await vi.waitFor(() =>
+      expect(dialog.querySelector(".ProseMirror img")).toBeNull(),
+    );
+    // Deleted from the note, not only from the text: the header is empty too.
+    expect(
+      dialog.querySelector(`button[aria-label="${t("editor.drawOnImage")}"]`),
+    ).toBeNull();
+  });
+
+  it("moves an image out of the text to the header, and keeps it", async () => {
+    storeWith(vi.fn(async () => REF));
+    const dialog = await openDraft();
+    paste(dialog.querySelector<HTMLElement>(".ProseMirror") as HTMLElement);
+    const moveOut = await vi.waitFor(() => {
+      const found = dialog.querySelector<HTMLElement>(
+        `.ProseMirror button[aria-label="${t("editor.imageOutOfText")}"]`,
+      );
+      expect(found).not.toBeNull();
+      return found as HTMLElement;
+    });
+    moveOut.click();
+    await vi.waitFor(() =>
+      expect(dialog.querySelector(".ProseMirror img")).toBeNull(),
+    );
+    await vi.waitFor(() =>
+      expect(
+        dialog.querySelector(
+          `button[aria-label="${t("editor.imageIntoText")}"]`,
+        ),
+      ).not.toBeNull(),
+    );
+    done(dialog);
+    await vi.waitFor(() => expect(notes.value).toHaveLength(1));
+    expect(notes.value[0]?.images).toEqual([REF]);
+    expect(notes.value[0]?.content).not.toContain("image:");
+  });
+
+  it("puts a header image in the text where the next click is", async () => {
+    storeWith(vi.fn(async () => REF));
+    const dialog = await openDraft();
+    paste(dialog.querySelector<HTMLElement>("input[type=text]") as HTMLElement);
+    const putIn = await vi.waitFor(() => {
+      const found = dialog.querySelector<HTMLElement>(
+        `button[aria-label="${t("editor.imageIntoText")}"]`,
+      );
+      expect(found).not.toBeNull();
+      return found as HTMLElement;
+    });
+    putIn.click();
+    await vi.waitFor(() =>
+      expect(dialog.textContent).toContain(t("editor.placeImageHint")),
+    );
+    const text = dialog.querySelector<HTMLElement>(
+      ".ProseMirror",
+    ) as HTMLElement;
+    const box = text.getBoundingClientRect();
+    text.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        cancelable: true,
+        clientX: box.left + 4,
+        clientY: box.top + 4,
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(dialog.querySelector(".ProseMirror img")).not.toBeNull(),
+    );
+    expect(dialog.textContent).not.toContain(t("editor.placeImageHint"));
+    // In the text now, so not in the header.
+    expect(
+      dialog.querySelector(`button[aria-label="${t("editor.imageIntoText")}"]`),
+    ).toBeNull();
+  });
+
+  it("puts a copied image in the text one time, not also from its address", async () => {
+    storeWith(vi.fn(async () => REF));
+    const dialog = await openDraft();
+    paste(dialog.querySelector<HTMLElement>(".ProseMirror") as HTMLElement, {
+      "text/html": '<img src="https://example.com/cat.png">',
+    });
+    await vi.waitFor(() =>
+      expect(dialog.querySelector(".ProseMirror img")).not.toBeNull(),
+    );
+    done(dialog);
+    await vi.waitFor(() => expect(notes.value).toHaveLength(1));
+    expect(notes.value[0]?.content).not.toContain("example.com");
+    expect(notes.value[0]?.content).toContain("![](image:1)");
+  });
+
+  it("puts an image pasted into the title in the header", async () => {
+    storeWith(vi.fn(async () => REF));
+    const dialog = await openDraft();
+    paste(dialog.querySelector<HTMLElement>("input[type=text]") as HTMLElement);
+    await vi.waitFor(() =>
+      expect(
+        dialog.querySelector(`button[aria-label="${t("editor.drawOnImage")}"]`),
+      ).not.toBeNull(),
+    );
+    expect(dialog.querySelector(".ProseMirror img")).toBeNull();
+  });
+
   it("takes the pad down with the editor it was opened from", async () => {
     storeWith(vi.fn(async () => REF));
     await openDraft();

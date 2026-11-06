@@ -37,7 +37,22 @@ keeps the order of the list, so a pointer still holds after an import.
   scheme. The view (`useInlineImages`) and the editor (`extensions/inlineImageView.ts`) then give it
   the address of the image, as `StoredImage` does. When the text has no `alt`, the description of the
   image is the `alt`.
-- An image in the text also stays in the gallery of the note.
+- An image is in the header of the note (its gallery) or in the text, not in both. The editor, the
+  card and the read-only view leave out of the header each image that the text shows
+  (`imagesInText`). When the text no longer shows it, it is in the header again.
+- An image in the editor has buttons (`ImageButtons`): describe, draw and delete, in the header and
+  in the text. Delete takes the image out of the note in both places.
+  - An image in the text also has "Show in full" (in the header, a click on the image does this)
+    and "Move out of the text". The second takes its pointers out of the text, and the image goes
+    back to the header. The other pointers keep their numbers.
+  - An image in the header also has "Put in the text". The next click in the text puts the image
+    there (`placeImagePointer`). The notice that asks for the click also offers the caret, for the
+    keyboard, and Escape cancels. A public link page and a share link keep the full gallery, because they do not resolve
+  a pointer. The card of a plugin that reads notes also keeps it, because it draws no image in the
+  text.
+- An image pasted into the text goes into the text at the caret. It is stored as each image is, and
+  the pointer goes in when the image is in the list. An image pasted in any other place in an open
+  note (the title, for example) goes into the header.
 - The card of a plugin that reads notes removes it, as all of its images (`withoutImages`).
 - A public link page and a share link do not resolve a pointer. They show the description of the
   image, or nothing.

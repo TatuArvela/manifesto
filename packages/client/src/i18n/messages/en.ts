@@ -363,6 +363,12 @@ export const en = {
   "editor.openImage": "Open image",
   "editor.openImageNamed": "Open image: {description}",
   "editor.describeImage": "Describe image",
+  "editor.showImageFull": "Show in full",
+  "editor.imageOutOfText": "Move out of the text",
+  "editor.imageIntoText": "Put in the text",
+  "editor.placeImageHint": "Click in the text where the image goes.",
+  "editor.placeImageAtCaret": "At the caret",
+  "editor.placeImageCancel": "Cancel",
   "editor.imageDescription": "Image description",
   "editor.imageDescriptionHint":
     "What the image shows, for someone who cannot see it",

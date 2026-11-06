@@ -23,15 +23,42 @@ export function pointedImage(src: string): number | null {
 }
 
 /**
- * `content` after the image at `removed` (from 0) left the note. Each pointer
- * to it goes. Each pointer to a later image moves down by one.
+ * The images (from 0) that `content` shows. The header of the note leaves them
+ * out: an image is in the header or in the text, not in both.
  */
-export function withoutImagePointer(content: string, removed: number): string {
+export function imagesInText(content: string): ReadonlySet<number> {
+  const shown = new Set<number>();
+  if (!content.includes("](image:")) return shown;
+  for (const [, , digits] of content.matchAll(POINTER_IN_TEXT)) {
+    const index = Number(digits) - 1;
+    if (index >= 0) shown.add(index);
+  }
+  return shown;
+}
+
+/** How many of `count` images the header shows, after `imagesInText`. */
+export function headerImageCount(count: number, content: string): number {
+  let inText = 0;
+  for (const index of imagesInText(content)) if (index < count) inText++;
+  return count - inText;
+}
+
+/**
+ * `content` after the image at `removed` (from 0) left the note. Each pointer
+ * to it goes. Each pointer to a later image moves down by one. With `renumber`
+ * false, the image stays in the note and only leaves the text (back to the
+ * header). Then the other pointers keep their numbers.
+ */
+export function withoutImagePointer(
+  content: string,
+  removed: number,
+  renumber = true,
+): string {
   if (!content.includes("](image:")) return content;
   return content.replace(POINTER_IN_TEXT, (whole, alt: string, digits) => {
     const index = Number(digits) - 1;
     if (index === removed) return "";
-    if (index > removed) return `![${alt}](${imagePointer(index)})`;
+    if (renumber && index > removed) return `![${alt}](${imagePointer(index)})`;
     return whole;
   });
 }

@@ -15,19 +15,26 @@ export interface PendingUpload {
   controller: AbortController;
   /** The image of the note that this one replaces, after it is stored. */
   replaces?: string | undefined;
+  /** Goes into the text at the caret, not into the header. */
+  inText?: boolean | undefined;
 }
 
 /**
  * Attached files become pending uploads. The code draws them immediately from
  * the local file, stores them (uploads them, in connected mode, with progress),
  * and gives them to `onAddImages` as the reference after they are stored, with
- * the image that it replaces if it was drawn over one. A failed upload stays,
+ * the image that it replaces if it was drawn over one, and if it goes into the
+ * text. A failed upload stays,
  * with a mark and a retry. The code does not make a note that points to
  * nothing. An unmount (a close of the editor) cancels the uploads that are not
  * complete.
  */
 export function useImageUploads(
-  onAddImages: (references: string[], replaces?: string) => void,
+  onAddImages: (
+    references: string[],
+    replaces: string | undefined,
+    inText: boolean,
+  ) => void,
 ) {
   const [uploads, setUploads] = useState<PendingUpload[]>([]);
   const uploadsRef = useRef<PendingUpload[]>([]);
@@ -81,7 +88,11 @@ export function useImageUploads(
           // Closed or removed while it completed: the image belongs to nothing.
           if (upload.controller.signal.aborted) return;
           dropUpload(upload.key);
-          onAddImagesRef.current([stored], upload.replaces);
+          onAddImagesRef.current(
+            [stored],
+            upload.replaces,
+            upload.inText ?? false,
+          );
         })
         .catch((err: unknown) => {
           if (err instanceof DOMException && err.name === "AbortError") return;
@@ -102,7 +113,7 @@ export function useImageUploads(
   );
 
   const attachFiles = useCallback(
-    (files: File[], replaces?: string) => {
+    (files: File[], replaces?: string, inText?: boolean) => {
       const added = files.map(
         (file): PendingUpload => ({
           key: `${Date.now()}-${Math.random()}`,
@@ -112,6 +123,7 @@ export function useImageUploads(
           failed: false,
           controller: new AbortController(),
           replaces,
+          inText,
         }),
       );
       setUploads((list) => [...list, ...added]);

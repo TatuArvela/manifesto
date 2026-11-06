@@ -29,6 +29,7 @@ import { documentWatcher } from "#/extensions/documentWatcher.ts";
 import { configureEditorKeys, editorKeys } from "#/extensions/editorKeys.ts";
 import { inlineCalculationsPlugin } from "#/extensions/inlineCalculations.ts";
 import {
+  type InlineImageControls,
   type InlineImageResolver,
   inlineImageView,
 } from "#/extensions/inlineImageView.ts";
@@ -72,6 +73,8 @@ interface MilkdownEditorProps {
   onEditorGone?: () => void;
   /** Shows the images of the note that the text points to. */
   resolveInlineImage?: InlineImageResolver | undefined;
+  /** The buttons over those images. Read when an image draws. */
+  inlineImageControls?: InlineImageControls | undefined;
   collab?:
     | {
         ydoc: Y.Doc;
@@ -92,10 +95,13 @@ export function MilkdownEditor({
   onEditorReady,
   onEditorGone,
   resolveInlineImage,
+  inlineImageControls,
   collab,
 }: MilkdownEditorProps) {
   const resolveInlineImageRef = useRef(resolveInlineImage);
   resolveInlineImageRef.current = resolveInlineImage;
+  const inlineImageControlsRef = useRef(inlineImageControls);
+  inlineImageControlsRef.current = inlineImageControls;
   const rawModeRef = useRef(rawMode);
   rawModeRef.current = rawMode;
   const ownTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -226,6 +232,7 @@ export function MilkdownEditor({
         inlineImageView(
           (index) =>
             resolveInlineImageRef.current?.(index) ?? Promise.resolve(null),
+          () => inlineImageControlsRef.current,
         ),
       )
       .use(taskItemDraggable)

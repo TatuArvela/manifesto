@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  headerImageCount,
   imagePointer,
+  imagesInText,
   markImagePointers,
   pointedImage,
   withoutImagePointer,
@@ -53,5 +55,35 @@ describe("markImagePointers", () => {
     markImagePointers()(tree);
     expect(tree.children[0]?.properties).toEqual({ dataImage: "1" });
     expect(tree.children[1]?.properties).toEqual({ src: "a.png" });
+  });
+});
+
+describe("imagesInText", () => {
+  it("gives each image from 0 that the text shows, one time", () => {
+    const text = "a ![](image:2) b ![cat](image:1)\n![](image:2)";
+    expect([...imagesInText(text)].sort()).toEqual([0, 1]);
+  });
+
+  it("gives nothing for a text with no pointer", () => {
+    expect(imagesInText("![](https://example.com/a.png)").size).toBe(0);
+  });
+});
+
+describe("headerImageCount", () => {
+  it("leaves out the images that the text shows", () => {
+    expect(headerImageCount(3, "![](image:2)")).toBe(2);
+  });
+
+  it("does not count a pointer to an image that the note does not have", () => {
+    expect(headerImageCount(1, "![](image:1) ![](image:4)")).toBe(0);
+    expect(headerImageCount(2, "![](image:4)")).toBe(2);
+  });
+});
+
+describe("withoutImagePointer with the image kept", () => {
+  it("takes out its pointers, and the others keep their numbers", () => {
+    expect(
+      withoutImagePointer("![](image:1) ![](image:2) ![](image:3)", 1, false),
+    ).toBe("![](image:1)  ![](image:3)");
   });
 });

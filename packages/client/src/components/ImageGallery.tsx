@@ -1,6 +1,15 @@
 import { MAX_IMAGE_ALT_LENGTH } from "@manifesto/shared";
-import { Captions, ChevronLeft, ChevronRight, PenLine, X } from "lucide-preact";
-import { createPortal } from "preact";
+import {
+  ArrowUpToLine,
+  Captions,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  PenLine,
+  TextCursorInput,
+  X,
+} from "lucide-preact";
+import { type ComponentChildren, createPortal } from "preact";
 import {
   useCallback,
   useId,
@@ -27,6 +36,14 @@ interface ImageGalleryProps {
   onDelete?: (index: number) => void;
   /** Opens the image on the drawing pad. Not given where it cannot change. */
   onEdit?: ((index: number) => void) | undefined;
+  /** Starts to put the image in the text. Not given where it cannot change. */
+  onPutInText?: ((index: number) => void) | undefined;
+  /**
+   * The images (from 0) that the text of the note shows (`imagesInText`). The
+   * gallery leaves them out. Each other image keeps its index for the
+   * buttons, and the lightbox still goes through all images.
+   */
+  hidden?: ReadonlySet<number> | undefined;
   /**
    * Fill the height of the parent, shared between the images, and crop each
    * image to fit. Do not use the own height of each image. A square card needs
@@ -43,12 +60,119 @@ interface ImageGalleryProps {
 const imageButtonClass =
   "absolute bottom-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover/img:opacity-100 focus-visible:opacity-100 touch:opacity-100 hover:bg-black/80 transition-opacity cursor-pointer";
 
+/**
+ * The buttons over an image of the note, from right to left: delete, draw,
+ * describe, the move between the header and the text, and show in full. The
+ * parent is `relative group/img`. The header of the note and the images in
+ * its text (`extensions/inlineImageView.ts`) both use it. Only the buttons
+ * with an action show.
+ */
+export function ImageButtons({
+  onDescribe,
+  onEdit,
+  onDelete,
+  onMoveOutOfText,
+  onPutInText,
+  onShowFull,
+}: {
+  onDescribe?: (() => void) | undefined;
+  onEdit?: (() => void) | undefined;
+  onDelete?: (() => void) | undefined;
+  /** An image in the text: it goes back to the header, and stays in the note. */
+  onMoveOutOfText?: (() => void) | undefined;
+  /** An image in the header: the next click in the text puts it there. */
+  onPutInText?: (() => void) | undefined;
+  /** An image in the text. In the header, a click on the image does this. */
+  onShowFull?: (() => void) | undefined;
+}) {
+  const buttonsRight = [
+    "right-2",
+    "right-11",
+    "right-20",
+    "right-29",
+    "right-38",
+  ];
+  let nextButton = 0;
+  const deleteAt = onDelete ? buttonsRight[nextButton++] : undefined;
+  const editAt = onEdit ? buttonsRight[nextButton++] : undefined;
+  const describeAt = onDescribe ? buttonsRight[nextButton++] : undefined;
+  const moveAt =
+    onMoveOutOfText || onPutInText ? buttonsRight[nextButton++] : undefined;
+  const fullAt = onShowFull ? buttonsRight[nextButton++] : undefined;
+  const button = (
+    at: string | undefined,
+    label: string,
+    run: () => void,
+    icon: ComponentChildren,
+  ) => (
+    <button
+      type="button"
+      class={`${at} ${imageButtonClass}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        run();
+      }}
+      aria-label={label}
+    >
+      {icon}
+    </button>
+  );
+  return (
+    <>
+      {onShowFull &&
+        button(
+          fullAt,
+          t("editor.showImageFull"),
+          onShowFull,
+          <Maximize2 class="w-4 h-4" />,
+        )}
+      {onMoveOutOfText &&
+        button(
+          moveAt,
+          t("editor.imageOutOfText"),
+          onMoveOutOfText,
+          <ArrowUpToLine class="w-4 h-4" />,
+        )}
+      {onPutInText &&
+        button(
+          moveAt,
+          t("editor.imageIntoText"),
+          onPutInText,
+          <TextCursorInput class="w-4 h-4" />,
+        )}
+      {onDescribe &&
+        button(
+          describeAt,
+          t("editor.describeImage"),
+          onDescribe,
+          <Captions class="w-4 h-4" />,
+        )}
+      {onEdit &&
+        button(
+          editAt,
+          t("editor.drawOnImage"),
+          onEdit,
+          <PenLine class="w-4 h-4" />,
+        )}
+      {onDelete &&
+        button(
+          deleteAt,
+          t("editor.deleteImage"),
+          onDelete,
+          <X class="w-4 h-4" />,
+        )}
+    </>
+  );
+}
+
 export function ImageGallery({
   images,
   alts,
   onDescribe,
   onDelete,
   onEdit,
+  onPutInText,
+  hidden,
   fill,
 }: ImageGalleryProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -59,84 +183,47 @@ export function ImageGallery({
     setOpenIndex(index);
   };
 
-  if (images.length === 0) return null;
+  if (images.every((_, i) => hidden?.has(i))) return null;
   const altOf = (i: number) => alts?.[i] ?? "";
-  // The buttons over an image are from right to left: delete, draw, describe.
-  const buttonsRight = ["right-2", "right-11", "right-20"];
-  let nextButton = 0;
-  const deleteAt = onDelete ? buttonsRight[nextButton++] : undefined;
-  const editAt = onEdit ? buttonsRight[nextButton++] : undefined;
-  const describeAt = onDescribe ? buttonsRight[nextButton++] : undefined;
 
   return (
     <>
       <div class={`flex flex-col ${fill ? "h-full" : ""}`}>
-        {images.map((src, i) => (
-          <div
-            key={`${i}-${src.slice(0, 48)}`}
-            class={`relative group/img bg-black/5 dark:bg-white/5 ${fill ? "flex-1 min-h-0" : ""}`}
-          >
-            <button
-              type="button"
-              class={`block w-full cursor-zoom-in ${fill ? "h-full" : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                open(i, false);
-              }}
-              aria-label={
-                altOf(i)
-                  ? t("editor.openImageNamed", { description: altOf(i) })
-                  : t("editor.openImage")
-              }
+        {images.map((src, i) =>
+          hidden?.has(i) ? null : (
+            <div
+              key={`${i}-${src.slice(0, 48)}`}
+              class={`relative group/img bg-black/5 dark:bg-white/5 ${fill ? "flex-1 min-h-0" : ""}`}
             >
-              <StoredImage
-                src={src}
-                alt={altOf(i)}
-                draggable={false}
-                class={`w-full object-cover block ${fill ? "h-full" : "h-auto max-h-96"}`}
+              <button
+                type="button"
+                class={`block w-full cursor-zoom-in ${fill ? "h-full" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  open(i, false);
+                }}
+                aria-label={
+                  altOf(i)
+                    ? t("editor.openImageNamed", { description: altOf(i) })
+                    : t("editor.openImage")
+                }
+              >
+                <StoredImage
+                  src={src}
+                  alt={altOf(i)}
+                  draggable={false}
+                  class={`w-full object-cover block ${fill ? "h-full" : "h-auto max-h-96"}`}
+                />
+              </button>
+              <ImageButtons
+                onDescribe={onDescribe && (() => open(i, true))}
+                onEdit={onEdit && (() => onEdit(i))}
+                onDelete={onDelete && (() => onDelete(i))}
+                onPutInText={onPutInText && (() => onPutInText(i))}
               />
-            </button>
-            {onDescribe && (
-              <button
-                type="button"
-                class={`${describeAt} ${imageButtonClass}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  open(i, true);
-                }}
-                aria-label={t("editor.describeImage")}
-              >
-                <Captions class="w-4 h-4" />
-              </button>
-            )}
-            {onEdit && (
-              <button
-                type="button"
-                class={`${editAt} ${imageButtonClass}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(i);
-                }}
-                aria-label={t("editor.drawOnImage")}
-              >
-                <PenLine class="w-4 h-4" />
-              </button>
-            )}
-            {onDelete && (
-              <button
-                type="button"
-                class={`${deleteAt} ${imageButtonClass}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(i);
-                }}
-                aria-label={t("editor.deleteImage")}
-              >
-                <X class="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        ))}
+            </div>
+          ),
+        )}
       </div>
       {openIndex !== null && (
         <ImageLightbox
@@ -153,7 +240,11 @@ export function ImageGallery({
   );
 }
 
-function ImageLightbox({
+/**
+ * An image of the note at full size, with the others one step away, and its
+ * description. The gallery opens it, and so does an image in the text.
+ */
+export function ImageLightbox({
   images,
   alts,
   onDescribe,

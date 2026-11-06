@@ -13,6 +13,7 @@ import { usePresence } from "#/hooks/usePresence.ts";
 import { useIsTouch, useTouchGesture } from "#/hooks/useTouchGesture.ts";
 import { formatDate, t } from "#/i18n/index.ts";
 import { leavingNotes, recentlyPinned } from "#/state/actions.ts";
+import { drawnWithoutImages } from "#/state/autoNotes.ts";
 import { requestDrawing } from "#/state/drawing.ts";
 import { openNoteWith } from "#/state/editorIntent.ts";
 import { complexShadows, noteSize, viewMode } from "#/state/prefs.ts";
@@ -25,6 +26,7 @@ import {
   showError,
 } from "#/state/ui.ts";
 import { cardName } from "#/utils/cardName.ts";
+import { headerImageCount } from "#/utils/inlineImages.ts";
 import { contentIsOnlyPreviewUrls } from "#/utils/linkPreview.ts";
 import { MORPH_MS } from "#/utils/morph.ts";
 import { noteTilt } from "#/utils/noteTilt.ts";
@@ -133,7 +135,12 @@ export const NoteCard = memo(function NoteCard({
     images,
     loading: imagesLoading,
   } = useNoteImages<HTMLDivElement>(note);
-  const hasImages = imageCountOf(note) > 0;
+  // An image that the text shows is not in the header. The card of a plugin
+  // that reads notes draws no images in its text, so it keeps all of them.
+  const hasImages =
+    (drawnWithoutImages(note)
+      ? imageCountOf(note)
+      : headerImageCount(imageCountOf(note), note.content)) > 0;
   const isImageOnly = hasImages && !note.title && !note.content;
   const hasLinkPreviews = note.linkPreviews.length > 0;
   const isSquare = noteSize.value === "square";
