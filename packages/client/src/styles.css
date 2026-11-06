@@ -12,8 +12,11 @@
 @import "./styles/popovers.css";
 @import "./styles/appearance.css";
 @import "./styles/board-background.css";
+@import "./styles/board-texture.css";
 @import "./styles/board-motion.css";
 @import "./styles/note-cards.css";
+@import "./styles/composer-pad.css";
+@import "./styles/note-states.css";
 @import "./styles/prose.css";
 @import "./styles/editor.css";
 @import "./styles/text-spans.css";

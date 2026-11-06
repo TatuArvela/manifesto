@@ -226,7 +226,7 @@ files.
   descriptions. Use the punctuation that is correct for the sentence: a colon, a semicolon, a comma,
   parentheses, or a full stop. A term followed by its definition in a list is `**Term**: text`.
   `pnpm lint` fails on an em dash (`lint:dashes`), and on all Biome warnings, not only errors.
-- A source file has a maximum of 1000 lines (`noExcessiveLinesPerFile`; the catalogues and tests are
+- A source file has a maximum of 500 lines (`noExcessiveLinesPerFile`; the catalogues and tests are
   exempt). Split it along a seam. Do not make the limit higher.
 - Some rules in this file are lint errors, not only text. `biome.json` lists their exceptions as
   overrides:

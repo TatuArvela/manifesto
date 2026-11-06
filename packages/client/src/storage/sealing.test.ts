@@ -21,7 +21,8 @@ import {
 import { describe, expect, it } from "vitest";
 import { testKeys } from "#/test/sealedServer.ts";
 import { accountSubkey, createAccountKeys } from "#/utils/keyMaterial.ts";
-import { Sealer, type StorageKeys } from "./sealing.ts";
+import { Sealer } from "./sealing.ts";
+import type { StorageKeys } from "./storageKeys.ts";
 
 const draft: NoteCreate = {
   title: "Title",

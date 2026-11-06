@@ -138,6 +138,9 @@ does not.
 - Requests without a session go out through `requestWithoutSession` in this file. `mailedLinks.ts`
   (the reset links and the sign-in links) and `oidcSignIn.ts` use it, so that they do not need their
   own `fetch`.
+- The refusals (`AuthRequestError` and its subclasses, `loginErrorKey`) are in `authErrors.ts`.
+  `auth.ts` exports them again. That file imports nothing back, because tests mock `auth.ts` with
+  `importOriginal`, and a cycle would stop the browser project with no error.
 
 After an OIDC callback, the server redirects to the client with `#token=...`.
 `consumeOidcRedirect()` (`oidcSignIn.ts`) runs one time when `App` mounts. It gets

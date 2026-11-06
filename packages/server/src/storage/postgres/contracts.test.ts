@@ -8,6 +8,7 @@ import { describePasskeysContract } from "#/storage/contracts/passkeysContract.t
 import { describePrefsContract } from "#/storage/contracts/prefsContract.ts";
 import { describePublicLinksContract } from "#/storage/contracts/publicLinksContract.ts";
 import { describePushContract } from "#/storage/contracts/pushContract.ts";
+import { describeSharedNotesContract } from "#/storage/contracts/sharedNotesContract.ts";
 import { describeSharingContract } from "#/storage/contracts/sharingContract.ts";
 import { describeStatsContract } from "#/storage/contracts/statsContract.ts";
 import { describeSyncContract } from "#/storage/contracts/syncContract.ts";
@@ -26,6 +27,7 @@ async function bootStorage(): Promise<PostgresStorageDriver> {
 
 describeAdminContract("postgres (PGlite)", bootStorage);
 describeSharingContract("postgres (PGlite)", bootStorage);
+describeSharedNotesContract("postgres (PGlite)", bootStorage);
 describeAttachmentsContract("postgres (PGlite)", bootStorage);
 describeStatsContract("postgres (PGlite)", bootStorage);
 describeSyncContract("postgres (PGlite)", bootStorage);

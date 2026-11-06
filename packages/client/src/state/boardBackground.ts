@@ -32,7 +32,7 @@ import {
 // The board background as it is drawn: each "random" choice resolved for this
 // tab, the rerolls, and the attributes and custom properties on <html> from
 // which the stylesheets draw the board (styles/board-background.css,
-// styles/board-motion.css). The preferences themselves are in `prefs.ts`.
+// styles/board-texture.css, styles/board-motion.css). The preferences themselves are in `prefs.ts`.
 
 /** The preset that "random" means in this tab. See `randomBoardTexture`. */
 const randomBoardColor = signal<BoardColor>(rollBoardColor());
@@ -209,7 +209,7 @@ effect(() => {
 });
 
 // The color and opacity of the pattern, which the texture layer behind the
-// board takes as they are (`.board-frame::before` in board-background.css). A
+// board takes as they are (`.board-frame::before` in board-texture.css). A
 // change of either draws nothing again. "auto" keeps the own ink of the theme,
 // black or white.
 effect(() => {

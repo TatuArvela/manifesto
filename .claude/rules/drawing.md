@@ -4,6 +4,7 @@ paths:
   - "packages/client/src/state/drawing.ts"
   - "packages/client/src/utils/drawing.ts"
   - "packages/client/src/utils/drawingLayers.ts"
+  - "packages/client/src/utils/drawingEdits.ts"
   - "packages/client/src/utils/drawingRender.ts"
   - "packages/client/src/utils/penTip.ts"
   - "packages/client/src/utils/selection.ts"
@@ -32,13 +33,16 @@ The files in `utils/` know nothing about the pad. From the bottom up:
   with no canvas.
 - `drawingLayers.ts`: layers, the sketch and its undo history. Pure. Each change makes a new sketch
   and keeps the old one, so undo and redo only move between sketches.
+- `drawingEdits.ts`: the steps that change the ink or the size of a picture (a move, a crop, a
+  selection, the size of the canvas or the image). Pure. It records through `drawingLayers.ts`,
+  which never imports it.
 - `penTip.ts`: how a tip lays ink along the points of a stroke.
 - `drawingRender.ts`: marks onto a canvas, and the canvas to an image file.
 - `selection.ts`, `floodFill.ts`, `shapes.ts`: selected areas, fills and shape helpers.
 
-Keep the direction: `drawing.ts` imports none of the others, and `drawingLayers.ts` imports no
-canvas code. A type cycle between them was removed once; a mock in a cycle stops the browser project
-with no error.
+Keep the direction: `drawing.ts` imports none of the others, and `drawingLayers.ts` and
+`drawingEdits.ts` import no canvas code. A type cycle between them was removed once; a mock in a
+cycle stops the browser project with no error.
 
 - A new kind of change is a new `Step`, with a name in both catalogues for the history list.
 - A change that a slider repeats joins the last step through `joins` and `endJoin`. If not, one

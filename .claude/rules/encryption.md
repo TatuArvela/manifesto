@@ -8,6 +8,9 @@ paths:
   - "packages/client/src/storage/deviceKeys.ts"
   - "packages/client/src/storage/offlineNotes.ts"
   - "packages/client/src/storage/sealing.ts"
+  - "packages/client/src/storage/noteSealer.ts"
+  - "packages/client/src/storage/heldNoteKeys.ts"
+  - "packages/client/src/storage/storageKeys.ts"
   - "packages/client/src/storage/imageKeyRing.ts"
   - "packages/client/src/storage/keyOffers.ts"
   - "packages/client/src/storage/linkSealing.ts"
@@ -35,9 +38,13 @@ paths:
   - "packages/server/src/storage/serverKey.ts"
   - "packages/server/src/storage/noteMapping.ts"
   - "packages/client/src/storage/RestApiAdapter.ts"
+  - "packages/client/src/storage/restImport.ts"
   - "packages/server/src/attachments/store.ts"
   - "packages/server/src/routes/attachments.ts"
   - "packages/client/src/state/account/accountKeys.ts"
+  - "packages/client/src/state/account/keyHold.ts"
+  - "packages/client/src/state/account/keyRecovery.ts"
+  - "packages/client/src/state/account/keyRenewal.ts"
   - "packages/client/src/test/plainSealing.ts"
   - "packages/client/src/test/sealedServer.ts"
   - "packages/client/src/components/UnopenedNotes.tsx"
@@ -81,6 +88,9 @@ would discard a set-up or a recovery whose sheet already shows. A flow that alre
 when it signs in (the recovery key from the sign-in screen) sets them before `adoptSession`. Thus,
 the check that follows finds the account unlocked, and does not ask for a key. All changes to what
 the device holds go through `setHeld`. `setHeld` also tells the storage layer (`storageKeys`).
+`setHeld`, `hold` and the state that the flows share are in `keyHold.ts`. The recovery flows
+(`keyRecovery.ts`) and the new keys of Settings (`keyRenewal.ts`) change what is held only through
+it. Callers import all of them through `accountKeys.ts`, which also starts the effect.
 
 Tabs tell each other through a `BroadcastChannel`. `hold` announces `held` only when the copy of the
 device was written. An unlocked tab that cannot read a copy keeps what it holds. A browser that
@@ -116,6 +126,9 @@ Keep that order for each new flow that makes a key that a person must keep.
   - `storage/sealing.ts` (`Sealer`) seals what `RestApiAdapter` sends, and opens what it and the app
     socket receive. `storage/accountSealing.ts` seals what belongs only to the keys of the account,
     and to no note.
+  - The `Sealer` has three layers. `heldNoteKeys.ts` holds the key of each note, `noteSealer.ts`
+    seals and opens the notes and their images, and `sealing.ts` adds all that is written next to a
+    note under its key. `storageKeys.ts` contains the unlocked keys that `accountKeys.ts` sets.
   - The store, the views and the editor use `Note`, as in open mode.
   - A new request that carries the words of a note goes through the `Sealer`, never around it.
   - A note that does not open is not included, and `Sealer.unreadable` counts it. `UnopenedNotes`
@@ -284,8 +297,8 @@ More rules:
     condition of the write itself, never a read before it; the write of a token states the key under
     which `sealedChanges` sealed). After that, `RestApiAdapter.update` reads the note again through
     `Sealer.open`, which takes the offered key of a recipient, and seals one more time.
-  - An import never moves a note to a different key. The route answers `stale`, and `importAll` reads
-    and seals again.
+  - An import never moves a note to a different key. The route answers `stale`, and `importAll`
+    (`restImport.ts`) reads and seals again.
   - A live document is built again when `Sealer.replaced` changes.
   - The app keeps what `state/sharing.ts` started (`inHand`) for each unlocked `Sealer`, only while
     it runs (`setAbout`). The app tries a failed replacement again on reconnect and on the next
@@ -417,6 +430,8 @@ key of a shared note.
 To add a field to the words of a note, add it in all of these places:
 
 - `noteSeal.ts` (seal, open, check; the check of a list in `noteChecks.ts`).
+- `wholeNoteSeal.ts`, where `sealNewNote`, `sealNoteUpdate` and `openSealedNote` name each field.
+  The comments (`commentSeal.ts`) and the preferences (`prefSeal.ts`) have their own files.
 - `SealedNote`.
 - The sealed schema.
 - `SEALED_SHARED_NOTE_FIELDS`, or the personal list. `shareMapping.test.ts` fails until a person

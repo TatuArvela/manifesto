@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { testKeys } from "#/test/sealedServer.ts";
 import { createAccountKeys } from "#/utils/keyMaterial.ts";
 import { storageConnection } from "./index.ts";
-import { sealer, storageKeys } from "./sealing.ts";
+import { sealer } from "./sealing.ts";
 import {
   changedKeys,
   forgetPublicKeys,
@@ -20,6 +20,7 @@ import {
   trustChangedKeys,
   trustedKeysOf,
 } from "./shareKeys.ts";
+import { storageKeys } from "./storageKeys.ts";
 
 /**
  * The owner of a key. The server gives out public keys, and keeps the list of

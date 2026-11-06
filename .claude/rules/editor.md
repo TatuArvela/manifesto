@@ -26,7 +26,8 @@ Only the gap cursor: the drop indicator of that plugin draws over the drag of th
 - Milkdown loads no styles. Thus, `styles/editor.css` contains a copy of the parts that the
   stylesheet of ProseMirror requires (`white-space`, the hidden selection, the gap cursor).
 - `hooks/useMilkdownEditor.ts` sets up the editor instance. `components/editor/MilkdownEditor.tsx`
-  renders it.
+  renders it. `components/editor/makeNoteEditor.ts` lists its presets and plugins. Add a plugin
+  there.
 - Read-only previews come from `utils/remarkRenderer.ts` (remark → rehype → HTML that DOMPurify
   sanitizes).
 
@@ -60,6 +61,9 @@ Custom ProseMirror behavior is in `packages/client/src/extensions/`:
   `content` of the parent: the editor reads that only when it opens, and its next change writes the
   old pointers back. When the list changes, `NoteEditor` makes each image view resolve again,
   because the same pointer can then name a different image.
+- The work of `NoteEditor` on images in the text (the resolver, the buttons, the pointers, the
+  placement of a header image) is in its hook `components/editor/useTextImages.tsx`. Its top bar
+  and chips are in `EditorChrome.tsx`.
 - `taskItemDraggable`: drag-and-drop of checklist items. The drag is in `taskItemDrag.ts`.
   `taskItemDropTarget.ts` calculates where a drop goes. It has no DOM, so its tests run in Node. The
   list helpers are in `taskListStructure.ts`.

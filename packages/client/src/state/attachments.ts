@@ -6,7 +6,7 @@ import {
 } from "@manifesto/shared";
 import { effect } from "@preact/signals";
 import { storage, storageConnection } from "#/storage/index.ts";
-import { storageKeys } from "#/storage/sealing.ts";
+import { storageKeys } from "#/storage/storageKeys.ts";
 import { blobToDataUrl } from "#/utils/dataUrl.ts";
 import { shrinkImage } from "#/utils/shrinkImage.ts";
 

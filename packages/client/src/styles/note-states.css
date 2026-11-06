@@ -1,0 +1,267 @@
+/*
+ * What a note card does on the board: the fade of a square note, the pin, the
+ * departure, the selection and the drag. After note-cards.css and
+ * composer-pad.css in the cascade.
+ */
+
+/* A fade-out for content that overflows in square notes. */
+.note-content-fade {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 24px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 24px),
+    transparent 100%
+  );
+}
+
+/*
+ * Pinning.
+ *
+ * A pin moves a card between the pinned and unpinned grids. Thus, it unmounts,
+ * and mounts again in a fully different place. With nothing to make it softer,
+ * the card jumps. The card that arrives plays a short settle. It arrives a
+ * little large and a little tilted, then becomes straight, as if it was pushed
+ * onto the board.
+ */
+/*
+ * The selection bar (Header.tsx) drops in over the header, and fades back out
+ * onto it. The duration of the exit is SELECTION_BAR_LEAVE_MS there.
+ */
+@keyframes selection-bar-in {
+  from {
+    opacity: 0;
+    translate: 0 -0.5rem;
+  }
+}
+
+@keyframes selection-bar-out {
+  to {
+    opacity: 0;
+    translate: 0 -0.5rem;
+  }
+}
+
+.selection-bar {
+  animation: selection-bar-in 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.selection-bar[data-leaving="true"] {
+  animation: selection-bar-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes note-pin-settle {
+  0% {
+    opacity: 0.4;
+    transform: scale(1.045) rotate(-0.9deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(0.995) rotate(0.25deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.note-pin-settle {
+  animation: note-pin-settle 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/*
+ * The departure from the view: trash, archive and restore. Each accelerates
+ * away and does not slow to a stop, because the card goes and does not arrive.
+ * The grid closes the gap after it is gone. `forwards` keeps it invisible
+ * during a slow server response. `leavingNotes` in state/actions.ts clears the
+ * attribute if the change fails, which brings the card back. Each duration is
+ * `LEAVE_MS` there.
+ *
+ * Trashed or deleted, the card becomes smaller to its centre until it is gone.
+ */
+@keyframes note-leave {
+  to {
+    transform: scale(0);
+  }
+}
+
+/* Archived, it is lifted up and off the board, to be put away. */
+@keyframes note-leave-archive {
+  to {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.96);
+  }
+}
+
+/*
+ * Undeleted, it ascends. It is lit from inside, with a halo around it. It
+ * floats directly up out of the Trash, slowly at first, and fades into the
+ * light. The wrapper carries the rise, and the card the glow.
+ */
+@keyframes note-leave-undelete {
+  0% {
+    transform: none;
+    opacity: 1;
+  }
+  30% {
+    transform: translateY(-4px) scale(1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-90px) scale(1.04);
+    opacity: 0;
+  }
+}
+
+@keyframes note-ascend-surface {
+  30%,
+  100% {
+    box-shadow:
+      0 0 18px 6px rgb(255 248 220 / 0.9),
+      0 0 42px 14px rgb(255 240 190 / 0.45);
+    filter: brightness(1.25) saturate(0.85);
+  }
+}
+
+/*
+ * Unarchived, it becomes a little larger while it fades: it goes back to the
+ * notes, not away from them.
+ */
+@keyframes note-leave-restore {
+  to {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+
+.note-leaving {
+  animation: note-leave-archive 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+
+.note-leaving[data-leaving="discard"] {
+  animation: note-leave 0.25s cubic-bezier(0.4, 0, 1, 1) forwards;
+  transform-origin: center;
+}
+
+.note-leaving[data-leaving="undelete"] {
+  animation: note-leave-undelete 0.6s cubic-bezier(0.5, 0, 0.75, 0.6) forwards;
+}
+
+.note-leaving[data-leaving="undelete"] .note-surface {
+  animation: note-ascend-surface 0.6s ease-out forwards;
+}
+
+.note-leaving[data-leaving="archive"] {
+  animation-name: note-leave-archive;
+}
+
+.note-leaving[data-leaving="restore"] {
+  animation-name: note-leave-restore;
+}
+
+/*
+ * Drag-to-select (hooks/useMarqueeSelection.ts). Without this, a drag of the
+ * box across the page also makes a text selection.
+ */
+body.marquee-active {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Reorder with drag and drop */
+/*
+ * The dragged card keeps the position where it would drop, and the other cards
+ * make space around it. But it is not drawn there. The only copy on the screen
+ * is the copy under the pointer: the drag image of the browser with a mouse,
+ * and `.note-drag-ghost` under a finger. `visibility`, not `display`. Thus, it
+ * keeps its space in the grid.
+ */
+.note-dragging {
+  visibility: hidden;
+}
+
+/*
+ * The copy of a card that follows a finger (ReorderableGrid.tsx), lifted as a
+ * held card is.
+ */
+.note-drag-ghost {
+  position: fixed;
+  margin: 0;
+  z-index: 60;
+  pointer-events: none;
+  transform: scale(1.03);
+  box-shadow:
+    0 10px 25px -5px rgb(0 0 0 / 0.25),
+    0 8px 10px -6px rgb(0 0 0 / 0.2);
+}
+
+/*
+ * On a touch screen, a card can still pan. Thus, a swipe that starts on one
+ * scrolls the board, as a swipe in any other place. To reorder, the user holds
+ * the card first, and a held card cancels the pan itself. See
+ * hooks/useTouchGesture.ts for why `touch-action` cannot do that part.
+ */
+@media (hover: none) {
+  .note-draggable {
+    touch-action: pan-y;
+  }
+}
+
+/*
+ * Nothing inside a card is dragged or long-pressed alone. Links and pictures
+ * can be dragged by default, and the nearest draggable element wins. Thus, a
+ * card that was mostly a link preview gave the drag to its picture. On a phone,
+ * the long press of the system on a link or image (the drag lift, the link
+ * preview, the callout) took the touch from the own hold of the card. The
+ * `draggable={false}` on the preview and gallery elements covers Firefox.
+ */
+.note-draggable :is(a, img) {
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+/*
+ * A card held under a finger: lifted off the board, and waits for a drag or a
+ * selection. Sufficiently small not to change the masonry column in which it
+ * is, because `transform` takes no part in layout.
+ */
+.note-held {
+  transform: scale(1.03);
+  box-shadow:
+    0 10px 25px -5px rgb(0 0 0 / 0.25),
+    0 8px 10px -6px rgb(0 0 0 / 0.2);
+  z-index: 20;
+}
+
+/*
+ * Hide the selection checkboxes on all cards while a drag is in progress. We
+ * toggle `note-drag-active` on <body> synchronously in dragstart. Thus, the
+ * snapshot of the drag ghost already has the checkbox hidden (the
+ * `.note-dragging` class is applied through rAF, and arrives too late for the
+ * ghost).
+ */
+body.note-drag-active .note-select {
+  /* biome-ignore lint/complexity/noImportantStyles: the card's own hover rule
+     sets this opacity, and the ghost snapshot is taken before we could unset
+     it any other way. */
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+/*
+ * The keyboard focus of a card is on the hidden button that opens it
+ * (`[data-card-open]`). Thus, the card draws the ring in its place, over the
+ * transparent selection outline that it always carries.
+ */
+.note-surface:has(> [data-card-open]:focus-visible) {
+  outline-color: var(--color-blue-600);
+  outline-offset: 2px;
+}
+
+.dark .note-surface:has(> [data-card-open]:focus-visible) {
+  outline-color: var(--color-blue-400);
+}

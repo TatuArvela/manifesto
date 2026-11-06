@@ -1,0 +1,404 @@
+import { NoteColor, NoteFont } from "@manifesto/shared";
+import { z } from "zod";
+import { noteCreateSchema } from "#/validation/noteSchemas.ts";
+
+/**
+ * The `components` of the OpenAPI document (`openapi.ts`): the named shapes of
+ * the response bodies, and the zod conversion that the request bodies also use.
+ */
+
+const noteResponseSchema = noteCreateSchema.extend({
+  id: z.string(),
+  trashedAt: z.string().nullable(),
+  imageCount: z.number().int().optional(),
+  // Only the app writes it. A change of images by a token keeps them.
+  imageAlts: z.array(z.string()).optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const toSchema = (schema: z.ZodType, io: "input" | "output") =>
+  z.toJSONSchema(schema, {
+    io,
+    unrepresentable: "any",
+    target: "draft-2020-12",
+  });
+
+/**
+ * A response described by a name and a few properties, for the types that have
+ * no zod schema of their own. Nothing is required, because this is the own
+ * surface of the client, described with less detail.
+ */
+const shape = (properties: Record<string, unknown>) => ({
+  type: "object",
+  properties,
+});
+
+/**
+ * A response of the public surface, described as a client generator needs it.
+ * Each property is required, unless `optional` names it. Thus, a generated type
+ * says `string`, not `string | undefined`. `openapi.conformance.test.ts` checks
+ * these against what the server really answers.
+ */
+const exact = (
+  properties: Record<string, unknown>,
+  optional: readonly string[] = [],
+) => ({
+  type: "object",
+  properties,
+  required: Object.keys(properties).filter((key) => !optional.includes(key)),
+});
+
+const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
+const listOf = (items: unknown) => ({ type: "array", items });
+const nullable = (type: string) => ({ type: [type, "null"] });
+const nullableRef = (name: string) => ({
+  anyOf: [ref(name), { type: "null" }],
+});
+
+/** The people and shapes of which the public responses are made. */
+function publicParts() {
+  const shareUser = {
+    id: { type: "string" },
+    username: { type: "string" },
+    displayName: { type: "string" },
+    avatarColor: { type: "string" },
+  };
+  const teamRef = exact({ id: { type: "string" }, name: { type: "string" } });
+  return {
+    // Named. Thus, a generated client has one type for a color in each response
+    // that contains one.
+    NoteColor: { type: "string", enum: Object.values(NoteColor) },
+    NoteFont: { type: "string", enum: Object.values(NoteFont) },
+    LinkPreview: exact(
+      {
+        url: { type: "string" },
+        title: { type: "string" },
+        description: { type: "string" },
+        image: { type: "string" },
+        favicon: { type: "string" },
+        domain: { type: "string" },
+      },
+      ["description", "image", "favicon"],
+    ),
+    ShareUser: exact(shareUser),
+    NoteMember: exact(
+      {
+        ...shareUser,
+        role: { enum: ["edit", "view"] },
+        accepted: { type: "boolean" },
+        team: teamRef,
+        waitingForKey: { type: "boolean" },
+      },
+      ["team", "waitingForKey"],
+    ),
+    NoteSharing: exact({
+      role: { enum: ["owner", "edit", "view"] },
+      owner: ref("ShareUser"),
+      members: listOf(ref("NoteMember")),
+    }),
+    ShareInvitation: exact(
+      {
+        noteId: { type: "string" },
+        role: { enum: ["edit", "view"] },
+        owner: ref("ShareUser"),
+        title: { type: "string" },
+        content: { type: "string" },
+        font: { type: "string" },
+        keyVersion: { type: "integer" },
+        offered: { type: ["object", "null"] },
+        invitedAt: { type: "string" },
+        team: teamRef,
+      },
+      ["team"],
+    ),
+    DirectoryUser: exact({ ...shareUser, email: { type: "string" } }, [
+      "email",
+    ]),
+    AuthUser: exact(
+      {
+        ...shareUser,
+        email: nullable("string"),
+        isAdmin: { type: "boolean" },
+        hasPassword: { type: "boolean" },
+        locale: nullable("string"),
+      },
+      ["hasPassword", "locale"],
+    ),
+    NoteVersion: exact({
+      noteId: { type: "string" },
+      timestamp: { type: "string" },
+      title: { type: "string" },
+      content: { type: "string" },
+    }),
+    NoteComment: exact({
+      id: { type: "string" },
+      noteId: { type: "string" },
+      // Null when the writer does not have the note now.
+      author: nullableRef("ShareUser"),
+      body: { type: "string" },
+      keyVersion: { type: "integer" },
+      createdAt: { type: "string" },
+      editedAt: nullable("string"),
+    }),
+  };
+}
+
+export function components() {
+  // The note itself comes from the zod schema. Its share data is the only part
+  // described manually. Its color and font point to the named enums that the
+  // other responses use.
+  const converted = toSchema(noteResponseSchema, "output") as {
+    properties: Record<string, unknown>;
+  };
+  const note = {
+    ...converted,
+    properties: {
+      ...converted.properties,
+      color: ref("NoteColor"),
+      font: ref("NoteFont"),
+      sharing: ref("NoteSharing"),
+    },
+  };
+  return {
+    securitySchemes: {
+      bearer: {
+        type: "http",
+        scheme: "bearer",
+        description:
+          "A session token from signing in, or a personal API token (mfp_...), which reaches only the operations whose x-token-scope it was granted (a :write scope includes its :read). /api/v1/mcp takes an MCP token (mfm_...) and nothing else, minted by hand or given to an assistant through /api/v1/oauth, whose refresh token (mfr_...) is not a bearer token; a calendar token (mfc_...) is not a bearer token at all: it is the address of /api/v1/calendar/<token>.ics.",
+      },
+    },
+    schemas: {
+      ...publicParts(),
+      Note: note,
+      NoteResponse: exact({ note: ref("Note") }),
+      NotesResponse: exact({
+        notes: listOf(ref("Note")),
+        nextCursor: nullable("string"),
+      }),
+      SyncResponse: exact({
+        notes: listOf(ref("Note")),
+        nextCursor: nullable("string"),
+        ids: { type: ["array", "null"], items: { type: "string" } },
+        checkpoint: nullable("string"),
+      }),
+      TeamsResponse: exact({
+        teams: listOf(
+          exact({
+            id: { type: "string" },
+            name: { type: "string" },
+            source: { enum: ["local", "oidc"] },
+            memberCount: { type: "integer" },
+          }),
+        ),
+      }),
+      TeamSharesResponse: exact({
+        teamShares: listOf(
+          exact({
+            teamId: { type: "string" },
+            name: { type: "string" },
+            role: { enum: ["edit", "view"] },
+          }),
+        ),
+      }),
+      AdminTeamsResponse: shape({
+        teams: {
+          type: "array",
+          items: { $ref: "#/components/schemas/AdminTeam" },
+        },
+      }),
+      AdminTeamResponse: shape({
+        team: { $ref: "#/components/schemas/AdminTeam" },
+      }),
+      AdminTeam: shape({
+        id: { type: "string" },
+        name: { type: "string" },
+        source: { enum: ["local", "oidc"] },
+        memberCount: { type: "integer" },
+        members: { type: "array", items: { type: "object" } },
+        createdAt: { type: "string" },
+      }),
+      PublicLink: exact({
+        token: { type: "string" },
+        noteId: { type: "string" },
+        mode: { enum: ["live", "snapshot"] },
+        expiresAt: { type: ["string", "null"] },
+        hasPassword: { type: "boolean" },
+        maxViews: { type: ["integer", "null"] },
+        viewCount: { type: "integer" },
+        lastViewedAt: { type: ["string", "null"] },
+        createdAt: { type: "string" },
+        sealedLinkKey: { type: "string" },
+      }),
+      PublicLinkResponse: exact({ link: ref("PublicLink") }),
+      PublicLinksResponse: exact({ links: listOf(ref("PublicLink")) }),
+      PublicNoteResponse: exact(
+        {
+          note: exact({
+            id: { type: "string" },
+            keyVersion: { type: "integer" },
+            format: { type: "integer" },
+            title: { type: "string" },
+            content: { type: "string" },
+            font: { type: "string" },
+            images: { type: "string" },
+            linkPreviews: { type: "string" },
+            updatedAt: { type: "string" },
+          }),
+          wrappedKey: nullable("string"),
+          access: nullable("string"),
+        },
+        ["access"],
+      ),
+      PublicNoteLockedResponse: exact({ passwordRequired: { const: true } }),
+      NotesImportResponse: exact(
+        {
+          created: { type: "integer" },
+          updated: { type: "integer" },
+          skipped: { type: "integer" },
+          taken: { type: "array", items: { type: "string" } },
+          stale: { type: "array", items: { type: "string" } },
+        },
+        ["taken", "stale"],
+      ),
+      Error: exact({ error: { type: "string" }, code: { type: "string" } }, [
+        "code",
+      ]),
+      Health: exact({ ok: { type: "boolean" }, version: { type: "string" } }),
+      AuthSuccess: shape({
+        token: { type: "string" },
+        user: { type: "object" },
+      }),
+      DeviceSignInStarted: exact({
+        id: { type: "string" },
+        waitToken: { type: "string" },
+        expiresAt: { type: "string" },
+      }),
+      DeviceSignInRequest: exact({
+        userAgent: { type: "string" },
+        createdAt: { type: "string" },
+        expiresAt: { type: "string" },
+      }),
+      DeviceSignInPending: exact({ pending: { const: true } }),
+      DeviceSignInDone: shape({
+        token: { type: "string" },
+        user: { type: "object" },
+        key: { type: ["object", "null"] },
+      }),
+      TwoFactorRequired: shape({
+        error: { type: "string" },
+        code: { const: "two_factor_required" },
+        twoFactor: shape({
+          authenticator: { type: "boolean" },
+          passkey: { type: ["object", "null"] },
+        }),
+      }),
+      AuthMeResponse: exact({ user: ref("AuthUser") }),
+      CapabilitiesResponse: exact({
+        version: { type: "string" },
+        auth: exact(
+          {
+            providers: listOf({ enum: ["local", "oidc"] }),
+            passwordForm: { enum: ["shown", "collapsed"] },
+            registration: { type: "boolean" },
+            passwordReset: { type: "boolean" },
+            magicLink: { type: "boolean" },
+            passkeys: { type: "boolean" },
+          },
+          ["magicLink"],
+        ),
+        // One boolean for each feature, and `userLookup`, which is a word.
+        // Features are added over time. Thus, they are not listed one by one.
+        features: {
+          type: "object",
+          properties: { userLookup: { enum: ["search", "exact"] } },
+          required: ["userLookup"],
+          additionalProperties: { type: "boolean" },
+        },
+        limits: { type: "object", additionalProperties: { type: "integer" } },
+        editorSchemaVersion: { type: "integer" },
+        defaultPrefs: { type: "object" },
+      }),
+      TwoFactorStatusResponse: shape({
+        enabled: { type: "boolean" },
+        authenticator: { type: "boolean" },
+      }),
+      TwoFactorSetupResponse: shape({ secret: { type: "string" } }),
+      AccountKeysResponse: shape({
+        keys: { type: ["object", "null"] },
+        sessionEndsAt: { type: "string" },
+      }),
+      RecoveryOpenResponse: shape({
+        userId: { type: "string" },
+        version: { type: "integer" },
+        wrappedByRecovery: { type: "string" },
+        hasPassword: { type: "boolean" },
+      }),
+      NoteVersionsResponse: exact({ versions: listOf(ref("NoteVersion")) }),
+      InvitationsResponse: exact({
+        invitations: listOf(ref("ShareInvitation")),
+      }),
+      NoteCommentsResponse: exact({ comments: listOf(ref("NoteComment")) }),
+      NoteCommentResponse: exact({ comment: ref("NoteComment") }),
+      UserLookupResponse: exact({ users: listOf(ref("DirectoryUser")) }),
+      LinkPreviewResponse: exact({ preview: nullableRef("LinkPreview") }),
+      ApiTokensResponse: shape({ tokens: { type: "array" } }),
+      OAuthClientInfo: shape({
+        clientId: { type: "string" },
+        name: { type: "string" },
+        publisher: { type: ["string", "null"] },
+        redirectUri: { type: "string" },
+        scopes: { type: "array" },
+      }),
+      OAuthAuthorizeResponse: shape({ redirectTo: { type: "string" } }),
+      PasskeysResponse: shape({ passkeys: { type: "array" } }),
+      PasskeyOptionsResponse: shape({ options: { type: "object" } }),
+      PasskeyAddedResponse: shape({ passkey: { type: "object" } }),
+      PasskeySignInOptionsResponse: shape({ options: { type: "object" } }),
+      ApiTokenCreatedResponse: shape({
+        token: { type: "object" },
+        secret: { type: "string" },
+      }),
+      WebhooksResponse: shape({ webhooks: { type: "array" } }),
+      WebhookCreatedResponse: shape({
+        webhook: { type: "object" },
+        secret: { type: "string" },
+      }),
+      AdminUsersResponse: shape({ users: { type: "array" } }),
+      AttachmentUploadResponse: exact({ ref: { type: "string" } }),
+      AttachmentsClaimResponse: exact({
+        refs: { type: "array", items: { type: "string" } },
+      }),
+      AdminOverviewResponse: shape({
+        version: { type: "string" },
+        uptimeSeconds: { type: "integer" },
+        totals: { type: "object" },
+        perUser: { type: "array" },
+        jobs: { type: "array" },
+      }),
+      AdminChecksResponse: shape({
+        appUrl: { type: ["string", "null"] },
+        trustProxy: { type: "boolean" },
+        proxy: {
+          type: "string",
+          enum: ["untouched", "overwritten", "appended", "removed"],
+        },
+        backup: { type: ["object", "null"] },
+        mail: { type: ["object", "null"] },
+      }),
+      AdminTestMailResponse: shape({ sent: { type: "boolean" } }),
+      AccountPrefsResponse: exact({ prefs: { type: "object" } }),
+      PushKeyResponse: exact({ publicKey: { type: "string" } }),
+      AuditLogResponse: shape({
+        entries: { type: "array" },
+        nextBefore: { type: ["string", "null"] },
+      }),
+      AdminUserResponse: shape({ user: { type: "object" } }),
+      AdminTemporaryPasswordResponse: shape({
+        user: { type: "object" },
+        temporaryPassword: { type: "string" },
+      }),
+    },
+  };
+}

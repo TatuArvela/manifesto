@@ -15,7 +15,7 @@ import { dataUrl, round, svg } from "./boardSvg.ts";
  * leaves, petals, frames and sawtooth. Each texture is a mask over one layer
  * behind the board, which takes the color of the pattern as its background, and
  * the opacity of the pattern as its own (`.board-frame::before` in
- * board-background.css). Thus, these are drawn one time, in opaque black, and
+ * board-texture.css). Thus, these are drawn one time, in opaque black, and
  * given to the stylesheet as they are. Only their shape is read, and neither
  * the color nor the opacity draws them again.
  */
@@ -122,7 +122,7 @@ export const SHEET_COUNTS = {
 export type MovingTexture = keyof typeof SHEET_COUNTS;
 
 /**
- * The sheets drawn here. The others are CSS gradients (board-background.css):
+ * The sheets drawn here. The others are CSS gradients (board-texture.css):
  * the stripes, the dots, the grid and the lines.
  */
 export type DrawnSheetTexture = Exclude<
@@ -131,7 +131,7 @@ export type DrawnSheetTexture = Exclude<
 >;
 
 /**
- * The repeat of the gradient patterns, in px, as board-background.css draws
+ * The repeat of the gradient patterns, in px, as board-texture.css draws
  * them. styles.test.ts holds the two equal, and holds the roll of each at one
  * repeat.
  */

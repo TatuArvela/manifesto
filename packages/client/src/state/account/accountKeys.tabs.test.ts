@@ -28,7 +28,7 @@ vi.mock("#/storage/deviceKeys.ts", () => ({
 
 const { authToken, currentUser } = await import("./auth.ts");
 const keys = await import("./accountKeys.ts");
-const { storageKeys } = await import("#/storage/sealing.ts");
+const { storageKeys } = await import("#/storage/storageKeys.ts");
 
 const USER = {
   id: "01HZX3KQ0000000000000000AA",

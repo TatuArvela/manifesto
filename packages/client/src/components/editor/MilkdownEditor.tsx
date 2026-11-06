@@ -1,17 +1,9 @@
 import {
-  defaultValueCtx,
-  Editor,
+  type Editor,
   editorViewCtx,
   editorViewOptionsCtx,
-  remarkStringifyOptionsCtx,
-  rootCtx,
 } from "@milkdown/kit/core";
-import { clipboard } from "@milkdown/kit/plugin/clipboard";
-import { gapCursorPlugin } from "@milkdown/kit/plugin/cursor";
-import { history } from "@milkdown/kit/plugin/history";
-import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
-import { commonmark } from "@milkdown/kit/preset/commonmark";
-import { gfm } from "@milkdown/kit/preset/gfm";
+import { listenerCtx } from "@milkdown/kit/plugin/listener";
 import type { Node as ProseNode } from "@milkdown/kit/prose/model";
 import { TextSelection } from "@milkdown/kit/prose/state";
 import { getMarkdown, replaceAll } from "@milkdown/kit/utils";
@@ -24,20 +16,10 @@ import {
   useState,
 } from "preact/hooks";
 import type * as Y from "yjs";
-import { checklistBar } from "#/extensions/checklistBar.ts";
-import { documentWatcher } from "#/extensions/documentWatcher.ts";
-import { configureEditorKeys, editorKeys } from "#/extensions/editorKeys.ts";
-import { inlineCalculationsPlugin } from "#/extensions/inlineCalculations.ts";
-import {
-  type InlineImageControls,
-  type InlineImageResolver,
-  inlineImageView,
+import type {
+  InlineImageControls,
+  InlineImageResolver,
 } from "#/extensions/inlineImageView.ts";
-import { itemDatesPlugin } from "#/extensions/itemDates.ts";
-import { linkTooltip } from "#/extensions/linkTooltip.ts";
-import { manifestoInlineMarks } from "#/extensions/manifestoInlineMarks.ts";
-import { tableBar } from "#/extensions/tableBar.ts";
-import { taskItemDraggable } from "#/extensions/taskItemDraggable.ts";
 import {
   DEFAULT_FRAGMENT_NAME,
   loadYjsCollab,
@@ -50,6 +32,7 @@ import {
   replaceTextareaText,
 } from "#/utils/editorMarkdown.ts";
 import { rebaseEdit } from "#/utils/textMerge.ts";
+import { makeNoteEditor } from "./makeNoteEditor.ts";
 
 /**
  * The document of the editor as markdown, normalized as `normalizeMarkdown`
@@ -183,74 +166,36 @@ export function MilkdownEditor({
       cancelled = true;
     };
   }, [collab]);
-
   const build = useCallback((root: HTMLElement) => {
-    const editor = Editor.make()
-      .config((ctx) => {
-        ctx.set(rootCtx, root);
-        ctx.set(defaultValueCtx, initialContentRef.current);
-        ctx.update(editorViewOptionsCtx, (prev) => ({
-          ...prev,
-          editable: () => true,
-          // The editable area had no name. Thus, a screen reader announced an
-          // unnamed text field after the title.
-          attributes: {
-            role: "textbox",
-            "aria-multiline": "true",
-            "aria-label": t("editor.contentLabel"),
-          },
-        }));
-        configureEditorKeys(ctx);
-        ctx.update(remarkStringifyOptionsCtx, (prev) => ({
-          ...prev,
-          bullet: "-" as const,
-        }));
-        ctx.get(listenerCtx).markdownUpdated((_ctx, md) => {
-          const normalized = normalizeMarkdown(md);
-          const sync = rawSyncRef.current;
-          if (sync.active) {
-            // In raw mode, the textarea reports the text, as typed. What still
-            // comes through here is rich-mode typing that was inside the
-            // debounce of the listener when raw mode opened. You can recognize
-            // it as the text with which raw mode was loaded. Our own pushes
-            // come back as the version of the textarea that the serializer
-            // wrote again, and the code drops them.
-            const text = normalized.replace(/\n+$/, "");
-            if (text !== sync.base || text === sync.sent.replace(/\n+$/, "")) {
-              return;
-            }
-          }
-          emitChangeRef.current(normalized);
-        });
-      })
-      .use(commonmark)
-      .use(gfm)
-      .use(listener)
-      .use(clipboard)
-      .use(manifestoInlineMarks)
-      .use(
-        inlineImageView(
-          (index) =>
-            resolveInlineImageRef.current?.(index) ?? Promise.resolve(null),
-          () => inlineImageControlsRef.current,
-        ),
-      )
-      .use(taskItemDraggable)
-      .use(inlineCalculationsPlugin)
-      .use(editorKeys)
-      .use(gapCursorPlugin)
-      .use(itemDatesPlugin)
-      .use(linkTooltip)
-      .use(tableBar)
-      .use(checklistBar)
-      .use(documentWatcher(() => documentChangedRef.current()));
     const collabPlugin = collabFactoryRef.current;
-    if (collabRef.current && collabPlugin) {
-      editor.use(collabPlugin(collabRef.current));
-    } else {
-      editor.use(history);
-    }
-    return editor;
+    return makeNoteEditor(root, {
+      initialContent: initialContentRef.current,
+      onMarkdown: (md) => {
+        const normalized = normalizeMarkdown(md);
+        const sync = rawSyncRef.current;
+        if (sync.active) {
+          // In raw mode, the textarea reports the text, as typed. What still
+          // comes through here is rich-mode typing that was inside the
+          // debounce of the listener when raw mode opened. You can recognize
+          // it as the text with which raw mode was loaded. Our own pushes
+          // come back as the version of the textarea that the serializer
+          // wrote again, and the code drops them.
+          const text = normalized.replace(/\n+$/, "");
+          if (text !== sync.base || text === sync.sent.replace(/\n+$/, "")) {
+            return;
+          }
+        }
+        emitChangeRef.current(normalized);
+      },
+      resolveInlineImage: (index) =>
+        resolveInlineImageRef.current?.(index) ?? Promise.resolve(null),
+      inlineImageControls: () => inlineImageControlsRef.current,
+      documentChanged: () => documentChangedRef.current(),
+      collab:
+        collabRef.current && collabPlugin
+          ? collabPlugin(collabRef.current)
+          : null,
+    });
   }, []);
 
   /**

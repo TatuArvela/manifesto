@@ -28,8 +28,8 @@ to `OPERATIONS` (through the list of its area in `src/openapi/`). If you do not,
 Clients can generate code from the document. `node dist/cli.js openapi` prints it without a
 database.
 
-- `openapi.ts` describes each response of the public surface with `exact`. Each property is
-  required, unless it has the name optional.
+- `openapi/components.ts` describes each response of the public surface with `exact`. Each
+  property is required, unless it has the name optional.
 - `openapi.conformance.test.ts` compares the real responses of the server with the document. When a
   public operation gets a response shape, add the call to that test.
 - `exact` keeps the schema open, because the policy permits additions. Thus, the `undeclared` of the
