@@ -175,6 +175,11 @@ function escapeHtml(value: string): string {
     .replaceAll('"', "&quot;");
 }
 
+/** Enough for a value inside a JSON string, between its quotes. */
+function escapeJson(value: string): string {
+  return JSON.stringify(value).slice(1, -1);
+}
+
 function applyBranding(
   src: string,
   branding: Branding,
@@ -318,7 +323,9 @@ function brandLogos(branding: Branding): Plugin {
  * Finishes `manifest.webmanifest`, which ships as a template in `public/`:
  *
  * - `%HOME_SCREEN_NAME%` / `%APP_DESCRIPTION%` → the configured branding. The
- *   name is that of the instance, or of the app if there is no instance.
+ *   name is that of the instance, or of the app if there is no instance. Each
+ *   value is escaped for JSON. If not, a quote in a name makes the manifest
+ *   invalid, and the browser ignores it.
  * - `./` → the base URL, because iOS Safari does not reliably resolve relative
  *   paths in a manifest (start_url/scope/icons).
  *
@@ -332,7 +339,7 @@ function finalizeWebManifest(branding: Branding): Plugin {
   let publicDir = "public";
   let base = "/";
   const render = (src: string) =>
-    applyBranding(src, branding).replaceAll('"./', `"${base}`);
+    applyBranding(src, branding, escapeJson).replaceAll('"./', `"${base}`);
   return {
     name: "finalize-web-manifest",
     configResolved(config) {
