@@ -15,6 +15,7 @@ import { drawnWithoutImages } from "#/state/autoNotes.ts";
 import { updateNote } from "#/state/notesStore.ts";
 import { checklistProgress as showChecklistProgress } from "#/state/prefs.ts";
 import { markReminderDone } from "#/state/reminderScheduler.ts";
+import { imagesInText } from "#/utils/inlineImages.ts";
 import { checklistProgress } from "#/utils/markdown.ts";
 
 /**
@@ -126,6 +127,11 @@ export function NoteCardBody({
             <ImageGallery
               images={images}
               alts={note.imageAlts}
+              hidden={
+                drawnWithoutImages(note)
+                  ? undefined
+                  : imagesInText(note.content)
+              }
               fill={isImageOnly && isSquare}
             />
           )}

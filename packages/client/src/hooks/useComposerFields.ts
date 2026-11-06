@@ -97,6 +97,7 @@ export function useComposerFields(
       update((current) => ({
         images: current.images.filter((_, i) => i !== index),
         imageAlts: current.imageAlts.filter((_, i) => i !== index),
+        // `NoteEditor` already took the pointers to it out of the text.
       })),
     describeImage: (image, alt) =>
       update((current) => {

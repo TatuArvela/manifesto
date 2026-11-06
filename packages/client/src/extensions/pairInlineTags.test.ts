@@ -92,3 +92,52 @@ describe("pairChildren", () => {
     expect(marks).toBe(100);
   });
 });
+
+describe("pairChildren with color and font spans", () => {
+  it("turns a known color or font span into a mark with its value", () => {
+    expect(
+      pairChildren([
+        html('<span data-color="red">'),
+        text("a"),
+        html("</span>"),
+        html('<span data-font="serif">'),
+        text("b"),
+        html("</span>"),
+      ]),
+    ).toEqual([
+      { type: "mfTextColor", attrs: { color: "red" }, children: [text("a")] },
+      { type: "mfTextFont", attrs: { font: "serif" }, children: [text("b")] },
+    ]);
+  });
+
+  it("leaves a span of an unknown value, the default, or another attribute raw", () => {
+    for (const open of [
+      '<span data-color="chartreuse">',
+      '<span data-color="default">',
+      '<span style="color: red">',
+      '<span data-color="red" onclick="x">',
+    ]) {
+      const raw = [html(open), text("a"), html("</span>")];
+      expect(pairChildren(raw)).toEqual(raw);
+    }
+  });
+
+  it("pairs a raw span with its own closing tag, not with a later span's", () => {
+    expect(
+      pairChildren([
+        html('<span data-color="blue">'),
+        html("<span>"),
+        text("a"),
+        html("</span>"),
+        text("b"),
+        html("</span>"),
+      ]),
+    ).toEqual([
+      {
+        type: "mfTextColor",
+        attrs: { color: "blue" },
+        children: [html("<span>"), text("a"), html("</span>"), text("b")],
+      },
+    ]);
+  });
+});

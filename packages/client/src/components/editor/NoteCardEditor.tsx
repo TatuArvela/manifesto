@@ -357,6 +357,7 @@ export function NoteCardEditor({
         onRemoveImage={async (index) => {
           const images = await currentImages();
           if (images === null) return;
+          // `NoteEditor` already took the pointers to it out of the text.
           await updateNote(note.id, {
             images: images.filter((_, i) => i !== index),
           });

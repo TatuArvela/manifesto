@@ -7,6 +7,10 @@ paths:
   - "packages/client/src/utils/editorMarkdown.ts"
   - "packages/client/src/utils/remarkRenderer.ts"
   - "packages/client/src/styles/task-list.css"
+  - "packages/client/src/styles/text-spans.css"
+  - "packages/client/src/utils/inlineImages.ts"
+  - "packages/client/src/utils/rawSpanFormatting.ts"
+  - "packages/client/src/hooks/useInlineImages.ts"
   - "packages/shared/src/note.ts"
   - "packages/server/src/ws/yjs*.ts"
 ---
@@ -42,7 +46,20 @@ Undo and redo go through `editorHistory(state)` (`extensions/editorHistory.ts`).
 
 Custom ProseMirror behavior is in `packages/client/src/extensions/`:
 
-- `manifestoInlineMarks`: inline marks.
+- `manifestoInlineMarks`: inline marks. The text color and the text font are marks with one
+  attribute, written as `<span data-color>` / `<span data-font>` with a `NoteColor` / `NoteFont`
+  value. `pairInlineTags.ts` accepts only a known value. Thus, a different span stays raw HTML.
+- `inlineImageView`: the node view of the image. A pointer to an image of the note (`image:N`,
+  `utils/inlineImages.ts`) gets its address from the resolver that `NoteEditor` gives. It also gets
+  the buttons of the header (`ImageButtons`) through `InlineImageControls`, which `NoteEditor`
+  renders with Preact into the frame of the image. This folder cannot import components. The view
+  stops the events of the buttons and ignores their mutations. If not, ProseMirror moves the caret
+  on each press and draws the node again.
+- `imagePointers`: when an image leaves the note, `NoteEditor` changes the text through the editor
+  (`removeImagePointers`), or the raw textarea, before it calls `onRemoveImage`. Never through the
+  `content` of the parent: the editor reads that only when it opens, and its next change writes the
+  old pointers back. When the list changes, `NoteEditor` makes each image view resolve again,
+  because the same pointer can then name a different image.
 - `taskItemDraggable`: drag-and-drop of checklist items. The drag is in `taskItemDrag.ts`.
   `taskItemDropTarget.ts` calculates where a drop goes. It has no DOM, so its tests run in Node. The
   list helpers are in `taskListStructure.ts`.

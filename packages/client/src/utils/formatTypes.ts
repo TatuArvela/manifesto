@@ -18,6 +18,9 @@ export type FormatType =
   | "underline"
   | "subscript"
   | "superscript"
+  | "textColor"
+  | "textFont"
+  | "inlineImage"
   | "divider"
   | "table"
   | "codeBlock"
@@ -39,6 +42,12 @@ export interface ActiveFormats {
   underline: boolean;
   subscript: boolean;
   superscript: boolean;
+  /**
+   * The `NoteColor` / `NoteFont` of the selected text, false for the default,
+   * or null when the selected text has more than one.
+   */
+  textColor: string | false | null;
+  textFont: string | false | null;
   /** Only true in the rich editor. See `getRawActiveFormats`. */
   table: boolean;
   codeBlock: boolean;

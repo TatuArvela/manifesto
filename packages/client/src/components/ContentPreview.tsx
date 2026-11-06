@@ -1,5 +1,6 @@
 import type { Note } from "@manifesto/shared";
-import { useId } from "preact/hooks";
+import { useId, useRef } from "preact/hooks";
+import { useInlineImages } from "#/hooks/useInlineImages.ts";
 import { parseChecklistLine, segmentContent } from "#/utils/markdown.ts";
 import {
   renderInlineMarkdown,
@@ -22,7 +23,7 @@ export function ContentPreview({
    * Only the text is read. Thus, an invitation can show the preview of a note
    * of which it has only the text.
    */
-  note: Pick<Note, "content">;
+  note: Pick<Note, "content"> & Partial<Pick<Note, "images" | "imageAlts">>;
   onCheckboxToggle: (lineIndex: number) => void;
   hasTitle: boolean;
   /**
@@ -37,6 +38,8 @@ export function ContentPreview({
   noImages?: boolean;
 }) {
   const id = useId();
+  const root = useRef<HTMLDivElement>(null);
+  useInlineImages(root, noImages ? undefined : note.images, note.imageAlts);
   const drawn = (html: string) => (noImages ? withoutImages(html) : html);
   if (!note.content) return null;
 
@@ -62,6 +65,7 @@ export function ContentPreview({
     // biome-ignore lint/a11y/noStaticElementInteractions: stops a link's click reaching the card
     // biome-ignore lint/a11y/useKeyWithClickEvents: a link handles its own keys
     <div
+      ref={root}
       class={`${hasTitle ? "mt-2" : ""} text-sm text-neutral-600 dark:text-neutral-300 line-clamp-12`}
       onClick={(e) => {
         // A link opens in a new tab (see `renderMarkdown`). If the card behind

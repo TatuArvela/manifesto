@@ -45,6 +45,11 @@ import {
   TableMenu,
   toolbarButtonClass,
 } from "./FormattingMenus.tsx";
+import {
+  InlineImageMenu,
+  TextColorMenu,
+  TextFontMenu,
+} from "./TextStyleMenus.tsx";
 
 interface FormattingToolbarProps {
   editor: Editor;
@@ -57,6 +62,9 @@ interface FormattingToolbarProps {
   tick: number;
   disabled?: boolean | undefined;
   onAddLink?: (url: string) => void;
+  /** The images of the note, which the text can show. */
+  images?: readonly string[] | undefined;
+  imageAlts?: readonly string[] | undefined;
 }
 
 function Separator() {
@@ -69,6 +77,8 @@ export function FormattingToolbar({
   tick,
   disabled,
   onAddLink,
+  images = [],
+  imageAlts,
 }: FormattingToolbarProps) {
   const [showExtras, setShowExtras] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -117,7 +127,7 @@ export function FormattingToolbar({
     />
   );
 
-  // The rarer marks, the full blocks, the indent and the clear. A wide screen
+  // The rarer marks, the image in the text, the full blocks, the indent and the clear. A wide screen
   // keeps them on a floating bar. A phone puts them in the fold, because a bar
   // as wide as these wraps over the button that opened it there, and a phone
   // has no Escape to close it.
@@ -137,6 +147,9 @@ export function FormattingToolbar({
         "superscript",
         t("format.superscript"),
         <Superscript class="w-4 h-4" />,
+      )}
+      {images.length > 0 && (
+        <InlineImageMenu target={target} images={images} alts={imageAlts} />
       )}
       <Separator />
       {fmtBtn(
@@ -198,6 +211,8 @@ export function FormattingToolbar({
               <Underline class="w-4 h-4" />,
             )}
             {fmtBtn("code", t("format.code"), <Code class="w-4 h-4" />)}
+            <TextColorMenu target={target} current={af.textColor} />
+            <TextFontMenu target={target} current={af.textFont} />
 
             <Separator />
 

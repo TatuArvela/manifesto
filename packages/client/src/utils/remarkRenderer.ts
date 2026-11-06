@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
+import { markImagePointers } from "./inlineImages.ts";
 import { findItemDate, itemDateClass, localIsoDate } from "./itemDate.ts";
 
 /**
@@ -64,7 +65,13 @@ const PURIFY_CONFIG = {
     "checked",
     "disabled", // task-list checkboxes
     "align", // table cells
+    "data-color",
+    "data-font", // text colors and fonts, see `styles/text-spans.css`
+    "data-image", // an image of the note in the text, see `inlineImages.ts`
   ],
+  // Only the three above. Thus, a note cannot set the own data attributes of
+  // the app on its content.
+  ALLOW_DATA_ATTR: false,
 };
 
 /**
@@ -218,6 +225,7 @@ function makeProcessor(mode: RenderMode) {
     .use(remarkBreaks)
     .use(remarkRehype, { allowDangerousHtml: true })
     .use(itemDateChips(mode))
+    .use(markImagePointers)
     .use(rehypeStringify, { allowDangerousHtml: true });
 }
 

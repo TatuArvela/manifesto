@@ -383,16 +383,22 @@ function ToolButton({
   );
 }
 
-/** A font to select, shown as "Aa" in that font. */
-function FontButton({
+/**
+ * A font to select, shown as "Aa" in that font. The font picker of the note
+ * and the text font menu of the formatting toolbar both use it.
+ */
+export function FontButton({
   font,
   selected,
   onClick,
+  onMouseDown,
   pressed,
 }: {
   font: NoteFont;
   selected: boolean;
   onClick: () => void;
+  /** `keepFocus` in the formatting toolbar, to keep the selection. */
+  onMouseDown?: ((e: MouseEvent) => void) | undefined;
   /**
    * Marks the current font for a screen reader, in the picker of the wide
    * screen.
@@ -405,6 +411,7 @@ function FontButton({
       class={`px-2 py-1 text-sm rounded cursor-pointer ${selected ? "ring-2 ring-blue-500 ring-offset-1" : "hover:bg-black/5 dark:hover:bg-white/5"}`}
       style={{ fontFamily: noteFontFamilies[font] || undefined }}
       onClick={onClick}
+      onMouseDown={onMouseDown}
       aria-label={getFontLabel(font)}
       aria-pressed={pressed ? selected : undefined}
     >

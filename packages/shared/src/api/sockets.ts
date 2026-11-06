@@ -23,7 +23,7 @@ export const APP_SOCKET_HEARTBEAT_MS = 30_000;
  * `EDITOR_OUTDATED_REASON`. A client that sends no version is version 1, the
  * shape from before the check.
  */
-export const EDITOR_SCHEMA_VERSION = 1;
+export const EDITOR_SCHEMA_VERSION = 2;
 
 /**
  * The refusal reason of `/api/v1/yjs` for an editor older than that of the

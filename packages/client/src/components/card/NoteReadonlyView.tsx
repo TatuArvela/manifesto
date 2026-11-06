@@ -35,12 +35,14 @@ import { TagChip } from "#/components/TagChip.tsx";
 import { TagPickerButton } from "#/components/TagPicker.tsx";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
+import { useInlineImages } from "#/hooks/useInlineImages.ts";
 import { usePresence } from "#/hooks/usePresence.ts";
 import { getColorPickerColors, t } from "#/i18n/index.ts";
 import { addTag, togglePin } from "#/state/actions.ts";
 import { drawnWithoutImages, refreshAutoNotes } from "#/state/autoNotes.ts";
 import { ensureImages, updateNote } from "#/state/notesStore.ts";
 import { markReminderDone } from "#/state/reminderScheduler.ts";
+import { imagesInText } from "#/utils/inlineImages.ts";
 import { renderMarkdown } from "#/utils/remarkRenderer.ts";
 import { withoutImages } from "#/utils/stripImages.ts";
 import { menuPanelClass, NoteMenu } from "./NoteMenu.tsx";
@@ -83,12 +85,22 @@ export function NoteReadonlyView({
     CARD_POPOVER_EXIT_MS,
   );
   const reminderChipRef = useRef<HTMLButtonElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEscapeStack(true, onClose);
 
   const rendered = renderMarkdown(note.content);
   // A plugin that reads notes is drawn without images, here as on its card.
-  const html = drawnWithoutImages(note) ? withoutImages(rendered) : rendered;
+  const noImages = drawnWithoutImages(note);
+  const html = noImages ? withoutImages(rendered) : rendered;
+  useInlineImages(
+    contentRef,
+    noImages ? undefined : note.images,
+    note.imageAlts,
+  );
+  // The images that the text shows are not under it too.
+  const inText = noImages ? undefined : imagesInText(note.content);
+  const galleryShown = note.images.some((_, i) => !inText?.has(i));
 
   return (
     <article
@@ -139,11 +151,16 @@ export function NoteReadonlyView({
         <div
           class="prose prose-sm dark:prose-invert max-w-none text-neutral-700 dark:text-neutral-200"
           style={{ fontFamily: noteFontFamilies[note.font] || undefined }}
+          ref={contentRef}
           dangerouslySetInnerHTML={{ __html: html }}
         />
-        {note.images.length > 0 && (
+        {galleryShown && (
           <div class="mt-3 -mx-4">
-            <ImageGallery images={note.images} alts={note.imageAlts} />
+            <ImageGallery
+              images={note.images}
+              alts={note.imageAlts}
+              hidden={inText}
+            />
           </div>
         )}
         {note.linkPreviews.length > 0 && (

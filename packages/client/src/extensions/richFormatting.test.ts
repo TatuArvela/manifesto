@@ -1,7 +1,8 @@
 import { type Node as ProseNode, Schema } from "@milkdown/kit/prose/model";
 import { EditorState, TextSelection } from "@milkdown/kit/prose/state";
 import { describe, expect, it } from "vitest";
-import { unquote } from "./richFormatting.ts";
+import { defined } from "#/test/defined.ts";
+import { markValue, unquote } from "./richFormatting.ts";
 
 const schema = new Schema({
   nodes: {
@@ -84,5 +85,56 @@ describe("unquote", () => {
 
   it("does nothing outside a quote", () => {
     expect(unquoteAt(schema.node("doc", null, [p("Plain")]), 2)).toBeNull();
+  });
+});
+
+describe("markValue", () => {
+  const marked = new Schema({
+    nodes: {
+      doc: { content: "block+" },
+      text: { group: "inline" },
+      paragraph: { group: "block", content: "inline*" },
+    },
+    marks: { textColor: { attrs: { color: {} } } },
+  });
+  const color = marked.marks.textColor;
+  const red = defined(color).create({ color: "red" });
+  const blue = defined(color).create({ color: "blue" });
+  // "ab" red, "cd" blue, "ef" plain: positions 1 to 7.
+  const doc = marked.node("doc", null, [
+    marked.node("paragraph", null, [
+      marked.text("ab", [red]),
+      marked.text("cd", [blue]),
+      marked.text("ef"),
+    ]),
+  ]);
+  const at = (from: number, to: number) =>
+    markValue(
+      EditorState.create({
+        doc,
+        selection: TextSelection.create(doc, from, to),
+      }),
+      color,
+      "color",
+    );
+
+  it("gives the value of a selection in one span", () => {
+    expect(at(1, 3)).toBe("red");
+  });
+
+  it("gives false for a selection with no span", () => {
+    expect(at(5, 7)).toBe(false);
+  });
+
+  it("gives null for a selection of two values", () => {
+    expect(at(2, 4)).toBeNull();
+  });
+
+  it("gives null for a selection of a value and no value", () => {
+    expect(at(4, 6)).toBeNull();
+  });
+
+  it("gives the value at a caret", () => {
+    expect(at(4, 4)).toBe("blue");
   });
 });

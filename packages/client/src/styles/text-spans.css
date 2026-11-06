@@ -1,0 +1,126 @@
+/*
+ * The color and the font of a span of text in a note (`<span data-color>`,
+ * `<span data-font>`, see `extensions/pairInlineTags.ts`). The values are the
+ * names of the colors and fonts of a note. Thus, each shade gives a color its
+ * own tone, as it does for a note. The text is one step darker than the note
+ * color in the light shade, and lighter in the dark shade. The font stacks are
+ * the same as `noteFontFamilies` in `colors.ts`.
+ */
+[data-color="red"] {
+  color: var(--color-red-700);
+}
+
+[data-color="orange"] {
+  color: var(--color-orange-700);
+}
+
+[data-color="yellow"] {
+  color: var(--color-yellow-800);
+}
+
+[data-color="green"] {
+  color: var(--color-green-700);
+}
+
+[data-color="teal"] {
+  color: var(--color-teal-700);
+}
+
+[data-color="blue"] {
+  color: var(--color-blue-700);
+}
+
+[data-color="purple"] {
+  color: var(--color-purple-700);
+}
+
+[data-color="pink"] {
+  color: var(--color-pink-700);
+}
+
+[data-color="brown"] {
+  color: var(--color-taupe-800);
+}
+
+[data-color="gray"] {
+  color: var(--color-neutral-700);
+}
+
+.dark [data-color="red"] {
+  color: var(--color-red-300);
+}
+
+.dark [data-color="orange"] {
+  color: var(--color-orange-300);
+}
+
+.dark [data-color="yellow"] {
+  color: var(--color-yellow-300);
+}
+
+.dark [data-color="green"] {
+  color: var(--color-green-300);
+}
+
+.dark [data-color="teal"] {
+  color: var(--color-teal-300);
+}
+
+.dark [data-color="blue"] {
+  color: var(--color-blue-300);
+}
+
+.dark [data-color="purple"] {
+  color: var(--color-purple-300);
+}
+
+.dark [data-color="pink"] {
+  color: var(--color-pink-300);
+}
+
+.dark [data-color="brown"] {
+  color: var(--color-taupe-300);
+}
+
+.dark [data-color="gray"] {
+  color: var(--color-neutral-300);
+}
+
+[data-font="serif"] {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+[data-font="monospace"] {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+[data-font="permanent-marker"] {
+  font-family: "Permanent Marker", cursive;
+}
+
+[data-font="comic-relief"] {
+  font-family: "Comic Relief", cursive;
+}
+
+[data-font="rouge-script"] {
+  font-family: "Rouge Script", cursive;
+}
+
+/*
+ * An image of the note in its text (`![](image:N)`, see
+ * `utils/inlineImages.ts`). It is never wider than the text. Until its bytes
+ * arrive, it has no `src`, and keeps a small box.
+ */
+img[data-image] {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+  vertical-align: bottom;
+}
+
+img[data-image]:not([src]) {
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+}

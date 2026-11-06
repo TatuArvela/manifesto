@@ -194,7 +194,9 @@ function connect(
   rig: Rig,
   noteId: string,
   token: string | null,
-  query = "",
+  // A provider with no version is version 1, which the server refuses once
+  // the schema is newer. The client always sends its own.
+  query = `?editor=${EDITOR_SCHEMA_VERSION}`,
 ): Client {
   const doc = new Y.Doc();
   const provider = new HocuspocusProvider({
