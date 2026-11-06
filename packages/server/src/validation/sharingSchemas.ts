@@ -65,10 +65,10 @@ export const shareUpdateSchema = z.object({ role: shareRoleSchema });
 const teamName = z.string().trim().min(1).max(100);
 const teamMemberIds = z.array(z.string().min(1).max(64)).max(1000);
 
-/** `POST /api/v1/admin/teams`. */
 /**
- * A request that adds a member carries the confirmation of the admin, because
- * a member gets the notes shared with the team (`auth/confirmation.ts`).
+ * `POST /api/v1/admin/teams`. A request that adds a member carries the
+ * confirmation of the admin, because a member gets the notes shared with the
+ * team (`auth/confirmation.ts`).
  */
 export const adminTeamCreateSchema = z.object({
   name: teamName,
