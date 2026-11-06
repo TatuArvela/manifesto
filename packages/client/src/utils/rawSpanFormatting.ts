@@ -46,6 +46,39 @@ export function rawSpanValue(
   return found;
 }
 
+/** A span tag of each attribute, and a line end, which also ends all spans. */
+const BOUNDARY = /<span data-[a-z]{1,10}="[a-z-]{1,40}">|<\/span>|\n/g;
+
+/**
+ * The value of the `attr` span over the selected text: its value, false for
+ * none, or null when the selected text has more than one. The tags themselves
+ * are not text. Thus, a selection of a full span, tags included, has its value.
+ */
+export function rawSpanSelectionValue(
+  value: string,
+  start: number,
+  end: number,
+  attr: SpanAttr,
+): string | false | null {
+  if (start >= end) return rawSpanValue(value, start, attr);
+  const selected = value.slice(start, end);
+  let found: string | false | undefined;
+  let from = 0;
+  // Each run of text between two boundaries has one value.
+  const differs = (to: number): boolean => {
+    if (to === from) return false;
+    const own = rawSpanValue(value, start + from, attr);
+    if (found === undefined) found = own;
+    return own !== found;
+  };
+  for (const m of selected.matchAll(BOUNDARY)) {
+    if (differs(m.index)) return null;
+    from = m.index + m[0].length;
+  }
+  if (differs(selected.length)) return null;
+  return found ?? rawSpanValue(value, start, attr);
+}
+
 /**
  * Gives the selection the color or font `name`, or removes the span around it
  * for the default. A selection that is already exactly in such a span gets the

@@ -21,7 +21,7 @@ import {
 import { shiftListItems } from "./rawListIndent.ts";
 import {
   insertRawImage,
-  rawSpanValue,
+  rawSpanSelectionValue,
   setRawSpan,
 } from "./rawSpanFormatting.ts";
 
@@ -225,8 +225,8 @@ export function getRawActiveFormats(
     underline: inline("underline"),
     subscript: inline("subscript"),
     superscript: inline("superscript"),
-    textColor: rawSpanValue(value, start, "color"),
-    textFont: rawSpanValue(value, start, "font"),
+    textColor: rawSpanSelectionValue(value, start, end, "color"),
+    textFont: rawSpanSelectionValue(value, start, end, "font"),
     // The table button is a menu of row and column changes while it shows as
     // on, and only the rich editor has those. In the text, a row is a line to
     // type.

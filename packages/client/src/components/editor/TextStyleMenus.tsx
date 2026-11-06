@@ -1,25 +1,30 @@
 import { NoteColor, NoteFont } from "@manifesto/shared";
-import { ChevronDown, ImagePlus, Palette, Type } from "lucide-preact";
+import { ImagePlus } from "lucide-preact";
 import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
-import { colorPickerSwatches, noteFontFamilies } from "#/colors.ts";
+import { noteFontFamilies } from "#/colors.ts";
 import { Dropdown } from "#/components/Dropdown.tsx";
 import { StoredImage } from "#/components/StoredImage.tsx";
 import { Tooltip } from "#/components/Tooltip.tsx";
-import { getColorLabel, getFontLabel, t } from "#/i18n/index.ts";
+import { getColorPickerColors, getFontLabel, t } from "#/i18n/index.ts";
 import {
   type FormattingTarget,
   keepFocus,
   toolbarButtonClass,
 } from "./FormattingMenus.tsx";
+import { FontButton } from "./NoteEditorToolbar.tsx";
 
-const menuPanelClass =
-  "bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700";
+/**
+ * The panel of the color and font pickers of the note (`NoteEditorToolbar`).
+ * The text menus show the same choices in the same form.
+ */
+const pickerPanelClass =
+  "p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 flex gap-1";
 
-const rowClass =
-  "flex items-center gap-2 w-full px-3 py-1 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 cursor-pointer";
-
-/** A toolbar button that opens a menu, and the menu. */
+/**
+ * A toolbar button that opens a menu, and the menu. The button is an icon
+ * only, as the other buttons of the toolbar are.
+ */
 function ToolbarMenu({
   target,
   label,
@@ -44,56 +49,93 @@ function ToolbarMenu({
         <Tooltip label={label}>
           <button
             type="button"
-            class={`${toolbarButtonClass(active)} flex items-center gap-0.5`}
+            class={toolbarButtonClass(active || open)}
             onMouseDown={keepFocus}
             onClick={() => setOpen(!open)}
             aria-label={label}
             disabled={target.disabled}
           >
             {icon}
-            <ChevronDown class="w-3 h-3 opacity-50" />
           </button>
         </Tooltip>
       }
-      panelClass={`${menuPanelClass} ${panelClass}`}
+      panelClass={panelClass}
     >
       {children(() => setOpen(false))}
     </Dropdown>
   );
 }
 
-/** The color of the selected text, from the colors of a note. */
+/**
+ * An "A" over a bar in the color of the selected text. The bar of the default
+ * color is the color of the text of the note. There is no bar when the
+ * selected text has more than one color. The bar gets its color from
+ * `styles/text-spans.css`, as the text does.
+ */
+function TextColorIcon({ color }: { color: string | false | null }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      class="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m6 16 6-12 6 12" />
+      <path d="M8 12h8" />
+      {color !== null && (
+        <rect
+          x="3"
+          y="19"
+          width="18"
+          height="4"
+          rx="1"
+          fill="currentColor"
+          stroke="none"
+          data-color={color || undefined}
+        />
+      )}
+    </svg>
+  );
+}
+
+/**
+ * The color of the selected text, from the colors of a note. The button shows
+ * the color of the selected text (`TextColorIcon`).
+ */
 export function TextColorMenu({
   target,
   current,
 }: {
   target: FormattingTarget;
-  current: string | false;
+  current: string | false | null;
 }) {
+  const selected = current === null ? null : current || NoteColor.Default;
   return (
     <ToolbarMenu
       target={target}
       label={t("format.textColor")}
-      icon={<Palette class="w-4 h-4" />}
-      active={current !== false}
-      panelClass="p-2 grid grid-cols-6 gap-1"
+      icon={<TextColorIcon color={current} />}
+      active={false}
+      panelClass={pickerPanelClass}
     >
       {(close) =>
-        colorPickerSwatches.map(({ value }) => (
-          <Tooltip key={value} label={getColorLabel(value)}>
+        getColorPickerColors().map((c) => (
+          <Tooltip key={c.value} label={c.label}>
             <button
               type="button"
-              class="relative w-6 h-6 rounded-full flex items-center justify-center cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 font-semibold"
-              aria-label={getColorLabel(value)}
-              aria-pressed={(current || NoteColor.Default) === value}
+              class={`w-6 h-6 rounded-full cursor-pointer ${c.swatch} ${selected === c.value ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}
+              aria-label={c.label}
+              aria-pressed={selected === c.value}
               onMouseDown={keepFocus}
               onClick={() => {
-                target.onFormat("textColor", value);
+                target.onFormat("textColor", c.value);
                 close();
               }}
-            >
-              <span data-color={value}>A</span>
-            </button>
+            />
           </Tooltip>
         ))
       }
@@ -101,38 +143,52 @@ export function TextColorMenu({
   );
 }
 
-/** The font of the selected text, from the fonts of a note. */
+/**
+ * The font of the selected text, from the fonts of a note. The button shows
+ * "Aa" in the font of the selected text, and is empty when the selected text
+ * has more than one font.
+ */
 export function TextFontMenu({
   target,
   current,
 }: {
   target: FormattingTarget;
-  current: string | false;
+  current: string | false | null;
 }) {
+  const selected =
+    current === null ? null : ((current || NoteFont.Default) as NoteFont);
   return (
     <ToolbarMenu
       target={target}
       label={t("format.textFont")}
-      icon={<Type class="w-4 h-4" />}
-      active={current !== false}
-      panelClass="py-1"
+      icon={
+        <span
+          class="flex items-center justify-center w-4 h-4 text-xs leading-none whitespace-nowrap"
+          style={{
+            fontFamily: (selected && noteFontFamilies[selected]) || undefined,
+          }}
+          aria-hidden="true"
+        >
+          {selected && "Aa"}
+        </span>
+      }
+      active={false}
+      panelClass={pickerPanelClass}
     >
       {(close) =>
         Object.values(NoteFont).map((font) => (
-          <button
-            key={font}
-            type="button"
-            class={rowClass}
-            style={{ fontFamily: noteFontFamilies[font] || undefined }}
-            aria-pressed={(current || NoteFont.Default) === font}
-            onMouseDown={keepFocus}
-            onClick={() => {
-              target.onFormat("textFont", font);
-              close();
-            }}
-          >
-            {getFontLabel(font)}
-          </button>
+          <Tooltip key={font} label={getFontLabel(font)}>
+            <FontButton
+              font={font}
+              selected={selected === font}
+              onMouseDown={keepFocus}
+              onClick={() => {
+                target.onFormat("textFont", font);
+                close();
+              }}
+              pressed
+            />
+          </Tooltip>
         ))
       }
     </ToolbarMenu>
@@ -158,7 +214,7 @@ export function InlineImageMenu({
       label={t("format.inlineImage")}
       icon={<ImagePlus class="w-4 h-4" />}
       active={false}
-      panelClass="p-2 grid grid-cols-4 gap-1"
+      panelClass="p-2 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 grid grid-cols-4 gap-1"
     >
       {(close) =>
         images.map((image, i) => {

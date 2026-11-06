@@ -127,7 +127,7 @@ export function FormattingToolbar({
     />
   );
 
-  // The rarer marks, the full blocks, the indent and the clear. A wide screen
+  // The rarer marks, the image in the text, the full blocks, the indent and the clear. A wide screen
   // keeps them on a floating bar. A phone puts them in the fold, because a bar
   // as wide as these wraps over the button that opened it there, and a phone
   // has no Escape to close it.
@@ -148,8 +148,6 @@ export function FormattingToolbar({
         t("format.superscript"),
         <Superscript class="w-4 h-4" />,
       )}
-      <TextColorMenu target={target} current={af.textColor} />
-      <TextFontMenu target={target} current={af.textFont} />
       {images.length > 0 && (
         <InlineImageMenu target={target} images={images} alts={imageAlts} />
       )}
@@ -213,6 +211,8 @@ export function FormattingToolbar({
               <Underline class="w-4 h-4" />,
             )}
             {fmtBtn("code", t("format.code"), <Code class="w-4 h-4" />)}
+            <TextColorMenu target={target} current={af.textColor} />
+            <TextFontMenu target={target} current={af.textFont} />
 
             <Separator />
 

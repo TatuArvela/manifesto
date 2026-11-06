@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   insertRawImage,
+  rawSpanSelectionValue,
   rawSpanValue,
   setRawSpan,
 } from "./rawSpanFormatting.ts";
@@ -34,6 +35,36 @@ describe("rawSpanValue", () => {
     expect(rawSpanValue(value, 28, "color")).toBe("green");
     expect(rawSpanValue(value, 37, "color")).toBe(false);
     expect(rawSpanValue(value, 28, "font")).toBe(false);
+  });
+});
+
+describe("rawSpanSelectionValue", () => {
+  const value =
+    '<span data-color="red">ab</span><span data-color="blue">cd</span> ef';
+  // "ab" is 23 to 25, "cd" is 56 to 58, " ef" is 65 to 68.
+
+  it("gives the value of a selection in one span", () => {
+    expect(rawSpanSelectionValue(value, 23, 25, "color")).toBe("red");
+  });
+
+  it("does not count the tags as text", () => {
+    expect(rawSpanSelectionValue(value, 0, 32, "color")).toBe("red");
+  });
+
+  it("gives null for a selection of two values", () => {
+    expect(rawSpanSelectionValue(value, 24, 57, "color")).toBeNull();
+  });
+
+  it("gives null for a selection of a value and no value", () => {
+    expect(rawSpanSelectionValue(value, 57, 67, "color")).toBeNull();
+  });
+
+  it("gives false for a selection with no span", () => {
+    expect(rawSpanSelectionValue(value, 65, 68, "color")).toBe(false);
+  });
+
+  it("reads the caret as rawSpanValue does", () => {
+    expect(rawSpanSelectionValue(value, 57, 57, "color")).toBe("blue");
   });
 });
 

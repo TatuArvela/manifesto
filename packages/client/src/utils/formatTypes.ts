@@ -43,11 +43,11 @@ export interface ActiveFormats {
   subscript: boolean;
   superscript: boolean;
   /**
-   * The `NoteColor` / `NoteFont` of the text at the start of the selection, or
-   * false for the default.
+   * The `NoteColor` / `NoteFont` of the selected text, false for the default,
+   * or null when the selected text has more than one.
    */
-  textColor: string | false;
-  textFont: string | false;
+  textColor: string | false | null;
+  textFont: string | false | null;
   /** Only true in the rich editor. See `getRawActiveFormats`. */
   table: boolean;
   codeBlock: boolean;

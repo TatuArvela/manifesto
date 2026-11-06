@@ -7,7 +7,7 @@ import {
   wrapInHeadingCommand,
 } from "@milkdown/kit/preset/commonmark";
 import { toggleStrikethroughCommand } from "@milkdown/kit/preset/gfm";
-import type { MarkType, NodeType } from "@milkdown/kit/prose/model";
+import type { Mark, MarkType, NodeType } from "@milkdown/kit/prose/model";
 import { liftListItem, sinkListItem } from "@milkdown/kit/prose/schema-list";
 import type { EditorState, Transaction } from "@milkdown/kit/prose/state";
 import { liftTarget } from "@milkdown/kit/prose/transform";
@@ -56,19 +56,35 @@ function isMarkActive(state: EditorState, mark: MarkType | undefined): boolean {
   return state.doc.rangeHasMark(from, to, mark);
 }
 
-/** The attribute of `mark` at the start of the selection, or false. */
-function markValue(
+/**
+ * The attribute of `mark` on the selected text: its value, false for none, or
+ * null when the selected text has more than one. A caret reads the marks that
+ * text typed there gets.
+ */
+export function markValue(
   state: EditorState,
   mark: MarkType | undefined,
   attr: string,
-): string | false {
+): string | false | null {
   if (!mark) return false;
-  const { $from, empty } = state.selection;
-  const at = empty
-    ? state.storedMarks || $from.marks()
-    : ($from.nodeAfter?.marks ?? $from.marks());
-  const found = mark.isInSet(at);
-  return found ? (found.attrs[attr] as string) : false;
+  const valueIn = (marks: readonly Mark[]): string | false => {
+    const found = mark.isInSet(marks);
+    return found ? (found.attrs[attr] as string) : false;
+  };
+  const { from, to, $from, empty } = state.selection;
+  if (empty) return valueIn(state.storedMarks || $from.marks());
+  let value: string | false | undefined;
+  let mixed = false;
+  state.doc.nodesBetween(from, to, (node) => {
+    if (mixed) return false;
+    if (!node.isText) return true;
+    const own = valueIn(node.marks);
+    if (value === undefined) value = own;
+    else if (own !== value) mixed = true;
+    return false;
+  });
+  if (mixed) return null;
+  return value ?? valueIn($from.marks());
 }
 
 /**
