@@ -134,6 +134,9 @@ They are not fixed over it. They go through `NoteSheet`.
 - It is always fixed, not only while a sheet is open. A home-screen app on iOS blurs the area under
   the status bar only if a fixed or sticky bar is there. The header of the board, in the flow of a
   page that never scrolls, was not.
+- It has the opaque background of the page. iOS takes the color of that area from the background of
+  the fixed element itself. When the shell was transparent, iOS kept the color of the last bar that
+  had one: the top bar of a note that was closed.
 - With this arrangement only, iOS keeps the caret above the keyboard. It scrolls the page, and does
   not slide the visible area over a fixed sheet.
 
