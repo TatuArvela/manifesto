@@ -26,7 +26,7 @@ COPY packages/client/package.json packages/client/
 # (@manifesto/shared resolves to dist/index.js at runtime).
 COPY packages/shared packages/shared
 
-# Select the packages directly so shared's devDependencies (typescript) are
+# Select the packages directly so shared's devDependencies (typescript, vitest) are
 # installed too, since the builder compiles shared, not just server. The
 # client comes along because the image serves it (see below); its test
 # browser is never needed here.

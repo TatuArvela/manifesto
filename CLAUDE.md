@@ -179,6 +179,9 @@ files.
   `.browser` name when it needs a DOM (real CSS, `localStorage`, history, an iframe, DOMPurify). This
   keeps the pure majority (parsers, mergers, schedulers, formatters) fast. The suite of the server
   runs only in Node.
+- `packages/shared` has its own Node suite. A test that imports only shared code goes there, next
+  to its source, and imports it by path (`./seal.ts`), not through `@manifesto/shared`. The build
+  excludes it (`tsconfig.build.json`).
 - Test files are next to their source (for example, `actions.browser.test.ts` next to `actions.ts`).
 - Helpers that only tests import are in `src/test/` in both packages. The storage contract suites are
   in `server/src/storage/contracts/`. This keeps all three out of the server build.
