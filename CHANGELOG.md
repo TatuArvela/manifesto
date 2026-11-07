@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.10.0](https://github.com/TatuArvela/manifesto/compare/v0.9.0...v0.10.0) (2026-11-07)
+
+
+### Features
+
+* **client:** color and font for part of the text, and images in it ([#185](https://github.com/TatuArvela/manifesto/issues/185)) ([2be28ac](https://github.com/TatuArvela/manifesto/commit/2be28ac4c6c44a059e55d481c85be148d1fa4d89))
+* **client:** custom and strong theme shades, and stronger light note colors ([#195](https://github.com/TatuArvela/manifesto/issues/195)) ([94f0a90](https://github.com/TatuArvela/manifesto/commit/94f0a90c711f8b52bf27680aa10a3307788b2385))
+* **client:** rain, snow, leaves, petals and frames on the board, and glossy or glass notes ([#194](https://github.com/TatuArvela/manifesto/issues/194)) ([490e72a](https://github.com/TatuArvela/manifesto/commit/490e72a91f72085db72445af90a0d8d1b265ea20))
+* **client:** the board gradient rolls, and its pattern moves ([#184](https://github.com/TatuArvela/manifesto/issues/184)) ([4c8573a](https://github.com/TatuArvela/manifesto/commit/4c8573af0de414781c0dee51c2307370ae1e537e))
+
+
+### Bug Fixes
+
+* **client:** a home-screen shortcut takes the instance name, and a quote does not break the manifest ([#192](https://github.com/TatuArvela/manifesto/issues/192)) ([c0a3a20](https://github.com/TatuArvela/manifesto/commit/c0a3a2009f616108d0b60482c801683ec452a3a2))
+* **client:** the top of the screen loses the colour of a closed note on iOS ([#191](https://github.com/TatuArvela/manifesto/issues/191)) ([d932849](https://github.com/TatuArvela/manifesto/commit/d932849e1a8ebd09eaa1fb5a0919961c638d0d75))
+* close two account takeovers, and a way around the sign-in lock ([#190](https://github.com/TatuArvela/manifesto/issues/190)) ([3ede067](https://github.com/TatuArvela/manifesto/commit/3ede067031a74212a33648387a44c225c3249a46))
+* Escape in the repeat list, local data upgrades, AVIF previews and two Postgres races ([#198](https://github.com/TatuArvela/manifesto/issues/198)) ([e91d479](https://github.com/TatuArvela/manifesto/commit/e91d4798302c7171d458b9cdd4db274405420f4d))
+
 ## [0.9.0](https://github.com/TatuArvela/manifesto/compare/v0.8.0...v0.9.0) (2026-11-01)
 
 
