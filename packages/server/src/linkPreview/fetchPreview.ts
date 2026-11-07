@@ -2,6 +2,7 @@ import {
   type LinkPreview,
   MAX_LINK_PREVIEW_DESCRIPTION_LENGTH,
   MAX_LINK_PREVIEW_TITLE_LENGTH,
+  sniffImageType,
 } from "@manifesto/shared";
 import { logger } from "#/lib/logger.ts";
 import { decodeHtml, extractMetadata } from "./parseHtml.ts";
@@ -94,7 +95,7 @@ async function fetchImage(
       overflow: "refuse",
       accept: "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8",
     });
-    const type = sniffImageType(res.body);
+    const type = sniffPreviewImageType(res.body);
     if (!type) return undefined;
     return `data:${type};base64,${res.body.toString("base64")}`;
   } catch (err) {
@@ -109,29 +110,24 @@ async function fetchImage(
  * `application/octet-stream` or `text/plain`. A page that points its `og:image`
  * to an HTML document must get no image, not a `data:` URL that says it is one.
  * The code does not recognize SVG, on purpose. See `IMAGE_DATA_URL_SUBTYPES`.
+ * The types of a note image come from the shared `sniffImageType`. Thus, a
+ * preview accepts each image that a note accepts, and also an icon.
  */
-export function sniffImageType(bytes: Buffer): string | undefined {
-  const ascii = (start: number, end: number) =>
-    bytes.subarray(start, end).toString("latin1");
-  if (bytes.length < 12) return undefined;
-  if (bytes[0] === 0x89 && ascii(1, 4) === "PNG") return "image/png";
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
-    return "image/jpeg";
-  }
-  if (ascii(0, 4) === "GIF8") return "image/gif";
-  if (ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") return "image/webp";
-  if (ascii(4, 8) === "ftyp" && /^avi[fs]$/.test(ascii(8, 12))) {
-    return "image/avif";
-  }
-  if (
+export function sniffPreviewImageType(bytes: Buffer): string | undefined {
+  return sniffImageType(bytes) ?? (isIcon(bytes) ? "image/x-icon" : undefined);
+}
+
+/**
+ * The header of an ICO or CUR file: reserved 0, then type 1 or 2. A favicon
+ * can be one. A note image cannot, so the shared check does not know it.
+ */
+function isIcon(bytes: Buffer): boolean {
+  return (
     bytes[0] === 0 &&
     bytes[1] === 0 &&
     (bytes[2] === 1 || bytes[2] === 2) &&
     bytes[3] === 0
-  ) {
-    return "image/x-icon";
-  }
-  return undefined;
+  );
 }
 
 function logRefusal(what: string, url: URL, err: unknown) {
