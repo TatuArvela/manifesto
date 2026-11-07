@@ -11,13 +11,10 @@ import { defined } from "#/test/defined.ts";
 import { SealedServer, testKeys } from "#/test/sealedServer.ts";
 import { createAccountKeys } from "#/utils/keyMaterial.ts";
 import { ImageKindError } from "./imageKeyRing.ts";
-import { NoteConflictError, RestApiAdapter } from "./RestApiAdapter.ts";
-import {
-  LockedError,
-  Sealer,
-  type StorageKeys,
-  setOfferHandler,
-} from "./sealing.ts";
+import { RestApiAdapter } from "./RestApiAdapter.ts";
+import { NoteConflictError } from "./restErrors.ts";
+import { Sealer, setOfferHandler } from "./sealing.ts";
+import { LockedError, type StorageKeys } from "./storageKeys.ts";
 
 /**
  * The adapter against a server that keeps only what it gets. Each word of a

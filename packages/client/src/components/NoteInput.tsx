@@ -1,14 +1,12 @@
 import type { NoteColor } from "@manifesto/shared";
 import { Plus } from "lucide-preact";
-import type { RefObject } from "preact";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { ulid } from "ulid";
-import { noteColorMap } from "#/colors.ts";
 import { useColumnWidth } from "#/hooks/useColumnWidth.ts";
 import { useComposerFields } from "#/hooks/useComposerFields.ts";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { holdFocus, useFocusTrap } from "#/hooks/useFocusTrap.ts";
-import { type MessageKey, t } from "#/i18n/index.ts";
+import { t } from "#/i18n/index.ts";
 import { inlineImages, inlinePreviewImages } from "#/state/attachments.ts";
 import {
   type ComposerDraft,
@@ -22,8 +20,6 @@ import {
   animations,
   defaultNoteColor,
   defaultNoteFont,
-  noteQuips,
-  noteSize,
   pickDefaultColor,
   pickDefaultFont,
   viewMode,
@@ -42,25 +38,11 @@ import {
   downloadNoteAsMarkdown,
 } from "#/utils/noteDownload.ts";
 import { Backdrop } from "./Backdrop.tsx";
+import { ComposerPad, useQuips } from "./ComposerPad.tsx";
 import { checklistSubmenu, downloadSubmenu } from "./card/noteMenuItems.tsx";
 import { useEditor } from "./editor/lazyEditor.ts";
 import { gridColumns } from "./gridColumns.ts";
 import { NoteSheet } from "./NoteSheet.tsx";
-
-const ctaKeys: MessageKey[] = [
-  "cta.0",
-  "cta.1",
-  "cta.2",
-  "cta.3",
-  "cta.4",
-  "cta.5",
-  "cta.6",
-  "cta.7",
-  "cta.8",
-  "cta.9",
-  "cta.10",
-  "cta.11",
-];
 
 /**
  * How long the sheet takes to come off the pad. The editor waits for all of it,
@@ -70,33 +52,6 @@ const ctaKeys: MessageKey[] = [
 const LIFT_MS = 280;
 /** The fade-out of the editor. */
 const CLOSE_MS = 150;
-function randomCta(exclude?: string): string {
-  const all = ctaKeys.map((k) => t(k));
-  const pool = exclude ? all.filter((m) => m !== exclude) : all;
-  return pool[Math.floor(Math.random() * pool.length)] ?? "";
-}
-
-/**
- * The lines on the top sheet of the pad and on the sheet behind it. `cycle`
- * moves the next line up, and draws a new line behind it.
- */
-function useQuips(): { top: string; next: string; cycle: () => void } {
-  const [top, setTop] = useState(() => randomCta());
-  const [next, setNext] = useState(() => randomCta(top));
-  // The quips come from the rotation only while the preference is on. When it
-  // is off, both sheets show the same plain line, and nothing rotates. The code
-  // reads it at render, not when it selects a line. Thus, the toggle applies to
-  // the stack that is already on the screen.
-  const plain = noteQuips.value ? null : t("cta.plain");
-  return {
-    top: plain ?? top,
-    next: plain ?? next,
-    cycle: () => {
-      setTop(next);
-      setNext(randomCta(next));
-    },
-  };
-}
 
 /**
  * Downloads the unsaved contents of the composer as the JSON of a note. The
@@ -510,79 +465,5 @@ export function NoteInput() {
         </NoteSheet>
       )}
     </>
-  );
-}
-
-/**
- * The pad of notes from which the composer opens on a wide screen: the top
- * sheet, the sheet behind it that shows the next line, and the base of the
- * stack.
- */
-function ComposerPad({
-  isList,
-  width,
-  stackColor,
-  topColor,
-  topClass,
-  topLine,
-  nextLine,
-  topSheetRef,
-  onOpen,
-}: {
-  isList: boolean;
-  width: number | undefined;
-  stackColor: NoteColor;
-  topColor: NoteColor;
-  topClass: string;
-  topLine: string;
-  nextLine: string;
-  topSheetRef: RefObject<HTMLDivElement | null>;
-  onOpen: () => void;
-}) {
-  return (
-    // Slides in and out when the Notes view comes and goes. It does not fade
-    // with the other content (hooks/useViewTransition.ts).
-    <div
-      data-view-slide="composer"
-      class={
-        isList
-          ? noteSize.value === "square"
-            ? "max-w-sm mx-auto mb-12 hidden md:block"
-            : "mb-12 hidden md:block"
-          : "mx-auto mb-12 hidden md:block"
-      }
-      style={!isList && width ? { width: `${width}px` } : undefined}
-    >
-      {/* biome-ignore lint/a11y/useSemanticElements: styled card element */}
-      <div
-        class="note-stack cursor-pointer"
-        onClick={onOpen}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") onOpen();
-        }}
-      >
-        {/* Notes area: top note + next note behind it */}
-        <div class="relative">
-          <div
-            class={`note-stack-next border ${noteColorMap[stackColor].bg} ${noteColorMap[stackColor].border}`}
-          >
-            <div class="px-5 pt-12 pb-4 text-sm text-neutral-500 dark:text-neutral-300">
-              {nextLine}
-            </div>
-          </div>
-          <div
-            ref={topSheetRef}
-            class={`${topClass} border ${noteColorMap[topColor].bg} ${noteColorMap[topColor].border}`}
-          >
-            <div class="px-5 pt-12 pb-4 text-sm text-neutral-500 dark:text-neutral-300">
-              {topLine}
-            </div>
-          </div>
-        </div>
-        <div class={`note-stack-base ${noteColorMap[stackColor].bg}`} />
-      </div>
-    </div>
   );
 }

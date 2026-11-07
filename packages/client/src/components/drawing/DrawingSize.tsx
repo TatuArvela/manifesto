@@ -4,7 +4,7 @@ import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { t } from "#/i18n/index.ts";
 import type { PaperSize } from "#/utils/drawing.ts";
-import { type Anchor, MAX_EDGE } from "#/utils/drawingLayers.ts";
+import { type Anchor, MAX_EDGE } from "#/utils/drawingEdits.ts";
 import { evaluateArithmetic } from "#/utils/evaluateExpression.ts";
 import { phonePanel, SidePanel } from "./SidePanel.tsx";
 

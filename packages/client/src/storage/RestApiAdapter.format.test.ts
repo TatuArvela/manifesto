@@ -9,7 +9,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defined } from "#/test/defined.ts";
 import { SealedServer, testKeys } from "#/test/sealedServer.ts";
 import { RestApiAdapter } from "./RestApiAdapter.ts";
-import { Sealer, type StorageKeys } from "./sealing.ts";
+import { Sealer } from "./sealing.ts";
+import type { StorageKeys } from "./storageKeys.ts";
 
 /**
  * The format of a note in connected mode, against a server that keeps only what

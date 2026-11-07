@@ -3,6 +3,8 @@ paths:
   - "packages/server/src/sharing/**"
   - "packages/server/src/storage/shareMapping.ts"
   - "packages/server/src/storage/contracts/sharingContract.ts"
+  - "packages/server/src/storage/contracts/sharedNotesContract.ts"
+  - "packages/server/src/storage/contracts/sharingFixture.ts"
   - "packages/server/src/routes/shares*.ts"
   - "packages/server/src/routes/teams*.ts"
   - "packages/server/src/routes/comments*.ts"
@@ -56,7 +58,8 @@ All code that takes a note away from a person (a removal, a change of role to `v
 puts it in the trash) also goes through `sharing/accessChanges.ts`. The reason is the same as for
 `endUserSessions`: if not, sockets that got authorization when they connected stay open. A viewer
 never joins `/api/v1/yjs`, because `onAuthenticate` refuses viewers.
-`storage/contracts/sharingContract.ts` runs the rules against both drivers.
+`storage/contracts/sharingContract.ts` and `sharedNotesContract.ts` run the rules against both
+drivers. Both start from `sharingFixture.ts`.
 
 The server counts the invitation mail for each sender and recipient (`INVITATION_MAILS_PER_HOUR` in
 `routes/shares.ts`). Each new function that sends mail to a person because a different account asks

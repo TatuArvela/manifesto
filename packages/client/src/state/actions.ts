@@ -70,7 +70,7 @@ export type LeaveStyle = "discard" | "archive" | "undelete" | "restore";
  */
 export const leavingNotes = signal<ReadonlyMap<string, LeaveStyle>>(new Map());
 
-/** How long `.note-leaving` runs for each, as `note-cards.css` has it. */
+/** How long `.note-leaving` runs for each, as `note-states.css` has it. */
 const LEAVE_MS: Record<LeaveStyle, number> = {
   discard: 250,
   archive: 200,

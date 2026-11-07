@@ -185,6 +185,7 @@ export {
   utf8,
   wipe,
 } from "./crypto/bytes.ts";
+export { openComment, sealComment } from "./crypto/commentSeal.ts";
 export type { DeviceRequestKeys } from "./crypto/deviceSeal.ts";
 export {
   deviceMatchCode,
@@ -242,24 +243,16 @@ export type { OpenedSharedFields, SharedSealed } from "./crypto/noteSeal.ts";
 export {
   excerptOf,
   NoteLimitError,
-  openComment,
   openPersonalFields,
-  openPref,
-  openSealedNote,
   openSharedFields,
   openSharedFieldsUnder,
   opensSharedFields,
-  openVersion,
   resealSharedFields,
   SEALED_FIELD_MAX,
-  sealComment,
-  sealNewNote,
-  sealNoteUpdate,
   sealPersonalFields,
-  sealPref,
   sealSharedFields,
-  sealVersion,
 } from "./crypto/noteSeal.ts";
+export { openPref, sealPref } from "./crypto/prefSeal.ts";
 export {
   associatedData,
   cryptoAvailable,
@@ -294,6 +287,13 @@ export {
   wrapFeedKey,
   wrapTokenKeys,
 } from "./crypto/tokenSeal.ts";
+export {
+  openSealedNote,
+  openVersion,
+  sealNewNote,
+  sealNoteUpdate,
+  sealVersion,
+} from "./crypto/wholeNoteSeal.ts";
 export type { ExportManifest } from "./exportArchive.ts";
 export {
   EXPORT_MANIFEST_FILE,

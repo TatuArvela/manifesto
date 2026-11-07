@@ -7,12 +7,12 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { storageConnection } from "#/storage/index.ts";
 import { dropAllOffline, readOffline } from "#/storage/offlineNotes.ts";
-import { ImageUploadError, RequestError } from "#/storage/RestApiAdapter.ts";
+import { ImageUploadError, RequestError } from "#/storage/restErrors.ts";
 import {
   LockedError,
   type StorageKeys,
   storageKeys,
-} from "#/storage/sealing.ts";
+} from "#/storage/storageKeys.ts";
 import { notes } from "./notesStore.ts";
 import {
   discardUnsent,

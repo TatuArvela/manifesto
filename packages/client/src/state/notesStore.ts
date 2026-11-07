@@ -16,8 +16,8 @@ import {
   storageConnection,
 } from "#/storage/index.ts";
 import { subscribeToExternalNotes } from "#/storage/LocalStorageAdapter.ts";
-import { NoteConflictError } from "#/storage/RestApiAdapter.ts";
-import { type StorageKeys, storageKeys } from "#/storage/sealing.ts";
+import { NoteConflictError } from "#/storage/restErrors.ts";
+import { type StorageKeys, storageKeys } from "#/storage/storageKeys.ts";
 import { deleteVersions } from "#/storage/VersionStorage.ts";
 import {
   clearAutoNoteOverride,

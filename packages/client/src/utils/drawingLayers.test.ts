@@ -1,15 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { isClip, isFill, type Mark, type Stroke } from "./drawing.ts";
 import {
+  cropImage,
+  cropLayer,
+  deleteSelected,
+  flattenActive,
+  resizeCanvas,
+  resizeImage,
+  transformLayer,
+} from "./drawingEdits.ts";
+import {
   activeLayer,
   addLayer,
   addMark,
   clearLayer,
-  cropImage,
-  cropLayer,
-  deleteSelected,
   endJoin,
-  flattenActive,
   hasStrokes,
   hasVisibleStrokes,
   jumpTo,
@@ -19,12 +24,9 @@ import {
   redo,
   removeLayer,
   renameLayer,
-  resizeCanvas,
-  resizeImage,
   selectLayer,
   setLayerOpacity,
   toggleLayer,
-  transformLayer,
   undo,
 } from "./drawingLayers.ts";
 

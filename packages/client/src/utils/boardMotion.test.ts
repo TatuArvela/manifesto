@@ -19,7 +19,7 @@ import {
 import { type MovingTexture, SHEET_COUNTS } from "./boardTextures.ts";
 
 // Read from disk. Vitest makes a stylesheet imported in a test blank.
-const css = ["board-background.css", "board-motion.css"]
+const css = ["board-background.css", "board-texture.css", "board-motion.css"]
   .map((name) =>
     readFileSync(new URL(`../styles/${name}`, import.meta.url), "utf8"),
   )

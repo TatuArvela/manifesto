@@ -13,35 +13,34 @@ import type {
   NoteUpdate,
   NoteVersion,
   SealedNote,
-  SealedNoteImport,
   SealedNoteVersion,
   SyncResponse,
 } from "@manifesto/shared";
 import {
   attachmentIdOf,
   isAttachmentRef,
-  MAX_NOTES_PER_IMPORT,
   mapPreviewImages,
   NewerNoteFormatError,
   previewImages,
 } from "@manifesto/shared";
 import { ulid } from "ulid";
 import { dataUrlToBlob } from "#/utils/dataUrl.ts";
+import {
+  errorMessage,
+  ImageUploadError,
+  NoteConflictError,
+  RequestError,
+  refusalCode,
+} from "./restErrors.ts";
+import { importNotes } from "./restImport.ts";
 import type {
   CreateOptions,
   NoteChanges,
   StorageAdapter,
   VersionInput,
 } from "./StorageAdapter.ts";
-import { LockedError, type NoteSealing } from "./sealing.ts";
-
-/**
- * Under the 1 MiB body limit of the server, with space for the own wrapping of
- * the request.
- */
-const IMPORT_REQUEST_BYTES = 900 * 1024;
-
-const textEncoder = new TextEncoder();
+import type { NoteSealing } from "./sealing.ts";
+import { LockedError } from "./storageKeys.ts";
 
 export interface RestApiAdapterOptions {
   /** Called when the server returns 401, before the error is thrown. */
@@ -52,56 +51,6 @@ export interface RestApiAdapterOptions {
    * written.
    */
   sealer?: NoteSealing | null | undefined;
-}
-
-/** The `code` of an error body, when it has one. */
-async function refusalCode(res: Response): Promise<string | undefined> {
-  try {
-    return ((await res.json()) as Partial<ErrorResponse>).code;
-  } catch {
-    return undefined;
-  }
-}
-
-/** The own message of the server from an error body, or `fallback`. */
-function errorMessage(data: Partial<ErrorResponse>, fallback: string): string {
-  return typeof data.error === "string" && data.error.length > 0
-    ? data.error
-    : fallback;
-}
-
-/**
- * Thrown when an update collides with a newer version on the server. The caller
- * can use `currentNote` to run a 3-way merge, and try again with a new
- * `If-Match`.
- */
-export class NoteConflictError extends Error {
-  constructor(public currentNote: Note) {
-    super("Note has changed");
-    this.name = "NoteConflictError";
-  }
-}
-
-/** A request that the server answered with a refusal. `status` tells which. */
-export class RequestError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
-    super(message);
-    this.name = "RequestError";
-  }
-}
-
-/**
- * An image upload that the server refused (`status`), or that never arrived
- * (0).
- */
-export class ImageUploadError extends Error {
-  constructor(readonly status: number) {
-    super(`Image upload failed (${status})`);
-    this.name = "ImageUploadError";
-  }
 }
 
 export class RestApiAdapter implements StorageAdapter {
@@ -558,7 +507,6 @@ export class RestApiAdapter implements StorageAdapter {
     });
     if (!res.ok) await this.fail(res, "Failed to delete notes");
   }
-
   /**
    * Sends a backup in as few requests as the limits of the server permit. Each
    * note keeps its id and creation time. Thus, the server updates the notes
@@ -566,98 +514,26 @@ export class RestApiAdapter implements StorageAdapter {
    * nothing.
    */
   async importAll(imported: Note[]): Promise<void> {
-    const sealing = this.sealing();
-    // A note that this account already has is written over under its current
-    // key. Thus, each key must be available before the first is sealed.
-    if (!sealing.complete) await this.getAll();
-    type Plain = Omit<Note, "updatedAt" | "imageCount" | "sharing">;
-    const plain = new Map<string, Plain>();
-    let chunk: SealedNoteImport[] = [];
-    let chunkBytes = 0;
-    /** Ids that the server said belong to the note of a different person. */
-    const taken: string[] = [];
-    /**
-     * Ids of notes that the server has under a key different from the key with
-     * which they came.
-     */
-    const stale: string[] = [];
-    const send = async () => {
-      if (chunk.length === 0) return;
-      const body = { notes: chunk };
-      chunk = [];
-      chunkBytes = 0;
-      const res = await fetch(`${this.baseUrl}/api/v1/notes/import`, {
-        method: "POST",
-        headers: this.headers(),
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) await this.fail(res, "Failed to import notes");
-      try {
-        const answer = (await res.json()) as Partial<NotesImportResponse>;
-        taken.push(...(answer.taken ?? []));
-        stale.push(...(answer.stale ?? []));
-      } catch {
-        // No answer to read: the server said that nothing was taken.
-      }
-    };
-    /** Ids whose key this import made, not a key that the device had. */
-    const madeHere = new Set<string>();
-    const add = async (id: string, payload: Plain) => {
-      const { id: _id, createdAt, ...fields } = payload;
-      if (!sealing.holds(id)) madeHere.add(id);
-      const item: SealedNoteImport = {
-        ...(await sealing.sealOver(id, fields)),
-        createdAt,
-      };
-      const bytes = textEncoder.encode(JSON.stringify(item)).length;
-      if (
-        chunk.length >= MAX_NOTES_PER_IMPORT ||
-        chunkBytes + bytes > IMPORT_REQUEST_BYTES
-      ) {
-        await send();
-      }
-      chunk.push(item);
-      chunkBytes += bytes;
-    };
-    for (const note of imported) {
-      const {
-        updatedAt: _updatedAt,
-        imageCount: _imageCount,
-        sharing: _sharing,
-        ...payload
-      } = note;
-      const uploaded = await this.withUploads(payload);
-      plain.set(uploaded.id, uploaded);
-      await add(uploaded.id, uploaded);
-    }
-    await send();
-    // An id that is the note of a different person. Sealed again under an id
-    // that this device makes, because the server cannot give a sealed note an
-    // id.
-    const again = taken.splice(0);
-    for (const id of again) {
-      // A key that this import made for the id is not a key of that note. A key
-      // that the device had (a note shared with the account) still is.
-      if (madeHere.has(id)) sealing.forget(id);
-      const payload = plain.get(id);
-      if (payload) await add(ulid(), payload);
-    }
-    await send();
-    // A note whose key was replaced since this device read it. Read again,
-    // which takes its current key, and sealed under that.
-    const behind = stale.splice(0);
-    for (const id of behind) {
-      const now = await this.sealedNote(id)();
-      if (!now || !(await sealing.open(now))) {
-        throw new Error("Failed to import notes");
-      }
-      const payload = plain.get(id);
-      if (payload) await add(id, payload);
-    }
-    await send();
-    // Still under a different key: it was replaced again, or this device cannot
-    // have the key of the note. The code tells this, and does not skip it.
-    if (stale.length > 0) throw new Error("Failed to import notes");
+    await importNotes(imported, {
+      sealing: this.sealing(),
+      loadAll: () => this.getAll(),
+      withUploads: (note) => this.withUploads(note),
+      fetchSealed: (id) => this.sealedNote(id)(),
+      post: async (body) => {
+        const res = await fetch(`${this.baseUrl}/api/v1/notes/import`, {
+          method: "POST",
+          headers: this.headers(),
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) await this.fail(res, "Failed to import notes");
+        try {
+          return (await res.json()) as Partial<NotesImportResponse>;
+        } catch {
+          // No answer to read: the server said that nothing was taken.
+          return {};
+        }
+      },
+    });
   }
 
   async fetchLinkPreview(url: string): Promise<LinkPreview | null> {

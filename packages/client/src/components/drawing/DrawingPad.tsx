@@ -10,22 +10,24 @@ import {
   wholePaper,
 } from "#/utils/drawing.ts";
 import {
-  activeLayer,
-  addMark,
-  clearLayer,
   cropImage,
   cropLayer,
   deleteSelected,
   flattenActive,
-  hasInk,
-  layerBounds,
   moveSelected,
-  newSketchHistory,
-  redo,
   resizeCanvas,
   resizeImage,
-  type SketchHistory,
   transformLayer,
+} from "#/utils/drawingEdits.ts";
+import {
+  activeLayer,
+  addMark,
+  clearLayer,
+  hasInk,
+  layerBounds,
+  newSketchHistory,
+  redo,
+  type SketchHistory,
   undo,
 } from "#/utils/drawingLayers.ts";
 import { inkArea, rasterize } from "#/utils/drawingRender.ts";

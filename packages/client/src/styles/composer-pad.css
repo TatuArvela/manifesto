@@ -1,0 +1,200 @@
+/*
+ * The sticky note stack.
+ *
+ * The stack is a pad of paper: two full sheets (`-next` behind `-top`) on a
+ * visible block of page edges (`-base`). A tiled grain on the sheets and bands
+ * on the base give the paper look. Both are drawn in pseudo-elements. Thus, the
+ * color classes on the elements themselves do not change.
+ */
+
+/* Tiled fractal noise, used as paper grain. One rasterized tile, repeated. */
+:root {
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+
+.note-stack {
+  position: relative;
+  perspective: 600px;
+  border-radius: var(--note-radius);
+  /*
+   * In layers, not a single blur: a tight contact shadow to put the pad on the
+   * page, and a wider soft shadow for its bulk.
+   */
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.07),
+    0 5px 14px -4px rgba(0, 0, 0, 0.12);
+}
+
+/*
+ * Paper grain over both sheets. Behind the text of the note (negative z-index
+ * within the own stacking context of the sheet). Thus, it never tints the type.
+ */
+.note-stack-top::before,
+.note-stack-next::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: var(--paper-grain);
+  /*
+   * Multiply at a very low opacity. It must make the sheet a little darker to
+   * show on a white sheet. Soft-light and overlay both leave pure white
+   * unchanged, and the default note color is white.
+   */
+  opacity: 0.08;
+  mix-blend-mode: multiply;
+}
+
+/*
+ * On a dark sheet, a multiply grain only makes it muddy. Thus, make it lighter,
+ * and more faintly, because dark paper shows less texture.
+ */
+.dark .note-stack-top::before,
+.dark .note-stack-next::before {
+  /* A dark sheet must become lighter, not darker, to show any texture. */
+  opacity: 0.07;
+  mix-blend-mode: screen;
+}
+
+/*
+ * The top note: the interactive sheet that peels. Rounded on all four corners.
+ * It is a sheet of paper itself, and its bottom corners are fully visible
+ * against the darker base below.
+ */
+.note-stack-top {
+  position: relative;
+  border-radius: var(--note-radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transform-origin: center top;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+  z-index: 1;
+}
+
+.note-stack:hover {
+  .note-stack-top:not(.note-lift-off):not(.note-hidden) {
+    position: relative;
+    transform: rotateX(22deg);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/*
+ * The lift: the sheet is pulled off the pad, and only then does the editor grow
+ * out of it (NoteInput.tsx waits for `LIFT_MS`, which is this duration). It
+ * starts at the same 22deg as the hover state. Thus, a click on a stack with
+ * the pointer on it continues the peel, and does not first become flat. The
+ * sheet then comes free. It springs flat and comes up off the pad toward the
+ * viewer, larger, with a deeper shadow. It grows from its top edge (the
+ * `transform-origin` above), and moves down, not up. Thus, it stays away from
+ * the top of the scroll container, which would clip it. It stays opaque all the
+ * time, because the editor replaces it in place.
+ *
+ * An activation by keyboard, where there is no hover, starts with a small jump
+ * to that angle. That is the much less frequent path, and the peel continues
+ * from it.
+ */
+@keyframes note-lift-off {
+  0% {
+    transform: rotateX(22deg) translateY(0) scale(1);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+  }
+  55% {
+    transform: rotateX(-5deg) translateY(4px) scale(1.035);
+    box-shadow: 0 20px 38px rgba(0, 0, 0, 0.2);
+  }
+  100% {
+    transform: rotateX(0deg) translateY(6px) scale(1.04);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.18);
+  }
+}
+
+.note-lift-off {
+  animation: note-lift-off 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  pointer-events: none;
+}
+
+/* Hidden while the modal is open. */
+.note-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/*
+ * The next note in the stack: a full-size note behind the top note. `z-index:
+ * 0` gives it its own stacking context. Thus, its grain pseudo-element stays
+ * behind its text, and does not go fully behind the sheet.
+ */
+.note-stack-next {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: var(--note-radius);
+  transition:
+    background-color 0.4s ease,
+    border-color 0.4s ease;
+}
+
+/*
+ * The stack base: the visible thickness of the pad. It carries the bottom
+ * corners. Thus, the sheets above it can keep square bottoms, and the full
+ * stack looks like one block.
+ */
+.note-stack-base {
+  position: relative;
+  /*
+   * Moved up behind the sheets by exactly the corner radius, and made that much
+   * taller. Thus, the full height of the stack does not change. Without this,
+   * the square top corners of the base are next to the rounded corners of the
+   * top sheet, and leave a notch at each side. The overlap puts the base
+   * *under* that curve. Thus, the page edges show around the corners of the
+   * sheet, as those of a real pad do. At zero radius, this becomes the original
+   * flush block.
+   */
+  z-index: -1;
+  margin-top: calc(-1 * var(--note-radius));
+  height: calc(14px + var(--note-radius));
+  border-radius: 0 0 var(--note-radius) var(--note-radius);
+  overflow: hidden;
+  filter: brightness(88%);
+  transition: background-color 0.4s ease;
+}
+
+/*
+ * The edges of the individual sheets of the pad: fine horizontal bands, closer
+ * together toward the bottom. Thus, the block looks like compressed paper, not
+ * a solid slab. A little more darkness toward the bottom puts it on the page.
+ */
+.note-stack-base::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.06) 0px,
+      rgba(0, 0, 0, 0.06) 0.5px,
+      rgba(255, 255, 255, 0.13) 0.5px,
+      rgba(255, 255, 255, 0.13) 2px
+    ),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.13));
+}
+
+.dark .note-stack-base {
+  filter: brightness(78%);
+}
+
+.dark .note-stack-base::before {
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.2) 0px,
+      rgba(0, 0, 0, 0.2) 0.5px,
+      rgba(255, 255, 255, 0.05) 0.5px,
+      rgba(255, 255, 255, 0.05) 2px
+    ),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.24));
+}

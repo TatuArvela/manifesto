@@ -7,7 +7,7 @@ import {
   utf8,
 } from "@manifesto/shared";
 import { accountSubkey } from "#/utils/keyMaterial.ts";
-import type { StorageKeys } from "./sealing.ts";
+import type { StorageKeys } from "./storageKeys.ts";
 
 /**
  * What this device keeps of notes that are not stored yet: the draft of the

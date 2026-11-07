@@ -8,7 +8,8 @@ import {
 } from "@manifesto/shared";
 import { storageConnection } from "#/storage/index.ts";
 import { type OfflineOwner, openModeOwner } from "#/storage/offlineNotes.ts";
-import { sealer, storageKeys } from "#/storage/sealing.ts";
+import { sealer } from "#/storage/sealing.ts";
+import { storageKeys } from "#/storage/storageKeys.ts";
 
 /**
  * For whom `storage/offlineNotes.ts` keeps records at the moment: the unlocked

@@ -21,7 +21,7 @@ import {
 
 // Read from disk. Vitest makes a stylesheet imported in a test blank, also with
 // `?raw`.
-const css = ["board-background.css", "board-motion.css"]
+const css = ["board-background.css", "board-texture.css", "board-motion.css"]
   .map((name) => readFileSync(new URL(`./${name}`, import.meta.url), "utf8"))
   .join("\n");
 

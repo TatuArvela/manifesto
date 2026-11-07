@@ -14,8 +14,8 @@ import {
   type OfflineOwner,
   readOffline,
 } from "#/storage/offlineNotes.ts";
-import { ImageUploadError, RequestError } from "#/storage/RestApiAdapter.ts";
-import { LockedError, storageKeys } from "#/storage/sealing.ts";
+import { ImageUploadError, RequestError } from "#/storage/restErrors.ts";
+import { LockedError, storageKeys } from "#/storage/storageKeys.ts";
 import {
   type ComposerDraft,
   isEmptyDraft,
