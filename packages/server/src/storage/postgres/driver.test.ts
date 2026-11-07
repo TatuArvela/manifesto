@@ -2,8 +2,8 @@ import { MAX_NOTE_VERSIONS, NoteColor, NoteFont } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { claimed, claimedUpdate, opened } from "#/storage/contracts/claimed.ts";
 import { UsernameTakenError } from "#/storage/types.ts";
+import { newMigratedTestPool } from "#/test/postgresTestDb.ts";
 import { createPostgresStorage, type PostgresStorageDriver } from "./driver.ts";
-import { newMigratedTestPool } from "./testDb.ts";
 
 async function bootStorage(): Promise<PostgresStorageDriver> {
   const pool = await newMigratedTestPool();

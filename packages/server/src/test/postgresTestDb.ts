@@ -1,8 +1,8 @@
 import { EventEmitter } from "node:events";
 import { PGlite, types as pgliteTypes } from "@electric-sql/pglite";
 import pg from "pg";
-import type { PgPool } from "./database.ts";
-import { runMigrations } from "./migrations.ts";
+import type { PgPool } from "#/storage/postgres/database.ts";
+import { runMigrations } from "#/storage/postgres/migrations.ts";
 
 /**
  * Real Postgres in memory (PGlite, Postgres compiled to WebAssembly). Thus, the

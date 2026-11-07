@@ -6,7 +6,7 @@ export type PgClient = pg.PoolClient;
 
 export interface PostgresOpenOptions {
   connectionString: string;
-  // Test seam: lets the tests give a pool over PGlite (`testDb.ts`).
+  // Test seam: lets the tests give a pool over PGlite (`src/test/postgresTestDb.ts`).
   poolFactory?: ((connectionString: string) => PgPool) | undefined;
 }
 

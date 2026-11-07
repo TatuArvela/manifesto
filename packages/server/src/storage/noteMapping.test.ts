@@ -5,6 +5,7 @@ import {
   type SealedNote,
 } from "@manifesto/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { newTestPool } from "#/test/postgresTestDb.ts";
 import {
   ciphertext,
   claimed,
@@ -12,7 +13,6 @@ import {
   opened,
 } from "./contracts/claimed.ts";
 import { createPostgresStorage } from "./postgres/driver.ts";
-import { newTestPool } from "./postgres/testDb.ts";
 import { createSqliteStorage } from "./sqlite/driver.ts";
 import type { StorageDriver } from "./types.ts";
 

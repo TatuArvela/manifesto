@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import { describe, expect, it } from "vitest";
+import { newTestPool } from "#/test/postgresTestDb.ts";
 import {
   type Migration,
   MigrationRefusedError,
@@ -10,7 +11,6 @@ import {
   MIGRATIONS as PG_MIGRATIONS,
   runMigrations as runPgMigrations,
 } from "./postgres/migrations.ts";
-import { newTestPool } from "./postgres/testDb.ts";
 import {
   runMigrations as runSqliteMigrations,
   MIGRATIONS as SQLITE_MIGRATIONS,

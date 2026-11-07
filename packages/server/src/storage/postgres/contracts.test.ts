@@ -16,8 +16,8 @@ import { describeTeamsContract } from "#/storage/contracts/teamsContract.ts";
 import { describeTwoFactorContract } from "#/storage/contracts/twoFactorContract.ts";
 import { describeVersionsContract } from "#/storage/contracts/versionsContract.ts";
 import { describeWebhooksContract } from "#/storage/contracts/webhooksContract.ts";
+import { newMigratedTestPool } from "#/test/postgresTestDb.ts";
 import { createPostgresStorage, type PostgresStorageDriver } from "./driver.ts";
-import { newMigratedTestPool } from "./testDb.ts";
 
 // Apart from `driver.test.ts`, so that the two files run in parallel.
 async function bootStorage(): Promise<PostgresStorageDriver> {
