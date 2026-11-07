@@ -26,6 +26,16 @@ The state is in `packages/client/src/state/`, and uses @preact/signals.
 worked (`false`, or `null` where a value was expected). The callers are JSX handlers, which have no
 place for a `catch`. A rejection there is an unhandled rejection, and the user never sees it.
 
+The steps of the sign-in screens are the one exception, and they are not actions: `login`,
+`register` and `signInWithLink`, and `authRequest` and `requestWithoutSession` under them. They
+reject with an `AuthRequestError` (`authErrors.ts`). Each form awaits them in one `try`, because it
+must tell `TwoFactorRequiredError` and `PasswordChangeRequiredError` from a refusal, and the next
+step depends on which it was. The account requests of `storage/apiRequest.ts` reject with
+`ApiError` for the actions that wrap them, and those actions never reject. Thus, a new function
+that a handler calls without a `try` resolves with what occurred, as `changePassword` and
+`updateEmail` do. The two error types stay separate, because `authErrors.ts` imports nothing (see
+`account/auth.ts` below).
+
 Group work goes through `asBatch` (`failures.ts`). It gives each action a `Batch`. The action counts
 its failure in the batch, and does not show its own toast. The batch reports the total one time.
 Always give the batch explicitly. Never keep it in module state, because two groups can run at the
@@ -85,6 +95,14 @@ When you sign out, the app deletes both. If the queue is not empty, it asks firs
 them, sealed, for the next unlock. Browser test files share one IndexedDB. Thus, each test file keeps
 the records of open mode under its own name (`setOpenModeOwnerForTests`). A test that renders the
 composer clears the draft before and after it.
+
+## IndexedDB
+
+Each module that keeps data in IndexedDB (`offlineNotes.ts`, `deviceKeys.ts`, `localImages.ts`,
+`boardImage.ts`, the reminders of `sw.ts`) goes through `storage/idbStore.ts`. Never call
+`indexedDB.open` directly. The helper rejects a blocked open, and closes each connection when a
+different tab asks for a newer version. If a module keeps its own connection, a future upgrade
+waits until all tabs close.
 
 ## ui.ts
 

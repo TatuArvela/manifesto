@@ -14,6 +14,7 @@ import type {
   NoteShare,
   SharesRepo,
 } from "#/storage/types.ts";
+import { isUniqueViolation } from "./constraintErrors.ts";
 import type { PgPool } from "./database.ts";
 
 /** See the SQLite copy: the same queries, for the same reasons. */
@@ -31,11 +32,6 @@ const INVITATION_SELECT = `
   JOIN users u ON u.id = n.user_id
   LEFT JOIN teams t ON t.id = s.via_team
   WHERE s.user_id = $1 AND s.accepted_at IS NULL AND n.trashed = FALSE`;
-
-/** SQLSTATE 23505, as `usersRepo` reads it. */
-function isUniqueViolation(err: unknown): boolean {
-  return err instanceof Error && (err as { code?: string }).code === "23505";
-}
 
 export async function inTransaction<T>(
   pool: PgPool,

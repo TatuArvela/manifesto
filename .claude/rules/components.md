@@ -123,7 +123,9 @@ read one list, `BOARD_SHORTCUTS` in `hooks/useBoardShortcuts.ts`.
 - **Layers over the board** are the `layer-*` utilities in `styles/setup.css`. Never use a bare
   `z-[n]`. The confirmation and the toasts are the top two, because each sheet can show either of
   them. When a confirmation had a number below a nested sheet, it showed behind the dialog that
-  asked for it.
+  asked for it. Each `fixed` element over the page has a layer, also the FAB, the banner and the
+  connection status. Layers with the same number stack in document order, and the sheets and
+  popovers are portals at the end of `body`. A bare `z-*` is only for order inside one component.
 - **Parts that open rarely** (Settings, the admin view, the share and public link dialogs, the
   drawing pad) load when they open the first time, through `hooks/useLazyModule.ts`, from an
   `import()` at module level in `App.tsx`. The editor has its own loader. See `editor.md`. If code

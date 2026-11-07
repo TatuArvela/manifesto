@@ -10,6 +10,7 @@ import {
   type UserSummary,
   type UsersRepo,
 } from "#/storage/types.ts";
+import { isUniqueViolation } from "./constraintErrors.ts";
 import type { SqliteDB } from "./database.ts";
 
 interface UserRow {
@@ -30,24 +31,6 @@ interface UserRow {
 interface UserSummaryRow extends UserRow {
   note_count: number;
   last_seen_at: string | null;
-}
-
-interface SqliteError {
-  code?: string;
-  message?: string;
-}
-
-/**
- * better-sqlite3 reports uniqueness violations with `code =
- * SQLITE_CONSTRAINT_UNIQUE`, and a message that contains the origin of the
- * constraint (`users.username`). We verify both. Thus, if a different unique
- * index is added in the future, the code does not classify it incorrectly.
- */
-function isSqliteUniqueViolation(err: unknown, column: string): boolean {
-  if (!(err instanceof Error)) return false;
-  const sqliteErr = err as SqliteError;
-  if (sqliteErr.code !== "SQLITE_CONSTRAINT_UNIQUE") return false;
-  return (sqliteErr.message ?? "").toLowerCase().includes(`.${column}`);
 }
 
 function rowToUser(row: UserRow): User {
@@ -183,10 +166,10 @@ export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
           createdAt: input.createdAt,
         });
       } catch (err) {
-        if (isSqliteUniqueViolation(err, "username")) {
+        if (isUniqueViolation(err, "username")) {
           throw new UsernameTakenError(input.username);
         }
-        if (input.email && isSqliteUniqueViolation(err, "email")) {
+        if (input.email && isUniqueViolation(err, "email")) {
           throw new EmailTakenError(input.email);
         }
         throw err;
@@ -235,7 +218,7 @@ export function createSqliteUsersRepo(db: SqliteDB): UsersRepo {
         const info = setEmailStmt.run(email, id);
         return info.changes > 0 ? "ok" : "not-found";
       } catch (err) {
-        if (isSqliteUniqueViolation(err, "email")) return "email-taken";
+        if (isUniqueViolation(err, "email")) return "email-taken";
         throw err;
       }
     },

@@ -1,3 +1,5 @@
+import { idbStore } from "./idbStore.ts";
+
 /**
  * The keys that a signed-in device has, in IndexedDB. The secret key is there,
  * so that Settings can show it to bring in a different device. The account key
@@ -34,35 +36,7 @@ function available(): boolean {
   return typeof indexedDB !== "undefined";
 }
 
-function open(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      req.result.createObjectStore(STORE);
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-    req.onblocked = () => reject(new Error("blocked"));
-  });
-}
-
-async function run<T>(
-  mode: IDBTransactionMode,
-  use: (store: IDBObjectStore) => IDBRequest<T>,
-): Promise<T> {
-  const db = await open();
-  try {
-    return await new Promise<T>((resolve, reject) => {
-      const tx = db.transaction(STORE, mode);
-      const req = use(tx.objectStore(STORE));
-      tx.oncomplete = () => resolve(req.result);
-      tx.onerror = () => reject(tx.error ?? req.error);
-      tx.onabort = () => reject(tx.error ?? req.error);
-    });
-  } finally {
-    db.close();
-  }
-}
+const { run } = idbStore(DB_NAME, STORE);
 
 function isDeviceKeys(value: unknown): value is DeviceKeys {
   if (!value || typeof value !== "object") return false;

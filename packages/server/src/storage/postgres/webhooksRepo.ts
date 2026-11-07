@@ -3,12 +3,7 @@ import type { WebhooksRepo } from "#/storage/types.ts";
 import { rowToWebhook, type WebhookRow } from "#/storage/webhookMapping.ts";
 import type { PgPool } from "./database.ts";
 
-/**
- * See the SQLite copy. The code reads the failure count and then writes it. It
- * does not calculate it in one `CASE`, which pg-mem does not handle reliably.
- * The dispatcher sends the deliveries of a webhook in sequence. Thus, nothing
- * races it.
- */
+/** See the SQLite copy: the same statements. */
 export function createPostgresWebhooksRepo(pool: PgPool): WebhooksRepo {
   return {
     async create(input) {
@@ -66,24 +61,19 @@ export function createPostgresWebhooksRepo(pool: PgPool): WebhooksRepo {
       return (result.rowCount ?? 0) > 0;
     },
     async recordDelivery(id, result) {
-      const current = await pool.query<{ failure_count: number | string }>(
-        `SELECT failure_count FROM webhooks WHERE id = $1`,
-        [id],
-      );
-      const row = current.rows[0];
-      if (!row) return;
-      const failures = result.failed ? Number(row.failure_count) + 1 : 0;
       await pool.query(
         `UPDATE webhooks SET last_delivery_at = $1, last_status = $2,
-           last_error = $3, failure_count = $4,
-           active = CASE WHEN $5 THEN FALSE ELSE active END
+           last_error = $3,
+           failure_count = CASE WHEN $4 THEN failure_count + 1 ELSE 0 END,
+           active = CASE WHEN $4 AND failure_count + 1 >= $5
+                         THEN FALSE ELSE active END
          WHERE id = $6`,
         [
           result.at,
           result.status,
           result.error,
-          failures,
-          failures >= result.disableAfter,
+          result.failed,
+          result.disableAfter,
           id,
         ],
       );

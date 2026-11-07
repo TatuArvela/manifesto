@@ -3,10 +3,7 @@ import { rowToTotp } from "#/storage/sqlite/twoFactorRepo.ts";
 import type { TwoFactorRepo } from "#/storage/types.ts";
 import type { PgPool } from "./database.ts";
 
-/**
- * See the SQLite copy. `begin` reads before it writes, and does not use a
- * conditional upsert, which pg-mem does not parse.
- */
+/** See the SQLite copy: the same statements. */
 export function createPostgresTwoFactorRepo(pool: PgPool): TwoFactorRepo {
   return {
     async get(userId) {
@@ -18,27 +15,15 @@ export function createPostgresTwoFactorRepo(pool: PgPool): TwoFactorRepo {
       return row ? rowToTotp(row) : null;
     },
     async begin(userId, plain, at) {
-      const secret = atRest.seal(plain, AT_REST.totpSecret);
-      const existing = await pool.query<{ enabled_at: string | null }>(
-        `SELECT enabled_at FROM user_totp WHERE user_id = $1`,
-        [userId],
+      const result = await pool.query(
+        `INSERT INTO user_totp (user_id, secret, enabled_at, last_step, created_at)
+         VALUES ($1, $2, NULL, 0, $3)
+         ON CONFLICT (user_id) DO UPDATE SET secret = excluded.secret,
+           created_at = excluded.created_at, last_step = 0
+         WHERE user_totp.enabled_at IS NULL`,
+        [userId, atRest.seal(plain, AT_REST.totpSecret), at],
       );
-      const row = existing.rows[0];
-      if (row && row.enabled_at !== null) return false;
-      if (row) {
-        await pool.query(
-          `UPDATE user_totp SET secret = $1, created_at = $2, last_step = 0
-           WHERE user_id = $3 AND enabled_at IS NULL`,
-          [secret, at, userId],
-        );
-      } else {
-        await pool.query(
-          `INSERT INTO user_totp (user_id, secret, enabled_at, last_step, created_at)
-           VALUES ($1, $2, NULL, 0, $3)`,
-          [userId, secret, at],
-        );
-      }
-      return true;
+      return (result.rowCount ?? 0) > 0;
     },
     async enable(userId, at, step) {
       await pool.query(

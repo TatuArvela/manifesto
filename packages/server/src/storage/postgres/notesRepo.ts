@@ -266,8 +266,8 @@ export function createPostgresNotesRepo(pool: PgPool): NotesRepo {
     },
 
     async getById(id: string, userId: string): Promise<SealedNote | null> {
-      // Two plain reads, not a join with a compound `ON`. pg-mem is least
-      // reliable with that shape of query.
+      // Two plain reads: the note, and then the share only when the reader is
+      // not the owner.
       const found = await pool.query<ViewRow>(
         `SELECT * FROM notes WHERE id = $1`,
         [id],

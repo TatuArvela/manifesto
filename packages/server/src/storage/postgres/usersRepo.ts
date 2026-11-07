@@ -11,6 +11,7 @@ import {
   type UserSummary,
   type UsersRepo,
 } from "#/storage/types.ts";
+import { isUniqueViolation } from "./constraintErrors.ts";
 import type { PgPool } from "./database.ts";
 
 interface UserRow {
@@ -32,15 +33,6 @@ interface UserSummaryRow extends UserRow {
   // `COUNT(*)` is a bigint, which `pg` gives back as a string.
   note_count: string | number;
   last_seen_at: string | null;
-}
-
-interface PgError {
-  code?: string;
-}
-
-/** Postgres signals unique-constraint violations with SQLSTATE 23505. */
-function isPgUniqueViolation(err: unknown): boolean {
-  return err instanceof Error && (err as PgError).code === "23505";
 }
 
 function rowToUser(row: UserRow): User {
@@ -69,8 +61,8 @@ function rowToSummary(row: UserSummaryRow): UserSummary {
 }
 
 /**
- * Derived tables, not subqueries for each row: pg-mem cannot resolve an outer
- * column from inside a subquery in the select list.
+ * Derived tables, not subqueries for each row: each count is one pass over its
+ * table for all listed users.
  */
 const SUMMARY_SELECT = `
   SELECT u.*, COALESCE(n.note_count, 0) AS note_count, s.last_seen_at
@@ -160,12 +152,10 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
           ],
         );
       } catch (err) {
-        if (!isPgUniqueViolation(err)) throw err;
+        if (!isUniqueViolation(err)) throw err;
         // The code reads back which value collided, and does not read it from
-        // the error. Real `pg` names the index in `constraint`. But pg-mem
-        // leaves that empty, names the wrong index, and quotes the full
-        // statement (with the column list) in the message. Thus, a message that
-        // contains "username" tells nothing about which value was taken.
+        // the error. Thus, it does not depend on the names that the
+        // migrations gave to the indexes.
         if (await repo.findByUsername(input.username)) {
           throw new UsernameTakenError(input.username);
         }
@@ -249,7 +239,7 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
         return (result.rowCount ?? 0) > 0 ? "ok" : "not-found";
       } catch (err) {
         // The only unique value that this writes.
-        if (isPgUniqueViolation(err)) return "email-taken";
+        if (isUniqueViolation(err)) return "email-taken";
         throw err;
       }
     },

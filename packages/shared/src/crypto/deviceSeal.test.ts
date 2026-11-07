@@ -1,10 +1,10 @@
+import { describe, expect, it } from "vitest";
 import {
   deviceMatchCode,
   newDeviceRequestKeys,
   openOnDevice,
   wrapForDevice,
-} from "@manifesto/shared";
-import { describe, expect, it } from "vitest";
+} from "./deviceSeal.ts";
 
 const ID = "ab".repeat(32);
 const OTHER_ID = "cd".repeat(32);

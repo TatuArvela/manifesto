@@ -179,6 +179,9 @@ files.
   `.browser` name when it needs a DOM (real CSS, `localStorage`, history, an iframe, DOMPurify). This
   keeps the pure majority (parsers, mergers, schedulers, formatters) fast. The suite of the server
   runs only in Node.
+- `packages/shared` has its own Node suite. A test that imports only shared code goes there, next
+  to its source, and imports it by path (`./seal.ts`), not through `@manifesto/shared`. The build
+  excludes it (`tsconfig.build.json`).
 - Test files are next to their source (for example, `actions.browser.test.ts` next to `actions.ts`).
 - Helpers that only tests import are in `src/test/` in both packages. The storage contract suites are
   in `server/src/storage/contracts/`. This keeps all three out of the server build.
@@ -228,6 +231,11 @@ files.
   `pnpm lint` fails on an em dash (`lint:dashes`), and on all Biome warnings, not only errors.
 - A source file has a maximum of 500 lines (`noExcessiveLinesPerFile`; the catalogues and tests are
   exempt). Split it along a seam. Do not make the limit higher.
+  - Biome counts the line breaks between tokens. A block comment or a template literal is one
+    token. Thus, each one counts as one line, however many lines it has. A file with long doc
+    comments can have more than 500 lines in an editor and pass. `wc -l` does not tell how near a
+    file is to the limit. The message of the rule does.
+  - Do not shorten doc comments to fit. Split the file.
 - Some rules in this file are lint errors, not only text. `biome.json` lists their exceptions as
   overrides:
   - `fetch` in the client only in `storage/`, `state/account/auth.ts`, `state/publicLinks.ts` and

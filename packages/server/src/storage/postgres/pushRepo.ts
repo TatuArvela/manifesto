@@ -11,10 +11,7 @@ import type {
 } from "#/storage/types.ts";
 import type { PgPool } from "./database.ts";
 
-/**
- * See the SQLite copy. The code reads the failure count after it writes it. The
- * update does not return it, as for webhooks, because of pg-mem.
- */
+/** See the SQLite copy: the same statements. */
 export function createPostgresPushSubscriptionsRepo(
   pool: PgPool,
 ): PushSubscriptionsRepo {
@@ -86,13 +83,9 @@ export function createPostgresPushSubscriptionsRepo(
       return result.rowCount ?? 0;
     },
     async recordFailure(id) {
-      await pool.query(
-        `UPDATE push_subscriptions SET failure_count = failure_count + 1
-         WHERE id = $1`,
-        [id],
-      );
       const result = await pool.query<{ failure_count: number }>(
-        `SELECT failure_count FROM push_subscriptions WHERE id = $1`,
+        `UPDATE push_subscriptions SET failure_count = failure_count + 1
+         WHERE id = $1 RETURNING failure_count`,
         [id],
       );
       return Number(result.rows[0]?.failure_count ?? 0);

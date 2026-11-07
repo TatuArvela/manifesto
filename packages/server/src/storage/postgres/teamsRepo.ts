@@ -7,12 +7,8 @@ import {
   type TeamRow,
 } from "#/storage/teamMapping.ts";
 import type { TeamsRepo } from "#/storage/types.ts";
+import { isUniqueViolation } from "./constraintErrors.ts";
 import type { PgPool } from "./database.ts";
-
-/** SQLSTATE 23505, as `usersRepo` reads it. */
-function isUniqueViolation(err: unknown): boolean {
-  return err instanceof Error && (err as { code?: string }).code === "23505";
-}
 
 /** See the SQLite copy: the same statements. */
 export function createPostgresTeamsRepo(pool: PgPool): TeamsRepo {

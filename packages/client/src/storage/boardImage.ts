@@ -6,38 +6,11 @@
  * `localStorage` has are where the notes themselves are in open mode.
  */
 
-const DB_NAME = "manifesto-board";
-const STORE = "images";
+import { idbStore } from "./idbStore.ts";
+
 const KEY = "background";
 
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      req.result.createObjectStore(STORE);
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function run<T>(
-  mode: IDBTransactionMode,
-  act: (store: IDBObjectStore) => IDBRequest<T>,
-): Promise<T> {
-  const db = await openDb();
-  try {
-    return await new Promise<T>((resolve, reject) => {
-      const tx = db.transaction(STORE, mode);
-      const req = act(tx.objectStore(STORE));
-      tx.oncomplete = () => resolve(req.result);
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
-    });
-  } finally {
-    db.close();
-  }
-}
+const { run } = idbStore("manifesto-board", "images");
 
 export async function loadBoardImage(): Promise<Blob | null> {
   const value = await run("readonly", (store) => store.get(KEY));

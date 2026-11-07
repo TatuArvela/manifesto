@@ -1,4 +1,5 @@
 import { LOCAL_IMAGE_REF_PREFIX } from "@manifesto/shared";
+import { idbStore } from "./idbStore.ts";
 import { isQuotaError, reportQuotaRefusal } from "./quota.ts";
 
 /**
@@ -27,39 +28,13 @@ interface StoredImage {
   createdAt: number;
 }
 
-let opening: Promise<IDBDatabase> | null = null;
 let askedToPersist = false;
 
-function open(): Promise<IDBDatabase> {
-  opening ??= new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      req.result.createObjectStore(STORE, { keyPath: "hash" });
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => {
-      opening = null;
-      reject(req.error);
-    };
-  });
-  return opening;
-}
-
-function request<T>(
-  mode: IDBTransactionMode,
-  run: (store: IDBObjectStore) => IDBRequest<T>,
-): Promise<T> {
-  return open().then(
-    (db) =>
-      new Promise<T>((resolve, reject) => {
-        const tx = db.transaction(STORE, mode);
-        const req = run(tx.objectStore(STORE));
-        tx.oncomplete = () => resolve(req.result);
-        tx.onerror = () => reject(tx.error ?? req.error);
-        tx.onabort = () => reject(tx.error ?? req.error);
-      }),
-  );
-}
+/** One connection for the page: the board reads many images. */
+const { run: request } = idbStore(DB_NAME, STORE, {
+  keyPath: "hash",
+  keepOpen: true,
+});
 
 async function sha256(blob: Blob): Promise<string> {
   const digest = await crypto.subtle.digest(

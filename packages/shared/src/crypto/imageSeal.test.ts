@@ -1,5 +1,5 @@
-import { sniffImageType } from "@manifesto/shared";
 import { describe, expect, it } from "vitest";
+import { sniffImageType } from "./imageSeal.ts";
 
 const bytes = (...values: (number | string)[]) =>
   Uint8Array.from(

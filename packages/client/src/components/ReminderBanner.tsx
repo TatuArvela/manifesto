@@ -16,7 +16,7 @@ export function ReminderBanner() {
   };
 
   return (
-    <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-[calc(100%-2rem)]">
+    <div class="fixed bottom-4 left-1/2 -translate-x-1/2 layer-banner max-w-md w-[calc(100%-2rem)]">
       <div
         class={`flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg text-white animate-fade-in ${
           banner.urgent ? "bg-red-700" : "bg-amber-500"

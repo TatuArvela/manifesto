@@ -1,11 +1,11 @@
+import { describe, expect, it } from "vitest";
 import {
   isTagWithin,
   normalizeTag,
   tagLeaf,
   tagLineage,
   tagParent,
-} from "@manifesto/shared";
-import { describe, expect, it } from "vitest";
+} from "./tags.ts";
 
 describe("nested tags", () => {
   it("normalizes case, spaces and empty parts of a path", () => {

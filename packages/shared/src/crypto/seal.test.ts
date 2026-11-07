@@ -1,13 +1,13 @@
+import { describe, expect, it } from "vitest";
+import { isCiphertext } from "#/api/keys.ts";
 import {
   associatedData,
   derivable,
   deriveBytes,
   deriveKey,
-  isCiphertext,
   seal,
   unseal,
-} from "@manifesto/shared";
-import { describe, expect, it } from "vitest";
+} from "./seal.ts";
 
 const text = (value: string) => new TextEncoder().encode(value);
 const read = (bytes: Uint8Array | null) =>

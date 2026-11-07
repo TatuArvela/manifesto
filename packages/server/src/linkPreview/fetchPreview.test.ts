@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   createLinkPreviewFetcher,
   type FetchPolicy,
-  sniffImageType,
+  sniffPreviewImageType,
 } from "./fetchPreview.ts";
 
 // A 1x1 transparent PNG.
@@ -109,7 +109,7 @@ describe("createLinkPreviewFetcher", () => {
   });
 });
 
-describe("sniffImageType", () => {
+describe("sniffPreviewImageType", () => {
   const pad = (bytes: number[] | string) =>
     Buffer.concat([
       typeof bytes === "string"
@@ -119,17 +119,25 @@ describe("sniffImageType", () => {
     ]);
 
   it("recognizes the accepted formats by their magic bytes", () => {
-    expect(sniffImageType(PNG)).toBe("image/png");
-    expect(sniffImageType(pad([0xff, 0xd8, 0xff, 0xe0]))).toBe("image/jpeg");
-    expect(sniffImageType(pad("GIF89a"))).toBe("image/gif");
-    expect(sniffImageType(pad("RIFF\0\0\0\0WEBP"))).toBe("image/webp");
-    expect(sniffImageType(pad("\0\0\0\x1cftypavif"))).toBe("image/avif");
-    expect(sniffImageType(pad([0, 0, 1, 0, 1, 0]))).toBe("image/x-icon");
+    expect(sniffPreviewImageType(PNG)).toBe("image/png");
+    expect(sniffPreviewImageType(pad([0xff, 0xd8, 0xff, 0xe0]))).toBe(
+      "image/jpeg",
+    );
+    expect(sniffPreviewImageType(pad("GIF89a"))).toBe("image/gif");
+    expect(sniffPreviewImageType(pad("RIFF\0\0\0\0WEBP"))).toBe("image/webp");
+    expect(sniffPreviewImageType(pad("\0\0\0\x1cftypavif"))).toBe("image/avif");
+    expect(sniffPreviewImageType(pad([0, 0, 1, 0, 1, 0]))).toBe("image/x-icon");
+  });
+
+  it("reads an AVIF that names its brand after a generic one", () => {
+    expect(
+      sniffPreviewImageType(pad("\0\0\0\x18ftypmif1\0\0\0\0mif1avif")),
+    ).toBe("image/avif");
   });
 
   it("recognizes nothing else, SVG included", () => {
-    expect(sniffImageType(pad("<svg xmlns"))).toBeUndefined();
-    expect(sniffImageType(pad("<!doctype html>"))).toBeUndefined();
-    expect(sniffImageType(Buffer.from("GIF8"))).toBeUndefined();
+    expect(sniffPreviewImageType(pad("<svg xmlns"))).toBeUndefined();
+    expect(sniffPreviewImageType(pad("<!doctype html>"))).toBeUndefined();
+    expect(sniffPreviewImageType(Buffer.from("GIF8"))).toBeUndefined();
   });
 });
