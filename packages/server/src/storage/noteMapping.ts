@@ -335,8 +335,8 @@ export function noteInsertValues(
 /**
  * The `LIKE` pattern for a search, or null when there is nothing left to search
  * for. The code removes wildcards, and does not escape them. A bare `%` would
- * otherwise match all rows. We cannot use SQL `ESCAPE`, because pg-mem (against
- * which the tests of the Postgres driver run) does not parse it.
+ * otherwise match all rows. Thus, a search for `%` or `_` finds nothing. Both
+ * engines accept SQL `ESCAPE`, which would let a person search for them.
  */
 export function searchPattern(query: string): string | null {
   const sanitized = query.replace(/[%_]/g, "");

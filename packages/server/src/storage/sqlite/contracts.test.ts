@@ -10,6 +10,9 @@ import { describePushContract } from "#/storage/contracts/pushContract.ts";
 import { describeStatsContract } from "#/storage/contracts/statsContract.ts";
 import { describeSyncContract } from "#/storage/contracts/syncContract.ts";
 import { describeTeamsContract } from "#/storage/contracts/teamsContract.ts";
+import { describeTwoFactorContract } from "#/storage/contracts/twoFactorContract.ts";
+import { describeVersionsContract } from "#/storage/contracts/versionsContract.ts";
+import { describeWebhooksContract } from "#/storage/contracts/webhooksContract.ts";
 import { createSqliteStorage } from "./driver.ts";
 
 describeAttachmentsContract("sqlite", async () =>
@@ -57,5 +60,17 @@ describePushContract("sqlite", async () =>
 );
 
 describeNoteFormatContract("sqlite", async () =>
+  createSqliteStorage({ dbPath: ":memory:" }),
+);
+
+describeTwoFactorContract("sqlite", async () =>
+  createSqliteStorage({ dbPath: ":memory:" }),
+);
+
+describeVersionsContract("sqlite", async () =>
+  createSqliteStorage({ dbPath: ":memory:" }),
+);
+
+describeWebhooksContract("sqlite", async () =>
   createSqliteStorage({ dbPath: ":memory:" }),
 );

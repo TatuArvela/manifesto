@@ -61,8 +61,8 @@ function rowToSummary(row: UserSummaryRow): UserSummary {
 }
 
 /**
- * Derived tables, not subqueries for each row: pg-mem cannot resolve an outer
- * column from inside a subquery in the select list.
+ * Derived tables, not subqueries for each row: each count is one pass over its
+ * table for all listed users.
  */
 const SUMMARY_SELECT = `
   SELECT u.*, COALESCE(n.note_count, 0) AS note_count, s.last_seen_at
@@ -154,10 +154,8 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
       } catch (err) {
         if (!isUniqueViolation(err)) throw err;
         // The code reads back which value collided, and does not read it from
-        // the error. Real `pg` names the index in `constraint`. But pg-mem
-        // leaves that empty, names the wrong index, and quotes the full
-        // statement (with the column list) in the message. Thus, a message that
-        // contains "username" tells nothing about which value was taken.
+        // the error. Thus, it does not depend on the names that the
+        // migrations gave to the indexes.
         if (await repo.findByUsername(input.username)) {
           throw new UsernameTakenError(input.username);
         }

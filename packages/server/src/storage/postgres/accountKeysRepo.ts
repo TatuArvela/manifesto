@@ -5,14 +5,9 @@ import {
   rowToAccountKeys,
 } from "#/storage/accountKeysMapping.ts";
 import type { AccountKeysRepo } from "#/storage/types.ts";
-import { isUniqueViolation } from "./constraintErrors.ts";
 import type { PgPool } from "./database.ts";
 
-/**
- * See the SQLite copy. `create` lets the primary key refuse a second set-up. It
- * does not use `ON CONFLICT DO NOTHING`, because pg-mem gives the wrong row
- * count for it.
- */
+/** See the SQLite copy: the same statements. */
 export function createPostgresAccountKeysRepo(pool: PgPool): AccountKeysRepo {
   return {
     async get(userId) {
@@ -24,17 +19,13 @@ export function createPostgresAccountKeysRepo(pool: PgPool): AccountKeysRepo {
       return row ? rowToAccountKeys(row) : null;
     },
     async create(keys) {
-      try {
-        await pool.query(
-          `INSERT INTO account_keys (${ACCOUNT_KEYS_COLUMNS})
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-          accountKeysValues(keys),
-        );
-        return true;
-      } catch (err) {
-        if (isUniqueViolation(err)) return false;
-        throw err;
-      }
+      const result = await pool.query(
+        `INSERT INTO account_keys (${ACCOUNT_KEYS_COLUMNS})
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         ON CONFLICT (user_id) DO NOTHING`,
+        accountKeysValues(keys),
+      );
+      return (result.rowCount ?? 0) > 0;
     },
     async setSecretWrap(userId, wrappedBySecret, at) {
       const result = await pool.query(

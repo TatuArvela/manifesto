@@ -47,9 +47,8 @@ const LIST_COLUMNS = INSERT_COLUMNS.filter(
 /**
  * In the order `updated_at DESC, id DESC`. Thus, a cursor is a position in a
  * total order, not a timestamp that two notes can share. Written as two
- * comparisons, not as a row value, because pg-mem, on which the parallel
- * Postgres suite runs, does not parse `(a, b) < (c, d)`, and both drivers must
- * read the same shape of query.
+ * comparisons, not as a row value `(a, b) < (c, d)`. Thus, the Postgres driver
+ * reads the same shape of query.
  */
 const PAGE_ORDER = `ORDER BY n.updated_at DESC, n.id DESC LIMIT @limit`;
 const AFTER_CURSOR = `AND (n.updated_at < @afterUpdatedAt
