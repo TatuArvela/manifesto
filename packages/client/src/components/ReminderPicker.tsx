@@ -10,9 +10,7 @@ import {
   BellRing,
   Calendar,
   Check,
-  ChevronDown,
   Clock,
-  Repeat,
 } from "lucide-preact";
 import { useMemo, useState } from "preact/hooks";
 import { t } from "#/i18n/index.ts";
@@ -26,6 +24,7 @@ import {
   pickedReminder,
 } from "#/state/reminderScheduler.ts";
 import { Dropdown } from "./Dropdown.tsx";
+import { ReminderRepeatMenu } from "./ReminderRepeatMenu.tsx";
 import { Tooltip } from "./Tooltip.tsx";
 
 interface ReminderPickerProps {
@@ -41,22 +40,6 @@ interface ReminderPickerPanelProps {
   onChange: (reminder: NoteReminder | null) => void;
   onDone: () => void;
 }
-
-const RECURRENCE_KEYS: {
-  value: ReminderRecurrence;
-  key:
-    | "reminder.recurrence.none"
-    | "reminder.recurrence.daily"
-    | "reminder.recurrence.weekly"
-    | "reminder.recurrence.monthly"
-    | "reminder.recurrence.yearly";
-}[] = [
-  { value: "none", key: "reminder.recurrence.none" },
-  { value: "daily", key: "reminder.recurrence.daily" },
-  { value: "weekly", key: "reminder.recurrence.weekly" },
-  { value: "monthly", key: "reminder.recurrence.monthly" },
-  { value: "yearly", key: "reminder.recurrence.yearly" },
-];
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
@@ -122,7 +105,6 @@ export function ReminderPickerPanel({
   const [recurrence, setRecurrence] = useState<ReminderRecurrence>(
     initial.recurrence,
   );
-  const [repeatOpen, setRepeatOpen] = useState(false);
   const [triedSave, setTriedSave] = useState(false);
   const [urgent, setUrgent] = useState(reminder?.urgent === true);
 
@@ -283,10 +265,6 @@ export function ReminderPickerPanel({
     );
   }
 
-  const recurrenceLabel =
-    RECURRENCE_KEYS.find((r) => r.value === recurrence)?.key ??
-    "reminder.recurrence.none";
-
   const fieldClass =
     "flex items-center gap-2 px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/10 focus-within:bg-black/5 dark:focus-within:bg-white/10 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500";
 
@@ -343,50 +321,7 @@ export function ReminderPickerPanel({
         />
       </div>
 
-      <div class="relative">
-        <button
-          type="button"
-          class="flex items-center justify-between w-full px-2 py-1.5 text-sm rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer"
-          onClick={() => setRepeatOpen(!repeatOpen)}
-          aria-expanded={repeatOpen}
-        >
-          <span class="flex items-center gap-2">
-            <Repeat class="w-4 h-4 opacity-70" />
-            {t(recurrenceLabel)}
-          </span>
-          <ChevronDown class="w-4 h-4" />
-        </button>
-        {repeatOpen && (
-          <>
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-            <div
-              class="fixed inset-0 z-10"
-              role="presentation"
-              onClick={() => setRepeatOpen(false)}
-              onKeyDown={() => {}}
-            />
-            <div class="absolute left-full top-0 ml-2 py-1 bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 z-20 min-w-40">
-              {RECURRENCE_KEYS.map((r) => (
-                <button
-                  key={r.value}
-                  type="button"
-                  class={`block w-full px-3 py-1.5 text-sm text-left cursor-pointer ${
-                    recurrence === r.value
-                      ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                      : "hover:bg-black/5 dark:hover:bg-white/10"
-                  }`}
-                  onClick={() => {
-                    setRecurrence(r.value);
-                    setRepeatOpen(false);
-                  }}
-                >
-                  {t(r.key)}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+      <ReminderRepeatMenu value={recurrence} onChange={setRecurrence} />
 
       {urgentRow}
 
