@@ -66,6 +66,8 @@ interface SandboxHandle {
    * thread of the frame where the engine refused a worker.
    */
   mode: "worker" | "frame" | null;
+  /** Removes the listener for the messages of the frame. */
+  stopListening: () => void;
 }
 
 let currentSandbox: SandboxHandle | null = null;
@@ -80,6 +82,8 @@ function createSandbox(): SandboxHandle {
   const pending = new Map<number, (r: RunResponse) => void>();
   // Assigned below. The listener reads it only after the frame answered.
   let handle: SandboxHandle;
+  // The executor of `ready` runs at once. Thus, this is set before `handle`.
+  let stopListening = () => {};
 
   const ready = new Promise<void>((resolve, reject) => {
     const initId = -1;
@@ -122,21 +126,19 @@ function createSandbox(): SandboxHandle {
       }
     };
     window.addEventListener("message", messageListener);
-    (iframe as unknown as { __cleanup?: () => void }).__cleanup = () => {
+    stopListening = () => {
       window.removeEventListener("message", messageListener);
     };
   });
 
-  handle = { iframe, ready, pending, mode: null };
+  handle = { iframe, ready, pending, mode: null, stopListening };
   iframe.src = sandboxUrl();
   document.body.appendChild(iframe);
   return handle;
 }
 
 function destroySandbox(handle: SandboxHandle) {
-  const cleanup = (handle.iframe as unknown as { __cleanup?: () => void })
-    .__cleanup;
-  if (cleanup) cleanup();
+  handle.stopListening();
   handle.iframe.remove();
   for (const [, cb] of handle.pending) {
     cb({ type: "run-err", id: -1, error: "sandbox destroyed" });
