@@ -20,7 +20,7 @@ export function ConnectionStatus() {
     <div
       role="status"
       aria-live="polite"
-      class="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-800/90 dark:bg-neutral-100/90 text-white dark:text-neutral-900 text-xs font-medium shadow-lg pointer-events-none"
+      class="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 layer-status flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-800/90 dark:bg-neutral-100/90 text-white dark:text-neutral-900 text-xs font-medium shadow-lg pointer-events-none"
     >
       <CloudOff class="w-3.5 h-3.5" />
       <span>

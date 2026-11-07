@@ -109,14 +109,16 @@ export function CardPopover({
 
   return createPortal(
     <>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss */}
-      {!leaving && <div class="fixed inset-0 z-40" onClick={onClose} />}
+      {!leaving && (
+        // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss
+        // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss
+        <div class="fixed inset-0 layer-popover-backdrop" onClick={onClose} />
+      )}
       {/* Always rendered so it can be measured, but kept invisible until it
           has been placed; otherwise it would flash at the top-left corner. */}
       <div
         ref={popoverRef}
-        class={`card-popover fixed z-50${leaving ? " pointer-events-none" : ""}`}
+        class={`card-popover fixed layer-popover${leaving ? " pointer-events-none" : ""}`}
         data-placed={pos ? "true" : undefined}
         data-leaving={leaving ? "true" : undefined}
         inert={leaving}

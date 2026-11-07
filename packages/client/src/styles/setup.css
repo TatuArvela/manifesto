@@ -21,11 +21,34 @@
  * either, and neither can be behind the layer that asked. Named here, so that
  * you can read the order in one place, and do not have to collect it from
  * numbers.
+ *
+ * Layers with the same number stack in the order of the document. A sheet and
+ * a card popover are portals at the end of `body`. Thus, a sheet is above the
+ * reminder banner, its backdrop is above the connection status, and a popover
+ * opened from a sheet is above the sheet.
  */
+@utility layer-fab {
+  z-index: 20;
+}
+@utility layer-marquee {
+  z-index: 30;
+}
 @utility layer-backdrop {
   z-index: 40;
 }
+@utility layer-status {
+  z-index: 40;
+}
+@utility layer-popover-backdrop {
+  z-index: 40;
+}
 @utility layer-sheet {
+  z-index: 50;
+}
+@utility layer-banner {
+  z-index: 50;
+}
+@utility layer-popover {
   z-index: 50;
 }
 @utility layer-drawing {

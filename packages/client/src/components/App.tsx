@@ -378,7 +378,7 @@ function MainApp() {
       {marquee && (
         <div
           aria-hidden="true"
-          class="fixed z-30 pointer-events-none rounded-sm border border-blue-500 bg-blue-500/10"
+          class="fixed layer-marquee pointer-events-none rounded-sm border border-blue-500 bg-blue-500/10"
           style={{
             left: `${marquee.left}px`,
             top: `${marquee.top}px`,
