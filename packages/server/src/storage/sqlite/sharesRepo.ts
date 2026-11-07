@@ -14,6 +14,7 @@ import type {
   NoteShare,
   SharesRepo,
 } from "#/storage/types.ts";
+import { isUniqueViolation } from "./constraintErrors.ts";
 import type { SqliteDB } from "./database.ts";
 
 const SHARE_COLUMNS = `note_id, user_id, role, created_at, accepted_at, via_team,
@@ -29,13 +30,6 @@ const INVITATION_SELECT = `
   JOIN users u ON u.id = n.user_id
   LEFT JOIN teams t ON t.id = s.via_team
   WHERE s.user_id = ? AND s.accepted_at IS NULL AND n.trashed = 0`;
-
-function isPrimaryKeyViolation(err: unknown): boolean {
-  return (
-    err instanceof Error &&
-    (err as { code?: string }).code === "SQLITE_CONSTRAINT_PRIMARYKEY"
-  );
-}
 
 export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
   const noteStmt = db.prepare(
@@ -164,7 +158,7 @@ export function createSqliteSharesRepo(db: SqliteDB): SharesRepo {
         membersChangedStmt.run(input.createdAt, input.noteId);
         return "ok";
       } catch (err) {
-        if (isPrimaryKeyViolation(err)) return "exists";
+        if (isUniqueViolation(err)) return "exists";
         throw err;
       }
     },

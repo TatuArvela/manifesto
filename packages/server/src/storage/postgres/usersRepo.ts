@@ -11,6 +11,7 @@ import {
   type UserSummary,
   type UsersRepo,
 } from "#/storage/types.ts";
+import { isUniqueViolation } from "./constraintErrors.ts";
 import type { PgPool } from "./database.ts";
 
 interface UserRow {
@@ -32,15 +33,6 @@ interface UserSummaryRow extends UserRow {
   // `COUNT(*)` is a bigint, which `pg` gives back as a string.
   note_count: string | number;
   last_seen_at: string | null;
-}
-
-interface PgError {
-  code?: string;
-}
-
-/** Postgres signals unique-constraint violations with SQLSTATE 23505. */
-function isPgUniqueViolation(err: unknown): boolean {
-  return err instanceof Error && (err as PgError).code === "23505";
 }
 
 function rowToUser(row: UserRow): User {
@@ -160,7 +152,7 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
           ],
         );
       } catch (err) {
-        if (!isPgUniqueViolation(err)) throw err;
+        if (!isUniqueViolation(err)) throw err;
         // The code reads back which value collided, and does not read it from
         // the error. Real `pg` names the index in `constraint`. But pg-mem
         // leaves that empty, names the wrong index, and quotes the full
@@ -249,7 +241,7 @@ export function createPostgresUsersRepo(pool: PgPool): UsersRepo {
         return (result.rowCount ?? 0) > 0 ? "ok" : "not-found";
       } catch (err) {
         // The only unique value that this writes.
-        if (isPgUniqueViolation(err)) return "email-taken";
+        if (isUniqueViolation(err)) return "email-taken";
         throw err;
       }
     },

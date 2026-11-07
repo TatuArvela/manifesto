@@ -5,12 +5,8 @@ import {
   rowToAccountKeys,
 } from "#/storage/accountKeysMapping.ts";
 import type { AccountKeysRepo } from "#/storage/types.ts";
+import { isUniqueViolation } from "./constraintErrors.ts";
 import type { PgPool } from "./database.ts";
-
-/** SQLSTATE 23505, as `usersRepo` reads it. */
-function isUniqueViolation(err: unknown): boolean {
-  return err instanceof Error && (err as { code?: string }).code === "23505";
-}
 
 /**
  * See the SQLite copy. `create` lets the primary key refuse a second set-up. It

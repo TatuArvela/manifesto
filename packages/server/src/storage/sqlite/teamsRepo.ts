@@ -7,15 +7,8 @@ import {
   type TeamRow,
 } from "#/storage/teamMapping.ts";
 import type { TeamsRepo } from "#/storage/types.ts";
+import { isUniqueViolation } from "./constraintErrors.ts";
 import type { SqliteDB } from "./database.ts";
-
-function isUniqueViolation(err: unknown): boolean {
-  return (
-    err instanceof Error &&
-    "code" in err &&
-    String((err as { code: unknown }).code).startsWith("SQLITE_CONSTRAINT")
-  );
-}
 
 export function createSqliteTeamsRepo(db: SqliteDB): TeamsRepo {
   const insertStmt = db.prepare(
