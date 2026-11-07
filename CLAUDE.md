@@ -231,6 +231,11 @@ files.
   `pnpm lint` fails on an em dash (`lint:dashes`), and on all Biome warnings, not only errors.
 - A source file has a maximum of 500 lines (`noExcessiveLinesPerFile`; the catalogues and tests are
   exempt). Split it along a seam. Do not make the limit higher.
+  - Biome counts the line breaks between tokens. A block comment or a template literal is one
+    token. Thus, each one counts as one line, however many lines it has. A file with long doc
+    comments can have more than 500 lines in an editor and pass. `wc -l` does not tell how near a
+    file is to the limit. The message of the rule does.
+  - Do not shorten doc comments to fit. Split the file.
 - Some rules in this file are lint errors, not only text. `biome.json` lists their exceptions as
   overrides:
   - `fetch` in the client only in `storage/`, `state/account/auth.ts`, `state/publicLinks.ts` and
