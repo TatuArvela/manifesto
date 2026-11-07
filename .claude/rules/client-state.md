@@ -26,6 +26,16 @@ The state is in `packages/client/src/state/`, and uses @preact/signals.
 worked (`false`, or `null` where a value was expected). The callers are JSX handlers, which have no
 place for a `catch`. A rejection there is an unhandled rejection, and the user never sees it.
 
+The steps of the sign-in screens are the one exception, and they are not actions: `login`,
+`register` and `signInWithLink`, and `authRequest` and `requestWithoutSession` under them. They
+reject with an `AuthRequestError` (`authErrors.ts`). Each form awaits them in one `try`, because it
+must tell `TwoFactorRequiredError` and `PasswordChangeRequiredError` from a refusal, and the next
+step depends on which it was. The account requests of `storage/apiRequest.ts` reject with
+`ApiError` for the actions that wrap them, and those actions never reject. Thus, a new function
+that a handler calls without a `try` resolves with what occurred, as `changePassword` and
+`updateEmail` do. The two error types stay separate, because `authErrors.ts` imports nothing (see
+`account/auth.ts` below).
+
 Group work goes through `asBatch` (`failures.ts`). It gives each action a `Batch`. The action counts
 its failure in the batch, and does not show its own toast. The batch reports the total one time.
 Always give the batch explicitly. Never keep it in module state, because two groups can run at the

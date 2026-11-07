@@ -342,6 +342,10 @@ export async function refreshCurrentUser(): Promise<void> {
   }
 }
 
+/**
+ * Makes an account and signs in to it. Throws as `login` does: an
+ * `AuthRequestError` for what the server refused.
+ */
 export async function register(
   username: string,
   password: string,
