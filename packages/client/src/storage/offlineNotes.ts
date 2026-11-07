@@ -7,6 +7,7 @@ import {
   utf8,
 } from "@manifesto/shared";
 import { accountSubkey } from "#/utils/keyMaterial.ts";
+import { idbStore } from "./idbStore.ts";
 import type { StorageKeys } from "./storageKeys.ts";
 
 /**
@@ -94,35 +95,7 @@ function recordKey(owner: string, kind: OfflineKind, id: string): string {
   return `${owner}\n${kind}\n${id}`;
 }
 
-function open(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      req.result.createObjectStore(STORE, { keyPath: "key" });
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-    req.onblocked = () => reject(new Error("blocked"));
-  });
-}
-
-async function run<T>(
-  mode: IDBTransactionMode,
-  use: (store: IDBObjectStore) => IDBRequest<T>,
-): Promise<T> {
-  const db = await open();
-  try {
-    return await new Promise<T>((resolve, reject) => {
-      const tx = db.transaction(STORE, mode);
-      const req = use(tx.objectStore(STORE));
-      tx.oncomplete = () => resolve(req.result);
-      tx.onerror = () => reject(tx.error ?? req.error);
-      tx.onabort = () => reject(tx.error ?? req.error);
-    });
-  } finally {
-    db.close();
-  }
-}
+const { run, runAll } = idbStore(DB_NAME, STORE, { keyPath: "key" });
 
 function isStoredRecord(value: unknown): value is StoredRecord {
   if (!value || typeof value !== "object") return false;
@@ -284,19 +257,9 @@ export async function dropAllOffline(ownerId?: string): Promise<void> {
       .filter((r) => r.owner === ownerId)
       .map((r) => r.key);
     if (keys.length === 0) return;
-    const db = await open();
-    try {
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(STORE, "readwrite");
-        const store = tx.objectStore(STORE);
-        for (const key of keys) store.delete(key);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-        tx.onabort = () => reject(tx.error);
-      });
-    } finally {
-      db.close();
-    }
+    await runAll("readwrite", (store) => {
+      for (const key of keys) store.delete(key);
+    });
   } catch {
     // Nothing from which to remove them.
   }

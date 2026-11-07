@@ -86,6 +86,14 @@ them, sealed, for the next unlock. Browser test files share one IndexedDB. Thus,
 the records of open mode under its own name (`setOpenModeOwnerForTests`). A test that renders the
 composer clears the draft before and after it.
 
+## IndexedDB
+
+Each module that keeps data in IndexedDB (`offlineNotes.ts`, `deviceKeys.ts`, `localImages.ts`,
+`boardImage.ts`, the reminders of `sw.ts`) goes through `storage/idbStore.ts`. Never call
+`indexedDB.open` directly. The helper rejects a blocked open, and closes each connection when a
+different tab asks for a newer version. If a module keeps its own connection, a future upgrade
+waits until all tabs close.
+
 ## ui.ts
 
 **`ui.ts`** contains the UI state signals (`editingNoteId`, `activeView`, `searchQuery`,

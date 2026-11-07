@@ -12,6 +12,7 @@ import {
   sharedTextFromForm,
 } from "./shareTarget.ts";
 import { loadDeviceKeys } from "./storage/deviceKeys.ts";
+import { idbStore } from "./storage/idbStore.ts";
 import { afterPush, readReminderPush, wordedPush } from "./swPush.ts";
 import {
   afterDone,
@@ -124,59 +125,29 @@ const DB_NAME = "manifesto-reminders";
 const STORE = "reminders";
 const PERIODIC_TAG = "check-reminders";
 
-// --- IndexedDB helpers ---
+// --- IndexedDB ---
 
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      req.result.createObjectStore(STORE, { keyPath: "noteId" });
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
+const reminders = idbStore(DB_NAME, STORE, { keyPath: "noteId" });
 
 async function getAll(): Promise<StoredReminder[]> {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, "readonly");
-    const req = tx.objectStore(STORE).getAll();
-    req.onsuccess = () => resolve(req.result as StoredReminder[]);
-    req.onerror = () => reject(req.error);
-  });
+  return (await reminders.run("readonly", (store) =>
+    store.getAll(),
+  )) as StoredReminder[];
 }
 
 async function replaceAll(items: StoredReminder[]): Promise<void> {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, "readwrite");
-    const store = tx.objectStore(STORE);
+  await reminders.runAll("readwrite", (store) => {
     store.clear();
     for (const item of items) store.put(item);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
   });
 }
 
 async function putOne(item: StoredReminder): Promise<void> {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).put(item);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  await reminders.run("readwrite", (store) => store.put(item));
 }
 
 async function deleteOne(noteId: string): Promise<void> {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).delete(noteId);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  await reminders.run("readwrite", (store) => store.delete(noteId));
 }
 
 // --- Firing ---
