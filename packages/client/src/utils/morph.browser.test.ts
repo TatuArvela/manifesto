@@ -1,7 +1,13 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import { defined } from "#/test/defined.ts";
-import { MORPH_MS, morphClip, morphIn, morphOut } from "./morph.ts";
+import {
+  MORPH_MS,
+  MORPH_READY_WAIT_MS,
+  morphClip,
+  morphIn,
+  morphOut,
+} from "./morph.ts";
 
 let panel: HTMLElement | null = null;
 
@@ -92,5 +98,39 @@ describe("on a wider screen", () => {
     // And it still lands on the new layout.
     motion.currentTime = MORPH_MS - 1;
     expect(el.getBoundingClientRect().height).toBeGreaterThan(395);
+  });
+
+  // Milkdown builds its view after the first frame. A grow that started at
+  // once went to the empty panel, and then to the full one.
+  it("holds the grow over the card until its content is ready", async () => {
+    await page.viewport(1024, 700);
+    const el = makePanel();
+    let resolve = () => {};
+    const ready = new Promise<void>((done) => {
+      resolve = done;
+    });
+    morphIn(el, card, { ready });
+    const motion = defined(el.getAnimations()[0]);
+    expect(motion.playState).toBe("paused");
+
+    resolve();
+    await ready;
+    expect(motion.playState).toBe("running");
+  });
+
+  it("does not wait for its content for longer than the limit", async () => {
+    vi.useFakeTimers();
+    try {
+      await page.viewport(1024, 700);
+      const el = makePanel();
+      morphIn(el, card, { ready: new Promise<void>(() => {}) });
+      const motion = defined(el.getAnimations()[0]);
+      expect(motion.playState).toBe("paused");
+
+      vi.advanceTimersByTime(MORPH_READY_WAIT_MS);
+      expect(motion.playState).toBe("running");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

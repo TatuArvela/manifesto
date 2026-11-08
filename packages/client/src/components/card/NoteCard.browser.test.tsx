@@ -156,17 +156,21 @@ describe("NoteCard editing modal", () => {
       show(note);
       editingNoteId.value = note.id;
 
-      const running = await vi.waitFor(() => {
-        const panel = document.querySelector(
+      const panel = await vi.waitFor(() => {
+        const found = document.querySelector(
           '[role="dialog"] .note-sheet-panel',
         );
-        if (!panel) throw new Error("modal is not up");
-        return panel.getAnimations();
+        if (!found) throw new Error("modal is not up");
+        return found;
       });
-      await new Promise((resolve) => requestAnimationFrame(resolve));
 
-      expect(running).toHaveLength(1);
-      expect(running[0]?.playState).toBe("running");
+      // The grow waits over the card for the text of the editor, and then
+      // runs.
+      await vi.waitFor(() => {
+        const running = panel.getAnimations();
+        expect(running).toHaveLength(1);
+        expect(running[0]?.playState).toBe("running");
+      });
     } finally {
       animations.value = previous;
     }

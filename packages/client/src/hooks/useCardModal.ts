@@ -43,7 +43,7 @@ export const CARD_FADE_MS = 150;
  * notification, a `note:updated` that put this note in the trash), and the
  * modal must still close.
  */
-export function useCardModal(isEditing: boolean) {
+export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
   const [showModal, setShowModal] = useState(false);
   const [closing, setClosing] = useState(false);
   const modalRef = useFocusTrap<HTMLDivElement>(showModal && !closing);
@@ -113,6 +113,9 @@ export function useCardModal(isEditing: boolean) {
     }
   }, [isEditing, showModal, closing, morphSource]);
 
+  // What lets a grow that waits for the editor start (`contentReady`).
+  const startGrowRef = useRef<(() => void) | null>(null);
+
   // Layout, not effect. The first frame of the panel must be the frame over the
   // card. If not, it paints one time in its final position first.
   useLayoutEffect(() => {
@@ -120,8 +123,22 @@ export function useCardModal(isEditing: boolean) {
     const panel = panelRef.current;
     if (!showModal || !from || !panel) return;
     morphFromRef.current = null;
-    morphIn(panel, from);
-  }, [showModal]);
+    const ready = waitsForContent
+      ? new Promise<void>((resolve) => {
+          startGrowRef.current = resolve;
+        })
+      : undefined;
+    morphIn(panel, from, { ready });
+  }, [showModal, waitsForContent]);
+
+  /**
+   * The editor in the panel has its text. A grow waits for this, because the
+   * editor builds its view after the first frame (see `morphIn`).
+   */
+  const contentReady = useCallback(() => {
+    startGrowRef.current?.();
+    startGrowRef.current = null;
+  }, []);
 
   useEffect(
     () => () => {
@@ -143,5 +160,6 @@ export function useCardModal(isEditing: boolean) {
     panelRef,
     modalRef,
     closeModal,
+    contentReady,
   };
 }

@@ -192,6 +192,12 @@ jumped to the real one, and the centered dialog moved up under it.
   of the way is done. With the old start, the drawn panel jumped by a quarter of the change.
 - Thus, `reaimedSource` also calculates a new start, from which the curve, at its current progress,
   shows the panel where it is on the screen now. The grow goes on from there.
+- The grow of a card also waits, held transparent over the card, until the editor has its text
+  (`ready`, from `onReady` of `NoteCardEditor`), for a maximum of `MORPH_READY_WAIT_MS`. A grow that
+  started at once went to the empty panel first. That panel is centered lower than a card near the
+  top of the board. Thus, the grow went down, and then back up when the text arrived.
+- When the editor is built again (solo to collab), its text keeps its height (`useHeldHeight` in
+  `NoteEditor`). If not, the panel becomes short and tall again, and a grow follows it.
 
 ## Storage quota
 

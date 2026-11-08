@@ -13,6 +13,7 @@ import { ImageGallery, ImageLightbox } from "#/components/ImageGallery.tsx";
 import { LinkPreviewList } from "#/components/LinkPreviewList.tsx";
 import { PendingUploads } from "#/components/PendingUploads.tsx";
 import { useEditorTicks } from "#/hooks/useEditorTicks.ts";
+import { useHeldHeight } from "#/hooks/useHeldHeight.ts";
 import { useMediaQuery } from "#/hooks/useMediaQuery.ts";
 import { useNotePaste } from "#/hooks/useNotePaste.ts";
 import { t } from "#/i18n/index.ts";
@@ -194,6 +195,9 @@ export function NoteEditor({
   // A paste is in the text when it is inside the editor or the raw textarea,
   // and the text can change.
   const textRef = useRef<HTMLDivElement>(null);
+  // The text keeps its height while the editor is built again (solo to
+  // collab). See `useHeldHeight`.
+  useHeldHeight(textRef, editor !== null);
   const isInText = useCallback(
     (target: EventTarget | null) =>
       !contentLocked &&

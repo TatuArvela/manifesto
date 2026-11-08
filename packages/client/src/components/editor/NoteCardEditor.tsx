@@ -57,9 +57,12 @@ const PEER_RECORD_DELAY_MS = 1000;
 export function NoteCardEditor({
   note,
   onClose,
+  onReady,
 }: {
   note: Note;
   onClose: () => void;
+  /** The editor has its text on the screen. The grow of the panel waits. */
+  onReady?: (() => void) | undefined;
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
@@ -419,7 +422,10 @@ export function NoteCardEditor({
         // the end, and the first tap into the text then had to move it from
         // there. A tap puts it where it touches.
         autoFocus={!isPhoneLayout()}
-        onEditorReady={setEditor}
+        onEditorReady={(instance) => {
+          setEditor(instance);
+          onReady?.();
+        }}
         collab={collab}
         // The server refused the editor of this build. A save of the text over
         // REST would write the reading of this build over the newer content

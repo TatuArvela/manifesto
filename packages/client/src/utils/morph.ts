@@ -108,7 +108,10 @@ export function settle(panel: HTMLElement) {
 export function morphIn(
   panel: HTMLElement,
   from: RectLike,
-  { opaque = false }: { opaque?: boolean } = {},
+  {
+    opaque = false,
+    ready,
+  }: { opaque?: boolean; ready?: Promise<void> | undefined } = {},
 ): void {
   settle(panel);
   const phone = isPhoneLayout();
@@ -129,6 +132,36 @@ export function morphIn(
     easing: EASING,
   });
   keepAimed(panel, motion, frames, from, to);
+  if (ready) holdUntil(motion, ready);
+}
+
+/**
+ * The longest time that a grow waits for its content (`ready`). An editor that
+ * takes longer grows from what is there, and `keepAimed` follows it.
+ */
+export const MORPH_READY_WAIT_MS = 150;
+
+/**
+ * Holds a grow at its first frame (over the source, and transparent unless it
+ * is opaque) until its content is there. Milkdown builds its view after the
+ * first frame. A grow that started at once went to the empty panel first, and
+ * then to the full one. When the empty panel was centered lower than the card,
+ * the grow went down, and then back up. `keepAimed` still follows the panel
+ * while it is held, and at the progress 0 that changes only the end.
+ */
+function holdUntil(motion: Animation, ready: Promise<void>) {
+  motion.pause();
+  let go = () => {
+    go = () => {};
+    clearTimeout(timer);
+    // Cancelled while it waited (a close): it stays cancelled.
+    if (motion.playState === "paused") motion.play();
+  };
+  const timer = setTimeout(() => go(), MORPH_READY_WAIT_MS);
+  void ready.then(
+    () => go(),
+    () => go(),
+  );
 }
 
 /**

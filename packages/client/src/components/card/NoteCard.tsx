@@ -98,7 +98,8 @@ export const NoteCard = memo(function NoteCard({
     panelRef,
     modalRef,
     closeModal,
-  } = useCardModal(open);
+    contentReady,
+  } = useCardModal(open, needsEditor);
   const [openPopover, setOpenPopover] = useState<CardPopoverKind | null>(null);
   // What is drawn: the open popover, or the popover that just closed while it
   // fades.
@@ -492,7 +493,13 @@ export const NoteCard = memo(function NoteCard({
           {!needsEditor ? (
             <NoteReadonlyView note={note} onClose={closeModal} />
           ) : (
-            editor && <editor.NoteCardEditor note={note} onClose={closeModal} />
+            editor && (
+              <editor.NoteCardEditor
+                note={note}
+                onClose={closeModal}
+                onReady={contentReady}
+              />
+            )
           )}
         </NoteSheet>
       )}
