@@ -14,6 +14,8 @@ paths:
   - "packages/client/src/utils/phoneSheets.ts"
   - "packages/client/src/utils/edgeScroll.ts"
   - "packages/client/src/utils/morph.ts"
+  - "packages/client/src/hooks/useCardModal.ts"
+  - "packages/client/src/hooks/useHeldHeight.ts"
   - "packages/client/src/storage/quota.ts"
   - "packages/client/src/styles.css"
   - "packages/client/src/styles/**"
@@ -180,24 +182,37 @@ comments of a note open there).
 - To decide if you use it, call `useMediaQuery(SHEET_ASIDE_QUERY)`. The query must agree with the
   `max-lg:hidden` of the element.
 
-The open and close morph uncovers the panel there with `clip-path`, and does not scale it
-(`utils/morph.ts`). A full screen scaled onto a card makes its text look compressed.
+## The open and close of a note
 
-The panel of an open note becomes taller during the open: Milkdown builds its view after the first
-frame, and images arrive later. Thus, `morphIn` watches the size of the panel while the grow runs,
-and calculates its keyframes again on each change. A grow aimed only at the first, short panel
-jumped to the real one, and the centered dialog moved up under it.
+The editor panel of a note grows out of its card, and shrinks back onto it (`utils/morph.ts`,
+`hooks/useCardModal.ts`). The panel is laid out at its final place from its first frame. The
+animation draws it over a rectangle that moves in a straight line between the card and that place.
+Only transform, clip and opacity change. Thus, the layout inside the editor never changes.
 
-- A new end is not sufficient. The curve is fast at its start, and the text arrives when a quarter
-  of the way is done. With the old start, the drawn panel jumped by a quarter of the change.
-- Thus, `reaimedSource` also calculates a new start, from which the curve, at its current progress,
-  shows the panel where it is on the screen now. The grow goes on from there.
-- The grow of a card also waits, held transparent over the card, until the editor has its text
-  (`ready`, from `onReady` of `NoteCardEditor`), for a maximum of `MORPH_READY_WAIT_MS`. A grow that
-  started at once went to the empty panel first. That panel is centered lower than a card near the
-  top of the board. Thus, the grow went down, and then back up when the text arrived.
+- **Nothing fades on a card.** The panel is opaque, and at both ends it covers the card exactly.
+  The card hides when the grow starts, and shows when the shrink ends (`note-morphed`, a full
+  `clip-path`). Many small fades with different times made the open look unstable. The card hides
+  with a clip, because its `opacity` has a transition, and an element with `visibility: hidden`
+  cannot take the focus that goes back to it at the close.
+- **No squash.** On a wider screen, the panel is scaled by one factor, the larger of the two ratios,
+  and a clip cuts what does not fit (`morphFrame`). With two factors, the text of a usual card was
+  squashed to 0.56 of its width and 0.43 of its height. On a phone, the panel is only uncovered
+  from the card out to the screen, with no scale. Even one factor made its text very small.
+- **A straight line.** Scale and clip together do not move linearly. Thus, the keyframes are points
+  on the line (`pathFrames`), and the curve of the run moves along them.
+- **The wait for the text.** Milkdown builds its view after the first frame. The grow of a card waits
+  over the card until the editor reports its text (`onReady` of `NoteCardEditor`), for a maximum of
+  `MORPH_READY_WAIT_MS`. A grow that started at once went to the empty panel first. That panel is
+  centered lower than a card near the top of the board. Thus, the grow went down, and then back up.
+- **Size changes.** `keepAimed` watches the panel. During a run, a new size starts a new line from
+  where the panel is drawn now, at the current progress. With the old start and only a new end, the
+  panel jumped. For `MORPH_FOLLOW_MS` after the grow, a new size runs from the old layout to the new
+  one (images, previews and the shared document arrive late). Not on a phone, where a taller sheet
+  does not move what is on the screen. `settle` stops the watch, so a close is never aimed again.
 - When the editor is built again (solo to collab), its text keeps its height (`useHeldHeight` in
-  `NoteEditor`). If not, the panel becomes short and tall again, and a grow follows it.
+  `NoteEditor`). If not, the panel becomes short and tall again.
+- The composer grows out of its pad with the same code. It fades in over its first part, because
+  the pad does not hide at once.
 
 ## Storage quota
 

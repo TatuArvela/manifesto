@@ -287,8 +287,11 @@
     }
   }
 
-  /* While the card is dragged, the card is hidden. Thus, its shadow too. */
-  &:has(> .note-dragging) > .note-curl-shadow {
+  /*
+   * While the card is dragged, or the editor is drawn over it, the card is
+   * hidden. Thus, its shadow too.
+   */
+  &:has(> .note-dragging, > .note-morphed) > .note-curl-shadow {
     visibility: hidden;
   }
 
@@ -298,4 +301,16 @@
     > .note-curl-shadow {
     rotate: var(--note-tilt, 0deg);
   }
+}
+
+/*
+ * The card while the editor of the note is drawn over it (`cardHidden` in
+ * hooks/useCardModal.ts): from the start of the grow to the end of the shrink.
+ * A clip, not `opacity` or `visibility`. The card has a transition on
+ * `opacity`, and it must hide and show at once, in the frame in which the panel
+ * covers it exactly. Focus goes back to the card when the close starts, and an
+ * element with `visibility: hidden` cannot take it.
+ */
+.note-morphed {
+  clip-path: inset(50%);
 }

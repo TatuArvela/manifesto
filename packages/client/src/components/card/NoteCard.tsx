@@ -7,7 +7,7 @@ import { autoNoteColorMap, noteColorMap, noteText } from "#/colors.ts";
 import { useEditor } from "#/components/editor/lazyEditor.ts";
 import { NoteSheet } from "#/components/NoteSheet.tsx";
 import { CARD_POPOVER_EXIT_MS } from "#/components/Popover.tsx";
-import { CARD_FADE_MS, useCardModal } from "#/hooks/useCardModal.ts";
+import { useCardModal } from "#/hooks/useCardModal.ts";
 import { useNoteImages } from "#/hooks/useNoteImages.ts";
 import { usePresence } from "#/hooks/usePresence.ts";
 import { useIsTouch, useTouchGesture } from "#/hooks/useTouchGesture.ts";
@@ -28,7 +28,6 @@ import {
 import { cardName } from "#/utils/cardName.ts";
 import { headerImageCount } from "#/utils/inlineImages.ts";
 import { contentIsOnlyPreviewUrls } from "#/utils/linkPreview.ts";
-import { MORPH_MS } from "#/utils/morph.ts";
 import { noteTilt } from "#/utils/noteTilt.ts";
 import {
   type CardAction,
@@ -94,6 +93,7 @@ export const NoteCard = memo(function NoteCard({
     showModal,
     closing,
     morphing,
+    cardHidden,
     cardRef,
     panelRef,
     modalRef,
@@ -330,9 +330,11 @@ export const NoteCard = memo(function NoteCard({
             complexShadows.value
               ? "note-shadow"
               : "shadow-sm group-hover:shadow-lg group-data-popover-open:shadow-lg",
-            // Gone while it morphs into the editor, because the editor is the
-            // card. Otherwise, a ghost of it, to show where the note is.
-            open && !closing && (morphing ? "opacity-0" : "opacity-20"),
+            // Gone while the editor is drawn over it, because the editor is
+            // the card then. Otherwise, a ghost of it, to show where the note
+            // is.
+            cardHidden && "note-morphed",
+            open && !closing && !morphing && "opacity-20",
             noteSize.value === "square" &&
               viewMode.value === "list" &&
               "w-full",
@@ -344,8 +346,6 @@ export const NoteCard = memo(function NoteCard({
           )}
           style={{
             aspectRatio: noteSize.value === "square" ? "1/1" : "auto",
-            transitionDelay:
-              closing && morphing ? `${MORPH_MS - CARD_FADE_MS}ms` : undefined,
           }}
           draggable={!isTouch && draggable}
           onPointerDown={(e) => {

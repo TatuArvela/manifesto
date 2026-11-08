@@ -26,13 +26,6 @@ import { useFocusTrap } from "./useFocusTrap.ts";
 const MODAL_CLOSE_MS = 100;
 
 /**
- * How long the card takes to fade (`note-card-transition`). At the open, it
- * fades out while the editor grows off it. At the close, it waits, so that it
- * fades back in over the end of the morph, as the same fade played backwards.
- */
-export const CARD_FADE_MS = 150;
-
-/**
  * The editor modal of a card: if it is open, if it is closing, and if it grows
  * out of (and shrinks back onto) the card or fades in place.
  *
@@ -59,6 +52,10 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
   // If the editor grows out of, or shrinks back onto, the card, and does not
   // fade in place. Only where you can see the card.
   const [morphing, setMorphing] = useState(false);
+  // A grow that waits over the card for the text of the editor. The card stays
+  // until it starts. If the card went at the open, the screen was empty there
+  // while the grow waited.
+  const [growHeld, setGrowHeld] = useState(false);
 
   /**
    * The rectangle of the card, if you can see the editor morph to or from it.
@@ -84,6 +81,7 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
       } else if (!showModal) {
         morphFromRef.current = morphSource();
         setMorphing(morphFromRef.current !== null);
+        setGrowHeld(morphFromRef.current !== null && waitsForContent);
       }
       setShowModal(true);
       setClosing(false);
@@ -106,12 +104,12 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
     if (panel && to) {
       // Down after the morph is complete. The timer is only a backstop, for a
       // tab in the background, where animations are throttled or never run.
-      void morphOut(panel, to).then(takeDown);
+      void morphOut(panel, to, { fade: false }).then(takeDown);
       closeTimerRef.current = setTimeout(takeDown, MORPH_MS + 250);
     } else {
       closeTimerRef.current = setTimeout(takeDown, MODAL_CLOSE_MS);
     }
-  }, [isEditing, showModal, closing, morphSource]);
+  }, [isEditing, showModal, closing, morphSource, waitsForContent]);
 
   // What lets a grow that waits for the editor start (`contentReady`).
   const startGrowRef = useRef<(() => void) | null>(null);
@@ -128,7 +126,11 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
           startGrowRef.current = resolve;
         })
       : undefined;
-    morphIn(panel, from, { ready });
+    morphIn(panel, from, {
+      opaque: true,
+      ready,
+      onStart: () => setGrowHeld(false),
+    });
   }, [showModal, waitsForContent]);
 
   /**
@@ -156,6 +158,10 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
     showModal,
     closing,
     morphing,
+    // The card is the panel while the panel is drawn over it, from the start
+    // of the grow to the end of the shrink. Nothing fades: the panel covers
+    // the card exactly at both ends, and the card hides and shows at once.
+    cardHidden: showModal && morphing && !growHeld,
     cardRef,
     panelRef,
     modalRef,
