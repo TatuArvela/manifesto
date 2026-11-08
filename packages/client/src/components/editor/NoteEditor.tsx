@@ -195,9 +195,11 @@ export function NoteEditor({
   // A paste is in the text when it is inside the editor or the raw textarea,
   // and the text can change.
   const textRef = useRef<HTMLDivElement>(null);
-  // The text keeps its height while the editor is built again (solo to
-  // collab). See `useHeldHeight`.
+  // The text and the formatting bar keep their height while the editor is
+  // built again (solo to collab). See `useHeldHeight`.
   useHeldHeight(textRef, editor !== null);
+  const toolbarSlotRef = useRef<HTMLDivElement>(null);
+  useHeldHeight(toolbarSlotRef, editor !== null);
   const isInText = useCallback(
     (target: EventTarget | null) =>
       !contentLocked &&
@@ -348,17 +350,24 @@ export function NoteEditor({
           />
         )}
 
-        {/* Shown or hidden for every note at once, from Settings. */}
-        {!disabled && !contentLocked && formattingToolbar.value && editor && (
-          <FormattingToolbar
-            editor={editor}
-            rawTextarea={rawTextarea}
-            tick={tick}
-            disabled={disabled}
-            onAddLink={(url) => onAddLinkPreviews([url])}
-            images={images}
-            imageAlts={imageAlts}
-          />
+        {/* Shown or hidden for every note at once, from Settings. Its place
+            keeps its height while the editor is built again, as the text
+            does. `flow-root` keeps the margin of the bar inside it, so that the
+            held height includes it. */}
+        {!disabled && !contentLocked && formattingToolbar.value && (
+          <div ref={toolbarSlotRef} class="flow-root">
+            {editor && (
+              <FormattingToolbar
+                editor={editor}
+                rawTextarea={rawTextarea}
+                tick={tick}
+                disabled={disabled}
+                onAddLink={(url) => onAddLinkPreviews([url])}
+                images={images}
+                imageAlts={imageAlts}
+              />
+            )}
+          </div>
         )}
 
         {/* Grows to fill a short note's screen, so a tap below the text

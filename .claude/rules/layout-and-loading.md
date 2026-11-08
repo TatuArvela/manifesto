@@ -212,8 +212,8 @@ Only transform, clip and opacity change. Thus, the layout inside the editor neve
   panel jumped. For `MORPH_FOLLOW_MS` after the grow, a new size runs from the old layout to the new
   one (images, previews and the shared document arrive late). Not on a phone, where a taller sheet
   does not move what is on the screen. `settle` stops the watch, so a close is never aimed again.
-- When the editor is built again (solo to collab), its text keeps its height (`useHeldHeight` in
-  `NoteEditor`). If not, the panel becomes short and tall again, and a grow scales the short panel
+- When the editor is built again (solo to collab), its text and the place of the formatting bar keep
+  their height (`useHeldHeight` in `NoteEditor`). If not, the panel becomes short and tall again, and a grow scales the short panel
   up to fill its path. The hook measures the height when the editor becomes ready, not only from a
   `ResizeObserver`: on a server, the shared document can arrive before the first report.
 - The composer grows out of its pad with the same code. It fades in over its first part, because
