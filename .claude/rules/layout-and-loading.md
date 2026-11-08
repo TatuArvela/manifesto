@@ -224,8 +224,11 @@ the editor never changes.
   does not move what is on the screen. `settle` stops the watch, so a close is never aimed again.
 - When the editor is built again (solo to collab), its text and the place of the formatting bar keep
   their height (`useHeldHeight` in `NoteEditor`). If not, the panel becomes short and tall again,
-  and a grow scales the short panel up to fill its path. The hook measures the height when the editor becomes ready, not only from a
-  `ResizeObserver`: on a server, the shared document can arrive before the first report.
+  and a grow follows it. The removal of the old content starts the hold: a `MutationObserver`
+  reports it in a microtask before the paint, and the element gets the last height that a
+  `ResizeObserver` recorded. A hold from the state of the editor came one render late, and a hold
+  from the teardown of the old editor came after Preact had removed its content. A new editor (a
+  different identity, not only a present one) releases the hold.
 - The composer grows out of its pad with the same code. It fades in over its first part, because
   the pad does not hide at once.
 

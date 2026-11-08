@@ -197,9 +197,8 @@ export function NoteEditor({
   const textRef = useRef<HTMLDivElement>(null);
   // The text and the formatting bar keep their height while the editor is
   // built again (solo to collab). See `useHeldHeight`.
-  useHeldHeight(textRef, editor !== null);
   const toolbarSlotRef = useRef<HTMLDivElement>(null);
-  useHeldHeight(toolbarSlotRef, editor !== null);
+  useHeldHeight([textRef, toolbarSlotRef], editor);
   const isInText = useCallback(
     (target: EventTarget | null) =>
       !contentLocked &&
