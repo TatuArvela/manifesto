@@ -156,13 +156,15 @@ describe("on a wider screen", () => {
     // The card stays until the grow moves, and the panel does not cover it:
     // the two change places only when the grow starts.
     expect(started).toBe(false);
-    expect(getComputedStyle(el).opacity).toBe("0");
+    expect(el.style.opacity).toBe("0");
 
     resolve();
     await ready;
     expect(motion.playState).toBe("running");
     expect(started).toBe(true);
-    expect(getComputedStyle(el).opacity).toBe("1");
+    // The wait is over. A panel that is not opaque still fades in with its
+    // keyframes from here.
+    expect(el.style.opacity).toBe("");
   });
 
   it("does not wait for its content for longer than the limit", async () => {
