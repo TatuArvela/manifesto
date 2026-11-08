@@ -111,19 +111,64 @@ export function morphIn(
   { opaque = false }: { opaque?: boolean } = {},
 ): void {
   settle(panel);
-  const to = panel.getBoundingClientRect();
-  const [start, end] = isPhoneLayout()
-    ? [{ clipPath: morphClip(from, to) }, { clipPath: morphClip(to, to) }]
-    : [{ transform: morphTransform(from, to) }, { transform: "none" }];
-  panel.style.transformOrigin = "0 0";
-  panel.animate(
-    [
+  const phone = isPhoneLayout();
+  const frames = (to: RectLike): Keyframe[] => {
+    const [start, end] = phone
+      ? [{ clipPath: morphClip(from, to) }, { clipPath: morphClip(to, to) }]
+      : [{ transform: morphTransform(from, to) }, { transform: "none" }];
+    return [
       { ...start, opacity: opaque ? 1 : 0 },
       { opacity: 1, offset: FADE_SHARE },
       { ...end, opacity: 1 },
-    ],
-    { duration: MORPH_MS, easing: EASING },
-  );
+    ];
+  };
+  const to = panel.getBoundingClientRect();
+  panel.style.transformOrigin = "0 0";
+  const motion = panel.animate(frames(to), {
+    duration: MORPH_MS,
+    easing: EASING,
+  });
+  keepAimed(panel, motion, frames, to);
+}
+
+/**
+ * Aims a grow again at the panel each time that its size changes while the
+ * grow runs. The panel opens before its content is complete: Milkdown builds
+ * its view after the first frame, and images and previews arrive later. The
+ * centered dialog then becomes taller and moves up. A transform calculated only
+ * at the start went to the old, smaller rectangle, and then jumped to the real
+ * one. Thus, the scale did not move in one smooth line.
+ *
+ * A `ResizeObserver` reports after layout and before paint. Thus, the frame
+ * that shows the new size already has the new keyframes. The animation keeps
+ * its time, and goes on from the same point of its curve. The panel is
+ * measured with no keyframes, because its box with the transform applied is
+ * not its layout.
+ */
+function keepAimed(
+  panel: HTMLElement,
+  motion: Animation,
+  frames: (to: RectLike) => Keyframe[],
+  first: RectLike,
+) {
+  const effect = motion.effect;
+  if (!(effect instanceof KeyframeEffect)) return;
+  if (typeof ResizeObserver !== "function") return;
+  let aim = first;
+  const observer = new ResizeObserver(() => {
+    // The size of the layout box. A transform or a clip does not change it.
+    const moved =
+      Math.abs(panel.offsetWidth - aim.width) >= 1 ||
+      Math.abs(panel.offsetHeight - aim.height) >= 1;
+    if (!moved) return;
+    effect.setKeyframes([]);
+    aim = panel.getBoundingClientRect();
+    effect.setKeyframes(frames(aim));
+  });
+  observer.observe(panel);
+  const stop = () => observer.disconnect();
+  // Cancelled (`settle`, a close during the open) or complete.
+  motion.finished.then(stop, stop);
 }
 
 /**

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { page } from "vitest/browser";
+import { defined } from "#/test/defined.ts";
 import { morphClip, morphIn, morphOut } from "./morph.ts";
 
 let panel: HTMLElement | null = null;
@@ -61,5 +62,29 @@ describe("on a wider screen", () => {
     morphIn(el, card);
     expect(animated(el)).toContain("transform");
     expect(animated(el)).not.toContain("clipPath");
+  });
+
+  // The text of the editor arrives after the first frame. A grow aimed only
+  // at the first, shorter panel jumped when the panel became taller.
+  it("aims the grow again at a panel that becomes taller during it", async () => {
+    await page.viewport(1024, 700);
+    const el = makePanel();
+    el.style.cssText =
+      "position:fixed;left:200px;top:100px;width:600px;height:200px";
+    morphIn(el, card);
+    const startTransform = () => {
+      const effect = defined(el.getAnimations()[0]).effect as KeyframeEffect;
+      return String(effect.getKeyframes()[0]?.transform);
+    };
+    expect(startTransform()).toContain("scale(0.27");
+    expect(startTransform()).toContain(", 0.6)");
+
+    el.style.height = "400px";
+    await new Promise((done) => requestAnimationFrame(() => done(null)));
+    await new Promise((done) => requestAnimationFrame(() => done(null)));
+
+    // 120 / 400: the card over the new height, not over the old one.
+    expect(startTransform()).toContain(", 0.3)");
+    expect(el.getAnimations()).toHaveLength(1);
   });
 });

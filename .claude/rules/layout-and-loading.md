@@ -183,6 +183,11 @@ comments of a note open there).
 The open and close morph uncovers the panel there with `clip-path`, and does not scale it
 (`utils/morph.ts`). A full screen scaled onto a card makes its text look compressed.
 
+The panel of an open note becomes taller during the open: Milkdown builds its view after the first
+frame, and images arrive later. Thus, `morphIn` watches the size of the panel while the grow runs,
+and calculates its keyframes again on each change. A grow aimed only at the first, short panel
+jumped to the real one, and the centered dialog moved up under it.
+
 ## Storage quota
 
 `storage/quota.ts` reports a refusal of browser storage, and nothing more. It has no reference to the
