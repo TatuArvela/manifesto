@@ -188,6 +188,11 @@ frame, and images arrive later. Thus, `morphIn` watches the size of the panel wh
 and calculates its keyframes again on each change. A grow aimed only at the first, short panel
 jumped to the real one, and the centered dialog moved up under it.
 
+- A new end is not sufficient. The curve is fast at its start, and the text arrives when a quarter
+  of the way is done. With the old start, the drawn panel jumped by a quarter of the change.
+- Thus, `reaimedSource` also calculates a new start, from which the curve, at its current progress,
+  shows the panel where it is on the screen now. The grow goes on from there.
+
 ## Storage quota
 
 `storage/quota.ts` reports a refusal of browser storage, and nothing more. It has no reference to the

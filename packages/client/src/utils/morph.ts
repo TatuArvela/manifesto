@@ -112,10 +112,10 @@ export function morphIn(
 ): void {
   settle(panel);
   const phone = isPhoneLayout();
-  const frames = (to: RectLike): Keyframe[] => {
+  const frames = (source: RectLike, to: RectLike): Keyframe[] => {
     const [start, end] = phone
-      ? [{ clipPath: morphClip(from, to) }, { clipPath: morphClip(to, to) }]
-      : [{ transform: morphTransform(from, to) }, { transform: "none" }];
+      ? [{ clipPath: morphClip(source, to) }, { clipPath: morphClip(to, to) }]
+      : [{ transform: morphTransform(source, to) }, { transform: "none" }];
     return [
       { ...start, opacity: opaque ? 1 : 0 },
       { opacity: 1, offset: FADE_SHARE },
@@ -124,11 +124,54 @@ export function morphIn(
   };
   const to = panel.getBoundingClientRect();
   panel.style.transformOrigin = "0 0";
-  const motion = panel.animate(frames(to), {
+  const motion = panel.animate(frames(from, to), {
     duration: MORPH_MS,
     easing: EASING,
   });
-  keepAimed(panel, motion, frames, to);
+  keepAimed(panel, motion, frames, from, to);
+}
+
+/**
+ * The rectangle that a morph from `from` to `to` shows at `progress` (after
+ * the curve). The same for both kinds: the transform moves the corner and
+ * scales the size in proportion, and the insets of the clip change in
+ * proportion.
+ */
+export function shownRect(
+  from: RectLike,
+  to: RectLike,
+  progress: number,
+): RectLike {
+  const mix = (a: number, b: number) => a + (b - a) * progress;
+  return {
+    left: mix(from.left, to.left),
+    top: mix(from.top, to.top),
+    width: mix(from.width, to.width),
+    height: mix(from.height, to.height),
+  };
+}
+
+/**
+ * The start from which a morph to `to` shows `shown` at `progress`. Thus, a
+ * morph that changes its end goes on from the place where it is on the screen,
+ * and does not jump. Its first keyframe is then a rectangle that was never on
+ * the screen, possibly with a negative size, but the animation never goes back
+ * to that time. Near the end of the curve, the rest of the way is the panel
+ * itself.
+ */
+export function reaimedSource(
+  shown: RectLike,
+  to: RectLike,
+  progress: number,
+): RectLike {
+  if (progress >= 0.999) return to;
+  const back = (s: number, t: number) => (s - t * progress) / (1 - progress);
+  return {
+    left: back(shown.left, to.left),
+    top: back(shown.top, to.top),
+    width: back(shown.width, to.width),
+    height: back(shown.height, to.height),
+  };
 }
 
 /**
@@ -137,33 +180,44 @@ export function morphIn(
  * its view after the first frame, and images and previews arrive later. The
  * centered dialog then becomes taller and moves up. A transform calculated only
  * at the start went to the old, smaller rectangle, and then jumped to the real
- * one. Thus, the scale did not move in one smooth line.
+ * one.
+ *
+ * Only a new end is not sufficient. The curve moves fast at its start, and
+ * when the text arrived (approximately 30 ms in), a quarter of the way was
+ * already done. With the same start and a new end, the drawn panel jumped by a
+ * quarter of the change. Thus, the start changes too (`reaimedSource`), and the
+ * panel goes on from where it is on the screen to its new place.
  *
  * A `ResizeObserver` reports after layout and before paint. Thus, the frame
  * that shows the new size already has the new keyframes. The animation keeps
- * its time, and goes on from the same point of its curve. The panel is
- * measured with no keyframes, because its box with the transform applied is
- * not its layout.
+ * its time and its curve. The panel is measured with no keyframes, because its
+ * box with the transform applied is not its layout.
  */
 function keepAimed(
   panel: HTMLElement,
   motion: Animation,
-  frames: (to: RectLike) => Keyframe[],
-  first: RectLike,
+  frames: (source: RectLike, to: RectLike) => Keyframe[],
+  from: RectLike,
+  to: RectLike,
 ) {
   const effect = motion.effect;
   if (!(effect instanceof KeyframeEffect)) return;
   if (typeof ResizeObserver !== "function") return;
-  let aim = first;
+  let source = from;
+  let aim = to;
   const observer = new ResizeObserver(() => {
     // The size of the layout box. A transform or a clip does not change it.
     const moved =
       Math.abs(panel.offsetWidth - aim.width) >= 1 ||
       Math.abs(panel.offsetHeight - aim.height) >= 1;
     if (!moved) return;
+    // The progress after the curve, which is what the keyframes interpolate.
+    const progress = effect.getComputedTiming().progress ?? 0;
+    const shown = shownRect(source, aim, progress);
     effect.setKeyframes([]);
     aim = panel.getBoundingClientRect();
-    effect.setKeyframes(frames(aim));
+    source = reaimedSource(shown, aim, progress);
+    effect.setKeyframes(frames(source, aim));
   });
   observer.observe(panel);
   const stop = () => observer.disconnect();

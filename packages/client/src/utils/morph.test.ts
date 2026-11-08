@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { isMorphSource, morphTransform } from "./morph.ts";
+import {
+  isMorphSource,
+  morphTransform,
+  reaimedSource,
+  shownRect,
+} from "./morph.ts";
 
 describe("morphTransform", () => {
   it("moves and scales a laid-out rectangle onto the source", () => {
@@ -42,5 +47,27 @@ describe("isMorphSource", () => {
     expect(
       isMorphSource({ left: 10, top: 10, width: 0, height: 0 }, viewport),
     ).toBe(false);
+  });
+});
+
+describe("reaimedSource", () => {
+  const card = { left: 40, top: 300, width: 200, height: 100 };
+  const short = { left: 100, top: 200, width: 800, height: 200 };
+  const tall = { left: 100, top: 100, width: 800, height: 400 };
+
+  it("keeps the rectangle on the screen when the end changes", () => {
+    const shown = shownRect(card, short, 0.25);
+    const source = reaimedSource(shown, tall, 0.25);
+    const again = shownRect(source, tall, 0.25);
+    expect(again.left).toBeCloseTo(shown.left);
+    expect(again.top).toBeCloseTo(shown.top);
+    expect(again.width).toBeCloseTo(shown.width);
+    expect(again.height).toBeCloseTo(shown.height);
+    // The rest of the way goes to the new end.
+    expect(shownRect(source, tall, 1)).toEqual(tall);
+  });
+
+  it("does not divide by the end of the curve", () => {
+    expect(reaimedSource(short, tall, 1)).toBe(tall);
   });
 });

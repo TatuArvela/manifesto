@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { page } from "vitest/browser";
 import { defined } from "#/test/defined.ts";
-import { morphClip, morphIn, morphOut } from "./morph.ts";
+import { MORPH_MS, morphClip, morphIn, morphOut } from "./morph.ts";
 
 let panel: HTMLElement | null = null;
 
@@ -64,27 +64,33 @@ describe("on a wider screen", () => {
     expect(animated(el)).not.toContain("clipPath");
   });
 
-  // The text of the editor arrives after the first frame. A grow aimed only
-  // at the first, shorter panel jumped when the panel became taller.
-  it("aims the grow again at a panel that becomes taller during it", async () => {
+  // The text of the editor arrives after the first frame, when the grow is
+  // already a part of the way. A grow aimed at the first, shorter panel
+  // jumped when the panel became taller, and so did one that only got a new
+  // end.
+  it("goes on from where it is when the panel becomes taller", async () => {
     await page.viewport(1024, 700);
     const el = makePanel();
     el.style.cssText =
       "position:fixed;left:200px;top:100px;width:600px;height:200px";
     morphIn(el, card);
-    const startTransform = () => {
-      const effect = defined(el.getAnimations()[0]).effect as KeyframeEffect;
-      return String(effect.getKeyframes()[0]?.transform);
-    };
-    expect(startTransform()).toContain("scale(0.27");
-    expect(startTransform()).toContain(", 0.6)");
+    const motion = defined(el.getAnimations()[0]);
+    motion.pause();
+    motion.currentTime = 60;
+    const before = el.getBoundingClientRect();
 
     el.style.height = "400px";
     await new Promise((done) => requestAnimationFrame(() => done(null)));
     await new Promise((done) => requestAnimationFrame(() => done(null)));
 
-    // 120 / 400: the card over the new height, not over the old one.
-    expect(startTransform()).toContain(", 0.3)");
+    const after = el.getBoundingClientRect();
     expect(el.getAnimations()).toHaveLength(1);
+    expect(after.top).toBeCloseTo(before.top, 0);
+    expect(after.height).toBeCloseTo(before.height, 0);
+    expect(after.width).toBeCloseTo(before.width, 0);
+
+    // And it still lands on the new layout.
+    motion.currentTime = MORPH_MS - 1;
+    expect(el.getBoundingClientRect().height).toBeGreaterThan(395);
   });
 });
