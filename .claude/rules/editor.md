@@ -76,6 +76,11 @@ Custom ProseMirror behavior is in `packages/client/src/extensions/`:
     (`tableBar`) shows them. For the keyboard, the Table menu of the toolbar shows them. It refuses
     each change that makes a table that Markdown cannot write (no header row, no row under it, no
     column).
+- The bars over the text (`checklistBar`, `tableBar`, `linkTooltip`) are placed inside
+  `.milkdown-editor` from screen rectangles. They convert them with `rectInHost` (`hostRect.ts`),
+  never with a plain difference. They place themselves when the editor gets focus, which is during
+  the grow of the panel, while it is scaled down. A plain difference put the checklist bar at half
+  its height in the note.
 - `editorKeys`: the keys that the presets bind incorrectly. It binds them again in the `config` of
   the editor (which runs before a preset reads its `…Keymap` ctx), or overrides them with its own
   keymap. That keymap runs before the keymaps of all presets, because Milkdown puts its own keymaps

@@ -5,6 +5,7 @@ import { type EditorState, Plugin } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { t } from "#/i18n/index.ts";
 import { openExternalLink } from "#/state/externalLinks.ts";
+import { rectInHost } from "./hostRect.ts";
 
 /**
  * Links in the editor. A click puts the caret in the link, as on all other
@@ -96,10 +97,9 @@ class LinkTooltipView {
     this.href = link.href;
     this.label.textContent = t("editor.openLink");
     this.button.title = link.href;
-    const start = this.view.coordsAtPos(link.from);
-    const box = host.getBoundingClientRect();
-    this.el.style.left = `${Math.max(0, start.left - box.left)}px`;
-    this.el.style.top = `${start.bottom - box.top + 6}px`;
+    const start = rectInHost(host, this.view.coordsAtPos(link.from));
+    this.el.style.left = `${Math.max(0, start.left)}px`;
+    this.el.style.top = `${start.bottom + 6}px`;
     this.el.dataset.open = "true";
   }
 
