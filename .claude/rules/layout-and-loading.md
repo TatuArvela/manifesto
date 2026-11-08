@@ -227,8 +227,10 @@ the editor never changes.
   and a grow follows it. The removal of the old content starts the hold: a `MutationObserver`
   reports it in a microtask before the paint, and the element gets the last height that a
   `ResizeObserver` recorded. A hold from the state of the editor came one render late, and a hold
-  from the teardown of the old editor came after Preact had removed its content. A new editor (a
-  different identity, not only a present one) releases the hold.
+  from the teardown of the old editor came after Preact had removed its content. An inert copy of
+  the removed content also stays in its place, so the text does not blink. A new editor (a different
+  identity, not only a present one) releases the hold and removes the copies. One removal can come
+  as several mutation records, so the hook groups them by element first.
 - The composer grows out of its pad with the same code. It fades in over its first part, because
   the pad does not hide at once.
 

@@ -83,4 +83,25 @@ describe("useHeldHeight", () => {
     expect(wrap().style.minHeight).toBe("");
     expect(wrap().offsetHeight).toBe(40);
   });
+
+  // With only the height kept, the text was empty for the frames that the new
+  // editor took to build.
+  it("leaves an inert copy of the old content until the new editor", async () => {
+    const solo = {};
+    render(<Probe build="solo" height={120} editor={solo} />, host);
+    await flush();
+    render(<Probe build="collab" height={0} editor={solo} />, host);
+    await Promise.resolve();
+
+    const copy = wrap().querySelector<HTMLElement>("[data-held-copy]");
+    expect(copy?.inert).toBe(true);
+    expect(copy?.getAttribute("aria-hidden")).toBe("true");
+
+    render(<Probe build="collab" height={80} editor={{}} />, host);
+    await flush();
+    expect(wrap().querySelector("[data-held-copy]")).toBeNull();
+    // The removal of the copy is not a new rebuild.
+    await Promise.resolve();
+    expect(wrap().style.minHeight).toBe("");
+  });
 });

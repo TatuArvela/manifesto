@@ -29,6 +29,8 @@ interface Watch {
  * presence: when the state goes to null and to the new editor in one render,
  * only the identity changes. The elements that a wrapper holds (the text, the
  * place of the formatting bar) never lose their own children otherwise.
+ *
+ * An inert copy of the old content also stays in its place (`keepCopies`).
  */
 export function useHeldHeight(
   refs: RefObject<HTMLElement | null>[],
@@ -51,13 +53,23 @@ export function useHeldHeight(
         }
       }),
       removals: new MutationObserver((records) => {
+        // By element first: one removal can come as several records (the
+        // hidden raw textarea, then the editor), and only the first one would
+        // have found the element not held yet.
+        const removals = new Map<HTMLElement, Node[]>();
         for (const { target, removedNodes } of records) {
-          if (removedNodes.length === 0 || !(target instanceof HTMLElement)) {
-            continue;
-          }
+          if (!(target instanceof HTMLElement)) continue;
+          const removed = [...removedNodes].filter(
+            (node) => !(node instanceof HTMLElement && isCopy(node)),
+          );
+          if (removed.length === 0) continue;
+          removals.set(target, [...(removals.get(target) ?? []), ...removed]);
+        }
+        for (const [target, removed] of removals) {
           const height = last.get(target) ?? 0;
           if (height > 0 && !target.style.minHeight) {
             target.style.minHeight = `${height}px`;
+            keepCopies(target, removed);
           }
         }
       }),
@@ -90,7 +102,60 @@ export function useHeldHeight(
     if (!editor) return;
     for (const ref of refsRef.current) {
       const el = ref.current;
-      if (el) el.style.minHeight = "";
+      if (el) release(el);
     }
   }, [editor]);
+}
+
+const COPY = "heldCopy";
+const RELATIVE = "heldRelative";
+
+function isCopy(el: HTMLElement): boolean {
+  return el.dataset[COPY] !== undefined;
+}
+
+/**
+ * Leaves an inert copy of the content that just went in its place, until the
+ * new editor is there. With only the height kept, the text was empty for the
+ * frames that the new editor took to build: a blink in the middle of the open.
+ * When the observer reports, the removed content still has its text, because
+ * the old editor is destroyed only after that.
+ */
+function keepCopies(target: HTMLElement, removed: Node[]) {
+  const copies: HTMLElement[] = [];
+  for (const node of removed) {
+    if (!(node instanceof HTMLElement) || node.style.display === "none") {
+      continue;
+    }
+    const copy = node.cloneNode(true) as HTMLElement;
+    copy.inert = true;
+    copy.setAttribute("aria-hidden", "true");
+    copy.dataset[COPY] = "";
+    Object.assign(copy.style, {
+      position: "absolute",
+      top: "0",
+      left: "0",
+      right: "0",
+      pointerEvents: "none",
+    });
+    copies.push(copy);
+  }
+  if (copies.length === 0) return;
+  if (getComputedStyle(target).position === "static") {
+    target.style.position = "relative";
+    target.dataset[RELATIVE] = "";
+  }
+  target.append(...copies);
+}
+
+/** Gives an element back its own height, and removes the copies in it. */
+function release(el: HTMLElement) {
+  el.style.minHeight = "";
+  for (const child of [...el.children]) {
+    if (child instanceof HTMLElement && isCopy(child)) child.remove();
+  }
+  if (el.dataset[RELATIVE] !== undefined) {
+    el.style.position = "";
+    delete el.dataset[RELATIVE];
+  }
 }
