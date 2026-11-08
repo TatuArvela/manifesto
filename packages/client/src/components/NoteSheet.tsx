@@ -93,7 +93,13 @@ export function NoteSheet({
             ref={panelRef ?? null}
             class="note-sheet-panel pointer-events-auto w-full sm:min-w-0 sm:max-w-2xl sm:max-h-[calc(100dvh-2rem)] sm:overflow-y-auto sm:overscroll-contain"
           >
-            <SheetAside.Provider value={aside}>{children}</SheetAside.Provider>
+            {/* The content, which a morph scales back while it scales the
+                panel. Thus, the text keeps its size (utils/morph.ts). */}
+            <div class="note-sheet-content">
+              <SheetAside.Provider value={aside}>
+                {children}
+              </SheetAside.Provider>
+            </div>
           </div>
           <div
             ref={setAside}

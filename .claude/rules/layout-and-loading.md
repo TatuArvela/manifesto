@@ -187,19 +187,29 @@ comments of a note open there).
 The editor panel of a note grows out of its card, and shrinks back onto it (`utils/morph.ts`,
 `hooks/useCardModal.ts`). The panel is laid out at its final place from its first frame. The
 animation draws it over a rectangle that moves in a straight line between the card and that place.
-Only transform, clip and opacity change. Thus, the layout inside the editor never changes.
+Only `transform` changes (and `opacity` for the composer, and the corners). Thus, the layout inside
+the editor never changes.
 
 - **Nothing fades on a card.** The panel is opaque, and at both ends it covers the card exactly.
   The card hides when the grow starts, and shows when the shrink ends (`note-morphed`, a full
   `clip-path`). Many small fades with different times made the open look unstable. The card hides
   with a clip, because its `opacity` has a transition, and an element with `visibility: hidden`
   cannot take the focus that goes back to it at the close.
-- **No squash.** On a wider screen, the panel is scaled by one factor, the larger of the two ratios,
-  and a clip cuts what does not fit (`morphFrame`). With two factors, the text of a usual card was
-  squashed to 0.56 of its width and 0.43 of its height. On a phone, the panel is only uncovered
-  from the card out to the screen, with no scale. Even one factor made its text very small.
-- **A straight line.** Scale and clip together do not move linearly. Thus, the keyframes are points
-  on the line (`pathFrames`), and the curve of the run moves along them.
+- **Only `transform` moves.** Only `transform` and `opacity` run on the compositor in all browsers.
+  A `clip-path` animation can need the main thread, which is busy while a note opens (the editor
+  builds, the shared document arrives, images decode), and each long frame stopped the motion.
+- **A container transform** (`morphFrames`). The panel moves and scales onto the rectangle, and
+  clips its content to its own box (`overflow: clip` while a run lasts). Its content, the
+  `.note-sheet-content` wrapper of `NoteSheet`, has the inverse scale. Thus, the window grows and
+  slides, and the text keeps its size: the text of a card and of the editor have one size, and the
+  title one place. A scale of the text (to 0.56 for a usual card) made it small at the start and
+  large again. The clip resets the scroll of the panel, so the content also carries `scrollTop`.
+- **The corners** have their own animation (`border-radius`, divided by the scale on each axis). An
+  animation runs on the compositor only when all of its properties can.
+- **The points of the path** (`pathPoints`). Between two keyframes, the scale and the inverse scale
+  each change linearly, and their product is not exactly 1. The points are close enough that the
+  scale changes by at most 6% between two of them, which keeps the text within 0.1% of its size.
+  Points at an even distance were off by 0.8% near the card.
 - **The wait for the text.** Milkdown builds its view after the first frame. The grow of a card waits
   until the editor reports its text (`onReady` of `NoteCardEditor`), for a maximum of
   `MORPH_READY_WAIT_MS`. A grow that started at once went to the empty panel first. That panel is
@@ -213,8 +223,8 @@ Only transform, clip and opacity change. Thus, the layout inside the editor neve
   one (images, previews and the shared document arrive late). Not on a phone, where a taller sheet
   does not move what is on the screen. `settle` stops the watch, so a close is never aimed again.
 - When the editor is built again (solo to collab), its text and the place of the formatting bar keep
-  their height (`useHeldHeight` in `NoteEditor`). If not, the panel becomes short and tall again, and a grow scales the short panel
-  up to fill its path. The hook measures the height when the editor becomes ready, not only from a
+  their height (`useHeldHeight` in `NoteEditor`). If not, the panel becomes short and tall again,
+  and a grow scales the short panel up to fill its path. The hook measures the height when the editor becomes ready, not only from a
   `ResizeObserver`: on a server, the shared document can arrive before the first report.
 - The composer grows out of its pad with the same code. It fades in over its first part, because
   the pad does not hide at once.

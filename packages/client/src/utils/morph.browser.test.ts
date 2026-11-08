@@ -14,44 +14,31 @@ let panel: HTMLElement | null = null;
 function makePanel(): HTMLElement {
   panel = document.createElement("div");
   panel.style.cssText = "position:fixed;inset:0";
+  // The content, which takes the inverse scale (`.note-sheet-content`).
+  const content = document.createElement("div");
+  content.style.height = "100%";
+  panel.appendChild(content);
   document.body.appendChild(panel);
   return panel;
 }
 
 const card = { left: 16, top: 200, width: 164, height: 120 };
 
-/** What each keyframe of the animations of the panel moves. */
-const animated = (el: HTMLElement) =>
-  el
-    .getAnimations()
-    .flatMap((a) => (a.effect as KeyframeEffect).getKeyframes())
-    .flatMap((frame) => Object.keys(frame));
-
 /**
  * The rectangle that a panel draws on the screen: its layout, moved and scaled
  * by its transform, and cut by the insets of its clip.
  */
 function drawn(el: HTMLElement) {
-  const style = getComputedStyle(el);
-  const matrix = new DOMMatrix(style.transform);
-  // One to four values, as in `margin`. The browser writes the shortest form.
-  const values =
-    (/^inset\(([^)]{0,200})\)/.exec(style.clipPath)?.[1] ?? "")
-      .split(" round ")[0]
-      ?.split(" ")
-      .filter(Boolean)
-      .map((value) => Number.parseFloat(value)) ?? [];
-  const [top = 0, right = top, bottom = top, left = right] = values;
-  const scale = matrix.a;
-  // With the origin at the top left, the box of the transform starts at the
-  // layout moved by the translation.
+  // The panel is moved and scaled onto the rectangle, and clips its content to
+  // its own box. Thus, its box with the transform is what is drawn.
   const box = el.getBoundingClientRect();
-  return {
-    left: box.left + left * scale,
-    top: box.top + top * scale,
-    width: (el.offsetWidth - left - right) * scale,
-    height: (el.offsetHeight - top - bottom) * scale,
-  };
+  return { left: box.left, top: box.top, width: box.width, height: box.height };
+}
+
+/** The scale on each axis of the computed transform of an element. */
+function scaleOf(el: Element): [number, number] {
+  const matrix = new DOMMatrix(getComputedStyle(el).transform);
+  return [matrix.a, matrix.d];
 }
 
 afterEach(() => {
@@ -59,30 +46,51 @@ afterEach(() => {
   panel = null;
 });
 
-describe("on a phone", () => {
-  // A scale of the full screen onto a card squashed the text of the note.
-  it("uncovers the editor rather than scaling it, both ways", async () => {
-    await page.viewport(375, 700);
+// A scale of the text made it small at the start and large again, and on a
+// phone it squashed it. Only the window that shows the text scales.
+describe.each([
+  ["on a phone", 375],
+  ["on a wider screen", 1024],
+])("%s", (_, width) => {
+  it("keeps the text at its size, both ways", async () => {
+    await page.viewport(width, 700);
     const el = makePanel();
-    morphIn(el, card);
-    expect(animated(el)).toContain("clipPath");
-    expect(animated(el)).not.toContain("transform");
+    const content = defined(el.firstElementChild ?? undefined);
+    const check = () => {
+      for (const time of [0, 20, 60, 120, MORPH_MS - 1]) {
+        for (const animation of [
+          ...el.getAnimations(),
+          ...content.getAnimations(),
+        ]) {
+          animation.pause();
+          animation.currentTime = time;
+        }
+        const [px, py] = scaleOf(el);
+        const [cx, cy] = scaleOf(content);
+        expect(px * cx).toBeCloseTo(1, 2);
+        expect(py * cy).toBeCloseTo(1, 2);
+      }
+    };
+    morphIn(el, card, { opaque: true });
+    expect(getComputedStyle(el).overflow).toBe("clip");
+    check();
 
-    void morphOut(el, card);
-    expect(animated(el)).toContain("clipPath");
-    expect(animated(el)).not.toContain("transform");
+    void morphOut(el, card, { fade: false });
+    check();
+  });
+
+  // The panel clips its content only while it runs.
+  it("gives the panel its overflow back after the grow", async () => {
+    await page.viewport(width, 700);
+    const el = makePanel();
+    morphIn(el, card, { opaque: true });
+    defined(el.getAnimations()[0]).finish();
+    await new Promise((done) => requestAnimationFrame(() => done(null)));
+    expect(el.style.overflow).toBe("");
   });
 });
 
 describe("on a wider screen", () => {
-  it("still grows the editor out of the card", async () => {
-    await page.viewport(1024, 700);
-    const el = makePanel();
-    morphIn(el, card);
-    expect(animated(el)).toContain("transform");
-    expect(animated(el)).not.toContain("clipPath");
-  });
-
   // Images and previews arrive while the grow runs. A grow aimed at the first,
   // shorter panel jumped when the panel became taller, and so did one that
   // only got a new end.

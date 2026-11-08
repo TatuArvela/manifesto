@@ -1,13 +1,20 @@
 /**
  * The open and close of the editor of a note, drawn as the note itself that
  * grows into the editor and shrinks back onto its card. The editor panel is
- * laid out where it belongs, and drawn over the rectangle from which it came
- * (`morphFrame`). Only transform, clip and opacity. Thus, the layout of the
- * editor inside never changes during the animation.
+ * laid out where it belongs, and drawn over the rectangle from which it came.
+ * Thus, the layout of the editor inside never changes during the animation.
  *
- * The drawn rectangle moves in a straight line from the card to the panel: the
- * keyframes are points on that line (`pathFrames`), and the curve of the run
- * moves along them.
+ * Only `transform` (and `opacity` for the composer) moves, because only those
+ * run on the compositor in all browsers. A `clip-path` animation can need the
+ * main thread, and the main thread is busy while a note opens: the editor
+ * builds, the shared document arrives, images decode. Each long frame then
+ * stopped the motion.
+ *
+ * It is a container transform (`morphFrames`). The panel moves and scales to
+ * the rectangle, and clips its content to its own box (`overflow: clip` while
+ * it runs). Its first child, the content (`.note-sheet-content`), has the
+ * inverse scale. Thus, the window grows and slides, and the text in it keeps
+ * its size the whole way.
  */
 
 import { isPhoneLayout } from "./phoneSheets.ts";
@@ -35,66 +42,96 @@ const EASING = "cubic-bezier(0.2, 0, 0, 1)";
  */
 const FADE_SHARE = 0.3;
 /**
- * The points on the path of a morph. Between two points, the scale and the clip
- * change separately, and the drawn rectangle is off the straight line by a
- * fraction of a pixel.
+ * How much the scale may change between two points on the path of a morph, on
+ * each axis. Between two points, the scale of the panel and the inverse scale
+ * of its content each change linearly, and their product is not exactly 1. The
+ * error depends on the ratio of the two scales: with 6%, the content is off its
+ * size by less than 0.1% (under a pixel on the editor). Points at an even
+ * distance were off by 0.8% near the card, where the scale is small.
  */
-const PATH_POINTS = 8;
+const POINT_RATIO = 1.06;
+/** The longest step between two points, which also places the fade. */
+const POINT_STEP = 1 / 8;
+/** A limit on the points of one path, for a card that is very small. */
+const MAX_POINTS = 96;
 
 /**
- * The clip that shows only the part of an element laid out at `to` that is over
- * `rect`, with corners of `radius`. In the own pixels of the element: an
- * element drawn at `scale` gets its radius divided by it, so that the corners
- * on the screen keep the radius of a note.
+ * Where the points of a path are, as parts of the way from its start (0) to
+ * its end (1): close enough that the scale changes by at most `POINT_RATIO`
+ * between two of them on each axis.
  */
-export function morphClip(
-  rect: RectLike,
-  to: RectLike,
-  radius: string,
-  scale = 1,
-): string {
-  const top = rect.top - to.top;
-  const right = to.left + to.width - (rect.left + rect.width);
-  const bottom = to.top + to.height - (rect.top + rect.height);
-  const left = rect.left - to.left;
-  const round = scale === 1 ? radius : `calc(${radius} / ${scale})`;
-  return `inset(${top}px ${right}px ${bottom}px ${left}px round ${round})`;
+export function pathPoints(path: MorphPath): number[] {
+  const { start, end, layout } = path;
+  const axes = [
+    [start.width, end.width, layout.width],
+    [start.height, end.height, layout.height],
+  ].map(([from = 0, to = 0, size = 0]) =>
+    size > 0 ? [from / size, to / size] : [1, 1],
+  );
+  const points = [0];
+  let along = 0;
+  while (along < 1 && points.length < MAX_POINTS) {
+    let next = Math.min(1, along + POINT_STEP);
+    for (const [from = 1, to = 1] of axes) {
+      const now = from + (to - from) * along;
+      if (to === from || now <= 0) continue;
+      const limit = to > from ? now * POINT_RATIO : now / POINT_RATIO;
+      next = Math.min(next, (limit - from) / (to - from));
+    }
+    along = next > along ? next : 1;
+    points.push(along);
+  }
+  if (points.at(-1) !== 1) points.push(1);
+  return points;
+}
+
+/** The keyframes that draw a panel over a rectangle. */
+export interface MorphFrame {
+  /** For the panel: moved and scaled onto the rectangle. */
+  panel: Keyframe;
+  /** For its content: the inverse scale, so that the text keeps its size. */
+  content: Keyframe;
+  /**
+   * For the corners of the panel, when a note has round corners. Its own
+   * animation: an animation runs on the compositor only when all of its
+   * properties can, and `border-radius` cannot.
+   */
+  corners: Keyframe | null;
 }
 
 /**
- * The keyframe that draws an element laid out at `to` exactly over `rect`, with
- * `transform-origin` at its top left.
+ * The keyframes that draw a panel laid out at `to` over `rect`, with
+ * `transform-origin` at the top left of both.
  *
- * - On a wider screen, the element is scaled by one factor, the larger of the
- *   two ratios, and the part that does not fit is clipped away at its right or
- *   bottom. A scale with two factors squashed the text of the note (to 0.56 of
- *   its width and 0.43 of its height, for a usual card), and a fade hid that.
- *   Now the card grows into the editor, and the text keeps its shape.
- * - The editor of a phone is the full screen, and a card is a fraction of it.
- *   Even a scale with one factor made its text very small. Thus, there the
- *   editor is only uncovered where it is, from the rectangle of the card out to
- *   the screen.
+ * The text of a card and of the editor have the same size, and the title the
+ * same place. Thus, the content is never scaled: only the window that shows it.
+ * A scale of the content (to 0.56 for a usual card) made the text small at the
+ * start, then large again, most of it in the first 60 ms.
+ *
+ * `radius` keeps the corners of the window round on the screen: the radius of
+ * the panel is divided by its scale on each axis. `scrollTop` keeps a panel
+ * that was scrolled (a close of a long note) where it was, because the clip
+ * resets its scroll.
  */
-export function morphFrame(
+export function morphFrames(
   rect: RectLike,
   to: RectLike,
-  phone: boolean,
-  radius: string,
-): Keyframe {
-  if (phone) return { clipPath: morphClip(rect, to, radius) };
-  const ratioX = to.width > 0 ? rect.width / to.width : 1;
-  const ratioY = to.height > 0 ? rect.height / to.height : 1;
-  const scale = Math.max(ratioX, ratioY, 0.001);
-  // The part of the element that is drawn over `rect`, in its own pixels.
-  const part = {
-    left: to.left,
-    top: to.top,
-    width: rect.width / scale,
-    height: rect.height / scale,
-  };
+  radius: number,
+  scrollTop: number,
+): MorphFrame {
+  const scaleX = Math.max(to.width > 0 ? rect.width / to.width : 1, 0.001);
+  const scaleY = Math.max(to.height > 0 ? rect.height / to.height : 1, 0.001);
   return {
-    transform: `translate(${rect.left - to.left}px, ${rect.top - to.top}px) scale(${scale})`,
-    clipPath: morphClip(part, to, radius, scale),
+    panel: {
+      transform: `translate(${rect.left - to.left}px, ${rect.top - to.top}px) scale(${scaleX}, ${scaleY})`,
+    },
+    content: {
+      transform: `scale(${1 / scaleX}, ${1 / scaleY}) translate(0px, ${-scrollTop}px)`,
+    },
+    corners:
+      radius > 0
+        ? { borderRadius: `${radius / scaleX}px / ${radius / scaleY}px` }
+        : null,
   };
 }
 
@@ -115,19 +152,27 @@ export function shownRect(
   };
 }
 
-/** A straight line that a morph draws an element along. */
+/** A straight line that a morph draws a panel along. */
 export interface MorphPath {
   /** Where the drawn rectangle is at `startAt`. */
   start: RectLike;
   /** Where it is at the end. */
   end: RectLike;
-  /** Where the element is laid out. */
+  /** Where the panel is laid out. */
   layout: RectLike;
   /**
    * The progress (after the curve) at which the line starts. Not 0 for a grow
    * aimed again while it ran: the new line starts where the panel is.
    */
   startAt: number;
+}
+
+/** The keyframes of a path, for the panel, its content and its corners. */
+export interface PathFrames {
+  panel: Keyframe[];
+  content: Keyframe[];
+  /** Empty when a note has square corners. */
+  corners: Keyframe[];
 }
 
 /**
@@ -137,22 +182,25 @@ export interface MorphPath {
  */
 export function pathFrames(
   path: MorphPath,
-  phone: boolean,
-  radius: string,
+  radius: number,
+  scrollTop: number,
   opacity?: ((offset: number) => number) | undefined,
-): Keyframe[] {
+): PathFrames {
   const { start, end, layout, startAt } = path;
-  const at = (offset: number, rect: RectLike): Keyframe => ({
-    ...morphFrame(rect, layout, phone, radius),
-    ...(opacity && { opacity: opacity(offset) }),
-    offset,
-  });
-  const frames: Keyframe[] = startAt > 0 ? [at(0, start)] : [];
-  for (let i = 0; i <= PATH_POINTS; i++) {
-    const along = i / PATH_POINTS;
-    frames.push(
-      at(startAt + (1 - startAt) * along, shownRect(start, end, along)),
-    );
+  const frames: PathFrames = { panel: [], content: [], corners: [] };
+  const at = (offset: number, rect: RectLike) => {
+    const frame = morphFrames(rect, layout, radius, scrollTop);
+    frames.panel.push({
+      ...frame.panel,
+      ...(opacity && { opacity: opacity(offset) }),
+      offset,
+    });
+    frames.content.push({ ...frame.content, offset });
+    if (frame.corners) frames.corners.push({ ...frame.corners, offset });
+  };
+  if (startAt > 0) at(0, start);
+  for (const along of pathPoints(path)) {
+    at(startAt + (1 - startAt) * along, shownRect(start, end, along));
   }
   return frames;
 }
@@ -183,13 +231,95 @@ export function viewportSize() {
   };
 }
 
-/** The corner radius of a note, which the clip of a morph keeps. */
-function noteRadius(): string {
-  return (
-    getComputedStyle(document.documentElement)
-      .getPropertyValue("--note-radius")
-      .trim() || "0px"
+/** The corner radius of a note in pixels, which the window of a morph keeps. */
+function noteRadius(): number {
+  const root = getComputedStyle(document.documentElement);
+  const value = root.getPropertyValue("--note-radius").trim();
+  const number = Number.parseFloat(value);
+  if (!Number.isFinite(number)) return 0;
+  return value.endsWith("rem")
+    ? number * Number.parseFloat(root.fontSize)
+    : number;
+}
+
+/** The content of a panel, which takes the inverse scale. */
+function contentOf(panel: HTMLElement): HTMLElement | null {
+  const first = panel.firstElementChild;
+  return first instanceof HTMLElement ? first : null;
+}
+
+/**
+ * One run of a morph: the animation of the panel, and the one of its content
+ * with the same timing. The panel decides the state and the progress.
+ */
+interface Run {
+  panel: Animation;
+  content: Animation | null;
+  corners: Animation | null;
+  /** The scroll of the panel before the clip reset it. */
+  scrollTop: number;
+}
+
+/** The runs of each panel, which `settle` cancels. */
+const runs = new WeakMap<HTMLElement, Run>();
+/** The stop of the watch of `keepAimed` on each panel that has one. */
+const following = new WeakMap<HTMLElement, () => void>();
+
+/**
+ * Starts a run along `path`. The panel clips its content while the run lasts,
+ * and gets its overflow and its scroll back when the run ends. A run that keeps
+ * its end (`fill`, a close) keeps the clip: the panel goes after it.
+ */
+function startRun(
+  panel: HTMLElement,
+  frames: (scrollTop: number) => PathFrames,
+  { fill = false }: { fill?: boolean } = {},
+): Run {
+  const scrollTop = panel.scrollTop;
+  panel.style.overflow = "clip";
+  panel.style.transformOrigin = "0 0";
+  const content = contentOf(panel);
+  if (content) content.style.transformOrigin = "0 0";
+  const keyframes = frames(scrollTop);
+  const timing: KeyframeAnimationOptions = {
+    duration: MORPH_MS,
+    easing: EASING,
+    ...(fill && { fill: "forwards" }),
+  };
+  const run: Run = {
+    panel: panel.animate(keyframes.panel, timing),
+    content: content?.animate(keyframes.content, timing) ?? null,
+    corners:
+      keyframes.corners.length > 0
+        ? panel.animate(keyframes.corners, timing)
+        : null,
+    scrollTop,
+  };
+  runs.set(panel, run);
+  const release = () => {
+    if (runs.get(panel) !== run) return;
+    runs.delete(panel);
+    panel.style.overflow = "";
+    panel.scrollTop = scrollTop;
+  };
+  run.panel.finished.then(() => {
+    if (!fill) release();
+  }, release);
+  return run;
+}
+
+/** The animations of a run, which move together. */
+function runAnimations(run: Run): Animation[] {
+  return [run.panel, run.content, run.corners].filter(
+    (animation): animation is Animation => animation !== null,
   );
+}
+
+/** Sets new keyframes on all animations of a run, at the same time. */
+function setRunFrames(run: Run, frames: PathFrames) {
+  (run.panel.effect as KeyframeEffect | null)?.setKeyframes(frames.panel);
+  (run.content?.effect as KeyframeEffect | null)?.setKeyframes(frames.content);
+  (run.corners?.effect as KeyframeEffect | null)?.setKeyframes(frames.corners);
 }
 
 /**
@@ -199,11 +329,17 @@ function noteRadius(): string {
  */
 export function settle(panel: HTMLElement) {
   following.get(panel)?.();
+  const run = runs.get(panel);
+  if (run) {
+    // At once, not when the cancel settles: a new run reads the scroll next,
+    // and a clipped panel has none.
+    runs.delete(panel);
+    panel.style.overflow = "";
+    panel.scrollTop = run.scrollTop;
+    for (const animation of runAnimations(run)) animation.cancel();
+  }
   for (const animation of panel.getAnimations()) animation.cancel();
 }
-
-/** The stop of the watch of `keepAimed` on each panel that has one. */
-const following = new WeakMap<HTMLElement, () => void>();
 
 /**
  * How long after a grow the panel still follows its content. A size change in
@@ -246,19 +382,17 @@ export function morphIn(
     ? undefined
     : (offset: number) => Math.min(1, offset / FADE_SHARE);
   const to = panel.getBoundingClientRect();
-  panel.style.transformOrigin = "0 0";
   const path = { start: from, end: to, layout: to, startAt: 0 };
-  const motion = panel.animate(pathFrames(path, phone, radius, opacity), {
-    duration: MORPH_MS,
-    easing: EASING,
-  });
-  keepAimed(panel, motion, path, {
+  const run = startRun(panel, (scrollTop) =>
+    pathFrames(path, radius, scrollTop, opacity),
+  );
+  keepAimed(panel, run, path, {
     phone,
     // The fade belongs to the grow. A later size change is opaque.
-    frames: (next, grow) =>
-      pathFrames(next, phone, radius, grow ? opacity : undefined),
+    frames: (next, scrollTop, grow) =>
+      pathFrames(next, radius, scrollTop, grow ? opacity : undefined),
   });
-  if (ready) holdUntil(panel, motion, ready, onStart);
+  if (ready) holdUntil(panel, run, ready, onStart);
   else onStart?.();
 }
 
@@ -278,11 +412,11 @@ export const MORPH_READY_WAIT_MS = 150;
  */
 function holdUntil(
   panel: HTMLElement,
-  motion: Animation,
+  run: Run,
   ready: Promise<void>,
   onStart: (() => void) | undefined,
 ) {
-  motion.pause();
+  for (const animation of runAnimations(run)) animation.pause();
   // Transparent while it waits, over the source, which stays. The two only
   // change places when the grow moves. When the panel covered the card during
   // the wait, the card changed its look at the click, before anything moved.
@@ -293,8 +427,8 @@ function holdUntil(
     clearTimeout(timer);
     panel.style.opacity = "";
     // Cancelled while it waited (a close): it stays cancelled.
-    if (motion.playState !== "paused") return;
-    motion.play();
+    if (run.panel.playState !== "paused") return;
+    for (const animation of runAnimations(run)) animation.play();
     onStart?.();
   };
   const timer = setTimeout(() => go(), MORPH_READY_WAIT_MS);
@@ -326,28 +460,28 @@ function holdUntil(
  */
 function keepAimed(
   panel: HTMLElement,
-  grow: Animation,
+  grow: Run,
   first: MorphPath,
   {
     phone,
     frames,
   }: {
     phone: boolean;
-    frames: (path: MorphPath, grow: boolean) => Keyframe[];
+    frames: (path: MorphPath, scrollTop: number, grow: boolean) => PathFrames;
   },
 ) {
   if (typeof ResizeObserver !== "function") return;
-  let motion = grow;
+  let run = grow;
   let path = first;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const observer = new ResizeObserver(() => {
-    // The size of the layout box. A transform or a clip does not change it.
+    // The size of the layout box. A transform does not change it.
     const moved =
       Math.abs(panel.offsetWidth - path.layout.width) >= 1 ||
       Math.abs(panel.offsetHeight - path.layout.height) >= 1;
-    const effect = motion.effect;
+    const effect = run.panel.effect;
     if (!moved || !(effect instanceof KeyframeEffect)) return;
-    if (motion.playState !== "finished") {
+    if (run.panel.playState !== "finished") {
       // The progress after the curve, which is what the keyframes interpolate.
       const progress = Math.min(
         effect.getComputedTiming().progress ?? 0,
@@ -358,7 +492,7 @@ function keepAimed(
       effect.setKeyframes([]);
       const layout = panel.getBoundingClientRect();
       path = { start: shown, end: layout, layout, startAt: progress };
-      effect.setKeyframes(frames(path, motion === grow));
+      setRunFrames(run, frames(path, run.scrollTop, run === grow));
       return;
     }
     const layout = panel.getBoundingClientRect();
@@ -367,10 +501,8 @@ function keepAimed(
       return;
     }
     path = { start: path.layout, end: layout, layout, startAt: 0 };
-    motion = panel.animate(frames(path, false), {
-      duration: MORPH_MS,
-      easing: EASING,
-    });
+    const next = path;
+    run = startRun(panel, (scrollTop) => frames(next, scrollTop, false));
   });
   const stop = () => {
     observer.disconnect();
@@ -379,7 +511,7 @@ function keepAimed(
   };
   following.set(panel, stop);
   observer.observe(panel);
-  grow.finished.then(
+  grow.panel.finished.then(
     () => {
       timer = setTimeout(stop, MORPH_FOLLOW_MS);
     },
@@ -408,11 +540,12 @@ export function morphOut(
 ): Promise<void> {
   settle(panel);
   const from = panel.getBoundingClientRect();
-  panel.style.transformOrigin = "0 0";
+  const radius = noteRadius();
   const path = { start: from, end: to, layout: from, startAt: 0 };
-  const motion = panel.animate(
-    pathFrames(path, isPhoneLayout(), noteRadius()),
-    { duration: MORPH_MS, easing: EASING, fill: "forwards" },
+  const run = startRun(
+    panel,
+    (scrollTop) => pathFrames(path, radius, scrollTop),
+    { fill: true },
   );
   if (fade) {
     panel.animate(
@@ -420,7 +553,7 @@ export function morphOut(
       { duration: MORPH_MS, fill: "forwards" },
     );
   }
-  return motion.finished.then(
+  return run.panel.finished.then(
     () => {},
     // Cancelled: opened again during the close, which stops the panel where it
     // is.
