@@ -120,7 +120,12 @@
   color: var(--color-neutral-50);
   padding: 0.75em 1em;
   border-radius: 0.375em;
+  /*
+   * Only sideways. A `visible` here computes to `auto`, and then a block can
+   * catch a vertical swipe on a phone (see `.ProseMirror` in editor.css).
+   */
   overflow-x: auto;
+  overflow-y: hidden;
   margin-top: 0.5em;
   margin-bottom: 0.5em;
 }
@@ -213,6 +218,7 @@
   display: block;
   max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
 }
 
 /*

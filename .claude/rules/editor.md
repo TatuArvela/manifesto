@@ -89,8 +89,11 @@ Custom ProseMirror behavior is in `packages/client/src/extensions/`:
 
 ## Layout of the checklist gutter
 
-`.ProseMirror` scrolls horizontally (for a line that cannot break). A scroller clips everything that
-is drawn outside it. The drag handle of the checklist is in the gutter to the left of the text. On a
+`.ProseMirror` scrolls horizontally (for a line that cannot break), and only horizontally. Its
+`overflow-y` is `hidden`, because with `overflow-x: auto` a `visible` computes to `auto`. Parts of a
+checklist row go below the row, and a note that ends with a checklist then had a second vertical
+scroller. On iOS, that scroller took the swipe, and the page did not scroll. A scroller clips
+everything that is drawn outside it. The drag handle of the checklist is in the gutter to the left of the text. On a
 desktop, the list keeps no space for it. Thus, the text extends over the padding of the note by the
 width of the gutter, and adds padding back (`styles/task-list.css`). If you remove this, the handle
 is fully cut off, and nothing fails.
