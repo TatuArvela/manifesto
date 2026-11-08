@@ -201,16 +201,21 @@ Only transform, clip and opacity change. Thus, the layout inside the editor neve
 - **A straight line.** Scale and clip together do not move linearly. Thus, the keyframes are points
   on the line (`pathFrames`), and the curve of the run moves along them.
 - **The wait for the text.** Milkdown builds its view after the first frame. The grow of a card waits
-  over the card until the editor reports its text (`onReady` of `NoteCardEditor`), for a maximum of
+  until the editor reports its text (`onReady` of `NoteCardEditor`), for a maximum of
   `MORPH_READY_WAIT_MS`. A grow that started at once went to the empty panel first. That panel is
   centered lower than a card near the top of the board. Thus, the grow went down, and then back up.
+  While it waits, the panel is transparent and the card stays, and the two change places when the
+  grow starts. When the panel covered the card during the wait, the card changed its look at the
+  click, before anything moved.
 - **Size changes.** `keepAimed` watches the panel. During a run, a new size starts a new line from
   where the panel is drawn now, at the current progress. With the old start and only a new end, the
   panel jumped. For `MORPH_FOLLOW_MS` after the grow, a new size runs from the old layout to the new
   one (images, previews and the shared document arrive late). Not on a phone, where a taller sheet
   does not move what is on the screen. `settle` stops the watch, so a close is never aimed again.
 - When the editor is built again (solo to collab), its text keeps its height (`useHeldHeight` in
-  `NoteEditor`). If not, the panel becomes short and tall again.
+  `NoteEditor`). If not, the panel becomes short and tall again, and a grow scales the short panel
+  up to fill its path. The hook measures the height when the editor becomes ready, not only from a
+  `ResizeObserver`: on a server, the shared document can arrive before the first report.
 - The composer grows out of its pad with the same code. It fades in over its first part, because
   the pad does not hide at once.
 

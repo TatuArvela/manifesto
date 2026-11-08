@@ -258,7 +258,7 @@ export function morphIn(
     frames: (next, grow) =>
       pathFrames(next, phone, radius, grow ? opacity : undefined),
   });
-  if (ready) holdUntil(motion, ready, onStart);
+  if (ready) holdUntil(panel, motion, ready, onStart);
   else onStart?.();
 }
 
@@ -277,14 +277,21 @@ export const MORPH_READY_WAIT_MS = 150;
  * progress 0 that changes only the end.
  */
 function holdUntil(
+  panel: HTMLElement,
   motion: Animation,
   ready: Promise<void>,
   onStart: (() => void) | undefined,
 ) {
   motion.pause();
+  // Transparent while it waits, over the source, which stays. The two only
+  // change places when the grow moves. When the panel covered the card during
+  // the wait, the card changed its look at the click, before anything moved.
+  // `opacity`, not `visibility`: the editor takes focus while it waits.
+  panel.style.opacity = "0";
   let go = () => {
     go = () => {};
     clearTimeout(timer);
+    panel.style.opacity = "";
     // Cancelled while it waited (a close): it stays cancelled.
     if (motion.playState !== "paused") return;
     motion.play();

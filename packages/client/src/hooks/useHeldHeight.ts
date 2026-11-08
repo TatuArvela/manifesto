@@ -27,6 +27,10 @@ export function useHeldHeight(
       return;
     }
     el.style.minHeight = "";
+    // Now, not only from the observer, which first reports a frame later. The
+    // shared document of a note on a server can arrive sooner, and the editor
+    // was then built again before any height was recorded.
+    heightRef.current = el.offsetHeight;
     const observer = new ResizeObserver(() => {
       heightRef.current = el.offsetHeight;
     });

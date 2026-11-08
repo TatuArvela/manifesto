@@ -145,13 +145,16 @@ describe("on a wider screen", () => {
     morphIn(el, card, { ready, onStart: () => (started = true) });
     const motion = defined(el.getAnimations()[0]);
     expect(motion.playState).toBe("paused");
-    // The card stays until the grow moves. If not, nothing is on the screen.
+    // The card stays until the grow moves, and the panel does not cover it:
+    // the two change places only when the grow starts.
     expect(started).toBe(false);
+    expect(getComputedStyle(el).opacity).toBe("0");
 
     resolve();
     await ready;
     expect(motion.playState).toBe("running");
     expect(started).toBe(true);
+    expect(getComputedStyle(el).opacity).toBe("1");
   });
 
   it("does not wait for its content for longer than the limit", async () => {
