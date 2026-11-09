@@ -66,6 +66,16 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
     return isMorphSource(rect, viewportSize()) ? rect : null;
   }, []);
 
+  /**
+   * The shadow of the card. The panel starts with it and lands with it, and
+   * has its own shadow between. Thus, the shadow does not change at once when
+   * the card and the panel change places.
+   */
+  const cardShadow = useCallback((): string | undefined => {
+    const card = cardRef.current;
+    return card ? getComputedStyle(card).boxShadow : undefined;
+  }, []);
+
   useEffect(() => {
     if (isEditing) {
       closeRunRef.current++;
@@ -104,12 +114,14 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
     if (panel && to) {
       // Down after the morph is complete. The timer is only a backstop, for a
       // tab in the background, where animations are throttled or never run.
-      void morphOut(panel, to, { fade: false }).then(takeDown);
+      void morphOut(panel, to, { fade: false, shadow: cardShadow() }).then(
+        takeDown,
+      );
       closeTimerRef.current = setTimeout(takeDown, MORPH_MS + 250);
     } else {
       closeTimerRef.current = setTimeout(takeDown, MODAL_CLOSE_MS);
     }
-  }, [isEditing, showModal, closing, morphSource, waitsForContent]);
+  }, [isEditing, showModal, closing, morphSource, cardShadow, waitsForContent]);
 
   // What lets a grow that waits for the editor start (`contentReady`).
   const startGrowRef = useRef<(() => void) | null>(null);
@@ -130,8 +142,9 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
       opaque: true,
       ready,
       onStart: () => setGrowHeld(false),
+      shadow: cardShadow(),
     });
-  }, [showModal, waitsForContent]);
+  }, [showModal, waitsForContent, cardShadow]);
 
   /**
    * The editor in the panel has its text. A grow waits for this, because the
@@ -158,6 +171,11 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
     showModal,
     closing,
     morphing,
+    // A ghost of the card shows where the note is, when the editor does not
+    // grow out of it. From the same render as the modal: `isEditing` comes one
+    // render before `morphing`. Thus, a ghost from `isEditing` was a ghost for
+    // that render also before a grow, and the card lost its shadow at the click.
+    cardGhost: showModal && !closing && !morphing,
     // The card is the panel while the panel is drawn over it, from the start
     // of the grow to the end of the shrink. Nothing fades: the panel covers
     // the card exactly at both ends, and the card hides and shows at once.

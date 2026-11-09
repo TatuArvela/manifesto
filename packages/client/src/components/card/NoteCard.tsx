@@ -93,6 +93,7 @@ export const NoteCard = memo(function NoteCard({
     showModal,
     closing,
     morphing,
+    cardGhost,
     cardHidden,
     cardRef,
     panelRef,
@@ -264,9 +265,12 @@ export const NoteCard = memo(function NoteCard({
       <div
         class={clsx(
           "relative group note-draggable-wrapper",
-          // Not under a card that shows only as a ghost, or that is lifted
-          // (held) with its own shadow.
-          complexShadows.value && !open && !held && "note-curl",
+          // Not under a card that is lifted (held) with its own shadow. A card
+          // that is hidden, or that shows only as a ghost, keeps it in its
+          // layout, and hides it (`note-ghost`, `note-morphed`). The shadow
+          // reaches below the card. Thus, when it went, a board scrolled to
+          // its end moved up at the click.
+          complexShadows.value && !held && "note-curl",
           pinSettling && "note-pin-settle",
           leaving && "note-leaving",
           noteSize.value === "square" &&
@@ -334,7 +338,7 @@ export const NoteCard = memo(function NoteCard({
             // the card then. Otherwise, a ghost of it, to show where the note
             // is.
             cardHidden && "note-morphed",
-            open && !closing && !morphing && "opacity-20",
+            cardGhost && "opacity-20 note-ghost",
             noteSize.value === "square" &&
               viewMode.value === "list" &&
               "w-full",

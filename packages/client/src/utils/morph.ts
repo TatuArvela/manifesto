@@ -17,6 +17,7 @@
  * its size the whole way.
  */
 
+import { parseShadow, type ShadowPath, shadowAt } from "./morphShadow.ts";
 import { isPhoneLayout } from "./phoneSheets.ts";
 
 export interface RectLike {
@@ -92,11 +93,12 @@ export interface MorphFrame {
   /** For its content: the inverse scale, so that the text keeps its size. */
   content: Keyframe;
   /**
-   * For the corners of the panel, when a note has round corners. Its own
-   * animation: an animation runs on the compositor only when all of its
-   * properties can, and `border-radius` cannot.
+   * For the edge of the panel: its corners, when a note has round corners, and
+   * its shadow (`utils/morphShadow.ts`). Its own animation: an animation runs
+   * on the compositor only when all of its properties can, and `border-radius`
+   * and `box-shadow` cannot.
    */
-  corners: Keyframe | null;
+  edge: Keyframe | null;
 }
 
 /**
@@ -109,18 +111,28 @@ export interface MorphFrame {
  * start, then large again, most of it in the first 60 ms.
  *
  * `radius` keeps the corners of the window round on the screen: the radius of
- * the panel is divided by its scale on each axis. `scrollTop` keeps a panel
- * that was scrolled (a close of a long note) where it was, because the clip
- * resets its scroll.
+ * the panel is divided by its scale on each axis. `shadow` does the same for
+ * its shadow, at `progress` from the shadow of the card to the shadow of the
+ * panel. `scrollTop` keeps a panel that was scrolled (a close of a long note)
+ * where it was, because the clip resets its scroll.
  */
 export function morphFrames(
   rect: RectLike,
   to: RectLike,
   radius: number,
   scrollTop: number,
+  shadow?: { path: ShadowPath; progress: number } | undefined,
 ): MorphFrame {
   const scaleX = Math.max(to.width > 0 ? rect.width / to.width : 1, 0.001);
   const scaleY = Math.max(to.height > 0 ? rect.height / to.height : 1, 0.001);
+  const boxShadow =
+    shadow && shadowAt(shadow.path, shadow.progress, scaleX, scaleY);
+  const edge: Keyframe = {
+    ...(radius > 0 && {
+      borderRadius: `${radius / scaleX}px / ${radius / scaleY}px`,
+    }),
+    ...(boxShadow && { boxShadow }),
+  };
   return {
     panel: {
       transform: `translate(${rect.left - to.left}px, ${rect.top - to.top}px) scale(${scaleX}, ${scaleY})`,
@@ -128,10 +140,7 @@ export function morphFrames(
     content: {
       transform: `scale(${1 / scaleX}, ${1 / scaleY}) translate(0px, ${-scrollTop}px)`,
     },
-    corners:
-      radius > 0
-        ? { borderRadius: `${radius / scaleX}px / ${radius / scaleY}px` }
-        : null,
+    edge: Object.keys(edge).length > 0 ? edge : null,
   };
 }
 
@@ -167,36 +176,43 @@ export interface MorphPath {
   startAt: number;
 }
 
-/** The keyframes of a path, for the panel, its content and its corners. */
+/** The keyframes of a path, for the panel, its content and its edge. */
 export interface PathFrames {
   panel: Keyframe[];
   content: Keyframe[];
-  /** Empty when a note has square corners. */
-  corners: Keyframe[];
+  /** Empty when a note has square corners and no shadow. */
+  edge: Keyframe[];
 }
 
 /**
  * The keyframes of `path`, as points on its line. Before `startAt`, the
  * keyframes stay at the start of the line. The animation never goes back
- * there.
+ * there. The shadow changes with the progress of the run, as the opacity does.
  */
 export function pathFrames(
   path: MorphPath,
   radius: number,
   scrollTop: number,
   opacity?: ((offset: number) => number) | undefined,
+  shadow?: ShadowPath | undefined,
 ): PathFrames {
   const { start, end, layout, startAt } = path;
-  const frames: PathFrames = { panel: [], content: [], corners: [] };
+  const frames: PathFrames = { panel: [], content: [], edge: [] };
   const at = (offset: number, rect: RectLike) => {
-    const frame = morphFrames(rect, layout, radius, scrollTop);
+    const frame = morphFrames(
+      rect,
+      layout,
+      radius,
+      scrollTop,
+      shadow && { path: shadow, progress: offset },
+    );
     frames.panel.push({
       ...frame.panel,
       ...(opacity && { opacity: opacity(offset) }),
       offset,
     });
     frames.content.push({ ...frame.content, offset });
-    if (frame.corners) frames.corners.push({ ...frame.corners, offset });
+    if (frame.edge) frames.edge.push({ ...frame.edge, offset });
   };
   if (startAt > 0) at(0, start);
   for (const along of pathPoints(path)) {
@@ -255,7 +271,7 @@ function contentOf(panel: HTMLElement): HTMLElement | null {
 interface Run {
   panel: Animation;
   content: Animation | null;
-  corners: Animation | null;
+  edge: Animation | null;
   /** The scroll of the panel before the clip reset it. */
   scrollTop: number;
 }
@@ -289,10 +305,8 @@ function startRun(
   const run: Run = {
     panel: panel.animate(keyframes.panel, timing),
     content: content?.animate(keyframes.content, timing) ?? null,
-    corners:
-      keyframes.corners.length > 0
-        ? panel.animate(keyframes.corners, timing)
-        : null,
+    edge:
+      keyframes.edge.length > 0 ? panel.animate(keyframes.edge, timing) : null,
     scrollTop,
   };
   runs.set(panel, run);
@@ -310,7 +324,7 @@ function startRun(
 
 /** The animations of a run, which move together. */
 function runAnimations(run: Run): Animation[] {
-  return [run.panel, run.content, run.corners].filter(
+  return [run.panel, run.content, run.edge].filter(
     (animation): animation is Animation => animation !== null,
   );
 }
@@ -319,7 +333,7 @@ function runAnimations(run: Run): Animation[] {
 function setRunFrames(run: Run, frames: PathFrames) {
   (run.panel.effect as KeyframeEffect | null)?.setKeyframes(frames.panel);
   (run.content?.effect as KeyframeEffect | null)?.setKeyframes(frames.content);
-  (run.corners?.effect as KeyframeEffect | null)?.setKeyframes(frames.corners);
+  (run.edge?.effect as KeyframeEffect | null)?.setKeyframes(frames.edge);
 }
 
 /**
@@ -341,6 +355,11 @@ export function settle(panel: HTMLElement) {
   for (const animation of panel.getAnimations()) animation.cancel();
 }
 
+/** The shadow that the panel has in its layout, with no run. */
+function ownShadow(panel: HTMLElement) {
+  return parseShadow(getComputedStyle(panel).boxShadow);
+}
+
 /**
  * How long after a grow the panel still follows its content. A size change in
  * that time animates from the old size. Images, link previews and the shared
@@ -356,6 +375,9 @@ export const MORPH_FOLLOW_MS = 1000;
  * card hides when it starts to move (`onStart`). Thus, nothing fades, and the
  * card itself seems to grow. By default, the panel starts transparent and
  * fades in over the first part of the way (the composer, over its pad).
+ *
+ * `shadow` is the `box-shadow` of the source. The panel starts with it, and
+ * has its own shadow at the end. With no `shadow`, the panel keeps its own.
  */
 export function morphIn(
   panel: HTMLElement,
@@ -364,9 +386,11 @@ export function morphIn(
     opaque = false,
     ready,
     onStart,
+    shadow,
   }: {
     opaque?: boolean;
     ready?: Promise<void> | undefined;
+    shadow?: string | undefined;
     /**
      * The grow starts to move: at once, or when `ready` lets it. The source
      * hides from this time. If it went at the open, it was gone while the grow
@@ -381,16 +405,24 @@ export function morphIn(
   const opacity = opaque
     ? undefined
     : (offset: number) => Math.min(1, offset / FADE_SHARE);
+  const own = ownShadow(panel);
+  const kept: ShadowPath = { from: own, to: own };
+  const shadows: ShadowPath = shadow
+    ? { from: parseShadow(shadow), to: own }
+    : kept;
   const to = panel.getBoundingClientRect();
   const path = { start: from, end: to, layout: to, startAt: 0 };
   const run = startRun(panel, (scrollTop) =>
-    pathFrames(path, radius, scrollTop, opacity),
+    pathFrames(path, radius, scrollTop, opacity, shadows),
   );
   keepAimed(panel, run, path, {
     phone,
-    // The fade belongs to the grow. A later size change is opaque.
+    // The fade and the change of shadow belong to the grow. A later size
+    // change is opaque, and keeps the shadow of the panel.
     frames: (next, scrollTop, grow) =>
-      pathFrames(next, radius, scrollTop, grow ? opacity : undefined),
+      grow
+        ? pathFrames(next, radius, scrollTop, opacity, shadows)
+        : pathFrames(next, radius, scrollTop, undefined, kept),
   });
   if (ready) holdUntil(panel, run, ready, onStart);
   else onStart?.();
@@ -531,20 +563,25 @@ function keepAimed(
  * the way. That fade is its own animation, on linear time. Under the shared
  * curve, its keyframes would be placed by progress, and a curve that covers
  * most of the distance early would start the fade while the panel is still far
- * from its target.
+ * from its target. `shadow` is the `box-shadow` of the target, which the panel
+ * has when it lands.
  */
 export function morphOut(
   panel: HTMLElement,
   to: RectLike,
-  { fade = true }: { fade?: boolean } = {},
+  { fade = true, shadow }: { fade?: boolean; shadow?: string | undefined } = {},
 ): Promise<void> {
   settle(panel);
   const from = panel.getBoundingClientRect();
   const radius = noteRadius();
+  const own = ownShadow(panel);
+  const shadows: ShadowPath = shadow
+    ? { from: own, to: parseShadow(shadow) }
+    : { from: own, to: own };
   const path = { start: from, end: to, layout: from, startAt: 0 };
   const run = startRun(
     panel,
-    (scrollTop) => pathFrames(path, radius, scrollTop),
+    (scrollTop) => pathFrames(path, radius, scrollTop, undefined, shadows),
     { fill: true },
   );
   if (fade) {

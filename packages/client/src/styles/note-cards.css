@@ -289,9 +289,12 @@
 
   /*
    * While the card is dragged, or the editor is drawn over it, the card is
-   * hidden. Thus, its shadow too.
+   * hidden. Thus, its shadow too. A ghost of the card (an open note that did
+   * not grow out of it) has no shadow. `visibility`, not a removal: the shadow
+   * reaches below the card, and stays in the layout. When it went, a board
+   * scrolled to its end moved up.
    */
-  &:has(> .note-dragging, > .note-morphed) > .note-curl-shadow {
+  &:has(> .note-dragging, > .note-morphed, > .note-ghost) > .note-curl-shadow {
     visibility: hidden;
   }
 

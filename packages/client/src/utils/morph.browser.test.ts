@@ -204,6 +204,29 @@ describe("on a wider screen", () => {
     expect(drawn(el).height).toBeGreaterThan(395);
   });
 
+  // The card and the panel change places at both ends. Thus, the panel has the
+  // shadow of the card there, and its own shadow between.
+  it("has the shadow of the card at both ends", async () => {
+    await page.viewport(1024, 700);
+    const el = makePanel();
+    el.style.cssText =
+      "position:fixed;left:200px;top:100px;width:600px;height:400px;box-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1)";
+    const shadow = "rgb(255, 0, 0) 0px 3px 3px -2px";
+    morphIn(el, card, { opaque: true, shadow });
+    for (const animation of el.getAnimations()) {
+      animation.pause();
+      animation.currentTime = 0;
+    }
+    expect(getComputedStyle(el).boxShadow).toContain("rgb(255, 0, 0)");
+    for (const animation of el.getAnimations()) animation.finish();
+    await new Promise((done) => requestAnimationFrame(() => done(null)));
+    expect(getComputedStyle(el).boxShadow).not.toContain("rgb(255, 0, 0)");
+
+    void morphOut(el, card, { fade: false, shadow });
+    for (const animation of el.getAnimations()) animation.finish();
+    expect(getComputedStyle(el).boxShadow).toContain("rgb(255, 0, 0)");
+  });
+
   // A close must never be aimed again at a panel that changes size.
   it("stops following the panel when it settles for a close", async () => {
     await page.viewport(1024, 700);

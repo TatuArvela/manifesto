@@ -267,7 +267,7 @@ export function NoteEditor({
 
   return (
     <article
-      class={`${colors.bg} ${colors.border} note-surface note-color-transition relative z-10 sm:border sm:shadow-lg note-sheet-surface max-sm:flex max-sm:flex-col`}
+      class={`${colors.bg} ${colors.border} note-surface note-color-transition relative z-10 sm:border note-sheet-surface max-sm:flex max-sm:flex-col`}
     >
       <EditorTopBar
         pinned={pinned}

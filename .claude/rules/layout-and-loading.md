@@ -14,6 +14,7 @@ paths:
   - "packages/client/src/utils/phoneSheets.ts"
   - "packages/client/src/utils/edgeScroll.ts"
   - "packages/client/src/utils/morph.ts"
+  - "packages/client/src/utils/morphShadow.ts"
   - "packages/client/src/hooks/useCardModal.ts"
   - "packages/client/src/hooks/useHeldHeight.ts"
   - "packages/client/src/storage/quota.ts"
@@ -187,8 +188,8 @@ comments of a note open there).
 The editor panel of a note grows out of its card, and shrinks back onto it (`utils/morph.ts`,
 `hooks/useCardModal.ts`). The panel is laid out at its final place from its first frame. The
 animation draws it over a rectangle that moves in a straight line between the card and that place.
-Only `transform` changes (and `opacity` for the composer, and the corners). Thus, the layout inside
-the editor never changes.
+Only `transform` changes (and `opacity` for the composer, and the corners and the shadow). Thus, the
+layout inside the editor never changes.
 
 - **Nothing fades on a card.** The panel is opaque, and at both ends it covers the card exactly.
   The card hides when the grow starts, and shows when the shrink ends (`note-morphed`, a full
@@ -204,8 +205,17 @@ the editor never changes.
   slides, and the text keeps its size: the text of a card and of the editor have one size, and the
   title one place. A scale of the text (to 0.56 for a usual card) made it small at the start and
   large again. The clip resets the scroll of the panel, so the content also carries `scrollTop`.
-- **The corners** have their own animation (`border-radius`, divided by the scale on each axis). An
-  animation runs on the compositor only when all of its properties can.
+- **The edge** has its own animation: the corners (`border-radius`) and the shadow, divided by the
+  scale on each axis. An animation runs on the compositor only when all of its properties can.
+- **The shadow** (`utils/morphShadow.ts`) goes from the shadow of the card to the shadow of the
+  panel, and back at the close. Thus, it does not change when the two change places. Each keyframe
+  has the layers of both, each at a part of its strength (`color-mix`). Thus, all keyframes have
+  the same list, and the browser can interpolate between them.
+  - The shadow and the corners of a sheet are on `.note-sheet-panel`, not on the surface inside it.
+    The panel scrolls, and clipped the shadow of the surface. Thus, an open note had no shadow.
+  - The curled shadow of a card (`note-curl`) stays in the layout while its note is open, and
+    hides (`note-ghost`, `note-morphed`). It reaches below the card. When it went at the click, a
+    board scrolled to its end moved up 10px.
 - **The points of the path** (`pathPoints`). Between two keyframes, the scale and the inverse scale
   each change linearly, and their product is not exactly 1. The points are close enough that the
   scale changes by at most 6% between two of them, which keeps the text within 0.1% of its size.

@@ -44,7 +44,7 @@ export function VersionHistory({
   if (selected) {
     return (
       <article
-        class={`${colors.bg} ${colors.border} border shadow-lg note-sheet-surface max-sm:flex max-sm:flex-col max-sm:border-0 max-sm:shadow-none`}
+        class={`${colors.bg} ${colors.border} border note-sheet-surface max-sm:flex max-sm:flex-col max-sm:border-0`}
       >
         <div class="p-4 max-sm:flex-1 max-sm:pt-[calc(1rem+env(safe-area-inset-top))]">
           <div class="text-xs text-black/40 dark:text-white/40 mb-3">
@@ -102,7 +102,7 @@ export function VersionHistory({
 
   return (
     <article
-      class={`${colors.bg} ${colors.border} border shadow-lg note-sheet-surface max-sm:flex max-sm:flex-col max-sm:border-0 max-sm:shadow-none`}
+      class={`${colors.bg} ${colors.border} border note-sheet-surface max-sm:flex max-sm:flex-col max-sm:border-0`}
     >
       <div class="p-4 max-sm:flex-1 max-sm:pt-[calc(1rem+env(safe-area-inset-top))]">
         <h3 class="font-medium text-base mb-3">{t("versions.title")}</h3>
