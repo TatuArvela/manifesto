@@ -27,12 +27,8 @@ import {
 import { activeView, newNoteRequested, showError } from "#/state/ui.ts";
 import { queueNote } from "#/state/unsentNotes.ts";
 import { extractUrls } from "#/utils/linkPreview.ts";
-import {
-  isMorphSource,
-  morphIn,
-  type RectLike,
-  viewportSize,
-} from "#/utils/morph.ts";
+import { isMorphSource, morphIn, viewportSize } from "#/utils/morph.ts";
+import type { RectLike } from "#/utils/morphPath.ts";
 import {
   downloadNoteAsJson,
   downloadNoteAsMarkdown,

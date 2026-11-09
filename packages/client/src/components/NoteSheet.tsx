@@ -89,11 +89,13 @@ export function NoteSheet({
             height is the dialog's less its padding, said outright because a
             percentage has nothing to measure against in a row this tall.
             The shadow and the corners are on the panel, not on the surface
-            inside it: the panel scrolls, and clips each shadow inside it. */}
+            inside it: the panel scrolls, and clips each shadow inside it.
+            It is `relative`, because the copy of a card that a morph shows
+            in its window fills it (utils/morphStandIn.ts). */}
         <div class="w-full sm:flex sm:items-start sm:justify-center">
           <div
             ref={panelRef ?? null}
-            class="note-sheet-panel pointer-events-auto w-full sm:min-w-0 sm:max-w-2xl sm:max-h-[calc(100dvh-2rem)] sm:overflow-y-auto sm:overscroll-contain sm:rounded-(--note-radius) sm:shadow-lg"
+            class="note-sheet-panel pointer-events-auto relative w-full sm:min-w-0 sm:max-w-2xl sm:max-h-[calc(100dvh-2rem)] sm:overflow-y-auto sm:overscroll-contain sm:rounded-(--note-radius) sm:shadow-lg"
           >
             {/* The content, which a morph scales back while it scales the
                 panel. Thus, the text keeps its size (utils/morph.ts). */}

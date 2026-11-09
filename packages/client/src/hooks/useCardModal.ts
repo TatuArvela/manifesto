@@ -12,10 +12,10 @@ import {
   MORPH_MS,
   morphIn,
   morphOut,
-  type RectLike,
   settle,
   viewportSize,
 } from "#/utils/morph.ts";
+import type { RectLike } from "#/utils/morphPath.ts";
 import { useFocusTrap } from "./useFocusTrap.ts";
 
 /**
@@ -114,9 +114,11 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
     if (panel && to) {
       // Down after the morph is complete. The timer is only a backstop, for a
       // tab in the background, where animations are throttled or never run.
-      void morphOut(panel, to, { fade: false, shadow: cardShadow() }).then(
-        takeDown,
-      );
+      void morphOut(panel, to, {
+        fade: false,
+        shadow: cardShadow(),
+        standIn: cardRef.current,
+      }).then(takeDown);
       closeTimerRef.current = setTimeout(takeDown, MORPH_MS + 250);
     } else {
       closeTimerRef.current = setTimeout(takeDown, MODAL_CLOSE_MS);
@@ -143,6 +145,7 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
       ready,
       onStart: () => setGrowHeld(false),
       shadow: cardShadow(),
+      standIn: cardRef.current,
     });
   }, [showModal, waitsForContent, cardShadow]);
 

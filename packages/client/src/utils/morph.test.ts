@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isMorphSource, morphFrames, pathFrames, shownRect } from "./morph.ts";
+import { isMorphSource } from "./morph.ts";
+import { morphFrames, pathFrames, shownRect } from "./morphPath.ts";
 import { parseShadow } from "./morphShadow.ts";
 
 const card = { left: 40, top: 300, width: 200, height: 200 };

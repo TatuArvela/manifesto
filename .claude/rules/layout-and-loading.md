@@ -14,6 +14,8 @@ paths:
   - "packages/client/src/utils/phoneSheets.ts"
   - "packages/client/src/utils/edgeScroll.ts"
   - "packages/client/src/utils/morph.ts"
+  - "packages/client/src/utils/morphPath.ts"
+  - "packages/client/src/utils/morphStandIn.ts"
   - "packages/client/src/utils/morphShadow.ts"
   - "packages/client/src/hooks/useCardModal.ts"
   - "packages/client/src/hooks/useHeldHeight.ts"
@@ -186,10 +188,10 @@ comments of a note open there).
 ## The open and close of a note
 
 The editor panel of a note grows out of its card, and shrinks back onto it (`utils/morph.ts`,
-`hooks/useCardModal.ts`). The panel is laid out at its final place from its first frame. The
-animation draws it over a rectangle that moves in a straight line between the card and that place.
-Only `transform` changes (and `opacity` for the composer, and the corners and the shadow). Thus, the
-layout inside the editor never changes.
+`hooks/useCardModal.ts`; the geometry of the path is in `utils/morphPath.ts`). The panel is laid
+out at its final place from its first frame. The animation draws it over a rectangle that moves in
+a straight line between the card and that place. Only `transform` changes (and `opacity` for the
+composer, and the corners and the shadow). Thus, the layout inside the editor never changes.
 
 - **Nothing fades on a card.** The panel is opaque, and at both ends it covers the card exactly.
   The card hides when the grow starts, and shows when the shrink ends (`note-morphed`, a full
@@ -205,6 +207,14 @@ layout inside the editor never changes.
   slides, and the text keeps its size: the text of a card and of the editor have one size, and the
   title one place. A scale of the text (to 0.56 for a usual card) made it small at the start and
   large again. The clip resets the scroll of the panel, so the content also carries `scrollTop`.
+- **The card, then the editor** (`utils/morphStandIn.ts`). The window shows a copy of the card
+  until `SWITCH_AT` (half of the way, after the curve), and then the editor. The close changes back
+  at the same point. A close before the grow showed the editor shows the card the whole way. The
+  copy has a sheet, laid out at the size of the panel, that draws the color, the finish and the
+  border, and a face, laid out at the size of the card, with the inverse scale. The face copies the
+  `checked` property of each checkbox, because a copy of a node takes only the attribute. When the
+  window showed the editor from its first frame, the toolbar and the empty space of the editor were
+  in the small window over the card.
 - **The backdrop** of a card is a light dim (`black/30`) in the short fade (100 ms), also when the
   note morphs. A dark dim over the full time of the morph changed the full screen while the note
   grew.

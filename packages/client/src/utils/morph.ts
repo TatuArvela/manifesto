@@ -15,17 +15,23 @@
  * it runs). Its first child, the content (`.note-sheet-content`), has the
  * inverse scale. Thus, the window grows and slides, and the text in it keeps
  * its size the whole way.
+ *
+ * The geometry of the path is in `utils/morphPath.ts`.
+ *
+ * A card gives a copy of itself (`utils/morphStandIn.ts`). The window shows
+ * the card for the part of the way near the card, and the editor for the rest.
  */
 
-import { parseShadow, type ShadowPath, shadowAt } from "./morphShadow.ts";
+import {
+  type MorphPath,
+  type PathFrames,
+  pathFrames,
+  pointOn,
+  type RectLike,
+} from "./morphPath.ts";
+import { parseShadow, type ShadowPath } from "./morphShadow.ts";
+import { SWITCH_AT, standInFor, switchFrames } from "./morphStandIn.ts";
 import { isPhoneLayout } from "./phoneSheets.ts";
-
-export interface RectLike {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
 
 /**
  * How long each morph runs. Both directions take the same time and follow the
@@ -42,185 +48,6 @@ const EASING = "cubic-bezier(0.2, 0, 0, 1)";
  * start or the end.
  */
 const FADE_SHARE = 0.3;
-/**
- * How much the scale may change between two points on the path of a morph, on
- * each axis. Between two points, the scale of the panel and the inverse scale
- * of its content each change linearly, and their product is not exactly 1. The
- * error depends on the ratio of the two scales: with 6%, the content is off its
- * size by less than 0.1% (under a pixel on the editor). Points at an even
- * distance were off by 0.8% near the card, where the scale is small.
- */
-const POINT_RATIO = 1.06;
-/** The longest step between two points, which also places the fade. */
-const POINT_STEP = 1 / 8;
-/** A limit on the points of one path, for a card that is very small. */
-const MAX_POINTS = 96;
-
-/**
- * Where the points of a path are, as parts of the way from its start (0) to
- * its end (1): close enough that the scale changes by at most `POINT_RATIO`
- * between two of them on each axis.
- */
-export function pathPoints(path: MorphPath): number[] {
-  const { start, end, layout } = path;
-  const axes = [
-    [start.width, end.width, layout.width],
-    [start.height, end.height, layout.height],
-  ].map(([from = 0, to = 0, size = 0]) =>
-    size > 0 ? [from / size, to / size] : [1, 1],
-  );
-  const points = [0];
-  let along = 0;
-  while (along < 1 && points.length < MAX_POINTS) {
-    let next = Math.min(1, along + POINT_STEP);
-    for (const [from = 1, to = 1] of axes) {
-      const now = from + (to - from) * along;
-      if (to === from || now <= 0) continue;
-      const limit = to > from ? now * POINT_RATIO : now / POINT_RATIO;
-      next = Math.min(next, (limit - from) / (to - from));
-    }
-    along = next > along ? next : 1;
-    points.push(along);
-  }
-  if (points.at(-1) !== 1) points.push(1);
-  return points;
-}
-
-/** The keyframes that draw a panel over a rectangle. */
-export interface MorphFrame {
-  /** For the panel: moved and scaled onto the rectangle. */
-  panel: Keyframe;
-  /** For its content: the inverse scale, so that the text keeps its size. */
-  content: Keyframe;
-  /**
-   * For the edge of the panel: its corners, when a note has round corners, and
-   * its shadow (`utils/morphShadow.ts`). Its own animation: an animation runs
-   * on the compositor only when all of its properties can, and `border-radius`
-   * and `box-shadow` cannot.
-   */
-  edge: Keyframe | null;
-}
-
-/**
- * The keyframes that draw a panel laid out at `to` over `rect`, with
- * `transform-origin` at the top left of both.
- *
- * The text of a card and of the editor have the same size, and the title the
- * same place. Thus, the content is never scaled: only the window that shows it.
- * A scale of the content (to 0.56 for a usual card) made the text small at the
- * start, then large again, most of it in the first 60 ms.
- *
- * `radius` keeps the corners of the window round on the screen: the radius of
- * the panel is divided by its scale on each axis. `shadow` does the same for
- * its shadow, at `progress` from the shadow of the card to the shadow of the
- * panel. `scrollTop` keeps a panel that was scrolled (a close of a long note)
- * where it was, because the clip resets its scroll.
- */
-export function morphFrames(
-  rect: RectLike,
-  to: RectLike,
-  radius: number,
-  scrollTop: number,
-  shadow?: { path: ShadowPath; progress: number } | undefined,
-): MorphFrame {
-  const scaleX = Math.max(to.width > 0 ? rect.width / to.width : 1, 0.001);
-  const scaleY = Math.max(to.height > 0 ? rect.height / to.height : 1, 0.001);
-  const boxShadow =
-    shadow && shadowAt(shadow.path, shadow.progress, scaleX, scaleY);
-  const edge: Keyframe = {
-    ...(radius > 0 && {
-      borderRadius: `${radius / scaleX}px / ${radius / scaleY}px`,
-    }),
-    ...(boxShadow && { boxShadow }),
-  };
-  return {
-    panel: {
-      transform: `translate(${rect.left - to.left}px, ${rect.top - to.top}px) scale(${scaleX}, ${scaleY})`,
-    },
-    content: {
-      transform: `scale(${1 / scaleX}, ${1 / scaleY}) translate(0px, ${-scrollTop}px)`,
-    },
-    edge: Object.keys(edge).length > 0 ? edge : null,
-  };
-}
-
-/**
- * The rectangle at `progress` on the straight line from `from` to `to`.
- */
-export function shownRect(
-  from: RectLike,
-  to: RectLike,
-  progress: number,
-): RectLike {
-  const mix = (a: number, b: number) => a + (b - a) * progress;
-  return {
-    left: mix(from.left, to.left),
-    top: mix(from.top, to.top),
-    width: mix(from.width, to.width),
-    height: mix(from.height, to.height),
-  };
-}
-
-/** A straight line that a morph draws a panel along. */
-export interface MorphPath {
-  /** Where the drawn rectangle is at `startAt`. */
-  start: RectLike;
-  /** Where it is at the end. */
-  end: RectLike;
-  /** Where the panel is laid out. */
-  layout: RectLike;
-  /**
-   * The progress (after the curve) at which the line starts. Not 0 for a grow
-   * aimed again while it ran: the new line starts where the panel is.
-   */
-  startAt: number;
-}
-
-/** The keyframes of a path, for the panel, its content and its edge. */
-export interface PathFrames {
-  panel: Keyframe[];
-  content: Keyframe[];
-  /** Empty when a note has square corners and no shadow. */
-  edge: Keyframe[];
-}
-
-/**
- * The keyframes of `path`, as points on its line. Before `startAt`, the
- * keyframes stay at the start of the line. The animation never goes back
- * there. The shadow changes with the progress of the run, as the opacity does.
- */
-export function pathFrames(
-  path: MorphPath,
-  radius: number,
-  scrollTop: number,
-  opacity?: ((offset: number) => number) | undefined,
-  shadow?: ShadowPath | undefined,
-): PathFrames {
-  const { start, end, layout, startAt } = path;
-  const frames: PathFrames = { panel: [], content: [], edge: [] };
-  const at = (offset: number, rect: RectLike) => {
-    const frame = morphFrames(
-      rect,
-      layout,
-      radius,
-      scrollTop,
-      shadow && { path: shadow, progress: offset },
-    );
-    frames.panel.push({
-      ...frame.panel,
-      ...(opacity && { opacity: opacity(offset) }),
-      offset,
-    });
-    frames.content.push({ ...frame.content, offset });
-    if (frame.edge) frames.edge.push({ ...frame.edge, offset });
-  };
-  if (startAt > 0) at(0, start);
-  for (const along of pathPoints(path)) {
-    at(startAt + (1 - startAt) * along, shownRect(start, end, along));
-  }
-  return frames;
-}
-
 /**
  * If a rectangle is a good start for a morph: a part of it is on the screen,
  * and it is not collapsed. With a card scrolled out of sight, or opened from a
@@ -272,10 +99,30 @@ interface Run {
   panel: Animation;
   content: Animation | null;
   edge: Animation | null;
+  /** The inverse scale of the face of the copy of the card, if there is one. */
+  face: Animation | null;
+  /** The changes between the card and the editor (`switchFrames`). */
+  switches: Animation[];
+  /** The copy of the card in the window, which the run removes. */
+  standIn: HTMLElement | null;
+  /**
+   * The progress at which the window shows the editor and not the card, for a
+   * close that starts during the grow. Null with no copy.
+   */
+  switchAt: number | null;
   /** The scroll of the panel before the clip reset it. */
   scrollTop: number;
   /** The line along which it draws the panel now. */
   path: MorphPath;
+}
+
+/** The copy of a card that a run shows in its window, and how. */
+interface StandInRun {
+  card: HTMLElement;
+  /** A grow, which starts with the card. */
+  cardFirst: boolean;
+  /** The progress at which the two change places. */
+  at: number;
 }
 
 /** The runs of each panel, which `settle` cancels. */
@@ -288,13 +135,17 @@ const holds = new WeakMap<HTMLElement, () => void>();
 /**
  * Starts a run along `path`. The panel clips its content while the run lasts,
  * and gets its overflow and its scroll back when the run ends. A run that keeps
- * its end (`fill`, a close) keeps the clip: the panel goes after it.
+ * its end (`fill`, a close) keeps the clip and the copy of the card: the panel
+ * goes after it.
  */
 function startRun(
   panel: HTMLElement,
   path: MorphPath,
   frames: (scrollTop: number) => PathFrames,
-  { fill = false }: { fill?: boolean } = {},
+  {
+    fill = false,
+    standIn: copy,
+  }: { fill?: boolean; standIn?: StandInRun | undefined } = {},
 ): Run {
   const scrollTop = panel.scrollTop;
   panel.style.overflow = "clip";
@@ -307,11 +158,25 @@ function startRun(
     easing: EASING,
     ...(fill && { fill: "forwards" }),
   };
+  const standIn = copy ? standInFor(copy.card) : null;
+  if (standIn) panel.append(standIn.element);
+  const switches = copy ? switchFrames(copy.cardFirst, copy.at) : null;
   const run: Run = {
     panel: panel.animate(keyframes.panel, timing),
     content: content?.animate(keyframes.content, timing) ?? null,
     edge:
       keyframes.edge.length > 0 ? panel.animate(keyframes.edge, timing) : null,
+    // The face is never scrolled: the content of a card has no scroll.
+    face: standIn?.face.animate(frames(0).content, timing) ?? null,
+    switches:
+      standIn && switches
+        ? [
+            standIn.element.animate(switches.standIn, timing),
+            ...(content ? [content.animate(switches.content, timing)] : []),
+          ]
+        : [],
+    standIn: standIn?.element ?? null,
+    switchAt: copy?.cardFirst ? copy.at : null,
     scrollTop,
     path,
   };
@@ -319,6 +184,7 @@ function startRun(
   const release = () => {
     if (runs.get(panel) !== run) return;
     runs.delete(panel);
+    run.standIn?.remove();
     panel.style.overflow = "";
     panel.scrollTop = scrollTop;
   };
@@ -330,7 +196,7 @@ function startRun(
 
 /** The animations of a run, which move together. */
 function runAnimations(run: Run): Animation[] {
-  return [run.panel, run.content, run.edge].filter(
+  return [run.panel, run.content, run.edge, run.face, ...run.switches].filter(
     (animation): animation is Animation => animation !== null,
   );
 }
@@ -340,6 +206,9 @@ function setRunFrames(run: Run, frames: PathFrames) {
   (run.panel.effect as KeyframeEffect | null)?.setKeyframes(frames.panel);
   (run.content?.effect as KeyframeEffect | null)?.setKeyframes(frames.content);
   (run.edge?.effect as KeyframeEffect | null)?.setKeyframes(frames.edge);
+  // Only a grow is aimed again, and a grow starts with no scroll. Thus, the
+  // frames of the content are also those of the face.
+  (run.face?.effect as KeyframeEffect | null)?.setKeyframes(frames.content);
 }
 
 /**
@@ -355,6 +224,7 @@ export function settle(panel: HTMLElement) {
     // At once, not when the cancel settles: a new run reads the scroll next,
     // and a clipped panel has none.
     runs.delete(panel);
+    run.standIn?.remove();
     panel.style.overflow = "";
     panel.scrollTop = run.scrollTop;
     for (const animation of runAnimations(run)) animation.cancel();
@@ -363,23 +233,22 @@ export function settle(panel: HTMLElement) {
 }
 
 /**
- * Where a run draws `panel` now, or null when no run moves it. The progress is
- * after the curve, which is what the keyframes interpolate.
+ * Where a run draws `panel` now, and if its window shows the card, or null when
+ * no run moves it. The progress is after the curve, which is what the keyframes
+ * interpolate.
  */
-function drawnRect(panel: HTMLElement): RectLike | null {
+function drawnNow(
+  panel: HTMLElement,
+): { rect: RectLike; showsCard: boolean } | null {
   const run = runs.get(panel);
   const effect = run?.panel.effect;
   if (!run || !(effect instanceof KeyframeEffect)) return null;
   const progress = effect.getComputedTiming().progress;
   if (progress === null || progress === undefined) return null;
-  return pointOn(run.path, progress);
-}
-
-/** The rectangle of `path` at `progress` of its run. */
-function pointOn(path: MorphPath, progress: number): RectLike {
-  const along =
-    path.startAt >= 1 ? 1 : (progress - path.startAt) / (1 - path.startAt);
-  return shownRect(path.start, path.end, Math.max(0, along));
+  return {
+    rect: pointOn(run.path, progress),
+    showsCard: run.switchAt !== null && progress < run.switchAt,
+  };
 }
 
 /** The shadow that the panel has in its layout, with no run. */
@@ -414,10 +283,16 @@ export function morphIn(
     ready,
     onStart,
     shadow,
+    standIn,
   }: {
     opaque?: boolean;
     ready?: Promise<void> | undefined;
     shadow?: string | undefined;
+    /**
+     * The card, which the window shows until `SWITCH_AT`
+     * (`utils/morphStandIn.ts`).
+     */
+    standIn?: HTMLElement | null | undefined;
     /**
      * The grow starts to move: at once, or when `ready` lets it. The source
      * hides from this time. If it went at the open, it was gone while the grow
@@ -439,8 +314,15 @@ export function morphIn(
     : kept;
   const to = panel.getBoundingClientRect();
   const path = { start: from, end: to, layout: to, startAt: 0 };
-  const run = startRun(panel, path, (scrollTop) =>
-    pathFrames(path, radius, scrollTop, opacity, shadows),
+  const run = startRun(
+    panel,
+    path,
+    (scrollTop) => pathFrames(path, radius, scrollTop, opacity, shadows),
+    {
+      standIn: standIn
+        ? { card: standIn, cardFirst: true, at: SWITCH_AT }
+        : undefined,
+    },
   );
   keepAimed(panel, run, path, {
     phone,
@@ -607,10 +489,22 @@ function keepAimed(
 export function morphOut(
   panel: HTMLElement,
   to: RectLike,
-  { fade = true, shadow }: { fade?: boolean; shadow?: string | undefined } = {},
+  {
+    fade = true,
+    shadow,
+    standIn,
+  }: {
+    fade?: boolean;
+    shadow?: string | undefined;
+    /**
+     * The card, which the window shows from `SWITCH_AT` to the end. From the
+     * start, when a grow closes before it showed the editor.
+     */
+    standIn?: HTMLElement | null | undefined;
+  } = {},
 ): Promise<void> {
   const waiting = holds.has(panel);
-  const drawn = drawnRect(panel);
+  const drawn = drawnNow(panel);
   settle(panel);
   if (waiting) {
     // Transparent until the caller removes it, as it was during the wait.
@@ -623,12 +517,21 @@ export function morphOut(
   const shadows: ShadowPath = shadow
     ? { from: own, to: parseShadow(shadow) }
     : { from: own, to: own };
-  const path = { start: drawn ?? layout, end: to, layout, startAt: 0 };
+  const path = { start: drawn?.rect ?? layout, end: to, layout, startAt: 0 };
   const run = startRun(
     panel,
     path,
     (scrollTop) => pathFrames(path, radius, scrollTop, undefined, shadows),
-    { fill: true },
+    {
+      fill: true,
+      standIn: standIn
+        ? {
+            card: standIn,
+            cardFirst: false,
+            at: drawn?.showsCard ? 0 : SWITCH_AT,
+          }
+        : undefined,
+    },
   );
   if (fade) {
     panel.animate(

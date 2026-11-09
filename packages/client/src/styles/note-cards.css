@@ -317,3 +317,12 @@
 .note-morphed {
   clip-path: inset(50%);
 }
+
+/*
+ * The face of the copy of a card in the window of a morph
+ * (utils/morphStandIn.ts). The sheet of the copy draws the finish. Thus, the
+ * face does not draw its edge a second time.
+ */
+.morph-stand-in-face::after {
+  content: none;
+}
