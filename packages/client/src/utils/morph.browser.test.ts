@@ -204,6 +204,58 @@ describe("on a wider screen", () => {
     expect(drawn(el).height).toBeGreaterThan(395);
   });
 
+  // A close during the grow started from the layout of the panel. Thus, the
+  // full editor showed for a frame, and then shrank.
+  it("starts a close during the grow where the panel is drawn", async () => {
+    await page.viewport(1024, 700);
+    const el = makePanel();
+    el.style.cssText =
+      "position:fixed;left:200px;top:100px;width:600px;height:400px";
+    morphIn(el, card, { opaque: true });
+    const grow = defined(el.getAnimations()[0]);
+    grow.pause();
+    grow.currentTime = 30;
+    const before = drawn(el);
+
+    void morphOut(el, card, { fade: false });
+    const shrink = defined(el.getAnimations()[0]);
+    shrink.pause();
+    shrink.currentTime = 0;
+    const after = drawn(el);
+    expect(after.left).toBeCloseTo(before.left, 0);
+    expect(after.top).toBeCloseTo(before.top, 0);
+    expect(after.width).toBeCloseTo(before.width, 0);
+    expect(after.height).toBeCloseTo(before.height, 0);
+
+    // And it still lands on the card.
+    shrink.currentTime = MORPH_MS;
+    expect(drawn(el).width).toBeCloseTo(card.width, 0);
+  });
+
+  // A grow that waits never showed, and the card is still there.
+  it("ends a close during the wait at once, with nothing on the screen", async () => {
+    vi.useFakeTimers();
+    try {
+      await page.viewport(1024, 700);
+      const el = makePanel();
+      let started = false;
+      morphIn(el, card, {
+        ready: new Promise<void>(() => {}),
+        onStart: () => (started = true),
+      });
+      await morphOut(el, card, { fade: false });
+      expect(el.getAnimations()).toHaveLength(0);
+      expect(el.style.opacity).toBe("0");
+
+      // The end of the wait does not start the cancelled grow.
+      vi.advanceTimersByTime(MORPH_READY_WAIT_MS);
+      expect(started).toBe(false);
+      expect(el.style.opacity).toBe("0");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   // The card and the panel change places at both ends. Thus, the panel has the
   // shadow of the card there, and its own shadow between.
   it("has the shadow of the card at both ends", async () => {

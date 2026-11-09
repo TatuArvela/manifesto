@@ -274,12 +274,16 @@ interface Run {
   edge: Animation | null;
   /** The scroll of the panel before the clip reset it. */
   scrollTop: number;
+  /** The line along which it draws the panel now. */
+  path: MorphPath;
 }
 
 /** The runs of each panel, which `settle` cancels. */
 const runs = new WeakMap<HTMLElement, Run>();
 /** The stop of the watch of `keepAimed` on each panel that has one. */
 const following = new WeakMap<HTMLElement, () => void>();
+/** The end of the wait of each grow that still waits (`holdUntil`). */
+const holds = new WeakMap<HTMLElement, () => void>();
 
 /**
  * Starts a run along `path`. The panel clips its content while the run lasts,
@@ -288,6 +292,7 @@ const following = new WeakMap<HTMLElement, () => void>();
  */
 function startRun(
   panel: HTMLElement,
+  path: MorphPath,
   frames: (scrollTop: number) => PathFrames,
   { fill = false }: { fill?: boolean } = {},
 ): Run {
@@ -308,6 +313,7 @@ function startRun(
     edge:
       keyframes.edge.length > 0 ? panel.animate(keyframes.edge, timing) : null,
     scrollTop,
+    path,
   };
   runs.set(panel, run);
   const release = () => {
@@ -343,6 +349,7 @@ function setRunFrames(run: Run, frames: PathFrames) {
  */
 export function settle(panel: HTMLElement) {
   following.get(panel)?.();
+  holds.get(panel)?.();
   const run = runs.get(panel);
   if (run) {
     // At once, not when the cancel settles: a new run reads the scroll next,
@@ -353,6 +360,26 @@ export function settle(panel: HTMLElement) {
     for (const animation of runAnimations(run)) animation.cancel();
   }
   for (const animation of panel.getAnimations()) animation.cancel();
+}
+
+/**
+ * Where a run draws `panel` now, or null when no run moves it. The progress is
+ * after the curve, which is what the keyframes interpolate.
+ */
+function drawnRect(panel: HTMLElement): RectLike | null {
+  const run = runs.get(panel);
+  const effect = run?.panel.effect;
+  if (!run || !(effect instanceof KeyframeEffect)) return null;
+  const progress = effect.getComputedTiming().progress;
+  if (progress === null || progress === undefined) return null;
+  return pointOn(run.path, progress);
+}
+
+/** The rectangle of `path` at `progress` of its run. */
+function pointOn(path: MorphPath, progress: number): RectLike {
+  const along =
+    path.startAt >= 1 ? 1 : (progress - path.startAt) / (1 - path.startAt);
+  return shownRect(path.start, path.end, Math.max(0, along));
 }
 
 /** The shadow that the panel has in its layout, with no run. */
@@ -412,7 +439,7 @@ export function morphIn(
     : kept;
   const to = panel.getBoundingClientRect();
   const path = { start: from, end: to, layout: to, startAt: 0 };
-  const run = startRun(panel, (scrollTop) =>
+  const run = startRun(panel, path, (scrollTop) =>
     pathFrames(path, radius, scrollTop, opacity, shadows),
   );
   keepAimed(panel, run, path, {
@@ -454,15 +481,20 @@ function holdUntil(
   // the wait, the card changed its look at the click, before anything moved.
   // `opacity`, not `visibility`: the editor takes focus while it waits.
   panel.style.opacity = "0";
-  let go = () => {
+  // The wait ends: the grow goes, or `settle` cancels it (a close, or an open
+  // again). A cancelled grow never goes later.
+  const end = () => {
     go = () => {};
     clearTimeout(timer);
+    holds.delete(panel);
     panel.style.opacity = "";
-    // Cancelled while it waited (a close): it stays cancelled.
-    if (run.panel.playState !== "paused") return;
+  };
+  let go = () => {
+    end();
     for (const animation of runAnimations(run)) animation.play();
     onStart?.();
   };
+  holds.set(panel, end);
   const timer = setTimeout(() => go(), MORPH_READY_WAIT_MS);
   void ready.then(
     () => go(),
@@ -519,11 +551,11 @@ function keepAimed(
         effect.getComputedTiming().progress ?? 0,
         0.999,
       );
-      const along = (progress - path.startAt) / (1 - path.startAt);
-      const shown = shownRect(path.start, path.end, Math.max(0, along));
+      const shown = pointOn(path, progress);
       effect.setKeyframes([]);
       const layout = panel.getBoundingClientRect();
       path = { start: shown, end: layout, layout, startAt: progress };
+      run.path = path;
       setRunFrames(run, frames(path, run.scrollTop, run === grow));
       return;
     }
@@ -534,7 +566,7 @@ function keepAimed(
     }
     path = { start: path.layout, end: layout, layout, startAt: 0 };
     const next = path;
-    run = startRun(panel, (scrollTop) => frames(next, scrollTop, false));
+    run = startRun(panel, next, (scrollTop) => frames(next, scrollTop, false));
   });
   const stop = () => {
     observer.disconnect();
@@ -565,22 +597,36 @@ function keepAimed(
  * most of the distance early would start the fade while the panel is still far
  * from its target. `shadow` is the `box-shadow` of the target, which the panel
  * has when it lands.
+ *
+ * The shrink starts where the panel is drawn now. A close during the grow
+ * started from the layout of the panel: the full editor showed for a frame,
+ * and then shrank. A grow that still waits for its content (`holdUntil`) never
+ * showed, and its source is still there. Thus, it ends at once, with nothing
+ * to play.
  */
 export function morphOut(
   panel: HTMLElement,
   to: RectLike,
   { fade = true, shadow }: { fade?: boolean; shadow?: string | undefined } = {},
 ): Promise<void> {
+  const waiting = holds.has(panel);
+  const drawn = drawnRect(panel);
   settle(panel);
-  const from = panel.getBoundingClientRect();
+  if (waiting) {
+    // Transparent until the caller removes it, as it was during the wait.
+    panel.style.opacity = "0";
+    return Promise.resolve();
+  }
+  const layout = panel.getBoundingClientRect();
   const radius = noteRadius();
   const own = ownShadow(panel);
   const shadows: ShadowPath = shadow
     ? { from: own, to: parseShadow(shadow) }
     : { from: own, to: own };
-  const path = { start: from, end: to, layout: from, startAt: 0 };
+  const path = { start: drawn ?? layout, end: to, layout, startAt: 0 };
   const run = startRun(
     panel,
+    path,
     (scrollTop) => pathFrames(path, radius, scrollTop, undefined, shadows),
     { fill: true },
   );
