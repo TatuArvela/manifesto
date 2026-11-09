@@ -485,9 +485,10 @@ export const NoteCard = memo(function NoteCard({
             // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss
             // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss
             <div
-              // In and out over the same time as the panel: that of the morph
-              // when it morphs, and that of the plain fade otherwise.
-              class={`fixed inset-0 bg-black/50 layer-backdrop max-sm:hidden transition-opacity ease-in ${morphing ? "duration-240" : "duration-100"} ${closing ? "opacity-0" : morphing ? "animate-[fade-in_240ms_ease-out]" : "animate-fade-in"}`}
+              // A light dim, in and out in the short fade, also when the note
+              // morphs. A dark dim over the time of the morph changed the full
+              // screen while the note grew, and took the eye from the note.
+              class={`fixed inset-0 bg-black/30 layer-backdrop max-sm:hidden transition-opacity duration-100 ease-in ${closing ? "opacity-0" : "animate-fade-in"}`}
               onClick={closeModal}
             />
           }

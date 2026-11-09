@@ -205,6 +205,9 @@ layout inside the editor never changes.
   slides, and the text keeps its size: the text of a card and of the editor have one size, and the
   title one place. A scale of the text (to 0.56 for a usual card) made it small at the start and
   large again. The clip resets the scroll of the panel, so the content also carries `scrollTop`.
+- **The backdrop** of a card is a light dim (`black/30`) in the short fade (100 ms), also when the
+  note morphs. A dark dim over the full time of the morph changed the full screen while the note
+  grew.
 - **The edge** has its own animation: the corners (`border-radius`) and the shadow, divided by the
   scale on each axis. An animation runs on the compositor only when all of its properties can.
 - **The shadow** (`utils/morphShadow.ts`) goes from the shadow of the card to the shadow of the
