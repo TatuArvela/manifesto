@@ -58,10 +58,18 @@ The row of buttons at the bottom of a card has no scroll. The buttons that do no
 
 ## Reorder
 
-The `canReorder` computed controls drag-to-reorder: the Notes view or the Auto-notes view, default
-sort, no search, no modal. The same control applies to the keyboard method (`moveNoteBy`, one
-position in the section of the card, bound to `Shift j` / `Shift k` and in the card menu). WCAG
-requires a keyboard method for each drag.
+Drag-to-reorder needs the Notes view or the Auto-notes view, default sort, no search, and no modal.
+The same control applies to the keyboard method (`moveNoteBy`, one position in the section of the
+card, bound to `Shift j` / `Shift k` and in the card menu). WCAG requires a keyboard method for each
+drag.
+
+- The grids read `reorderableBoard`, which has no modal term. Each card takes the result as its
+  `draggable` prop. When the grids read the open note too, each open and each close of a note
+  rendered all cards again, and changed their attributes: about 100 ms with 80 cards, in the first
+  frame of the morph.
+- Thus, the modal term is in `canReorder` (for `noteMoveTarget`) and in the two starts of a drag in
+  `useReorderDrag`. A card under the modal keeps `draggable`, so the mouse start cancels the browser
+  drag.
 
 - `reorderNotes` gives the dropped note the midpoint between its neighbors, and writes nothing else.
 - `position` is a float in both drivers. Thus, a `POSITION_STEP` (1000) gap lasts for approximately

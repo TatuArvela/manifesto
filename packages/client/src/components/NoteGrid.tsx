@@ -3,9 +3,9 @@ import { reorderNotes } from "#/state/actions.ts";
 import { notesLoaded } from "#/state/notesStore.ts";
 import { activeView, boardAnnouncement } from "#/state/ui.ts";
 import {
-  canReorder,
   notesHiddenByTag,
   pinnedNotes,
+  reorderableBoard,
   unpinnedNotes,
 } from "#/state/views.ts";
 import { boardLabel } from "./boardCard.ts";
@@ -16,7 +16,7 @@ import { ReorderableGrid } from "./ReorderableGrid.tsx";
 export function NoteGrid() {
   const pinned = pinnedNotes.value;
   const unpinned = unpinnedNotes.value;
-  const reorderable = canReorder.value;
+  const reorderable = reorderableBoard.value;
 
   if (pinned.length === 0 && unpinned.length === 0) {
     const isSearch = activeView.value === "search";

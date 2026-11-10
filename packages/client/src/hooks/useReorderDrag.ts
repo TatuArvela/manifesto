@@ -8,6 +8,7 @@ import {
   useState,
 } from "preact/hooks";
 import { animations } from "#/state/prefs.ts";
+import { editingNoteId } from "#/state/ui.ts";
 import { edgeScroll, scrollParent } from "#/utils/edgeScroll.ts";
 
 /**
@@ -249,7 +250,15 @@ export function useReorderDrag({
     setPreview(null);
   };
 
+  // A drag starts only with no note open. The grid does not get the open note
+  // in `reorderable` (see `reorderableBoard`), and the modal covers the board.
+  // Thus, a card keeps `draggable` under the modal, and the browser drag must
+  // be cancelled here.
   const handleDragStart = (e: DragEvent, id: string) => {
+    if (editingNoteId.peek() !== null) {
+      e.preventDefault();
+      return;
+    }
     if (!reorderable) return;
     const target = e.currentTarget as HTMLElement;
     if (e.dataTransfer) {
@@ -329,7 +338,7 @@ export function useReorderDrag({
   );
 
   const handleTouchDragStart = (e: PointerEvent, id: string) => {
-    if (!reorderable) return;
+    if (!reorderable || editingNoteId.peek() !== null) return;
     const target = e.currentTarget as HTMLElement;
     touchDragElRef.current = target;
     const rect = target.getBoundingClientRect();
