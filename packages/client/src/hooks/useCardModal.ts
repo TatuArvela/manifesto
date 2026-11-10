@@ -76,7 +76,12 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
     return card ? getComputedStyle(card).boxShadow : undefined;
   }, []);
 
-  useEffect(() => {
+  // Layout, not effect. Preact runs an effect only after the next paint. Thus,
+  // each open waited one frame before the sheet mounted, and each close one
+  // frame before the shrink started, with nothing new on the screen in that
+  // frame. Here, the sheet mounts and the shrink starts in the task of the
+  // click.
+  useLayoutEffect(() => {
     if (isEditing) {
       closeRunRef.current++;
       if (closeTimerRef.current) {
@@ -151,7 +156,10 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
 
   /**
    * The editor in the panel has its text. A grow waits for this, because the
-   * editor builds its view after the first frame (see `morphIn`).
+   * editor builds its view after the panel mounts (see `morphIn`). Usually in
+   * the same task: the editor builds and reports in layout effects, and
+   * Milkdown creates its view in microtasks. Thus, the grow usually starts on
+   * the first frame after the click.
    */
   const contentReady = useCallback(() => {
     startGrowRef.current?.();

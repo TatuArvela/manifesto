@@ -68,8 +68,8 @@ afterEach(() => {
 
 /**
  * A menu is either a `CardPopover` (mounted only while open) or a `Dropdown`
- * (always mounted, shown as a popover). Thus, "the rows on the screen" means
- * the rows inside an open panel.
+ * (mounted from its first open, shown as a popover). Thus, "the rows on the
+ * screen" means the rows inside an open panel.
  */
 function openMenuPanel(): HTMLElement {
   const panel =

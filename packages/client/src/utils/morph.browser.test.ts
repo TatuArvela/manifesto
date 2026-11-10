@@ -140,7 +140,7 @@ describe("on a wider screen", () => {
     expect(getComputedStyle(el).opacity).toBe("1");
   });
 
-  // Milkdown builds its view after the first frame. A grow that started at
+  // Milkdown builds its view after the panel mounts. A grow that started at
   // once went to the empty panel, and then to the full one.
   it("holds the grow over the card until its content is ready", async () => {
     await page.viewport(1024, 700);

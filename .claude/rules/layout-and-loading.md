@@ -247,13 +247,20 @@ composer, and the corners and the shadow). Thus, the layout inside the editor ne
   each change linearly, and their product is not exactly 1. The points are close enough that the
   scale changes by at most 6% between two of them, which keeps the text within 0.1% of its size.
   Points at an even distance were off by 0.8% near the card.
-- **The wait for the text.** Milkdown builds its view after the first frame. The grow of a card waits
-  until the editor reports its text (`onReady` of `NoteCardEditor`), for a maximum of
+- **The wait for the text.** Milkdown builds its view after the panel mounts. The grow of a card
+  waits until the editor reports its text (`onReady` of `NoteCardEditor`), for a maximum of
   `MORPH_READY_WAIT_MS`. A grow that started at once went to the empty panel first. That panel is
   centered lower than a card near the top of the board. Thus, the grow went down, and then back up.
   While it waits, the panel is transparent and the card stays, and the two change places when the
   grow starts. When the panel covered the card during the wait, the card changed its look at the
   click, before anything moved.
+- **One task from the click.** The steps from the click to the grow are layout effects, not
+  effects: the open in `useCardModal`, the build in `useMilkdownEditor`, and the report in
+  `MilkdownEditor`. Milkdown creates its view in microtasks. Thus, the grow usually starts on the
+  first frame after the click, and the close starts its shrink on the first frame after its click.
+  Preact runs an effect only after the next paint. With three effects, the grow started about
+  80 ms after the click on a fast laptop, and about 40 ms with none. Keep a new step on this
+  path out of an effect.
 - **Size changes.** `keepAimed` watches the panel. During a run, a new size starts a new line from
   where the panel is drawn now, at the current progress. With the old start and only a new end, the
   panel jumped. For `MORPH_FOLLOW_MS` after the grow, a new size runs from the old layout to the new

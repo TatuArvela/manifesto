@@ -1,7 +1,7 @@
 import type { Editor } from "@milkdown/kit/core";
 import { editorViewCtx } from "@milkdown/kit/core";
 import type { Transaction } from "@milkdown/kit/prose/state";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useLayoutEffect, useRef, useState } from "preact/hooks";
 
 /**
  * Makes the view drop each transaction that arrives after its destroy.
@@ -38,6 +38,12 @@ function dropLateTransactions(instance: Editor) {
  * `ready` is true by default. Give false while `build` still needs something
  * (for example, a plugin that loads lazily). Then the editor is created on the
  * render that changes it, and is not built without it.
+ *
+ * It builds in a layout effect, in the task of the commit that mounts the
+ * root, not one frame later. Milkdown creates its view in microtasks. Thus,
+ * the text is usually there before the first paint. The grow of an opened note
+ * waits for that text. When the build waited for a paint, the grow started one
+ * frame later.
  */
 export function useMilkdownEditor(
   build: (root: HTMLElement) => Editor,
@@ -51,7 +57,7 @@ export function useMilkdownEditor(
   const beforeDestroyRef = useRef(beforeDestroy);
   beforeDestroyRef.current = beforeDestroy;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = mountRef.current;
     if (!el || !ready) return;
 

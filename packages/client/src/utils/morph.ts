@@ -345,11 +345,12 @@ export const MORPH_READY_WAIT_MS = 150;
 
 /**
  * Holds a grow at its first frame (over the source) until its content is
- * there. Milkdown builds its view after the first frame. A grow that started
- * at once went to the empty panel first, and then to the full one. When the
- * empty panel was centered lower than the card, the grow went down, and then
- * back up. `keepAimed` still follows the panel while it is held, and at the
- * progress 0 that changes only the end.
+ * there. Milkdown builds its view after the panel mounts, in microtasks.
+ * Usually that is before the first paint, and the hold ends in the same task.
+ * A grow that started at once went to the empty panel first, and then to the
+ * full one. When the empty panel was centered lower than the card, the grow
+ * went down, and then back up. `keepAimed` still follows the panel while it is
+ * held, and at the progress 0 that changes only the end.
  */
 function holdUntil(
   panel: HTMLElement,

@@ -188,6 +188,13 @@ export function Dropdown({
   // closed the panel. Thus, the trigger would see it closed, and open it again.
   // The menu could not be closed from its own button.
   const openAtPointerDownRef = useRef(false);
+  // If the panel opened at least one time. Its content mounts at the first
+  // open, and then stays mounted, so that a menu that opens again during its
+  // exit transitions back. Before, each closed panel had its content in the
+  // page. An opened note made about 300 elements in its closed panels, of the
+  // 730 in its sheet.
+  const openedRef = useRef(false);
+  if (open) openedRef.current = true;
 
   useEscapeStack(open, () => onCloseRef.current());
 
@@ -328,7 +335,7 @@ export function Dropdown({
         class={`dropdown-panel ${panelClass ?? ""}`}
         style={{ positionAnchor: idRef.current }}
       >
-        {children}
+        {openedRef.current && children}
       </div>
     </div>
   );

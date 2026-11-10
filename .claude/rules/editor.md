@@ -28,6 +28,9 @@ Only the gap cursor: the drop indicator of that plugin draws over the drag of th
 - `hooks/useMilkdownEditor.ts` sets up the editor instance. `components/editor/MilkdownEditor.tsx`
   renders it. `components/editor/makeNoteEditor.ts` lists its presets and plugins. Add a plugin
   there.
+- The build (`useMilkdownEditor`) and the report of the editor (`onEditorReady`) are layout
+  effects. The grow of an opened note waits for that report. An effect runs only after the next
+  paint, and each one moved the start of the grow one frame later (`layout-and-loading.md`).
 - Read-only previews come from `utils/remarkRenderer.ts` (remark → rehype → HTML that DOMPurify
   sanitizes).
 

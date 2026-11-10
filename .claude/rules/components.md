@@ -26,6 +26,9 @@ Its props are `open`, `onClose`, `trigger` and `children`.
   layer during the fade, and only Chromium can transition `overlay`.
 - The render calculates `leaving`. An effect never sets it. One frame that is not open and not
   leaving is `display: none`, and that cancels the exit.
+- The content of a `Dropdown` mounts at its first open, and then stays mounted. Thus, a menu that
+  opens again during its exit transitions back. Before, each closed panel had its content in the
+  page: an opened note made about 300 elements in closed panels, in the task of its first frame.
 - Card popovers (`CardPopover`) mount only while they are open. They get their exit from
   `usePresence`.
 - The slide is a translation, never a scale. The browsers without anchor positioning put the panel
@@ -52,8 +55,8 @@ through `NoteMenu`. A surface adds its own rows (`before`). It does not make its
 - Where the pointer can hover, a submenu opens adjacent to the panel (`MenuFlyout`). It is inside the
   box of the panel, because a `Dropdown` is in the top layer. On a touch screen, it opens in place of
   the rows. In both cases, it gets Escape before the panel.
-- A `Dropdown` keeps `NoteMenu` mounted while it is closed. Thus, give it `open`. If you do not, it
-  opens again inside a submenu.
+- A `Dropdown` keeps `NoteMenu` mounted while it is closed, from its first open. Thus, give it
+  `open`. If you do not, it opens again inside a submenu.
 
 ## Confirmation
 

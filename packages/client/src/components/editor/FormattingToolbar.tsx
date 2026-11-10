@@ -29,8 +29,10 @@ import {
   emptyFormats,
   getActiveFormats,
 } from "#/extensions/richFormatting.ts";
+import { useMediaQuery } from "#/hooks/useMediaQuery.ts";
 import { t } from "#/i18n/index.ts";
 import type { ActiveFormats, FormatType } from "#/utils/formatTypes.ts";
+import { PHONE_QUERY } from "#/utils/phoneSheets.ts";
 import {
   applyRawFormat,
   applyTextEdit,
@@ -82,6 +84,7 @@ export function FormattingToolbar({
 }: FormattingToolbarProps) {
   const [showExtras, setShowExtras] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const phone = useMediaQuery(PHONE_QUERY);
   const [af, setAf] = useState<ActiveFormats>(emptyFormats);
 
   useEffect(() => {
@@ -241,10 +244,15 @@ export function FormattingToolbar({
               )}
             </div>
 
-            <div class="sm:hidden contents">
-              <Separator />
-              {extras()}
-            </div>
+            {/* Only on a phone. A wide screen hid this copy, and still made it
+                again on each render of the bar: when a note opened, and on
+                each change of the selection. */}
+            {phone && (
+              <div class="sm:hidden contents">
+                <Separator />
+                {extras()}
+              </div>
+            )}
           </div>
         </div>
       </div>
