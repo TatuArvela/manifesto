@@ -1,5 +1,29 @@
 import type { Editor } from "@milkdown/kit/core";
+import { editorViewCtx } from "@milkdown/kit/core";
+import type { Transaction } from "@milkdown/kit/prose/state";
 import { useEffect, useRef, useState } from "preact/hooks";
+
+/**
+ * Makes the view drop each transaction that arrives after its destroy.
+ * y-prosemirror sends the changes of the cursors of the peers in a timer. Before
+ * it dispatches, it checks a flag that its binding never sets. Thus, a timer
+ * that started just before the teardown dispatched into the destroyed editor,
+ * and threw `Context "editorState" not found` from a place where nothing can
+ * catch it. This occurred when a note in collaboration closed.
+ */
+function dropLateTransactions(instance: Editor) {
+  instance.action((ctx) => {
+    const view = ctx.get(editorViewCtx);
+    const dispatch =
+      view.props.dispatchTransaction?.bind(view) ??
+      ((tr: Transaction) => view.updateState(view.state.apply(tr)));
+    view.setProps({
+      dispatchTransaction: (tr) => {
+        if (!view.isDestroyed) dispatch(tr);
+      },
+    });
+  });
+}
 
 /**
  * A Preact hook that manages the lifecycle of a Milkdown Editor instance. The
@@ -40,6 +64,11 @@ export function useMilkdownEditor(
       } catch {
         // A teardown hook must not be able to leak the editor when it throws
         // before destroy().
+      }
+      try {
+        dropLateTransactions(instance);
+      } catch {
+        // An editor that is not created yet has no view to protect.
       }
       instance.destroy();
     };

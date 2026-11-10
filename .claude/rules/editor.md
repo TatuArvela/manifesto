@@ -124,6 +124,9 @@ gone when the timer fires, the timer throws `Context "editorView" not found`.
   waiting timer do nothing.
 - If you add other parts to the editor that stay longer than a frame, stop them there too. The
   teardown is the only time when the context is still complete.
+- The teardown also makes the view drop each transaction that arrives after its destroy. The
+  timer of y-prosemirror for the cursors of the peers checks a flag that its binding never sets.
+  Thus, it dispatched into a destroyed editor when a note in collaboration closed.
 
 A parent that keeps the editor from `onEditorReady` must drop it on `onEditorGone`. A destroyed
 editor throws `Context "editorState" not found` on each read. `NoteEditor` reads its editor in the
