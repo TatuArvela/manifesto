@@ -55,7 +55,11 @@ Custom ProseMirror behavior is in `packages/client/src/extensions/`:
   the buttons of the header (`ImageButtons`) through `InlineImageControls`, which `NoteEditor`
   renders with Preact into the frame of the image. This folder cannot import components. The view
   stops the events of the buttons and ignores their mutations. If not, ProseMirror moves the caret
-  on each press and draws the node again.
+  on each press and draws the node again. `useTextImages` draws the buttons in a microtask, never
+  during the call. A view draws inside a change of the editor, and a change can occur inside a
+  render of Preact (an effect that has not run yet runs at the start of the next render of its
+  component). A `render` there cleared the hook state of that render, and a note with an image in
+  the text crashed when it opened.
 - `imagePointers`: when an image leaves the note, `NoteEditor` changes the text through the editor
   (`removeImagePointers`), or the raw textarea, before it calls `onRemoveImage`. Never through the
   `content` of the parent: the editor reads that only when it opens, and its next change writes the

@@ -214,26 +214,35 @@ export function useTextImages({
   useEffect(() => {
     for (const reload of imageReloads.current.values()) reload();
   }, [images]);
+  // The buttons draw in a microtask, never during the call. A view draws them
+  // inside a change of the editor, and a change can occur inside a render of
+  // Preact: an effect that has not run yet runs at the start of the next render
+  // of its component. A `render` there started a second diff inside the first,
+  // and cleared the hook state of the first. A note with an image in the text
+  // then crashed when it opened. The microtasks run before the paint, in the
+  // order of the calls.
   const inlineImageControls = useMemo<InlineImageControls>(
     () => ({
       show: (container, index, reload) => {
         imageReloads.current.set(container, reload);
         const actions = () => imageActionsRef.current;
         const { describe, draw, moveOut } = actions();
-        render(
-          <ImageButtons
-            onDescribe={describe && (() => actions().describe?.(index))}
-            onEdit={draw && (() => actions().draw?.(index))}
-            onDelete={() => actions().remove(index)}
-            onMoveOutOfText={moveOut && (() => actions().moveOut?.(index))}
-            onShowFull={() => actions().full(index)}
-          />,
-          container,
+        queueMicrotask(() =>
+          render(
+            <ImageButtons
+              onDescribe={describe && (() => actions().describe?.(index))}
+              onEdit={draw && (() => actions().draw?.(index))}
+              onDelete={() => actions().remove(index)}
+              onMoveOutOfText={moveOut && (() => actions().moveOut?.(index))}
+              onShowFull={() => actions().full(index)}
+            />,
+            container,
+          ),
         );
       },
       hide: (container) => {
         imageReloads.current.delete(container);
-        render(null, container);
+        queueMicrotask(() => render(null, container));
       },
     }),
     [],
