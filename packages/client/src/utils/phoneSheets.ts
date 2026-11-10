@@ -118,8 +118,15 @@ function keepFocusClear(event: FocusEvent) {
 }
 
 /**
- * Gives the own background of the page the color of the note in `sheet`, as
- * `--sheet-canvas` on <html>, and keeps it the same while the note is open.
+ * Gives the own background of the page the color of the note in `sheet`, and
+ * keeps it the same while the note is open. Only on a phone (`PHONE_QUERY`),
+ * also after a rotation, because only there does the band show.
+ *
+ * It writes `background-color` on <body>, never a custom property on <html>
+ * or <body>. A custom property is inherited by each element of the page. Thus,
+ * one write of it made the browser calculate the style of the full board
+ * again: about 100 ms with 80 cards, at the open and again at the close.
+ * `background-color` is not inherited, and only <body> changes.
  *
  * With the keyboard up in a Safari tab, iOS lets the user pan the page down
  * past the bottom of all its layout, also a `fixed` layer that covers the
@@ -134,15 +141,16 @@ function keepFocusClear(event: FocusEvent) {
  */
 function paintPage(sheet: HTMLElement) {
   stopPainting?.();
-  const root = document.documentElement;
+  const body = document.body;
+  const phone =
+    typeof matchMedia === "function" ? matchMedia(PHONE_QUERY) : null;
   let surface: HTMLElement | null = null;
 
   const copy = () => {
-    if (surface)
-      root.style.setProperty(
-        "--sheet-canvas",
-        getComputedStyle(surface).backgroundColor,
-      );
+    body.style.backgroundColor =
+      surface && phone?.matches
+        ? getComputedStyle(surface).backgroundColor
+        : "";
   };
   const colour = new MutationObserver(copy);
   const find = () => {
@@ -168,13 +176,15 @@ function paintPage(sheet: HTMLElement) {
     if (event.target === surface) copy();
   };
   sheet.addEventListener("transitionend", onTransitionEnd);
+  phone?.addEventListener("change", copy);
   find();
 
   stopPainting = () => {
     colour.disconnect();
     swaps.disconnect();
     sheet.removeEventListener("transitionend", onTransitionEnd);
-    root.style.removeProperty("--sheet-canvas");
+    phone?.removeEventListener("change", copy);
+    body.style.backgroundColor = "";
     stopPainting = null;
   };
 }

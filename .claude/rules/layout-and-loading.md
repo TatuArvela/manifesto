@@ -168,7 +168,13 @@ the visual viewport, because with the keyboard up the bottom of the window is un
 
 When the keyboard is open in a Safari tab, iOS pans the page past the bottom of the layout, and
 past the `fixed` layers. Thus, the background of the page shows there. `paintPage` gives it the
-color of the open note.
+color of the open note, only at the width of a phone.
+
+- It writes `background-color` on `<body>`, never a custom property on `<html>` or `<body>`. A
+  custom property is inherited by each element. One write of it made the browser calculate the
+  style of the full board again: about 100 ms with 80 cards, at the open and again at the close.
+- The same applies to all code that runs while a note opens or closes. A variable on the root is
+  acceptable only for a write that a preference causes (`theme.ts`, `boardBackground.ts`).
 
 The keyboard covers the bottom of the layout, and nothing follows it. Thus, on a phone the tools of
 the editor are not there. `NoteEditor` mounts `NoteEditorToolbar` in the sticky top bar (`atTop`,

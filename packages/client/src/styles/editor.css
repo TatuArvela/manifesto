@@ -327,14 +327,6 @@
     position: relative;
   }
 
-  /*
-   * The page takes the color of the open note, for the band that iOS shows past
-   * the bottom of the page when the keyboard is up. See `paintPage`.
-   */
-  html.sheet-open body {
-    background-color: var(--sheet-canvas);
-  }
-
   .note-sheet[data-sheet="covered"] {
     position: fixed;
     inset: 0;
