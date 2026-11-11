@@ -2,6 +2,7 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
 import { render } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
+import { t } from "#/i18n/index.ts";
 import { NoteEditor } from "./NoteEditor.tsx";
 import "#/styles.css";
 
@@ -109,5 +110,43 @@ describe("the editor on a phone", () => {
     });
 
     expect(getComputedStyle(text).paddingBottom).toBe("0px");
+  });
+});
+
+/** Resolves in a task after the next paint. */
+function afterPaint(): Promise<void> {
+  return new Promise((resolve) =>
+    requestAnimationFrame(() => setTimeout(resolve, 0)),
+  );
+}
+
+describe("the formatting bar", () => {
+  const barIn = (slot: Element) =>
+    slot.querySelector(`button[aria-label="${t("format.checklist")}"]`);
+
+  // The first frames of an opened note show its card, not its controls. Thus,
+  // the bar comes after the first paint, in a place that already has its
+  // height, and the panel that grows out of the card keeps its size.
+  it("comes after the first paint, in a place that has its height", async () => {
+    renderEditor("First");
+    const height = await vi.waitFor(() => {
+      const slot = host.querySelector<HTMLElement>(".flow-root");
+      expect(slot && barIn(slot)).toBeTruthy();
+      return (slot as HTMLElement).offsetHeight;
+    });
+    expect(height).toBeGreaterThan(0);
+    // The height is recorded after a paint of the bar.
+    await afterPaint();
+    await afterPaint();
+    render(null, host);
+
+    renderEditor("Second");
+    const slot = host.querySelector<HTMLElement>(".flow-root") as HTMLElement;
+    expect(barIn(slot)).toBeNull();
+    expect(slot.offsetHeight).toBe(height);
+
+    await vi.waitFor(() => expect(barIn(slot)).toBeTruthy());
+    expect(slot.style.height).toBe("");
+    expect(slot.offsetHeight).toBe(height);
   });
 });

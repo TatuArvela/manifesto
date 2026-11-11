@@ -34,6 +34,13 @@ Only the gap cursor: the drop indicator of that plugin draws over the drag of th
 - The focus of `autoFocus` comes after the first paint (`afterNextPaint`). A focus needs the style
   and the layout of the page. In the task of the click, it made the browser lay out the new sheet
   for the focus and again for the frame.
+- The formatting bar comes after the first paint of a new editor (`barHeights` in
+  `NoteEditor.tsx`). Until then, its place has the height that the last bar had, on a phone or on
+  a wider screen. Thus, a panel that grows out of a card keeps its size when the bar comes. The bar
+  is a third of the elements of an open note, and its render and their style moved the start of
+  the grow about 6 ms later. The first editor of a session has no height yet, and builds its bar
+  at once. The height is on the place itself, not on a child in it: `useHeldHeight` holds the
+  place when a child of it goes.
 - Read-only previews come from `utils/remarkRenderer.ts` (remark → rehype → HTML that DOMPurify
   sanitizes).
 

@@ -294,9 +294,11 @@ frame of a morph needs the main thread.
     animations of its run, which holds each animation of a morph.
   - Work that the first frames do not show waits for the first paint (`afterNextPaint` in
     `utils/afterPaint.ts`): the focus of the editor, the focus of the trap (`focusInAfterPaint`),
-    and the history entry of the sheet (`pushAfterPaint`). Not `useEffect`: Preact runs effects
-    after the next frame or after 35 ms, whichever comes first, and the task of a click is often
-    longer. The window shows the card, not the editor, until `SWITCH_AT`.
+    the history entry of the sheet (`pushAfterPaint`), and the formatting bar (`barHeights` in
+    `NoteEditor`, see `editor.md`), whose place keeps the height of the last bar. Not
+    `useEffect`: Preact runs effects after the next frame or after 35 ms, whichever comes first,
+    and the task of a click is often longer. The window shows the card, not the editor, until
+    `SWITCH_AT`.
 - **One render of the editor.** The card keeps the content of its sheet as one element
   (`sheetContent`, `useMemo`). Thus, a render of the card for its own state (the card hides when
   the grow starts, the sheet goes to its close) does not render the editor again. Each of those
