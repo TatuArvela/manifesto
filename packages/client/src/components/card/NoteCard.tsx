@@ -34,6 +34,7 @@ import {
   CardRoomContext,
   overflowingActions,
 } from "./cardActionsFit.ts";
+import { pressCard, releaseCard } from "./cardPress.ts";
 import { NoteCardBody } from "./NoteCardBody.tsx";
 import {
   CardActions,
@@ -377,11 +378,11 @@ export const NoteCard = memo(function NoteCard({
             if (isTouch) {
               touchPointerDown(e);
             } else if (draggable) {
-              document.body.classList.add("note-drag-active");
+              pressCard();
             }
           }}
           onPointerUp={() => {
-            if (!isTouch) document.body.classList.remove("note-drag-active");
+            if (!isTouch) releaseCard();
           }}
           // A long press is the own gesture of the card on a touch screen. On a
           // link or a picture, Android answers one with a menu, which takes the
@@ -394,7 +395,7 @@ export const NoteCard = memo(function NoteCard({
             isTouch
               ? undefined
               : (e) => {
-                  document.body.classList.remove("note-drag-active");
+                  releaseCard(true);
                   onDragEnd?.(e);
                 }
           }

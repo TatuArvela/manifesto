@@ -19,6 +19,7 @@ paths:
   - "packages/client/src/utils/morphShadow.ts"
   - "packages/client/src/utils/morphPlates.ts"
   - "packages/client/src/utils/afterPaint.ts"
+  - "packages/client/src/components/card/cardPress.ts"
   - "packages/client/src/hooks/useCardModal.ts"
   - "packages/client/src/hooks/useHeldHeight.ts"
   - "packages/client/src/storage/quota.ts"
@@ -90,6 +91,12 @@ While you drag a card, `ReorderableGrid` shows the new order (`hooks/useReorderD
   removes the pointer capture of a touch drag.
 - The dragged card keeps its position with `visibility: hidden`. The only copy on the screen is under
   the pointer (the drag image of the browser, or `.note-drag-ghost` for a finger).
+- A mouse press on a card hides the checkboxes of all cards (`note-press-active` on <body>,
+  `card/cardPress.ts`). Thus, they faded out before the drag starts, and the drag image has none.
+  The press changes only their opacity. A change of `pointer-events` on all checkboxes cost 5 to
+  9 ms at each press and each click. Only a real drag (`note-drag-active`, `useReorderDrag`) takes
+  their pointer events too. The press ends after the next paint: a click opens the note, and the
+  checkboxes came back before the first frame of its grow.
 - The card that was just swapped is ignored until the pointer leaves it. If not, the two cards swap
   again and again under a pointer that does not move.
 - A drop commits the order on the screen. It never applies a move that still waits for its frame.
