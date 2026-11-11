@@ -253,6 +253,9 @@ frame of a morph needs the main thread.
     finds a card found the copy too, and a popover anchored to a name went onto the copy.
   - The focus trap skips the elements inside `[inert]` (the copies, and those of `useHeldHeight`).
     A Tab that wrapped to a copy did nothing.
+  - The text that waits for the auto-save goes when the close starts (an `effect` on
+    `editingNoteId` in `NoteCardEditor`), before the render that copies the card. With the save
+    at the unmount, the shrink landed with the old text, and the card changed after it.
 - **The backdrop** of a card is a light dim (`black/30`) in the short fade (100 ms), also when the
   note morphs. A dark dim over the full time of the morph changed the full screen while the note
   grew.
