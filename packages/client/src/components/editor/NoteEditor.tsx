@@ -269,12 +269,18 @@ export function NoteEditor({
     return afterNextPaint(() => setBarShown(true));
   }, [barShown, editor]);
   // After a paint of the bar, when its layout is up to date. `offsetHeight`
-  // and not the box on the screen: the panel is scaled while it grows.
+  // and not the box on the screen: the panel is scaled while it grows. Without
+  // the fold of a phone, which can be open now and is closed in a new bar.
   useLayoutEffect(() => {
     if (!barShown || !editor) return;
     const layout = phone ? "phone" : "wide";
     return afterNextPaint(() => {
-      const height = toolbarSlotRef.current?.offsetHeight ?? 0;
+      const slot = toolbarSlotRef.current;
+      if (!slot) return;
+      const fold = phone
+        ? slot.querySelector<HTMLElement>("[data-toolbar-fold]")
+        : null;
+      const height = slot.offsetHeight - (fold?.offsetHeight ?? 0);
       if (height > 0) barHeights[layout] = height;
     });
   }, [barShown, editor, phone]);

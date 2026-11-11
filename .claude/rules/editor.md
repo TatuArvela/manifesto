@@ -41,6 +41,8 @@ Only the gap cursor: the drop indicator of that plugin draws over the drag of th
   the grow about 6 ms later. The first editor of a session has no height yet, and builds its bar
   at once. The height is on the place itself, not on a child in it: `useHeldHeight` holds the
   place when a child of it goes.
+  - The kept height leaves out the fold of a phone (`data-toolbar-fold`), which a new bar has
+    closed.
 - Read-only previews come from `utils/remarkRenderer.ts` (remark → rehype → HTML that DOMPurify
   sanitizes).
 

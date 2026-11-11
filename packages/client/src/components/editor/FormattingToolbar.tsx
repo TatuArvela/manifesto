@@ -194,6 +194,9 @@ export function FormattingToolbar({
           on the way past. `visibility` holds until the fold has closed,
           because any progress below 100% still counts as visible. */}
       <div
+        // `NoteEditor` keeps the height of the bar without the fold, which a
+        // new bar has closed (`barHeights`).
+        data-toolbar-fold
         class={`max-sm:order-2 max-sm:w-full max-sm:grid max-sm:transition-[grid-template-rows] max-sm:duration-200 max-sm:ease-out ${
           expanded ? "max-sm:grid-rows-[1fr]" : "max-sm:grid-rows-[0fr]"
         }`}
