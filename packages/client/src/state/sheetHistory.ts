@@ -32,7 +32,16 @@ interface Layer {
   close: () => unknown;
   /** If the entry for this layer is in the history now. */
   pushed: boolean;
+  /** Cancels the push that waits for the first paint. Null with none. */
+  cancelPush: (() => void) | null;
 }
+
+/**
+ * The longest time that a push waits for the first paint of its sheet. A tab in
+ * the background paints no frame, and the push held each push of the router
+ * until the tab showed again.
+ */
+const PAINT_WAIT_MS = 100;
 
 const layers: Layer[] = [];
 let nextId = 1;
@@ -72,19 +81,40 @@ function runWaiting() {
   for (const fn of run) fn();
 }
 
-function onPopState() {
+/**
+ * In the capture phase: at the window, it runs before the listener of the
+ * router, which can then not see a back that belongs to a sheet.
+ */
+const LISTEN = { capture: true } as const;
+
+function stopListening() {
+  window.removeEventListener("popstate", onPopState, LISTEN);
+}
+
+function onPopState(event: PopStateEvent) {
   if (ownPops > 0) {
     ownPops--;
     if (ownPops === 0) {
       runWaiting();
-      if (layers.length === 0)
-        window.removeEventListener("popstate", onPopState);
+      if (layers.length === 0) stopListening();
     }
+    return;
+  }
+  const top = layers[layers.length - 1];
+  if (top?.cancelPush) {
+    // Back before the newest sheet pushed its entry (in the frames before its
+    // first paint): the back is for that sheet. The browser went back from
+    // the entry of the view under it. The router does not see that, the entry
+    // comes back, and the sheet closes. If not, the view changed under the
+    // open sheet.
+    event.stopImmediatePropagation();
+    ownPops++;
+    history.forward();
+    if (top.close() !== false) top.cancelPush?.();
     return;
   }
   // Back from the entry of the newest sheet: that sheet closes. Its entry is
   // already gone. Thus, the cleanup that follows has nothing to remove.
-  const top = layers[layers.length - 1];
   if (top?.pushed && !isOwnEntry(history.state, top.id)) {
     top.pushed = false;
     if (top.close() === false && layers.includes(top)) push(top);
@@ -95,7 +125,7 @@ function register(layer: Layer, pushAfterPaint: boolean) {
   // A listener that is already there cannot be added again, which covers a
   // sheet opened while the `history.back()` of the last sheet is still on its
   // way.
-  window.addEventListener("popstate", onPopState);
+  window.addEventListener("popstate", onPopState, LISTEN);
   layers.push(layer);
   const pushNow = () =>
     afterHistorySettles(() => {
@@ -106,14 +136,22 @@ function register(layer: Layer, pushAfterPaint: boolean) {
     return;
   }
   laterPushes++;
-  afterNextPaint(() => {
+  const end = (andPush: boolean) => {
+    cancelPaint();
+    clearTimeout(timer);
+    layer.cancelPush = null;
     laterPushes--;
-    pushNow();
+    if (andPush) pushNow();
     runWaiting();
-  });
+  };
+  const cancelPaint = afterNextPaint(() => end(true));
+  const timer = setTimeout(() => end(true), PAINT_WAIT_MS);
+  layer.cancelPush = () => end(false);
 }
 
 function unregister(layer: Layer) {
+  // A sheet that closes before its push makes none.
+  layer.cancelPush?.();
   const index = layers.indexOf(layer);
   if (index !== -1) layers.splice(index, 1);
   // Only when its entry is the entry that shows. If something was pushed over
@@ -124,8 +162,7 @@ function unregister(layer: Layer) {
     history.back();
   }
   layer.pushed = false;
-  if (layers.length === 0 && ownPops === 0)
-    window.removeEventListener("popstate", onPopState);
+  if (layers.length === 0 && ownPops === 0) stopListening();
 }
 
 /**
@@ -137,13 +174,20 @@ function unregister(layer: Layer) {
  * `pushAfterPaint` pushes the entry after the first paint of the sheet, not in
  * the task that opens it. A push took 1 to 3 ms there, before the first frame
  * of a note that grows out of its card. `afterHistorySettles` waits for it.
- * Thus, the pushes of the router stay after it.
+ * Thus, the pushes of the router stay after it. It waits for a maximum of
+ * `PAINT_WAIT_MS`, and a sheet that closes first pushes nothing. A back before
+ * the push closes the sheet (`onPopState`).
  */
 export function openHistoryLayer(
   close: () => unknown,
   { pushAfterPaint = false }: { pushAfterPaint?: boolean } = {},
 ): () => void {
-  const layer: Layer = { id: nextId++, close, pushed: false };
+  const layer: Layer = {
+    id: nextId++,
+    close,
+    pushed: false,
+    cancelPush: null,
+  };
   register(layer, pushAfterPaint);
   return () => unregister(layer);
 }

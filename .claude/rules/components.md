@@ -105,6 +105,12 @@ read one list, `BOARD_SHORTCUTS` in `hooks/useBoardShortcuts.ts`.
 - A `NoteSheet` pushes its entry after its first paint (`pushAfterPaint`), not in the task that
   opens it, where a push took 1 to 3 ms before the first frame of a note that grows.
   `afterHistorySettles` also waits for such a push. Thus, the pushes of the router stay after it.
+  - The push waits for a maximum of `PAINT_WAIT_MS`. A tab in the background paints no frame, and
+    the push held each push of the router until the tab showed.
+  - A sheet that closes before its push makes none.
+  - A back before the push is for the sheet. The listener is in the capture phase, before the one
+    of the router. It stops the event, goes forward to the entry that the browser left, and closes
+    the sheet. If not, the view changed under the open sheet.
 
 ## Other rules
 
