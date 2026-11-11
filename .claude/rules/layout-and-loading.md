@@ -323,7 +323,8 @@ frame of a morph needs the main thread.
   layout, the full editor showed for a frame, and then shrank. From the own corners and shadow of
   the panel, those jumped at the press. A close while the grow still waits ends at once: the panel
   never showed, and the card is still there. `settle` also ends the wait, so that a cancelled grow
-  never starts later.
+  never starts later. A close with no card to shrink onto (out of sight, or animations off) also
+  stops the grow (`stopMorph`), and the sheet fades. If not, a held grow started during the fade.
 - When the editor is built again (solo to collab), its text and the place of the formatting bar keep
   their height (`useHeldHeight` in `NoteEditor`). If not, the panel becomes short and tall again,
   and a grow follows it. The removal of the old content starts the hold: a `MutationObserver`

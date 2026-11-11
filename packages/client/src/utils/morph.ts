@@ -120,6 +120,20 @@ export function settle(panel: HTMLElement) {
 }
 
 /**
+ * Ends the morph of a panel that closes in place, with no shrink (its card is
+ * out of sight, or animations are off), or that shrinks next. Returns false
+ * for a grow that still waited for its content (`holdUntil`): the panel never
+ * showed, and stays transparent until the caller removes it. Its source is
+ * still there.
+ */
+export function stopMorph(panel: HTMLElement): boolean {
+  const waiting = holds.has(panel);
+  settle(panel);
+  if (waiting) panel.style.opacity = "0";
+  return !waiting;
+}
+
+/**
  * How long after a grow the panel still follows its content. A size change in
  * that time animates from the old size. Images, link previews and the shared
  * document of a note on a server can arrive after the grow, and the centered
@@ -387,14 +401,8 @@ export function morphOut(
     standIn?: HTMLElement | null | undefined;
   } = {},
 ): Promise<void> {
-  const waiting = holds.has(panel);
   const drawn = drawnNow(panel);
-  settle(panel);
-  if (waiting) {
-    // Transparent until the caller removes it, as it was during the wait.
-    panel.style.opacity = "0";
-    return Promise.resolve();
-  }
+  if (!stopMorph(panel)) return Promise.resolve();
   const layout = panel.getBoundingClientRect();
   const radius = noteRadius();
   const own = ownEdge(panel);

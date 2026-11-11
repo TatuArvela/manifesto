@@ -13,6 +13,7 @@ import {
   morphIn,
   morphOut,
   settle,
+  stopMorph,
   viewportSize,
 } from "#/utils/morph.ts";
 import type { RectLike } from "#/utils/morphPath.ts";
@@ -136,7 +137,14 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
         standIn: cardRef.current,
       }).then(takeDown);
       closeTimerRef.current = setTimeout(takeDown, MORPH_MS + 250);
+    } else if (panel && !stopMorph(panel)) {
+      // A grow that still waited never showed, and the card is still there.
+      // Thus, the sheet goes at once, as after `morphOut`.
+      queueMicrotask(takeDown);
     } else {
+      // The grow stops where the panel is laid out, and the sheet fades. If
+      // it went on, a held grow could start during the fade, and its plates
+      // were drawn in the scale of the fading dialog.
       closeTimerRef.current = setTimeout(takeDown, MODAL_CLOSE_MS);
     }
   }, [isEditing, showModal, closing, morphSource, cardShadow, waitsForContent]);
