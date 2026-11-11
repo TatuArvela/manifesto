@@ -318,10 +318,12 @@ frame of a morph needs the main thread.
   panel jumped. For `MORPH_FOLLOW_MS` after the grow, a new size runs from the old layout to the new
   one (images, previews and the shared document arrive late). Not on a phone, where a taller sheet
   does not move what is on the screen. `settle` stops the watch, so a close is never aimed again.
-- **A close during the open** starts where the panel is drawn (the `path` of the run). From the
-  layout, the full editor showed for a frame, and then shrank. A close while the grow still waits
-  ends at once: the panel never showed, and the card is still there. `settle` also ends the wait,
-  so that a cancelled grow never starts later.
+- **A close during the open** starts where the panel is drawn (the `path` of the run), with the
+  corners and the blend of shadows that the grow drew there (`growEdge`, `startMix`). From the
+  layout, the full editor showed for a frame, and then shrank. From the own corners and shadow of
+  the panel, those jumped at the press. A close while the grow still waits ends at once: the panel
+  never showed, and the card is still there. `settle` also ends the wait, so that a cancelled grow
+  never starts later.
 - When the editor is built again (solo to collab), its text and the place of the formatting bar keep
   their height (`useHeldHeight` in `NoteEditor`). If not, the panel becomes short and tall again,
   and a grow follows it. The removal of the old content starts the hold: a `MutationObserver`

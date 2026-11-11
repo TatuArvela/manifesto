@@ -367,4 +367,68 @@ describe("on a wider screen", () => {
     await new Promise((done) => requestAnimationFrame(() => done(null)));
     expect(el.getAnimations()).toHaveLength(0);
   });
+
+  // A close during the grow started with the full shadow of the panel. The
+  // shadow jumped at the press.
+  it("starts a close during the grow with the shadow drawn there", async () => {
+    await page.viewport(1024, 700);
+    const el = makePanel();
+    el.style.cssText =
+      "position:fixed;left:200px;top:100px;width:600px;height:400px;box-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1)";
+    const shadow = "rgb(255, 0, 0) 0px 3px 3px -2px";
+    morphIn(el, card, { opaque: true, shadow });
+    setAll(30);
+    const grow = defined(el.getAnimations()[0]);
+    const progress = grow.effect?.getComputedTiming().progress ?? 0;
+    expect(progress).toBeGreaterThan(0);
+
+    void morphOut(el, card, { shadow });
+    setAll(0);
+    const [panelPlate, cardPlate] = plates();
+    if (!panelPlate || !cardPlate) throw new Error("no plates");
+    expect(getComputedStyle(panelPlate).boxShadow).toContain(
+      "rgba(0, 0, 0, 0.1)",
+    );
+    expect(Number(getComputedStyle(panelPlate).opacity)).toBeCloseTo(
+      progress,
+      2,
+    );
+    expect(Number(getComputedStyle(cardPlate).opacity)).toBeCloseTo(
+      1 - progress,
+      2,
+    );
+  });
+
+  // The corners went to the own radius of the panel at the press: square on
+  // a phone, and then round again.
+  it("starts a close during the grow with the corners drawn there", async () => {
+    await page.viewport(1024, 700);
+    document.documentElement.style.setProperty("--note-radius", "8px");
+    try {
+      const el = makePanel();
+      // Square corners, as the sheet of a phone has.
+      el.style.cssText =
+        "position:fixed;left:200px;top:100px;width:600px;height:400px";
+      morphIn(el, card, { opaque: true });
+      setAll(30);
+      const radii = () =>
+        (
+          /round ([\d.]{1,20})px \/ ([\d.]{1,20})px/.exec(
+            getComputedStyle(el).clipPath,
+          ) ?? []
+        )
+          .slice(1)
+          .map(Number);
+      const [growX = 0, growY = 0] = radii();
+      expect(growX).toBeGreaterThan(0);
+
+      void morphOut(el, card);
+      setAll(0);
+      const [closeX = 0, closeY = 0] = radii();
+      expect(closeX).toBeCloseTo(growX, 1);
+      expect(closeY).toBeCloseTo(growY, 1);
+    } finally {
+      document.documentElement.style.removeProperty("--note-radius");
+    }
+  });
 });

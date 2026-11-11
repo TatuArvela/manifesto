@@ -96,6 +96,8 @@ export interface Run {
    * run makes wider and gives back. Null with no such scrollbar.
    */
   padding: string | null;
+  /** The edge of a grow, from which a close during it starts. Null for other runs. */
+  growEdge: Edge | null;
   /** The line along which it draws the panel now. */
   path: MorphPath;
 }
@@ -130,12 +132,15 @@ export function startRun(
     fill = false,
     standIn: copy,
     edge,
+    grows = false,
     fade,
   }: {
     fill?: boolean;
     standIn?: StandInRun | undefined;
     /** The shadows and the corners. Not drawn by a size change after a grow. */
     edge?: Edge | undefined;
+    /** A grow, whose edge a close during it starts from. */
+    grows?: boolean;
     fade?: ((offset: number) => number) | undefined;
   } = {},
 ): Run {
@@ -201,6 +206,7 @@ export function startRun(
     scrollTop,
     shadow,
     padding,
+    growEdge: grows ? (edge ?? null) : null,
     path,
   };
   runs.set(panel, run);
@@ -254,21 +260,37 @@ export function setRunFrames(run: Run, frames: PathFrames) {
 }
 
 /**
- * Where a run draws `panel` now, and if its window shows the card, or null when
- * no run moves it. The progress is after the curve, which is what the keyframes
- * interpolate.
+ * What a grow draws at the edge of the window at one point: the radius of the
+ * corners, and the part of the shadow that is the own shadow of the panel.
+ */
+export interface DrawnEdge {
+  radius: number;
+  ownShare: number;
+}
+
+/**
+ * Where a run draws `panel` now, if its window shows the card, and the edge
+ * that a grow draws there. Null when no run moves it. The progress is after
+ * the curve, which is what the keyframes interpolate.
  */
 export function drawnNow(
   panel: HTMLElement,
-): { rect: RectLike; showsCard: boolean } | null {
+): { rect: RectLike; showsCard: boolean; edge: DrawnEdge | null } | null {
   const run = runs.get(panel);
   const effect = run?.panel.effect;
   if (!run || !(effect instanceof KeyframeEffect)) return null;
   const progress = effect.getComputedTiming().progress;
   if (progress === null || progress === undefined) return null;
+  const grown = run.growEdge;
   return {
     rect: pointOn(run.path, progress),
     showsCard: run.switchAt !== null && progress < run.switchAt,
+    // As `pathFrames` and `platesFor` draw them, by the progress.
+    edge: grown && {
+      radius:
+        grown.corners.from + (grown.corners.to - grown.corners.from) * progress,
+      ownShare: grown.shadows.from === grown.shadows.to ? 1 : progress,
+    },
   };
 }
 

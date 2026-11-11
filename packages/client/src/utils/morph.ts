@@ -211,6 +211,7 @@ function grow(
         ? { card: standIn, cardFirst: true, at: SWITCH_AT }
         : undefined,
       edge,
+      grows: true,
       fade: opacity,
     },
   );
@@ -364,11 +365,12 @@ function keepAimed(
  * `shadow` is the `box-shadow` of the target, which the panel has when it
  * lands.
  *
- * The shrink starts where the panel is drawn now. A close during the grow
- * started from the layout of the panel: the full editor showed for a frame,
- * and then shrank. A grow that still waits for its content (`holdUntil`) never
- * showed, and its source is still there. Thus, it ends at once, with nothing
- * to play.
+ * The shrink starts where the panel is drawn now, with the corners and the
+ * shadow drawn there. A close during the grow started from the layout of the
+ * panel: the full editor showed for a frame, and then shrank. From the own
+ * corners and shadow of the panel, those jumped at the press. A grow that
+ * still waits for its content (`holdUntil`) never showed, and its source is
+ * still there. Thus, it ends at once, with nothing to play.
  */
 export function morphOut(
   panel: HTMLElement,
@@ -397,8 +399,13 @@ export function morphOut(
   const radius = noteRadius();
   const own = ownEdge(panel);
   const edge: Edge = {
-    shadows: { from: own.shadow, to: shadow ?? own.shadow },
-    corners: { from: own.radius, to: radius },
+    shadows: {
+      from: own.shadow,
+      to: shadow ?? own.shadow,
+      // The part of the shadow of the card that the grow drew.
+      startMix: drawn?.edge ? 1 - drawn.edge.ownShare : 0,
+    },
+    corners: { from: drawn?.edge?.radius ?? own.radius, to: radius },
   };
   const path = { start: drawn?.rect ?? layout, end: to, layout, startAt: 0 };
   const run = startRun(

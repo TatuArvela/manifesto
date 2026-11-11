@@ -36,6 +36,12 @@ import { drawsShadow } from "./morphShadow.ts";
 export interface ShadowPath {
   from: string;
   to: string;
+  /**
+   * The part of `to` that is drawn at the start, from 0 (the default) to 1. A
+   * close during a grow starts with the blend that the grow drew there. From
+   * the full shadow of the panel, the shadow jumped at the press.
+   */
+  startMix?: number | undefined;
 }
 
 /** A plate of a run, and its strength at each offset of the run. */
@@ -117,8 +123,15 @@ export function platesFor(
   if (shadows.from === shadows.to) {
     add(shadows.to, ends.layout, corners.to, faded);
   } else {
-    add(shadows.from, ends.start, corners.from, (o) => (1 - o) * faded(o));
-    add(shadows.to, ends.end, corners.to, (o) => o * faded(o));
+    const mix = shadows.startMix ?? 0;
+    const toward = (o: number) => mix + (1 - mix) * o;
+    add(
+      shadows.from,
+      ends.start,
+      corners.from,
+      (o) => (1 - toward(o)) * faded(o),
+    );
+    add(shadows.to, ends.end, corners.to, (o) => toward(o) * faded(o));
   }
   if (plates.length > 0) panel.before(...plates.map((plate) => plate.element));
   return plates;
