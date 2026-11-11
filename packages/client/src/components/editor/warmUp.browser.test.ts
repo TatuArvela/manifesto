@@ -29,26 +29,20 @@ afterEach(() => {
   drawingRequest.value = null;
 });
 
-// The tests run in order: the first warm-up of the file is the one that
-// builds, and later ones see `editorWasBuilt`.
+// The first warm-up of the file is the one that builds. A later one sees
+// `editorWasBuilt`, and does nothing.
 describe("the warm-up of the editor", () => {
-  // Each editor closes the drawing pad when it unmounts. The warm-up must not
-  // close a pad that a person has open.
-  it("does nothing while a drawing pad is open", async () => {
-    const request = { onDone: () => {} };
-    drawingRequest.value = request;
-    await warmUpEditor();
-    expect(drawingRequest.value).toBe(request);
-    expect(editorWasBuilt()).toBe(false);
-  });
-
   // It renders a full editor where nobody sees it, in one task. Thus, no
   // effect of it runs, and nothing of it stays: not on the page, and not as
-  // a listener on the document.
+  // a listener on the document. Its editor closes no drawing pad that a
+  // person has open, because it did not open it.
   it("builds an editor, and leaves nothing behind", async () => {
+    const request = { onDone: () => {} };
+    drawingRequest.value = request;
     const before = document.body.innerHTML;
     await warmUpEditor();
     expect(editorWasBuilt()).toBe(true);
+    expect(drawingRequest.value).toBe(request);
     expect(document.body.innerHTML).toBe(before);
 
     await afterPaint();

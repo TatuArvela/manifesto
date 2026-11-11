@@ -19,7 +19,12 @@ import { applyFormat } from "#/extensions/richFormatting.ts";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { useImageUploads } from "#/hooks/useImageUploads.ts";
 import { attachmentObjectUrl } from "#/state/attachments.ts";
-import { closeDrawing, requestDrawing } from "#/state/drawing.ts";
+import {
+  closeDrawing,
+  type DrawingRequest,
+  drawingRequest,
+  requestDrawing,
+} from "#/state/drawing.ts";
 import { withoutImagePointer } from "#/utils/inlineImages.ts";
 import { applyRawFormat, applyTextEdit } from "#/utils/rawFormatting.ts";
 
@@ -112,12 +117,21 @@ export function useTextImages({
     toText.current = waiting;
   }, [images, editor, rawTextarea, pointAtCaret]);
 
+  // The pads that this editor opened, which go with it.
+  const ownPads = useRef(new WeakSet<DrawingRequest>());
+  const openPad = (onDone: (file: File) => void, base?: string) => {
+    ownPads.current.add(requestDrawing(onDone, base));
+  };
+
   // Draws over image `index` with the pad. The drawing takes its place.
   const drawOver = (index: number) => {
     const image = images[index];
     if (image === undefined) return;
-    requestDrawing((file) => attachFiles([file], image), image);
+    openPad((file) => attachFiles([file], image), image);
   };
+
+  // A new drawing on the pad, which the note gets as an image.
+  const drawNew = () => openPad((file) => attachFiles([file]));
 
   // Takes the pointers to image `index` out of the text. With `renumber`, the
   // image leaves the note, and later pointers move down
@@ -249,9 +263,17 @@ export function useTextImages({
   );
 
   // A pad opened from this editor goes with it. If not, it would give its
-  // drawing to uploads that are gone. A layout effect, as the own cleanup of
-  // the uploads is. The cleanup of an effect waits until after the paint.
-  useLayoutEffect(() => closeDrawing, []);
+  // drawing to uploads that are gone. Only its own pad: an editor that goes
+  // (the warm-up of `warmUp.ts`) closed a pad that the card had opened. A
+  // layout effect, as the own cleanup of the uploads is. The cleanup of an
+  // effect waits until after the paint.
+  useLayoutEffect(
+    () => () => {
+      const open = drawingRequest.peek();
+      if (open && ownPads.current.has(open)) closeDrawing();
+    },
+    [],
+  );
 
   return {
     resolveInlineImage,
@@ -261,6 +283,7 @@ export function useTextImages({
     retryUpload,
     dropUpload,
     drawOver,
+    drawNew,
     removeImage,
     textEditable,
     placing,

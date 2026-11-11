@@ -396,10 +396,26 @@ describe("attaching an image", () => {
 
   it("takes the pad down with the editor it was opened from", async () => {
     storeWith(vi.fn(async () => REF));
-    await openDraft();
-    drawingRequest.value = { onDone: () => {} };
+    const dialog = await openDraft();
+    dialog
+      .querySelector<HTMLElement>(`button[aria-label="${t("editor.draw")}"]`)
+      ?.click();
+    await vi.waitFor(() => expect(drawingRequest.value).not.toBeNull());
     render(null, host);
     expect(drawingRequest.value).toBeNull();
+    render(<NoteInput />, host);
+  });
+
+  // The warm-up of the editor (`warmUp.ts`) takes its editor down while a
+  // card can have a pad open.
+  it("keeps a pad that it did not open", async () => {
+    storeWith(vi.fn(async () => REF));
+    await openDraft();
+    const request = { onDone: () => {} };
+    drawingRequest.value = request;
+    render(null, host);
+    expect(drawingRequest.value).toBe(request);
+    drawingRequest.value = null;
     render(<NoteInput />, host);
   });
 });

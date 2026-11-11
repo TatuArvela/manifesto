@@ -215,8 +215,11 @@ The editor itself is also a separate chunk. `components/editor/editorChunk.ts` i
   that part.
   - All of it occurs in one task. Milkdown builds and Preact renders in microtasks. Thus, no
     input and no paint come between the mount and the unmount, and no `useEffect` of it runs.
-  - Each editor closes the drawing pad when it unmounts (`useTextImages`). Thus, the warm-up does
-    nothing while a pad is open. A note that opened before the idle time also makes it
+  - An editor that does not report in that task (a build that failed) goes at the start of the
+    next task. Preact runs effects in a task that the next frame queues, after that one. When the
+    warm-up waited 3 s, the effects of a failed build ran, and its paste listener took a paste.
+  - Each editor closes only a drawing pad that it opened (`useTextImages`). Thus, the warm-up
+    closes no pad that a card opened. A note that opened before the idle time makes it
     unnecessary (`editorWasBuilt`).
   - Nothing changes its document. Thus, the listener of Milkdown starts no timer.
 

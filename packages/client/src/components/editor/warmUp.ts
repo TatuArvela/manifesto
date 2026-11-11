@@ -2,7 +2,6 @@ import { NoteColor, NoteFont } from "@manifesto/shared";
 import type { Editor } from "@milkdown/kit/core";
 import { getMarkdown } from "@milkdown/kit/utils";
 import { h, render } from "preact";
-import { drawingRequest } from "#/state/drawing.ts";
 import { editorWasBuilt } from "./makeNoteEditor.ts";
 import { NoteEditor } from "./NoteEditor.tsx";
 
@@ -37,12 +36,6 @@ const SAMPLE = [
 const nothing = () => {};
 
 /**
- * The longest time that the warm-up waits for its editor. An editor that does
- * not come (a build that failed) is taken down after this.
- */
-const BUILD_WAIT_MS = 3000;
-
-/**
  * Renders the editor of a note one time where nobody sees it, and takes it
  * down. `lazyEditor.ts` asks for this in idle time after the editor chunk
  * arrives.
@@ -63,12 +56,18 @@ const BUILD_WAIT_MS = 3000;
  * nothing, and nothing changes its document. Thus, the listener of Milkdown
  * starts no timer.
  *
- * Each editor closes the drawing pad when it unmounts (`useTextImages`).
- * Thus, the warm-up does nothing while a pad is open. It also does nothing when
- * a note opened first.
+ * An editor that does not report in that task (a build that failed, or one
+ * that waits for something) is taken down at the start of the next task. That
+ * comes before any effect of it: Preact runs effects in a task that the next
+ * frame queues, after this one. When the warm-up waited 3 s for such an
+ * editor, its effects ran, and its paste listener took a real paste.
+ *
+ * Each editor closes only a drawing pad that it opened (`useTextImages`).
+ * Thus, the warm-up can run while a pad is open. It does nothing when a note
+ * opened first.
  */
 export async function warmUpEditor(): Promise<void> {
-  if (editorWasBuilt() || drawingRequest.peek() !== null) return;
+  if (editorWasBuilt()) return;
   const root = document.createElement("div");
   let reportEditor: (editor: Editor) => void = nothing;
   const built = new Promise<Editor | null>((resolve) => {
@@ -76,7 +75,7 @@ export async function warmUpEditor(): Promise<void> {
   });
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<null>((resolve) => {
-    timer = setTimeout(() => resolve(null), BUILD_WAIT_MS);
+    timer = setTimeout(() => resolve(null), 0);
   });
   try {
     render(

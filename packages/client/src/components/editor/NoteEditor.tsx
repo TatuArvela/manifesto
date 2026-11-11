@@ -23,7 +23,6 @@ import { useHeldHeight } from "#/hooks/useHeldHeight.ts";
 import { useMediaQuery } from "#/hooks/useMediaQuery.ts";
 import { useNotePaste } from "#/hooks/useNotePaste.ts";
 import { t } from "#/i18n/index.ts";
-import { requestDrawing } from "#/state/drawing.ts";
 import { defaultEditMode, formattingToolbar } from "#/state/prefs.ts";
 import { afterNextPaint } from "#/utils/afterPaint.ts";
 import { imagesInText } from "#/utils/inlineImages.ts";
@@ -197,6 +196,7 @@ export function NoteEditor({
     retryUpload,
     dropUpload,
     drawOver,
+    drawNew,
     removeImage,
     textEditable,
     placing,
@@ -291,7 +291,7 @@ export function NoteEditor({
       reminder={reminder}
       onReminderChange={onReminderChange}
       onFilesSelected={handleFilesSelected}
-      onDraw={() => requestDrawing((file) => attachFiles([file]))}
+      onDraw={drawNew}
       rawMode={rawMode}
       onToggleRawMode={() => setRawMode(!rawMode)}
       menuItems={
