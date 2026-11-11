@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { openSheet, openSheetCount } from "./phoneSheets.ts";
 import "#/styles.css";
@@ -189,6 +189,8 @@ describe("the page's background", () => {
     }
   });
 
+  // The browser reports a new width to a media query (its `change` event)
+  // when it next renders, not at the resize. Thus, each step waits for it.
   it("is left alone on a wider screen, and follows a change of width", async () => {
     await page.viewport(1024, 700);
     const el = sheet(100);
@@ -196,12 +198,16 @@ describe("the page's background", () => {
     expect(document.body.style.backgroundColor).toBe("");
 
     await page.viewport(375, 700);
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(pageColour()).toBe(getComputedStyle(surfaceOf(el)).backgroundColor);
+    await vi.waitFor(() =>
+      expect(pageColour()).toBe(
+        getComputedStyle(surfaceOf(el)).backgroundColor,
+      ),
+    );
 
     await page.viewport(1024, 700);
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(document.body.style.backgroundColor).toBe("");
+    await vi.waitFor(() =>
+      expect(document.body.style.backgroundColor).toBe(""),
+    );
   });
 });
 
