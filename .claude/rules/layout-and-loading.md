@@ -236,6 +236,8 @@ frame of a morph needs the main thread.
   slides, and the text keeps its size: the text of a card and of the editor have one size, and the
   title one place. A scale of the text (to 0.56 for a usual card) made it small at the start and
   large again. The clip resets the scroll of the panel, so the content also carries `scrollTop`.
+  The clip also takes a classic scrollbar away. Thus, a run adds its width to the end padding of
+  the panel. If not, the content became wider, and its text wrapped again at each end of the run.
 - **The card, then the editor** (`utils/morphStandIn.ts`). The window shows a copy of the card
   until `SWITCH_AT` (half of the way, after the curve), and then the editor. The close changes back
   at the same point. A close before the grow showed the editor shows the card the whole way. The

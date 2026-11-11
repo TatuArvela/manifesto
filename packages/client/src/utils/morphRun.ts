@@ -43,6 +43,19 @@ function contentOf(panel: HTMLElement): HTMLElement | null {
 }
 
 /**
+ * The width of a classic scrollbar of a panel, which the clip of a run takes
+ * away. 0 for an overlay scrollbar, and for a panel with no scroll. Under 2px
+ * is the rounding of the two widths, not a scrollbar.
+ */
+function scrollbarOf(panel: HTMLElement, style: CSSStyleDeclaration): number {
+  const borders =
+    (Number.parseFloat(style.borderLeftWidth) || 0) +
+    (Number.parseFloat(style.borderRightWidth) || 0);
+  const width = panel.offsetWidth - panel.clientWidth - borders;
+  return width >= 2 ? width : 0;
+}
+
+/**
  * What a run draws at the edge of the window: the shadow and the radius of the
  * corners at each end.
  */
@@ -78,6 +91,11 @@ export interface Run {
   scrollTop: number;
   /** The own inline shadow of the panel, which the run turns off and gives back. */
   shadow: string | null;
+  /**
+   * The own inline end padding of a panel with a classic scrollbar, which the
+   * run makes wider and gives back. Null with no such scrollbar.
+   */
+  padding: string | null;
   /** The line along which it draws the panel now. */
   path: MorphPath;
 }
@@ -122,8 +140,19 @@ export function startRun(
   } = {},
 ): Run {
   const scrollTop = panel.scrollTop;
+  const style = getComputedStyle(panel);
+  const scrollbar = scrollbarOf(panel, style);
+  const endPadding = Number.parseFloat(style.paddingInlineEnd) || 0;
   const standIn = copy ? standInFor(copy.card) : null;
   panel.style.overflow = "clip";
+  // The clip takes a classic scrollbar away. Its width goes to the end padding
+  // (the side of the scrollbar, also in a right-to-left text) while the run
+  // lasts. If not, the content became wider by that width, and its text
+  // wrapped again at the start of the run and at its end.
+  const padding = scrollbar > 0 ? panel.style.paddingInlineEnd : null;
+  if (scrollbar > 0) {
+    panel.style.paddingInlineEnd = `${endPadding + scrollbar}px`;
+  }
   panel.style.transformOrigin = "0 0";
   const content = contentOf(panel);
   if (content) content.style.transformOrigin = "0 0";
@@ -171,6 +200,7 @@ export function startRun(
     switchAt: copy?.cardFirst ? copy.at : null,
     scrollTop,
     shadow,
+    padding,
     path,
   };
   runs.set(panel, run);
@@ -190,6 +220,7 @@ function clearRun(panel: HTMLElement, run: Run) {
   run.standIn?.remove();
   for (const { plate } of run.plates) plate.element.remove();
   panel.style.overflow = "";
+  if (run.padding !== null) panel.style.paddingInlineEnd = run.padding;
   if (run.shadow !== null) panel.style.boxShadow = run.shadow;
   panel.scrollTop = run.scrollTop;
 }
