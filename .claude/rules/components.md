@@ -29,6 +29,9 @@ Its props are `open`, `onClose`, `trigger` and `children`.
 - The content of a `Dropdown` mounts at its first open, and then stays mounted. Thus, a menu that
   opens again during its exit transitions back. Before, each closed panel had its content in the
   page: an opened note made about 300 elements in closed panels, in the task of its first frame.
+- A `Tooltip` mounts its popover at its first show, and then keeps it. Each tooltip kept a closed
+  popover in the page before: about 1,400 elements on a board of 86 cards, and 26 popovers in an
+  open note, made in the task of its click. Its anchor name is set from the first show too.
 - Card popovers (`CardPopover`) mount only while they are open. They get their exit from
   `usePresence`.
 - The slide is a translation, never a scale. The browsers without anchor positioning put the panel
