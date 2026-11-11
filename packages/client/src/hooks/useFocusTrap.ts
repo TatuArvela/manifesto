@@ -25,7 +25,14 @@ const FOCUSABLE = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(",");
 
-function isVisible(el: HTMLElement): boolean {
+/**
+ * If Tab can stop on `el`. Not inside an inert copy: the card that a morph
+ * shows in its window (`utils/morphStandIn.ts`), and the old text that
+ * `useHeldHeight` keeps. A focus there does nothing. Thus, a Tab that wrapped
+ * to a copy stayed where it was.
+ */
+function isTabStop(el: HTMLElement): boolean {
+  if (el.closest("[inert]")) return false;
   // `checkVisibility` covers `display:none`, `visibility:hidden` and
   // `content-visibility`, which a collapsed panel in a modal uses.
   return el.checkVisibility({
@@ -36,7 +43,7 @@ function isVisible(el: HTMLElement): boolean {
 
 /** The tabbable elements only within `root`, in tab order. */
 export function tabbableIn(root: HTMLElement): HTMLElement[] {
-  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(isVisible);
+  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(isTabStop);
 }
 
 /**
@@ -54,7 +61,7 @@ function tabbable(container: HTMLElement): HTMLElement[] {
   const seen = new Set<HTMLElement>();
   for (const root of roots) {
     for (const el of root.querySelectorAll<HTMLElement>(FOCUSABLE)) {
-      if (!seen.has(el) && isVisible(el)) seen.add(el);
+      if (!seen.has(el) && isTabStop(el)) seen.add(el);
     }
   }
   return [...seen];

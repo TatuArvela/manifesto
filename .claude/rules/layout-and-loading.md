@@ -251,6 +251,8 @@ frame of a morph needs the main thread.
     looks hovered. If not, the controls of a hovered card went at the click.
   - The copies have no `data-note-card`, no `[data-card-open]` button and no anchor name. Code that
     finds a card found the copy too, and a popover anchored to a name went onto the copy.
+  - The focus trap skips the elements inside `[inert]` (the copies, and those of `useHeldHeight`).
+    A Tab that wrapped to a copy did nothing.
 - **The backdrop** of a card is a light dim (`black/30`) in the short fade (100 ms), also when the
   note morphs. A dark dim over the full time of the morph changed the full screen while the note
   grew.
