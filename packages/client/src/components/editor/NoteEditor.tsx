@@ -461,6 +461,9 @@ export function NoteEditor({
               onEditorReady?.(instance);
             }}
             onEditorGone={() => setEditor(null)}
+            // No bar comes. Thus, its place lets go of the height of the last
+            // bar, which was empty above the text.
+            onEditorFailed={() => setBarShown(true)}
             collab={collab}
           />
         </div>

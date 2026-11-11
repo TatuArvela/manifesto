@@ -55,6 +55,11 @@ interface MilkdownEditorProps {
   onEditorReady?: (editor: Editor) => void;
   /** The editor that `onEditorReady` gave was destroyed. */
   onEditorGone?: () => void;
+  /**
+   * No editor comes: its create failed, or the plugin of collaboration did not
+   * load.
+   */
+  onEditorFailed?: (() => void) | undefined;
   /** Shows the images of the note that the text points to. */
   resolveInlineImage?: InlineImageResolver | undefined;
   /** The buttons over those images. Read when an image draws. */
@@ -78,6 +83,7 @@ export function MilkdownEditor({
   autoFocus,
   onEditorReady,
   onEditorGone,
+  onEditorFailed,
   resolveInlineImage,
   inlineImageControls,
   collab,
@@ -96,6 +102,8 @@ export function MilkdownEditor({
   onEditorReadyRef.current = onEditorReady;
   const onEditorGoneRef = useRef(onEditorGone);
   onEditorGoneRef.current = onEditorGone;
+  const onEditorFailedRef = useRef(onEditorFailed);
+  onEditorFailedRef.current = onEditorFailed;
   const initialContentRef = useRef(content);
 
   const [rawContent, setRawContent] = useState(content);
@@ -148,6 +156,7 @@ export function MilkdownEditor({
   );
   const collabFactoryRef = useRef(collabFactory);
   collabFactoryRef.current = collabFactory;
+  const [collabFailed, setCollabFailed] = useState(false);
 
   useEffect(() => {
     if (!collab) return;
@@ -161,6 +170,7 @@ export function MilkdownEditor({
         // Leaves the editor not built, and does not make it silently
         // non-collaborative. A solo binding here would let the copy of this
         // client overwrite the shared document on the next save.
+        if (!cancelled) setCollabFailed(true);
       },
     );
     return () => {
@@ -274,11 +284,15 @@ export function MilkdownEditor({
     [pushRaw],
   );
 
-  const { editor, mountRef } = useMilkdownEditor(
+  const { editor, failed, mountRef } = useMilkdownEditor(
     build,
     beforeDestroy,
     !collab || collabFactory !== null,
   );
+
+  useLayoutEffect(() => {
+    if (failed || collabFailed) onEditorFailedRef.current?.();
+  }, [failed, collabFailed]);
 
   // A note that was never edited collaboratively has an empty shared fragment,
   // and ySyncPlugin adopts what the fragment contains. Thus, a binding would

@@ -43,6 +43,9 @@ Only the gap cursor: the drop indicator of that plugin draws over the drag of th
   place when a child of it goes.
   - The kept height leaves out the fold of a phone (`data-toolbar-fold`), which a new bar has
     closed.
+  - An editor that fails (`onEditorFailed`: its create, or the load of the plugin of
+    collaboration) lets the place go. If not, the height of the last bar stayed empty above the
+    text.
 - Read-only previews come from `utils/remarkRenderer.ts` (remark → rehype → HTML that DOMPurify
   sanitizes).
 

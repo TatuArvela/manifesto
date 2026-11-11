@@ -39,6 +39,9 @@ function dropLateTransactions(instance: Editor) {
  * (for example, a plugin that loads lazily). Then the editor is created on the
  * render that changes it, and is not built without it.
  *
+ * `failed` is true when the create of the editor failed. Then no editor
+ * comes.
+ *
  * It builds in a layout effect, in the task of the commit that mounts the
  * root, not one frame later. Milkdown creates its view in microtasks. Thus,
  * the text is usually there before the first paint. The grow of an opened note
@@ -51,6 +54,7 @@ export function useMilkdownEditor(
   ready = true,
 ) {
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [failed, setFailed] = useState(false);
   const mountRef = useRef<HTMLDivElement>(null);
   const buildRef = useRef(build);
   buildRef.current = build;
@@ -88,9 +92,9 @@ export function useMilkdownEditor(
         setEditor(instance);
       },
       () => {
-        // Ignore the error. destroy() on an editor that was not created yet
-        // does nothing. Thus, failures here only mean that we never expose a
-        // broken editor.
+        // destroy() on an editor that was not created yet does nothing. Thus,
+        // a failure here only means that we never expose a broken editor.
+        if (!destroyed) setFailed(true);
       },
     );
 
@@ -101,5 +105,5 @@ export function useMilkdownEditor(
     };
   }, [ready]);
 
-  return { editor, mountRef };
+  return { editor, failed, mountRef };
 }
