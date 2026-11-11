@@ -1,5 +1,5 @@
 import type { ComponentType, RefObject } from "preact";
-import { useEffect, useRef } from "preact/hooks";
+import { useLayoutEffect, useRef } from "preact/hooks";
 import { Tooltip } from "#/components/Tooltip.tsx";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 import { t } from "#/i18n/index.ts";
@@ -114,7 +114,11 @@ function ToolMenu({
   onClose: () => void;
 }) {
   useEscapeStack(true, onClose);
-  useEffect(() => {
+  // A layout effect, so that the listener is there as soon as the menu
+  // renders. Preact runs a `useEffect` only after the next frame, and a press
+  // before that did not close the menu. The press that opened the menu cannot
+  // reach the listener: its `pointerdown` came before its click.
+  useLayoutEffect(() => {
     const outside = (event: PointerEvent) => {
       const area = within.current;
       if (area && !area.contains(event.target as Node)) onClose();
