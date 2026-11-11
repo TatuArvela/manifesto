@@ -28,9 +28,9 @@ function whenIdle(fn: () => void) {
 
 /**
  * Loads the editor if it is not here yet. Resolves false when the load failed.
- * The next call tries again. When it arrives, the editor is built one time
+ * The next call tries again. When it arrives, the editor is rendered one time
  * where nobody sees it (`warmUp.ts`), in idle time. Thus, the first note of a
- * session opens as fast as the next ones.
+ * session opens almost as fast as the next ones.
  */
 export function loadEditor(): Promise<boolean> {
   if (editorChunk.value) return Promise.resolve(true);

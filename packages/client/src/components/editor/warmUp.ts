@@ -1,6 +1,10 @@
-import { listenerCtx } from "@milkdown/kit/plugin/listener";
+import { NoteColor, NoteFont } from "@manifesto/shared";
+import type { Editor } from "@milkdown/kit/core";
 import { getMarkdown } from "@milkdown/kit/utils";
-import { editorWasBuilt, makeNoteEditor } from "./makeNoteEditor.ts";
+import { h, render } from "preact";
+import { drawingRequest } from "#/state/drawing.ts";
+import { editorWasBuilt } from "./makeNoteEditor.ts";
+import { NoteEditor } from "./NoteEditor.tsx";
 
 /** Markdown with each kind of block and mark that a note often has. */
 const SAMPLE = [
@@ -30,42 +34,90 @@ const SAMPLE = [
   "---",
 ].join("\n");
 
+const nothing = () => {};
+
 /**
- * Builds one editor that nobody sees, and destroys it. `lazyEditor.ts` asks
- * for this in idle time after the editor chunk arrives.
+ * The longest time that the warm-up waits for its editor. An editor that does
+ * not come (a build that failed) is taken down after this.
+ */
+const BUILD_WAIT_MS = 3000;
+
+/**
+ * Renders the editor of a note one time where nobody sees it, and takes it
+ * down. `lazyEditor.ts` asks for this in idle time after the editor chunk
+ * arrives.
  *
  * The first open of a note in a session ran the code of the editor for the
- * first time: the browser compiled it, and Milkdown made its parser and its
- * plugins for the first time. In a production build with 86 notes, the task
- * of that click took 105 to 180 ms, against 40 to 55 ms for the next opens.
+ * first time, and the browser compiled it then. In a production build with 86
+ * notes, the task of that click took 105 to 180 ms, against 40 to 55 ms for
+ * the next opens. A warm-up of Milkdown alone left it at 80 to 107 ms: the
+ * components around it (the bars, the chips, `MilkdownEditor`) also ran for
+ * the first time in that click. Thus, it renders the full `NoteEditor`.
  *
- * The editor is in an element that is not on the page. Thus, it has no style
- * and no layout, and nothing shows. Nothing changes its document, so the
- * listener of Milkdown starts no timer. When a note opened first, there is
- * nothing to do.
+ * All of it occurs in one task. The editor is in an element that is not on the
+ * page: it has no style and no layout, nothing shows, and nothing can take the
+ * focus (`autoFocus` is off). Milkdown builds in microtasks, and Preact
+ * renders in microtasks. Thus, no input and no paint come between the mount
+ * and the unmount, and no `useEffect` runs: an effect waits for a paint, and
+ * Preact skips the effects of a component that is gone. Its callbacks do
+ * nothing, and nothing changes its document. Thus, the listener of Milkdown
+ * starts no timer.
+ *
+ * Each editor closes the drawing pad when it unmounts (`useTextImages`).
+ * Thus, the warm-up does nothing while a pad is open. It also does nothing when
+ * a note opened first.
  */
 export async function warmUpEditor(): Promise<void> {
-  if (editorWasBuilt()) return;
-  const editor = makeNoteEditor(document.createElement("div"), {
-    initialContent: SAMPLE,
-    onMarkdown: () => {},
-    resolveInlineImage: () => Promise.resolve(null),
-    inlineImageControls: () => undefined,
-    documentChanged: () => {},
-    collab: null,
+  if (editorWasBuilt() || drawingRequest.peek() !== null) return;
+  const root = document.createElement("div");
+  let reportEditor: (editor: Editor) => void = nothing;
+  const built = new Promise<Editor | null>((resolve) => {
+    reportEditor = resolve;
+  });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), BUILD_WAIT_MS);
   });
   try {
-    await editor.create();
+    render(
+      h(NoteEditor, {
+        title: "",
+        onTitleChange: nothing,
+        content: SAMPLE,
+        onContentChange: nothing,
+        color: NoteColor.Default,
+        onColorChange: nothing,
+        font: NoteFont.Default,
+        onFontChange: nothing,
+        images: [],
+        onAddImages: nothing,
+        onRemoveImage: nothing,
+        linkPreviews: [],
+        onAddLinkPreviews: nothing,
+        onRemoveLinkPreview: nothing,
+        pinned: false,
+        onPinToggle: nothing,
+        tags: ["sample"],
+        onAddTag: nothing,
+        onRemoveTag: nothing,
+        reminder: null,
+        onReminderChange: nothing,
+        onDone: nothing,
+        autoFocus: false,
+        onEditorReady: (editor) => reportEditor(editor),
+      }),
+      root,
+    );
+    const editor = await Promise.race([built, late]);
     // The serializer, which each save of a note runs.
-    editor.action(getMarkdown());
-    editor.action((ctx) => {
-      const { listeners } = ctx.get(listenerCtx);
-      listeners.markdownUpdated.length = 0;
-      listeners.updated.length = 0;
-    });
+    editor?.action(getMarkdown());
+    // The render with the editor, which brings the formatting bar. Preact
+    // renders it in a microtask after the report.
+    for (let turn = 0; turn < 3; turn++) await Promise.resolve();
   } catch {
     // A warm-up that fails changes nothing: the first note builds as before.
   } finally {
-    await editor.destroy().catch(() => {});
+    clearTimeout(timer);
+    render(null, root);
   }
 }
