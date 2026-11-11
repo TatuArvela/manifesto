@@ -318,6 +318,9 @@ frame of a morph needs the main thread.
   panel jumped. For `MORPH_FOLLOW_MS` after the grow, a new size runs from the old layout to the new
   one (images, previews and the shared document arrive late). Not on a phone, where a taller sheet
   does not move what is on the screen. `settle` stops the watch, so a close is never aimed again.
+  The watch also stops when the reader types, pastes, presses or scrolls in the panel (at the end
+  of the grow, if it still runs). Each new line started a run that clipped the panel. Thus, the
+  caret could not scroll into view, and the end of the run put the old scroll back.
 - **A close during the open** starts where the panel is drawn (the `path` of the run), with the
   corners and the blend of shadows that the grow drew there (`growEdge`, `startMix`). From the
   layout, the full editor showed for a frame, and then shrank. From the own corners and shadow of

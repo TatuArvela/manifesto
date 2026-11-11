@@ -141,6 +141,16 @@ export function stopMorph(panel: HTMLElement): boolean {
  */
 export const MORPH_FOLLOW_MS = 1000;
 
+/** The events by which the reader changes the panel or its scroll. */
+const READER_INPUT = [
+  "keydown",
+  "beforeinput",
+  "paste",
+  "drop",
+  "pointerdown",
+  "wheel",
+] as const;
+
 /**
  * Grows `panel` out of `from` into its layout position.
  *
@@ -303,6 +313,12 @@ function holdUntil(panel: HTMLElement, ready: Promise<void>, go: () => void) {
  * that shows the new size already has the new keyframes. The panel is measured
  * with no keyframes, because its box with the transform applied is not its
  * layout. `settle` stops the watch, so that a close is never aimed again.
+ *
+ * A size change that the reader makes is not followed after the grow. When the
+ * reader types, pastes, presses or scrolls in the panel, the watch stops (at
+ * the end of the grow, if it still runs). Each new line started a run that
+ * clipped the panel. Thus, the caret could not scroll into view, and the end of
+ * the run gave the panel back its old scroll.
  */
 function keepAimed(
   panel: HTMLElement,
@@ -353,16 +369,28 @@ function keepAimed(
       frames(line, scrollTop, false),
     );
   });
+  let byReader = false;
+  const onReader = () => {
+    if (grow.panel.playState === "finished") stop();
+    else byReader = true;
+  };
   const stop = () => {
     observer.disconnect();
     clearTimeout(timer);
+    for (const type of READER_INPUT) {
+      panel.removeEventListener(type, onReader, true);
+    }
     if (following.get(panel) === stop) following.delete(panel);
   };
   following.set(panel, stop);
   observer.observe(panel);
+  for (const type of READER_INPUT) {
+    panel.addEventListener(type, onReader, { capture: true, passive: true });
+  }
   grow.panel.finished.then(
     () => {
-      timer = setTimeout(stop, MORPH_FOLLOW_MS);
+      if (byReader) stop();
+      else timer = setTimeout(stop, MORPH_FOLLOW_MS);
     },
     // Cancelled: `settle` (a close during the open), which also stops it.
     stop,

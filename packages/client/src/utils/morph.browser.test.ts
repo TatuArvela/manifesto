@@ -431,4 +431,24 @@ describe("on a wider screen", () => {
       document.documentElement.style.removeProperty("--note-radius");
     }
   });
+
+  // Each line that the reader typed after the grow started a run that clipped
+  // the panel. Thus, the caret could not scroll into view.
+  it("does not follow a size change after the reader typed", async () => {
+    await page.viewport(1024, 700);
+    const el = makePanel();
+    el.style.cssText =
+      "position:fixed;left:200px;top:100px;width:600px;height:200px";
+    morphIn(el, card, { opaque: true });
+    defined(el.getAnimations()[0]).finish();
+    await new Promise((done) => requestAnimationFrame(() => done(null)));
+
+    el.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+    el.style.height = "400px";
+    await new Promise((done) => requestAnimationFrame(() => done(null)));
+    await new Promise((done) => requestAnimationFrame(() => done(null)));
+    expect(el.getAnimations()).toHaveLength(0);
+  });
 });
