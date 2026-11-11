@@ -99,6 +99,9 @@ read one list, `BOARD_SHORTCUTS` in `hooks/useBoardShortcuts.ts`.
   below.
 - `state/sheetHistory.ts` keeps the entries. The pushes of the router wait until that back is
   complete (`afterHistorySettles`). If not, the back goes from the push of the router.
+- A `NoteSheet` pushes its entry after its first paint (`pushAfterPaint`), not in the task that
+  opens it, where a push took 1 to 3 ms before the first frame of a note that grows.
+  `afterHistorySettles` also waits for such a push. Thus, the pushes of the router stay after it.
 
 ## Other rules
 

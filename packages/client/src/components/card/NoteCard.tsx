@@ -2,7 +2,7 @@ import { imageCountOf, type Note, roleOf } from "@manifesto/shared";
 import { useComputed } from "@preact/signals";
 import clsx from "clsx";
 import { memo } from "preact/compat";
-import { useContext, useRef, useState } from "preact/hooks";
+import { useContext, useMemo, useRef, useState } from "preact/hooks";
 import { autoNoteColorMap, noteColorMap, noteText } from "#/colors.ts";
 import { useEditor } from "#/components/editor/lazyEditor.ts";
 import { NoteSheet } from "#/components/NoteSheet.tsx";
@@ -184,6 +184,27 @@ export const NoteCard = memo(function NoteCard({
       openNoteWith(note.id, { kind: "attach", files: [file] }),
     );
   const cardLabel = cardName(note) || t("noteCard.untitled");
+
+  // The same element while its props are the same. Thus, a render of the card
+  // for its own state (the card hides when the grow starts, and the sheet goes
+  // to its close) does not render the editor again: Preact skips an element
+  // that it rendered before. Each of those renders of the full editor cost 3
+  // to 5 ms in the task of the click.
+  const sheetContent = useMemo(
+    () =>
+      !needsEditor ? (
+        <NoteReadonlyView note={note} onClose={closeModal} />
+      ) : (
+        editor && (
+          <editor.NoteCardEditor
+            note={note}
+            onClose={closeModal}
+            onReady={contentReady}
+          />
+        )
+      ),
+    [needsEditor, note, editor, closeModal, contentReady],
+  );
 
   // The buttons of the row that do not fit on this card go into its menu.
   const cardRoom = useContext(CardRoomContext);
@@ -495,17 +516,7 @@ export const NoteCard = memo(function NoteCard({
           closing={closing}
           onBack={closeModal}
         >
-          {!needsEditor ? (
-            <NoteReadonlyView note={note} onClose={closeModal} />
-          ) : (
-            editor && (
-              <editor.NoteCardEditor
-                note={note}
-                onClose={closeModal}
-                onReady={contentReady}
-              />
-            )
-          )}
+          {sheetContent}
         </NoteSheet>
       )}
     </>

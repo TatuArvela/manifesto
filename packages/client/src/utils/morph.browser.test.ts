@@ -75,7 +75,7 @@ describe.each([
     expect(getComputedStyle(el).overflow).toBe("clip");
     check();
 
-    void morphOut(el, card, { fade: false });
+    void morphOut(el, card);
     check();
   });
 
@@ -141,8 +141,9 @@ describe("on a wider screen", () => {
   });
 
   // Milkdown builds its view after the panel mounts. A grow that started at
-  // once went to the empty panel, and then to the full one.
-  it("holds the grow over the card until its content is ready", async () => {
+  // once went to the empty panel, and then to the full one. A grow that was
+  // built at once and held measured the panel two times.
+  it("waits over the card until its content is ready, and only then measures", async () => {
     await page.viewport(1024, 700);
     const el = makePanel();
     let resolve = () => {};
@@ -151,20 +152,26 @@ describe("on a wider screen", () => {
     });
     let started = false;
     morphIn(el, card, { ready, onStart: () => (started = true) });
-    const motion = defined(el.getAnimations()[0]);
-    expect(motion.playState).toBe("paused");
+    expect(el.getAnimations()).toHaveLength(0);
     // The card stays until the grow moves, and the panel does not cover it:
     // the two change places only when the grow starts.
     expect(started).toBe(false);
     expect(el.style.opacity).toBe("0");
 
+    // Content arrives during the wait. The grow goes to the panel with it.
+    el.style.cssText =
+      "position:fixed;left:200px;top:100px;width:600px;height:400px";
     resolve();
     await ready;
+    const motion = defined(el.getAnimations()[0]);
     expect(motion.playState).toBe("running");
     expect(started).toBe(true);
     // The wait is over. A panel that is not opaque still fades in with its
     // keyframes from here.
     expect(el.style.opacity).toBe("");
+    motion.pause();
+    motion.currentTime = MORPH_MS;
+    expect(drawn(el).height).toBeCloseTo(400, 0);
   });
 
   it("does not wait for its content for longer than the limit", async () => {
@@ -173,11 +180,10 @@ describe("on a wider screen", () => {
       await page.viewport(1024, 700);
       const el = makePanel();
       morphIn(el, card, { ready: new Promise<void>(() => {}) });
-      const motion = defined(el.getAnimations()[0]);
-      expect(motion.playState).toBe("paused");
+      expect(el.getAnimations()).toHaveLength(0);
 
       vi.advanceTimersByTime(MORPH_READY_WAIT_MS);
-      expect(motion.playState).toBe("running");
+      expect(defined(el.getAnimations()[0]).playState).toBe("running");
     } finally {
       vi.useRealTimers();
     }
@@ -217,7 +223,7 @@ describe("on a wider screen", () => {
     grow.currentTime = 30;
     const before = drawn(el);
 
-    void morphOut(el, card, { fade: false });
+    void morphOut(el, card);
     const shrink = defined(el.getAnimations()[0]);
     shrink.pause();
     shrink.currentTime = 0;
@@ -243,7 +249,7 @@ describe("on a wider screen", () => {
         ready: new Promise<void>(() => {}),
         onStart: () => (started = true),
       });
-      await morphOut(el, card, { fade: false });
+      await morphOut(el, card);
       expect(el.getAnimations()).toHaveLength(0);
       expect(el.style.opacity).toBe("0");
 
@@ -274,7 +280,7 @@ describe("on a wider screen", () => {
     await new Promise((done) => requestAnimationFrame(() => done(null)));
     expect(getComputedStyle(el).boxShadow).not.toContain("rgb(255, 0, 0)");
 
-    void morphOut(el, card, { fade: false, shadow });
+    void morphOut(el, card, { shadow });
     for (const animation of el.getAnimations()) animation.finish();
     expect(getComputedStyle(el).boxShadow).toContain("rgb(255, 0, 0)");
   });

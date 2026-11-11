@@ -39,16 +39,27 @@ const MODAL_CLOSE_MS = 100;
 export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
   const [showModal, setShowModal] = useState(false);
   const [closing, setClosing] = useState(false);
-  const modalRef = useFocusTrap<HTMLDivElement>(showModal && !closing);
+  // The editor takes focus after the first paint, and its first frames show
+  // the card, not its controls. Thus, the trap moves focus in only after that,
+  // and only if the editor did not take it (on a phone, where it does not).
+  const modalRef = useFocusTrap<HTMLDivElement>(showModal && !closing, {
+    focusInAfterPaint: true,
+  });
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Counts closes and opens. Thus, a close that completes after the note opened
   // again does not change the panel.
   const closeRunRef = useRef(0);
   const cardRef = useRef<HTMLElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  // The element out of which the editor grows, between the effect that opens it
-  // and the layout pass that can first measure the panel.
-  const morphFromRef = useRef<RectLike | null>(null);
+  // The card out of which the editor grows, and its shadow, between the effect
+  // that opens it and the layout pass that can first measure the panel. Both
+  // are read at the click, while the board is laid out and the sheet is not
+  // there yet. A read of the shadow after the sheet mounted made the browser
+  // calculate the style of the full sheet for it.
+  const morphFromRef = useRef<{
+    rect: RectLike;
+    shadow: string | undefined;
+  } | null>(null);
   // If the editor grows out of, or shrinks back onto, the card, and does not
   // fade in place. Only where you can see the card.
   const [morphing, setMorphing] = useState(false);
@@ -94,9 +105,10 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
         // settle there would cancel the grow that it just started.
         if (panelRef.current) settle(panelRef.current);
       } else if (!showModal) {
-        morphFromRef.current = morphSource();
-        setMorphing(morphFromRef.current !== null);
-        setGrowHeld(morphFromRef.current !== null && waitsForContent);
+        const rect = morphSource();
+        morphFromRef.current = rect && { rect, shadow: cardShadow() };
+        setMorphing(rect !== null);
+        setGrowHeld(rect !== null && waitsForContent);
       }
       setShowModal(true);
       setClosing(false);
@@ -120,7 +132,6 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
       // Down after the morph is complete. The timer is only a backstop, for a
       // tab in the background, where animations are throttled or never run.
       void morphOut(panel, to, {
-        fade: false,
         shadow: cardShadow(),
         standIn: cardRef.current,
       }).then(takeDown);
@@ -134,7 +145,8 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
   const startGrowRef = useRef<(() => void) | null>(null);
 
   // Layout, not effect. The first frame of the panel must be the frame over the
-  // card. If not, it paints one time in its final position first.
+  // card. If not, it paints one time in its final position first. A grow that
+  // waits for the editor measures the panel only when the editor is there.
   useLayoutEffect(() => {
     const from = morphFromRef.current;
     const panel = panelRef.current;
@@ -145,14 +157,14 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
           startGrowRef.current = resolve;
         })
       : undefined;
-    morphIn(panel, from, {
+    morphIn(panel, from.rect, {
       opaque: true,
       ready,
       onStart: () => setGrowHeld(false),
-      shadow: cardShadow(),
+      shadow: from.shadow,
       standIn: cardRef.current,
     });
-  }, [showModal, waitsForContent, cardShadow]);
+  }, [showModal, waitsForContent]);
 
   /**
    * The editor in the panel has its text. A grow waits for this, because the
@@ -173,10 +185,14 @@ export function useCardModal(isEditing: boolean, waitsForContent: boolean) {
     [],
   );
 
-  /** A close is a request to stop editing. The effect above does the rest. */
-  const closeModal = () => {
+  /**
+   * A close is a request to stop editing. The effect above does the rest.
+   * Stable, because the card keeps the content of the sheet from one render to
+   * the next while its props are the same.
+   */
+  const closeModal = useCallback(() => {
     editingNoteId.value = null;
-  };
+  }, []);
 
   return {
     showModal,

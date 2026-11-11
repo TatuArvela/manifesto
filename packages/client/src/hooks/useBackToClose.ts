@@ -6,13 +6,20 @@ import { openHistoryLayer } from "#/state/sheetHistory.ts";
  * open state. Thus, its entry goes when it starts to close. An `onBack` that
  * returns `false` kept the sheet open (it asks first), and back stays with it.
  * `state/sheetHistory.ts` tells how the entries are kept.
+ *
+ * `pushAfterPaint` pushes the entry of the sheet after its first paint (see
+ * `openHistoryLayer`).
  */
-export function useBackToClose(active: boolean, onBack: () => unknown): void {
+export function useBackToClose(
+  active: boolean,
+  onBack: () => unknown,
+  { pushAfterPaint = false }: { pushAfterPaint?: boolean } = {},
+): void {
   const handler = useRef(onBack);
   handler.current = onBack;
 
   useLayoutEffect(() => {
     if (!active) return;
-    return openHistoryLayer(() => handler.current());
-  }, [active]);
+    return openHistoryLayer(() => handler.current(), { pushAfterPaint });
+  }, [active, pushAfterPaint]);
 }

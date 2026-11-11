@@ -22,6 +22,8 @@
  * Sheets reach this through `useBackToClose`.
  */
 
+import { afterNextPaint } from "#/utils/afterPaint.ts";
+
 const MARK = "manifestoSheet";
 
 interface Layer {
@@ -36,6 +38,8 @@ const layers: Layer[] = [];
 let nextId = 1;
 /** Pops that are still to come from our own `history.back()` calls. */
 let ownPops = 0;
+/** Pushes that wait for the first paint of their sheet (`afterPaint`). */
+let laterPushes = 0;
 let waiting: (() => void)[] = [];
 
 function isOwnEntry(state: unknown, id: number): boolean {
@@ -51,19 +55,28 @@ function push(layer: Layer) {
   layer.pushed = true;
 }
 
-/** Runs `fn` now, or after each of our `history.back()` calls arrived. */
+/**
+ * Runs `fn` now, or after each of our `history.back()` calls arrived and each
+ * push that waits for a paint is made.
+ */
 export function afterHistorySettles(fn: () => void): void {
-  if (ownPops === 0) fn();
+  if (ownPops === 0 && laterPushes === 0) fn();
   else waiting.push(fn);
+}
+
+/** Runs what waited, when nothing of ours is on its way. */
+function runWaiting() {
+  if (ownPops > 0 || laterPushes > 0) return;
+  const run = waiting;
+  waiting = [];
+  for (const fn of run) fn();
 }
 
 function onPopState() {
   if (ownPops > 0) {
     ownPops--;
     if (ownPops === 0) {
-      const run = waiting;
-      waiting = [];
-      for (const fn of run) fn();
+      runWaiting();
       if (layers.length === 0)
         window.removeEventListener("popstate", onPopState);
     }
@@ -78,14 +91,25 @@ function onPopState() {
   }
 }
 
-function register(layer: Layer) {
+function register(layer: Layer, pushAfterPaint: boolean) {
   // A listener that is already there cannot be added again, which covers a
   // sheet opened while the `history.back()` of the last sheet is still on its
   // way.
   window.addEventListener("popstate", onPopState);
   layers.push(layer);
-  afterHistorySettles(() => {
-    if (layers.includes(layer)) push(layer);
+  const pushNow = () =>
+    afterHistorySettles(() => {
+      if (layers.includes(layer)) push(layer);
+    });
+  if (!pushAfterPaint) {
+    pushNow();
+    return;
+  }
+  laterPushes++;
+  afterNextPaint(() => {
+    laterPushes--;
+    pushNow();
+    runWaiting();
   });
 }
 
@@ -109,9 +133,17 @@ function unregister(layer: Layer) {
  * `close` while that entry is there. A `close` that returns `false` kept the
  * sheet open, and keeps its entry. Returns the cleanup that removes the entry
  * again when the sheet closes in a different way.
+ *
+ * `pushAfterPaint` pushes the entry after the first paint of the sheet, not in
+ * the task that opens it. A push took 1 to 3 ms there, before the first frame
+ * of a note that grows out of its card. `afterHistorySettles` waits for it.
+ * Thus, the pushes of the router stay after it.
  */
-export function openHistoryLayer(close: () => unknown): () => void {
+export function openHistoryLayer(
+  close: () => unknown,
+  { pushAfterPaint = false }: { pushAfterPaint?: boolean } = {},
+): () => void {
   const layer: Layer = { id: nextId++, close, pushed: false };
-  register(layer);
+  register(layer, pushAfterPaint);
   return () => unregister(layer);
 }

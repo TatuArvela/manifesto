@@ -17,6 +17,7 @@ paths:
   - "packages/client/src/utils/morphPath.ts"
   - "packages/client/src/utils/morphStandIn.ts"
   - "packages/client/src/utils/morphShadow.ts"
+  - "packages/client/src/utils/afterPaint.ts"
   - "packages/client/src/hooks/useCardModal.ts"
   - "packages/client/src/hooks/useHeldHeight.ts"
   - "packages/client/src/storage/quota.ts"
@@ -253,7 +254,8 @@ composer, and the corners and the shadow). Thus, the layout inside the editor ne
   centered lower than a card near the top of the board. Thus, the grow went down, and then back up.
   While it waits, the panel is transparent and the card stays, and the two change places when the
   grow starts. When the panel covered the card during the wait, the card changed its look at the
-  click, before anything moved.
+  click, before anything moved. The grow measures the panel and makes its run only when the wait
+  ends. A grow that was made at once and held measured the panel two times.
 - **One task from the click.** The steps from the click to the grow are layout effects, not
   effects: the open in `useCardModal`, the build in `useMilkdownEditor`, and the report in
   `MilkdownEditor`. Milkdown creates its view in microtasks. Thus, the grow usually starts on the
@@ -261,6 +263,22 @@ composer, and the corners and the shadow). Thus, the layout inside the editor ne
   Preact runs an effect only after the next paint. With three effects, the grow started about
   80 ms after the click on a fast laptop, and about 40 ms with none. Keep a new step on this
   path out of an effect.
+- **One layout in that task.** Each read of a size or a style after a change of the page made the
+  browser lay out the new sheet again. The task had four of them. Thus, on this path:
+  - Read before you write. A run reads all that it needs (the panel, the card, the scroll) before
+    it adds the copy of the card. The shadow of the card is read at the click, while the board is
+    laid out.
+  - Never call `getAnimations()`. It calculates the style of the page. `settle` cancels the
+    animations of its run, which holds each animation of a morph.
+  - Work that the first frames do not show waits for the first paint (`afterNextPaint` in
+    `utils/afterPaint.ts`): the focus of the editor, the focus of the trap (`focusInAfterPaint`),
+    and the history entry of the sheet (`pushAfterPaint`). Not `useEffect`: Preact runs effects
+    after the next frame or after 35 ms, whichever comes first, and the task of a click is often
+    longer. The window shows the card, not the editor, until `SWITCH_AT`.
+- **One render of the editor.** The card keeps the content of its sheet as one element
+  (`sheetContent`, `useMemo`). Thus, a render of the card for its own state (the card hides when
+  the grow starts, the sheet goes to its close) does not render the editor again. Each of those
+  renders cost 3 to 5 ms in the task of the click.
 - **Size changes.** `keepAimed` watches the panel. During a run, a new size starts a new line from
   where the panel is drawn now, at the current progress. With the old start and only a new end, the
   panel jumped. For `MORPH_FOLLOW_MS` after the grow, a new size runs from the old layout to the new

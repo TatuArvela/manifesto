@@ -71,7 +71,9 @@ export function NoteSheet({
     return el ? openSheet(el) : undefined;
   }, [dialogRef]);
 
-  useBackToClose(!closing, onBack);
+  // The entry goes in after the first paint of the sheet. A push in the task
+  // that opens a note came before the first frame of its grow.
+  useBackToClose(!closing, onBack, { pushAfterPaint: true });
 
   const [aside, setAside] = useState<HTMLElement | null>(null);
 

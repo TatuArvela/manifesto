@@ -83,7 +83,10 @@ export function useHeldHeight(
   }, []);
 
   // Each render, because an element can mount later (the place of the bar
-  // follows a setting).
+  // follows a setting). The first height comes from the first report of the
+  // `ResizeObserver`, after the next layout. A read of `offsetHeight` here made
+  // the browser lay out the full sheet in the task of the click, before the
+  // editor was there (5 ms), and again after it.
   useLayoutEffect(() => {
     const watch = watchRef.current;
     if (!watch) return;
@@ -91,7 +94,6 @@ export function useHeldHeight(
       const el = ref.current;
       if (!el || watch.watched.has(el)) continue;
       watch.watched.add(el);
-      watch.last.set(el, el.offsetHeight);
       watch.sizes.observe(el);
       watch.removals.observe(el, { childList: true });
     }

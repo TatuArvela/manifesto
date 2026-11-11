@@ -43,10 +43,7 @@ import { isPhoneLayout } from "./phoneSheets.ts";
  */
 export const MORPH_MS = 240;
 const EASING = "cubic-bezier(0.2, 0, 0, 1)";
-/**
- * The part of the run during which a panel that is not opaque fades, at the
- * start or the end.
- */
+/** The part of the run during which a panel that is not opaque fades in. */
 const FADE_SHARE = 0.3;
 /**
  * If a rectangle is a good start for a morph: a part of it is on the screen,
@@ -137,6 +134,10 @@ const holds = new WeakMap<HTMLElement, () => void>();
  * and gets its overflow and its scroll back when the run ends. A run that keeps
  * its end (`fill`, a close) keeps the clip and the copy of the card: the panel
  * goes after it.
+ *
+ * It reads all that it needs before it writes. The caller has laid the page out
+ * to measure the panel. Thus, the run makes the browser lay it out no second
+ * time.
  */
 function startRun(
   panel: HTMLElement,
@@ -148,6 +149,7 @@ function startRun(
   }: { fill?: boolean; standIn?: StandInRun | undefined } = {},
 ): Run {
   const scrollTop = panel.scrollTop;
+  const standIn = copy ? standInFor(copy.card) : null;
   panel.style.overflow = "clip";
   panel.style.transformOrigin = "0 0";
   const content = contentOf(panel);
@@ -158,7 +160,6 @@ function startRun(
     easing: EASING,
     ...(fill && { fill: "forwards" }),
   };
-  const standIn = copy ? standInFor(copy.card) : null;
   if (standIn) panel.append(standIn.element);
   const switches = copy ? switchFrames(copy.cardFirst, copy.at) : null;
   const run: Run = {
@@ -167,7 +168,11 @@ function startRun(
     edge:
       keyframes.edge.length > 0 ? panel.animate(keyframes.edge, timing) : null,
     // The face is never scrolled: the content of a card has no scroll.
-    face: standIn?.face.animate(frames(0).content, timing) ?? null,
+    face:
+      standIn?.face.animate(
+        scrollTop === 0 ? keyframes.content : frames(0).content,
+        timing,
+      ) ?? null,
     switches:
       standIn && switches
         ? [
@@ -215,21 +220,24 @@ function setRunFrames(run: Run, frames: PathFrames) {
  * Ends a morph that still runs (or is held at its end). Thus, the panel is
  * measured where it is laid out, not at a point during the animation. A close
  * during the open is only one press.
+ *
+ * Each animation of a morph belongs to a run. Thus, it cancels those, and does
+ * not ask the panel for its animations: `getAnimations` makes the browser
+ * calculate the style of the page. For a sheet that just mounted, that was
+ * the full sheet, in the task of the click (5 ms).
  */
 export function settle(panel: HTMLElement) {
   following.get(panel)?.();
   holds.get(panel)?.();
   const run = runs.get(panel);
-  if (run) {
-    // At once, not when the cancel settles: a new run reads the scroll next,
-    // and a clipped panel has none.
-    runs.delete(panel);
-    run.standIn?.remove();
-    panel.style.overflow = "";
-    panel.scrollTop = run.scrollTop;
-    for (const animation of runAnimations(run)) animation.cancel();
-  }
-  for (const animation of panel.getAnimations()) animation.cancel();
+  if (!run) return;
+  // At once, not when the cancel settles: a new run reads the scroll next, and
+  // a clipped panel has none.
+  runs.delete(panel);
+  run.standIn?.remove();
+  panel.style.overflow = "";
+  panel.scrollTop = run.scrollTop;
+  for (const animation of runAnimations(run)) animation.cancel();
 }
 
 /**
@@ -302,17 +310,42 @@ export function morphIn(
   } = {},
 ): void {
   settle(panel);
+  const go = () => {
+    grow(panel, from, { opaque, shadow, standIn });
+    onStart?.();
+  };
+  if (ready) holdUntil(panel, ready, go);
+  else go();
+}
+
+/**
+ * Measures the panel and starts its grow. Only now, when its content is there:
+ * one measure of the full panel, and one layout of the page for it.
+ */
+function grow(
+  panel: HTMLElement,
+  from: RectLike,
+  {
+    opaque,
+    shadow,
+    standIn,
+  }: {
+    opaque: boolean;
+    shadow: string | undefined;
+    standIn: HTMLElement | null | undefined;
+  },
+) {
   const phone = isPhoneLayout();
   const radius = noteRadius();
+  const own = ownShadow(panel);
+  const to = panel.getBoundingClientRect();
   const opacity = opaque
     ? undefined
     : (offset: number) => Math.min(1, offset / FADE_SHARE);
-  const own = ownShadow(panel);
   const kept: ShadowPath = { from: own, to: own };
   const shadows: ShadowPath = shadow
     ? { from: parseShadow(shadow), to: own }
     : kept;
-  const to = panel.getBoundingClientRect();
   const path = { start: from, end: to, layout: to, startAt: 0 };
   const run = startRun(
     panel,
@@ -328,13 +361,11 @@ export function morphIn(
     phone,
     // The fade and the change of shadow belong to the grow. A later size
     // change is opaque, and keeps the shadow of the panel.
-    frames: (next, scrollTop, grow) =>
-      grow
+    frames: (next, scrollTop, isGrow) =>
+      isGrow
         ? pathFrames(next, radius, scrollTop, opacity, shadows)
         : pathFrames(next, radius, scrollTop, undefined, kept),
   });
-  if (ready) holdUntil(panel, run, ready, onStart);
-  else onStart?.();
 }
 
 /**
@@ -344,45 +375,40 @@ export function morphIn(
 export const MORPH_READY_WAIT_MS = 150;
 
 /**
- * Holds a grow at its first frame (over the source) until its content is
- * there. Milkdown builds its view after the panel mounts, in microtasks.
- * Usually that is before the first paint, and the hold ends in the same task.
- * A grow that started at once went to the empty panel first, and then to the
- * full one. When the empty panel was centered lower than the card, the grow
- * went down, and then back up. `keepAimed` still follows the panel while it is
- * held, and at the progress 0 that changes only the end.
+ * Holds a grow until its content is there, and then starts it (`go`). Milkdown
+ * builds its view after the panel mounts, in microtasks. Usually that is
+ * before the first paint, and the grow starts in the same task. A grow that
+ * started at once went to the empty panel first, and then to the full one.
+ * When the empty panel was centered lower than the card, the grow went down,
+ * and then back up. A grow that was built at once and held measured the panel
+ * two times, and laid the page out for each measure.
  */
-function holdUntil(
-  panel: HTMLElement,
-  run: Run,
-  ready: Promise<void>,
-  onStart: (() => void) | undefined,
-) {
-  for (const animation of runAnimations(run)) animation.pause();
+function holdUntil(panel: HTMLElement, ready: Promise<void>, go: () => void) {
   // Transparent while it waits, over the source, which stays. The two only
   // change places when the grow moves. When the panel covered the card during
   // the wait, the card changed its look at the click, before anything moved.
   // `opacity`, not `visibility`: the editor takes focus while it waits.
   panel.style.opacity = "0";
+  let waiting = true;
   // The wait ends: the grow goes, or `settle` cancels it (a close, or an open
   // again). A cancelled grow never goes later.
   const end = () => {
-    go = () => {};
+    waiting = false;
     clearTimeout(timer);
     holds.delete(panel);
+  };
+  const start = () => {
+    if (!waiting) return;
+    end();
+    go();
     panel.style.opacity = "";
   };
-  let go = () => {
+  holds.set(panel, () => {
     end();
-    for (const animation of runAnimations(run)) animation.play();
-    onStart?.();
-  };
-  holds.set(panel, end);
-  const timer = setTimeout(() => go(), MORPH_READY_WAIT_MS);
-  void ready.then(
-    () => go(),
-    () => go(),
-  );
+    panel.style.opacity = "";
+  });
+  const timer = setTimeout(start, MORPH_READY_WAIT_MS);
+  void ready.then(start, start);
 }
 
 /**
@@ -414,7 +440,7 @@ function keepAimed(
     frames,
   }: {
     phone: boolean;
-    frames: (path: MorphPath, scrollTop: number, grow: boolean) => PathFrames;
+    frames: (path: MorphPath, scrollTop: number, isGrow: boolean) => PathFrames;
   },
 ) {
   if (typeof ResizeObserver !== "function") return;
@@ -473,13 +499,9 @@ function keepAimed(
  * ends first, because the animation only starts on the next frame, and cut off
  * the landing.
  *
- * A card asks for no `fade`: the panel lands exactly on the card, and the card
- * shows when the panel goes. By default, the panel fades over the last part of
- * the way. That fade is its own animation, on linear time. Under the shared
- * curve, its keyframes would be placed by progress, and a curve that covers
- * most of the distance early would start the fade while the panel is still far
- * from its target. `shadow` is the `box-shadow` of the target, which the panel
- * has when it lands.
+ * The panel lands exactly on the card, and the card shows when the panel goes.
+ * `shadow` is the `box-shadow` of the target, which the panel has when it
+ * lands.
  *
  * The shrink starts where the panel is drawn now. A close during the grow
  * started from the layout of the panel: the full editor showed for a frame,
@@ -491,11 +513,9 @@ export function morphOut(
   panel: HTMLElement,
   to: RectLike,
   {
-    fade = true,
     shadow,
     standIn,
   }: {
-    fade?: boolean;
     shadow?: string | undefined;
     /**
      * The card, which the window shows from `SWITCH_AT` to the end. From the
@@ -534,12 +554,6 @@ export function morphOut(
         : undefined,
     },
   );
-  if (fade) {
-    panel.animate(
-      [{ opacity: 1 }, { opacity: 1, offset: 1 - FADE_SHARE }, { opacity: 0 }],
-      { duration: MORPH_MS, fill: "forwards" },
-    );
-  }
   return run.panel.finished.then(
     () => {},
     // Cancelled: opened again during the close, which stops the panel where it

@@ -31,6 +31,9 @@ Only the gap cursor: the drop indicator of that plugin draws over the drag of th
 - The build (`useMilkdownEditor`) and the report of the editor (`onEditorReady`) are layout
   effects. The grow of an opened note waits for that report. An effect runs only after the next
   paint, and each one moved the start of the grow one frame later (`layout-and-loading.md`).
+- The focus of `autoFocus` comes after the first paint (`afterNextPaint`). A focus needs the style
+  and the layout of the page. In the task of the click, it made the browser lay out the new sheet
+  for the focus and again for the frame.
 - Read-only previews come from `utils/remarkRenderer.ts` (remark → rehype → HTML that DOMPurify
   sanitizes).
 

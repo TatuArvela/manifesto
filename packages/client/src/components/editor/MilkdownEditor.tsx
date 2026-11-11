@@ -27,6 +27,7 @@ import {
 } from "#/extensions/yjsCollab.ts";
 import { useMilkdownEditor } from "#/hooks/useMilkdownEditor.ts";
 import { t } from "#/i18n/index.ts";
+import { afterNextPaint } from "#/utils/afterPaint.ts";
 import {
   normalizeMarkdown,
   replaceTextareaText,
@@ -372,21 +373,35 @@ export function MilkdownEditor({
     }
   }, [rawMode, editor, pushRaw]);
 
-  // The editor reports that it has its text, and takes the focus. A layout
-  // effect, in the same task as the build (`useMilkdownEditor`). The grow of an
-  // opened note waits for this report. An effect ran only after the next
-  // paint, and the grow started one frame later. It stays after the start of
-  // raw mode above, as it was when it was an effect.
+  // The editor reports that it has its text. A layout effect, in the same task
+  // as the build (`useMilkdownEditor`). The grow of an opened note waits for
+  // this report. An effect ran only after the next paint, and the grow started
+  // one frame later. It stays after the start of raw mode above.
   useLayoutEffect(() => {
     if (!editor) return;
     onEditorReadyRef.current?.(editor);
-    if (autoFocus && rawModeRef.current) {
-      // The rich editor is hidden. If it had focus, the first keystrokes would
-      // go into a document that nobody can see.
-      const textarea = textareaRef.current;
-      textarea?.focus();
-      textarea?.setSelectionRange(textarea.value.length, textarea.value.length);
-    } else if (autoFocus) {
+  }, [editor]);
+
+  // The editor takes the focus after the first paint (`afterNextPaint`). A
+  // focus needs the style and the layout of the page. In the task of the
+  // click, before the browser had laid out the new sheet, it made the browser
+  // do that one time for the focus and again for the frame (6 ms). The window
+  // of a note that grows shows the card for its first frames, and not the
+  // editor.
+  useLayoutEffect(() => {
+    if (!editor || !autoFocus) return;
+    return afterNextPaint(() => {
+      if (rawModeRef.current) {
+        // The rich editor is hidden. If it had focus, the first keystrokes
+        // would go into a document that nobody can see.
+        const textarea = textareaRef.current;
+        textarea?.focus();
+        textarea?.setSelectionRange(
+          textarea.value.length,
+          textarea.value.length,
+        );
+        return;
+      }
       editor.action((ctx) => {
         const view = ctx.get(editorViewCtx);
         view.focus();
@@ -394,7 +409,7 @@ export function MilkdownEditor({
           view.state.tr.setSelection(TextSelection.atEnd(view.state.doc)),
         );
       });
-    }
+    });
   }, [editor, autoFocus, textareaRef]);
 
   // The code must watch for the edits of collaborators directly. `ySyncPlugin`
