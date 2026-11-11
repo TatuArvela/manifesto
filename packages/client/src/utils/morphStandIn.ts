@@ -38,14 +38,27 @@ const BOARD_ONLY = [
   "note-shadow",
 ];
 
-/** A copy of the card that nothing can reach: no ids, no focus, no events. */
+/**
+ * A copy of the card that nothing can reach: no ids, no focus, no events. It
+ * also has none of the marks by which other code finds a card or its open
+ * button (`utils/cardFocus.ts`), and no anchor name. Two elements with one
+ * anchor name put a popover of the card on the copy, which is later in the
+ * page.
+ */
 function copyOf(card: HTMLElement, deep: boolean): HTMLElement {
   const copy = card.cloneNode(deep) as HTMLElement;
   copy.classList.remove(...BOARD_ONLY);
   copy.removeAttribute("draggable");
-  for (const element of [copy, ...copy.querySelectorAll("[id]")]) {
+  copy.removeAttribute("data-note-card");
+  for (const element of [
+    copy,
+    ...copy.querySelectorAll<HTMLElement>("[id], [style]"),
+  ]) {
     element.removeAttribute("id");
+    element.style.removeProperty("anchor-name");
+    element.style.removeProperty("position-anchor");
   }
+  for (const open of copy.querySelectorAll("[data-card-open]")) open.remove();
   return copy;
 }
 
