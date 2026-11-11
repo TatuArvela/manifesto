@@ -63,6 +63,29 @@ function copyOf(card: HTMLElement, deep: boolean): HTMLElement {
 }
 
 /**
+ * If the card has the look of a hovered card: the pointer is on it, one of its
+ * menus is open, or it has the keyboard focus. Its controls and its icon tones
+ * then show (`group-hover:`, `group-data-popover-open:` and
+ * `group-has-[:focus-visible]:` in `NoteCardControls`). As those variants do,
+ * the hover counts only where a pointer can hover.
+ */
+function looksHovered(card: HTMLElement): boolean {
+  const group = card.closest(".group");
+  if (!group) return false;
+  // Not `:has()` in a selector here: a browser without it throws.
+  const focused = document.activeElement;
+  if (
+    group.matches("[data-popover-open]") ||
+    (focused !== null &&
+      group.contains(focused) &&
+      focused.matches(":focus-visible"))
+  ) {
+    return true;
+  }
+  return matchMedia("(hover: hover)").matches && group.matches(":hover");
+}
+
+/**
  * The checkboxes of a checklist. Preact sets their `checked` property, and a
  * copy of a node takes only the attribute. Thus, without this, each box of the
  * copy was empty.
@@ -90,10 +113,16 @@ export interface StandIn {
  */
 export function standInFor(card: HTMLElement): StandIn {
   const border = Number.parseFloat(getComputedStyle(card).borderTopWidth) || 0;
+  const hovered = looksHovered(card);
 
   const element = copyOf(card, false);
   element.setAttribute("aria-hidden", "true");
   element.inert = true;
+  // The group of the face, which is not inside the wrapper of the card. A
+  // copy cannot be hovered or focused. Thus, the mark of an open menu gives
+  // it the look of a hovered card, which the card has on the board.
+  element.classList.add("group");
+  if (hovered) element.dataset.popoverOpen = "";
   Object.assign(element.style, {
     position: "absolute",
     inset: "0",

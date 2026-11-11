@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { defined } from "#/test/defined.ts";
 import { standInFor } from "./morphStandIn.ts";
 
 let wrapper: HTMLElement | null = null;
@@ -7,6 +8,8 @@ let wrapper: HTMLElement | null = null;
 function makeCard(): HTMLElement {
   wrapper = document.createElement("div");
   wrapper.className = "group";
+  // Off the page: the pointer of the test page is never on it.
+  wrapper.style.cssText = "position:fixed;left:-1000px;top:0";
   const card = document.createElement("article");
   card.dataset.noteCard = "";
   const open = document.createElement("button");
@@ -38,5 +41,19 @@ describe("the copy of a card in the window of a morph", () => {
         expect(el.style.getPropertyValue("anchor-name")).toBe("");
       }
     }
+  });
+
+  // The face is not inside the wrapper, and a copy cannot be hovered. The
+  // controls of a hovered card went at the click.
+  it("has the look of a hovered card when the card has it", () => {
+    const card = makeCard();
+    const plain = standInFor(card).element;
+    expect(plain.classList.contains("group")).toBe(true);
+    expect(plain.hasAttribute("data-popover-open")).toBe(false);
+
+    defined(wrapper ?? undefined).dataset.popoverOpen = "true";
+    expect(standInFor(card).element.hasAttribute("data-popover-open")).toBe(
+      true,
+    );
   });
 });

@@ -246,6 +246,9 @@ frame of a morph needs the main thread.
   `checked` property of each checkbox, because a copy of a node takes only the attribute. When the
   window showed the editor from its first frame, the toolbar and the empty space of the editor were
   in the small window over the card.
+  - The face is not inside the `.group` wrapper of the card, and a copy cannot be hovered or
+    focused. Thus, the sheet is the group of the face, and has `data-popover-open` when the card
+    looks hovered. If not, the controls of a hovered card went at the click.
   - The copies have no `data-note-card`, no `[data-card-open]` button and no anchor name. Code that
     finds a card found the copy too, and a popover anchored to a name went onto the copy.
 - **The backdrop** of a card is a light dim (`black/30`) in the short fade (100 ms), also when the
