@@ -301,6 +301,9 @@ frame of a morph needs the main thread.
   (`sheetContent`, `useMemo`). Thus, a render of the card for its own state (the card hides when
   the grow starts, the sheet goes to its close) does not render the editor again. Each of those
   renders cost 3 to 5 ms in the task of the click.
+- **The first open of a session** used to run the code of the editor for the first time (105 to
+  180 ms). `lazyEditor.ts` builds one editor where nobody sees it, in idle time after the chunk
+  arrives (`warmUp.ts` in `editor.md`).
 - **The aside of an empty sheet** has no transition (`.sheet-aside:empty` in
   `styles/editor.css`). An empty box cannot fade on the compositor, and its fade at the close asked
   the main thread for six frames.

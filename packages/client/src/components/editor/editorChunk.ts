@@ -5,3 +5,4 @@
  */
 export { NoteCardEditor } from "./NoteCardEditor.tsx";
 export { NoteEditor } from "./NoteEditor.tsx";
+export { warmUpEditor } from "./warmUp.ts";

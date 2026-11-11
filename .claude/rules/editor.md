@@ -199,6 +199,11 @@ The editor itself is also a separate chunk. `components/editor/editorChunk.ts` i
   editor.
 - If code that the board reaches statically imports something that brings in Milkdown, the full
   editor goes back into the entry chunk. Nothing fails to tell you.
+- When the chunk arrives, `lazyEditor.ts` builds one editor in idle time, in an element that is not
+  on the page, and destroys it (`warmUp.ts`). The first open of a session ran the code of the
+  editor for the first time, and its click took 105 to 180 ms, against 40 to 55 ms for the next
+  ones. A note that opened before the idle time made the warm-up unnecessary (`editorWasBuilt`).
+  Nothing changes its document. Thus, the listener of Milkdown starts no timer.
 
 ## Schema version
 

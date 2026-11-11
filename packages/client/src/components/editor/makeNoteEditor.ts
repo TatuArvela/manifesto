@@ -45,6 +45,13 @@ export interface NoteEditorParts {
   collab: MilkdownPlugin | null;
 }
 
+/** If an editor was made in this session (`warmUp.ts` then does nothing). */
+let built = false;
+
+export function editorWasBuilt(): boolean {
+  return built;
+}
+
 /**
  * The Milkdown editor of a note, with its presets and all of its plugins, in
  * `root`. `MilkdownEditor` calls it one time for each editor that it builds.
@@ -53,6 +60,7 @@ export function makeNoteEditor(
   root: HTMLElement,
   parts: NoteEditorParts,
 ): Editor {
+  built = true;
   const editor = Editor.make()
     .config((ctx) => {
       ctx.set(rootCtx, root);
