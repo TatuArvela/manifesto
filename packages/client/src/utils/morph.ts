@@ -19,7 +19,8 @@
  * inverse scale. Thus, the window grows and slides, and the text in it keeps
  * its size the whole way.
  *
- * The geometry of the path is in `utils/morphPath.ts`.
+ * The geometry of the path is in `utils/morphPath.ts`, and one run with its
+ * animations in `utils/morphRun.ts`.
  *
  * A card gives a copy of itself (`utils/morphStandIn.ts`). The window shows
  * the card for the part of the way near the card, and the editor for the rest.
@@ -30,30 +31,23 @@ import {
   type MorphPath,
   type PathFrames,
   pathFrames,
-  pathStops,
   pointOn,
   type RectLike,
 } from "./morphPath.ts";
+import { movePlate } from "./morphPlates.ts";
 import {
-  movePlate,
-  type Plate,
-  plateFrames,
-  platesFor,
-  type ShadowPath,
-} from "./morphPlates.ts";
-import { SWITCH_AT, standInFor, switchFrames } from "./morphStandIn.ts";
+  cancelRun,
+  drawnNow,
+  type Edge,
+  type Run,
+  setRunFrames,
+  startRun,
+} from "./morphRun.ts";
+import { SWITCH_AT } from "./morphStandIn.ts";
 import { isPhoneLayout } from "./phoneSheets.ts";
 
-/**
- * How long each morph runs. Both directions take the same time and follow the
- * same curve: a curve that moves immediately and stops smoothly. Thus, the
- * editor goes smoothly into place when it opens, and onto its card when it
- * closes. Before, the close ran the curve of the open backward. That almost did
- * not move for most of its time, then jumped onto the card, and looked like no
- * animation.
- */
-export const MORPH_MS = 240;
-const EASING = "cubic-bezier(0.2, 0, 0, 1)";
+export { MORPH_MS } from "./morphRun.ts";
+
 /** The part of the run during which a panel that is not opaque fades in. */
 const FADE_SHARE = 0.3;
 /** A run that does not draw the corners (a size change after the grow). */
@@ -95,12 +89,6 @@ function noteRadius(): number {
     : number;
 }
 
-/** The content of a panel, which takes the inverse scale. */
-function contentOf(panel: HTMLElement): HTMLElement | null {
-  const first = panel.firstElementChild;
-  return first instanceof HTMLElement ? first : null;
-}
-
 /** The own shadow and corner radius of a panel, as laid out with no run. */
 function ownEdge(panel: HTMLElement): { shadow: string; radius: number } {
   const style = getComputedStyle(panel);
@@ -110,189 +98,10 @@ function ownEdge(panel: HTMLElement): { shadow: string; radius: number } {
   };
 }
 
-/**
- * What a run draws at the edge of the window: the shadow and the radius of the
- * corners at each end.
- */
-interface Edge {
-  shadows: ShadowPath;
-  corners: CornerPath;
-}
-
-/**
- * One run of a morph: the animation of the panel, and the ones of its content,
- * its corners and its shadows, with the same timing. The panel decides the
- * state and the progress.
- */
-interface Run {
-  panel: Animation;
-  content: Animation | null;
-  /** The clip of round corners. */
-  corners: Animation | null;
-  /** The inverse scale of the face of the copy of the card, if there is one. */
-  face: Animation | null;
-  /** The changes between the card and the editor (`switchFrames`). */
-  switches: Animation[];
-  /** The plates that draw the shadow, which the run removes. */
-  plates: { plate: Plate; animation: Animation }[];
-  /** The copy of the card in the window, which the run removes. */
-  standIn: HTMLElement | null;
-  /**
-   * The progress at which the window shows the editor and not the card, for a
-   * close that starts during the grow. Null with no copy.
-   */
-  switchAt: number | null;
-  /** The scroll of the panel before the clip reset it. */
-  scrollTop: number;
-  /** The own inline shadow of the panel, which the run turns off and gives back. */
-  shadow: string | null;
-  /** The line along which it draws the panel now. */
-  path: MorphPath;
-}
-
-/** The copy of a card that a run shows in its window, and how. */
-interface StandInRun {
-  card: HTMLElement;
-  /** A grow, which starts with the card. */
-  cardFirst: boolean;
-  /** The progress at which the two change places. */
-  at: number;
-}
-
-/** The runs of each panel, which `settle` cancels. */
-const runs = new WeakMap<HTMLElement, Run>();
 /** The stop of the watch of `keepAimed` on each panel that has one. */
 const following = new WeakMap<HTMLElement, () => void>();
 /** The end of the wait of each grow that still waits (`holdUntil`). */
 const holds = new WeakMap<HTMLElement, () => void>();
-
-/**
- * Starts a run along `path`. The panel clips its content while the run lasts,
- * and gets its overflow, its shadow and its scroll back when the run ends. A
- * run that keeps its end (`fill`, a close) keeps the clip, the copy of the card
- * and the plates: the panel goes after it.
- *
- * It reads all that it needs before it writes. The caller has laid the page out
- * to measure the panel. Thus, the run makes the browser lay it out no second
- * time.
- */
-function startRun(
-  panel: HTMLElement,
-  path: MorphPath,
-  frames: (path: MorphPath, scrollTop: number) => PathFrames,
-  {
-    fill = false,
-    standIn: copy,
-    edge,
-    fade,
-  }: {
-    fill?: boolean;
-    standIn?: StandInRun | undefined;
-    /** The shadows and the corners. Not drawn by a size change after a grow. */
-    edge?: Edge | undefined;
-    fade?: ((offset: number) => number) | undefined;
-  } = {},
-): Run {
-  const scrollTop = panel.scrollTop;
-  const standIn = copy ? standInFor(copy.card) : null;
-  panel.style.overflow = "clip";
-  panel.style.transformOrigin = "0 0";
-  const content = contentOf(panel);
-  if (content) content.style.transformOrigin = "0 0";
-  const keyframes = frames(path, scrollTop);
-  const timing: KeyframeAnimationOptions = {
-    duration: MORPH_MS,
-    easing: EASING,
-    ...(fill && { fill: "forwards" }),
-  };
-  if (standIn) panel.append(standIn.element);
-  const plates = edge
-    ? platesFor(panel, path, edge.shadows, edge.corners, fade)
-    : [];
-  // The plates draw the shadow now. The own shadow of the panel would be cut by
-  // the clip of round corners, and would be drawn two times.
-  const shadow = edge ? panel.style.boxShadow : null;
-  if (edge) panel.style.boxShadow = "none";
-  const stops = pathStops(path);
-  const switches = copy ? switchFrames(copy.cardFirst, copy.at) : null;
-  const run: Run = {
-    panel: panel.animate(keyframes.panel, timing),
-    content: content?.animate(keyframes.content, timing) ?? null,
-    corners:
-      keyframes.corners.length > 0
-        ? panel.animate(keyframes.corners, timing)
-        : null,
-    // The face is never scrolled: the content of a card has no scroll.
-    face:
-      standIn?.face.animate(
-        scrollTop === 0 ? keyframes.content : frames(path, 0).content,
-        timing,
-      ) ?? null,
-    switches:
-      standIn && switches
-        ? [
-            standIn.element.animate(switches.standIn, timing),
-            ...(content ? [content.animate(switches.content, timing)] : []),
-          ]
-        : [],
-    plates: plates.map((plate) => ({
-      plate,
-      animation: plate.element.animate(plateFrames(plate, stops), timing),
-    })),
-    standIn: standIn?.element ?? null,
-    switchAt: copy?.cardFirst ? copy.at : null,
-    scrollTop,
-    shadow,
-    path,
-  };
-  runs.set(panel, run);
-  const release = () => {
-    if (runs.get(panel) !== run) return;
-    runs.delete(panel);
-    clearRun(panel, run);
-  };
-  run.panel.finished.then(() => {
-    if (!fill) release();
-  }, release);
-  return run;
-}
-
-/** Removes what a run added to the page, and gives the panel back its own. */
-function clearRun(panel: HTMLElement, run: Run) {
-  run.standIn?.remove();
-  for (const { plate } of run.plates) plate.element.remove();
-  panel.style.overflow = "";
-  if (run.shadow !== null) panel.style.boxShadow = run.shadow;
-  panel.scrollTop = run.scrollTop;
-}
-
-/** The animations of a run, which move together. */
-function runAnimations(run: Run): Animation[] {
-  return [
-    run.panel,
-    run.content,
-    run.corners,
-    run.face,
-    ...run.switches,
-    ...run.plates.map(({ animation }) => animation),
-  ].filter((animation): animation is Animation => animation !== null);
-}
-
-/** Sets new keyframes on all animations of a run, at the same time. */
-function setRunFrames(run: Run, frames: PathFrames) {
-  (run.panel.effect as KeyframeEffect | null)?.setKeyframes(frames.panel);
-  (run.content?.effect as KeyframeEffect | null)?.setKeyframes(frames.content);
-  (run.corners?.effect as KeyframeEffect | null)?.setKeyframes(frames.corners);
-  // Only a grow is aimed again, and a grow starts with no scroll. Thus, the
-  // frames of the content are also those of the face.
-  (run.face?.effect as KeyframeEffect | null)?.setKeyframes(frames.content);
-  const stops = pathStops(run.path);
-  for (const { plate, animation } of run.plates) {
-    (animation.effect as KeyframeEffect | null)?.setKeyframes(
-      plateFrames(plate, stops),
-    );
-  }
-}
 
 /**
  * Ends a morph that still runs (or is held at its end). Thus, the panel is
@@ -307,32 +116,7 @@ function setRunFrames(run: Run, frames: PathFrames) {
 export function settle(panel: HTMLElement) {
   following.get(panel)?.();
   holds.get(panel)?.();
-  const run = runs.get(panel);
-  if (!run) return;
-  // At once, not when the cancel settles: a new run reads the scroll next, and
-  // a clipped panel has none.
-  runs.delete(panel);
-  clearRun(panel, run);
-  for (const animation of runAnimations(run)) animation.cancel();
-}
-
-/**
- * Where a run draws `panel` now, and if its window shows the card, or null when
- * no run moves it. The progress is after the curve, which is what the keyframes
- * interpolate.
- */
-function drawnNow(
-  panel: HTMLElement,
-): { rect: RectLike; showsCard: boolean } | null {
-  const run = runs.get(panel);
-  const effect = run?.panel.effect;
-  if (!run || !(effect instanceof KeyframeEffect)) return null;
-  const progress = effect.getComputedTiming().progress;
-  if (progress === null || progress === undefined) return null;
-  return {
-    rect: pointOn(run.path, progress),
-    showsCard: run.switchAt !== null && progress < run.switchAt,
-  };
+  cancelRun(panel);
 }
 
 /**

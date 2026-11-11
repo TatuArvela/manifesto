@@ -18,6 +18,7 @@ paths:
   - "packages/client/src/utils/morphStandIn.ts"
   - "packages/client/src/utils/morphShadow.ts"
   - "packages/client/src/utils/morphPlates.ts"
+  - "packages/client/src/utils/morphRun.ts"
   - "packages/client/src/utils/afterPaint.ts"
   - "packages/client/src/components/card/cardPress.ts"
   - "packages/client/src/hooks/useCardModal.ts"
@@ -211,7 +212,8 @@ comments of a note open there).
 ## The open and close of a note
 
 The editor panel of a note grows out of its card, and shrinks back onto it (`utils/morph.ts`,
-`hooks/useCardModal.ts`; the geometry of the path is in `utils/morphPath.ts`). The panel is laid
+`hooks/useCardModal.ts`; the geometry of the path is in `utils/morphPath.ts`, and one run with its
+animations in `utils/morphRun.ts`). The panel is laid
 out at its final place from its first frame. The animation draws it over a rectangle that moves in
 a straight line between the card and that place. Only `transform` and `opacity` change, and a
 `clip-path` for round corners. Thus, the layout inside the editor never changes, and in Chromium no
