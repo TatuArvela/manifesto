@@ -41,9 +41,23 @@ function scaleOf(el: Element): [number, number] {
   return [matrix.a, matrix.d];
 }
 
+/** The plates that draw the shadow of a run, in their order before the panel. */
+function plates(): HTMLElement[] {
+  return [...document.querySelectorAll<HTMLElement>("[data-morph-plate]")];
+}
+
+/** Holds each animation of the page at `time`. */
+function setAll(time: number) {
+  for (const animation of document.getAnimations()) {
+    animation.pause();
+    animation.currentTime = time;
+  }
+}
+
 afterEach(() => {
   panel?.remove();
   panel = null;
+  for (const plate of plates()) plate.remove();
 });
 
 // A scale of the text made it small at the start and large again, and on a
@@ -262,8 +276,9 @@ describe("on a wider screen", () => {
     }
   });
 
-  // The card and the panel change places at both ends. Thus, the panel has the
-  // shadow of the card there, and its own shadow between.
+  // The card and the panel change places at both ends. Thus, the shadow of the
+  // card is there at both ends, and the shadow of the panel between. Plates
+  // under the panel draw it, and move on the compositor.
   it("has the shadow of the card at both ends", async () => {
     await page.viewport(1024, 700);
     const el = makePanel();
@@ -271,18 +286,71 @@ describe("on a wider screen", () => {
       "position:fixed;left:200px;top:100px;width:600px;height:400px;box-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1)";
     const shadow = "rgb(255, 0, 0) 0px 3px 3px -2px";
     morphIn(el, card, { opaque: true, shadow });
-    for (const animation of el.getAnimations()) {
-      animation.pause();
-      animation.currentTime = 0;
-    }
-    expect(getComputedStyle(el).boxShadow).toContain("rgb(255, 0, 0)");
-    for (const animation of el.getAnimations()) animation.finish();
+    const [cardPlate, panelPlate] = plates();
+    if (!cardPlate || !panelPlate) throw new Error("no plates");
+    setAll(0);
+    expect(getComputedStyle(cardPlate).boxShadow).toContain("rgb(255, 0, 0)");
+    expect(getComputedStyle(cardPlate).opacity).toBe("1");
+    expect(getComputedStyle(panelPlate).opacity).toBe("0");
+    // On the card exactly, as the panel is.
+    const box = cardPlate.getBoundingClientRect();
+    expect(box.left).toBeCloseTo(card.left, 0);
+    expect(box.width).toBeCloseTo(card.width, 0);
+    // The panel does not draw its own shadow while the plates do.
+    expect(getComputedStyle(el).boxShadow).toBe("none");
+
+    for (const animation of document.getAnimations()) animation.finish();
     await new Promise((done) => requestAnimationFrame(() => done(null)));
-    expect(getComputedStyle(el).boxShadow).not.toContain("rgb(255, 0, 0)");
+    expect(plates()).toHaveLength(0);
+    expect(getComputedStyle(el).boxShadow).toContain("rgba(0, 0, 0, 0.1)");
 
     void morphOut(el, card, { shadow });
-    for (const animation of el.getAnimations()) animation.finish();
-    expect(getComputedStyle(el).boxShadow).toContain("rgb(255, 0, 0)");
+    const landing = plates().at(-1);
+    for (const animation of document.getAnimations()) animation.finish();
+    expect(getComputedStyle(defined(landing)).boxShadow).toContain(
+      "rgb(255, 0, 0)",
+    );
+    expect(getComputedStyle(defined(landing)).opacity).toBe("1");
+  });
+
+  // A note with round corners: the window keeps them round on the screen,
+  // with a clip, which runs on the compositor in Chromium.
+  it("keeps round corners round, from the card to the panel", async () => {
+    await page.viewport(1024, 700);
+    document.documentElement.style.setProperty("--note-radius", "8px");
+    try {
+      const el = makePanel();
+      el.style.cssText =
+        "position:fixed;left:200px;top:100px;width:600px;height:400px;border-radius:8px";
+      morphIn(el, card, { opaque: true });
+      setAll(0);
+      // The radius divided by the scale on each axis: 8 px on the screen.
+      const [rx = 0, ry = 0] = (
+        /round ([\d.]{1,20})px \/ ([\d.]{1,20})px/.exec(
+          getComputedStyle(el).clipPath,
+        ) ?? []
+      )
+        .slice(1)
+        .map(Number);
+      expect(rx).toBeCloseTo(8 / (card.width / 600), 1);
+      expect(ry).toBeCloseTo(8 / (card.height / 400), 1);
+    } finally {
+      document.documentElement.style.removeProperty("--note-radius");
+    }
+  });
+
+  it("takes its plates away when it settles", () => {
+    const el = makePanel();
+    el.style.boxShadow = "0 10px 15px -3px rgb(0 0 0 / 0.1)";
+    morphIn(el, card, {
+      opaque: true,
+      shadow: "rgb(255, 0, 0) 0px 3px 3px -2px",
+    });
+    expect(plates().length).toBeGreaterThan(0);
+    settle(el);
+    expect(plates()).toHaveLength(0);
+    // Its own shadow comes back, as it was before the run.
+    expect(getComputedStyle(el).boxShadow).toContain("rgba(0, 0, 0, 0.1)");
   });
 
   // A close must never be aimed again at a panel that changes size.

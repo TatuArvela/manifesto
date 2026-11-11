@@ -397,6 +397,15 @@
   margin-left: 0.75rem;
 }
 
+/*
+ * An empty aside has no box to draw, and the browser cannot run its fade at
+ * the close of a sheet on the compositor. It ran on the main thread, and asked
+ * for six frames of 7 to 9 ms while the note shrank onto its card.
+ */
+.sheet-aside:empty {
+  transition: none;
+}
+
 .sheet-aside-panel {
   animation: sheet-aside-in 200ms cubic-bezier(0.32, 0.72, 0, 1);
 }

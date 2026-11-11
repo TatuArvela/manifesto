@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseShadow, shadowAt } from "./morphShadow.ts";
+import { drawsShadow, parseShadow } from "./morphShadow.ts";
 
 describe("parseShadow", () => {
   it("reads each layer of a computed shadow", () => {
@@ -41,22 +41,16 @@ describe("parseShadow", () => {
   });
 });
 
-describe("shadowAt", () => {
-  const layers = parseShadow("rgba(0, 0, 0, 0.1) 2px 10px 15px -3px");
-
-  it("divides the lengths by the scale", () => {
-    expect(shadowAt({ from: layers, to: layers }, 0.5, 0.5, 0.5)).toBe(
-      "4px 20px 30px -6px rgba(0, 0, 0, 0.1)",
-    );
+describe("drawsShadow", () => {
+  it("is true for a shadow with a layer that draws", () => {
+    expect(drawsShadow("rgba(0, 0, 0, 0.1) 0px 10px 15px -3px")).toBe(true);
   });
 
-  it("is null with no shadow at either end", () => {
-    expect(shadowAt({ from: [], to: [] }, 0.5, 1, 1)).toBeNull();
-  });
-
-  it("mixes the two ends by the progress", () => {
-    expect(shadowAt({ from: layers, to: [] }, 0.25, 1, 1)).toBe(
-      "2px 10px 15px -3px color-mix(in srgb, rgba(0, 0, 0, 0.1) 75%, transparent)",
-    );
+  // A panel on a phone has no shadow, and needs no plate for it.
+  it("is false for none, an empty value, or only empty layers", () => {
+    expect(drawsShadow("none")).toBe(false);
+    expect(drawsShadow("")).toBe(false);
+    expect(drawsShadow(undefined)).toBe(false);
+    expect(drawsShadow("rgba(0, 0, 0, 0) 0px 0px 0px 0px")).toBe(false);
   });
 });

@@ -4,11 +4,14 @@
  * laid out where it belongs, and drawn over the rectangle from which it came.
  * Thus, the layout of the editor inside never changes during the animation.
  *
- * Only `transform` (and `opacity` for the composer) moves, because only those
- * run on the compositor in all browsers. A `clip-path` animation can need the
- * main thread, and the main thread is busy while a note opens: the editor
- * builds, the shared document arrives, images decode. Each long frame then
- * stopped the motion.
+ * Nothing of a morph needs the main thread in Chromium: the window moves with
+ * `transform`, its shadow is on plates that move and fade
+ * (`utils/morphPlates.ts`), and round corners are a `clip-path`. The main
+ * thread is busy while a note opens: the editor builds, the shared document
+ * arrives, images decode. A part that needed it stopped at each long frame,
+ * and lost its place under the parts that moved on. Other browsers run the
+ * clip of round corners on the main thread. Square corners (the default) need
+ * no clip.
  *
  * It is a container transform (`morphFrames`). The panel moves and scales to
  * the rectangle, and clips its content to its own box (`overflow: clip` while
@@ -23,13 +26,21 @@
  */
 
 import {
+  type CornerPath,
   type MorphPath,
   type PathFrames,
   pathFrames,
+  pathStops,
   pointOn,
   type RectLike,
 } from "./morphPath.ts";
-import { parseShadow, type ShadowPath } from "./morphShadow.ts";
+import {
+  movePlate,
+  type Plate,
+  plateFrames,
+  platesFor,
+  type ShadowPath,
+} from "./morphPlates.ts";
 import { SWITCH_AT, standInFor, switchFrames } from "./morphStandIn.ts";
 import { isPhoneLayout } from "./phoneSheets.ts";
 
@@ -45,6 +56,8 @@ export const MORPH_MS = 240;
 const EASING = "cubic-bezier(0.2, 0, 0, 1)";
 /** The part of the run during which a panel that is not opaque fades in. */
 const FADE_SHARE = 0.3;
+/** A run that does not draw the corners (a size change after the grow). */
+const NO_CORNERS: CornerPath = { from: 0, to: 0 };
 /**
  * If a rectangle is a good start for a morph: a part of it is on the screen,
  * and it is not collapsed. With a card scrolled out of sight, or opened from a
@@ -71,7 +84,7 @@ export function viewportSize() {
   };
 }
 
-/** The corner radius of a note in pixels, which the window of a morph keeps. */
+/** The corner radius of a note in pixels, which a card has. */
 function noteRadius(): number {
   const root = getComputedStyle(document.documentElement);
   const value = root.getPropertyValue("--note-radius").trim();
@@ -88,18 +101,40 @@ function contentOf(panel: HTMLElement): HTMLElement | null {
   return first instanceof HTMLElement ? first : null;
 }
 
+/** The own shadow and corner radius of a panel, as laid out with no run. */
+function ownEdge(panel: HTMLElement): { shadow: string; radius: number } {
+  const style = getComputedStyle(panel);
+  return {
+    shadow: style.boxShadow,
+    radius: Number.parseFloat(style.borderTopLeftRadius) || 0,
+  };
+}
+
 /**
- * One run of a morph: the animation of the panel, and the one of its content
- * with the same timing. The panel decides the state and the progress.
+ * What a run draws at the edge of the window: the shadow and the radius of the
+ * corners at each end.
+ */
+interface Edge {
+  shadows: ShadowPath;
+  corners: CornerPath;
+}
+
+/**
+ * One run of a morph: the animation of the panel, and the ones of its content,
+ * its corners and its shadows, with the same timing. The panel decides the
+ * state and the progress.
  */
 interface Run {
   panel: Animation;
   content: Animation | null;
-  edge: Animation | null;
+  /** The clip of round corners. */
+  corners: Animation | null;
   /** The inverse scale of the face of the copy of the card, if there is one. */
   face: Animation | null;
   /** The changes between the card and the editor (`switchFrames`). */
   switches: Animation[];
+  /** The plates that draw the shadow, which the run removes. */
+  plates: { plate: Plate; animation: Animation }[];
   /** The copy of the card in the window, which the run removes. */
   standIn: HTMLElement | null;
   /**
@@ -109,6 +144,8 @@ interface Run {
   switchAt: number | null;
   /** The scroll of the panel before the clip reset it. */
   scrollTop: number;
+  /** The own inline shadow of the panel, which the run turns off and gives back. */
+  shadow: string | null;
   /** The line along which it draws the panel now. */
   path: MorphPath;
 }
@@ -131,9 +168,9 @@ const holds = new WeakMap<HTMLElement, () => void>();
 
 /**
  * Starts a run along `path`. The panel clips its content while the run lasts,
- * and gets its overflow and its scroll back when the run ends. A run that keeps
- * its end (`fill`, a close) keeps the clip and the copy of the card: the panel
- * goes after it.
+ * and gets its overflow, its shadow and its scroll back when the run ends. A
+ * run that keeps its end (`fill`, a close) keeps the clip, the copy of the card
+ * and the plates: the panel goes after it.
  *
  * It reads all that it needs before it writes. The caller has laid the page out
  * to measure the panel. Thus, the run makes the browser lay it out no second
@@ -142,11 +179,19 @@ const holds = new WeakMap<HTMLElement, () => void>();
 function startRun(
   panel: HTMLElement,
   path: MorphPath,
-  frames: (scrollTop: number) => PathFrames,
+  frames: (path: MorphPath, scrollTop: number) => PathFrames,
   {
     fill = false,
     standIn: copy,
-  }: { fill?: boolean; standIn?: StandInRun | undefined } = {},
+    edge,
+    fade,
+  }: {
+    fill?: boolean;
+    standIn?: StandInRun | undefined;
+    /** The shadows and the corners. Not drawn by a size change after a grow. */
+    edge?: Edge | undefined;
+    fade?: ((offset: number) => number) | undefined;
+  } = {},
 ): Run {
   const scrollTop = panel.scrollTop;
   const standIn = copy ? standInFor(copy.card) : null;
@@ -154,23 +199,33 @@ function startRun(
   panel.style.transformOrigin = "0 0";
   const content = contentOf(panel);
   if (content) content.style.transformOrigin = "0 0";
-  const keyframes = frames(scrollTop);
+  const keyframes = frames(path, scrollTop);
   const timing: KeyframeAnimationOptions = {
     duration: MORPH_MS,
     easing: EASING,
     ...(fill && { fill: "forwards" }),
   };
   if (standIn) panel.append(standIn.element);
+  const plates = edge
+    ? platesFor(panel, path, edge.shadows, edge.corners, fade)
+    : [];
+  // The plates draw the shadow now. The own shadow of the panel would be cut by
+  // the clip of round corners, and would be drawn two times.
+  const shadow = edge ? panel.style.boxShadow : null;
+  if (edge) panel.style.boxShadow = "none";
+  const stops = pathStops(path);
   const switches = copy ? switchFrames(copy.cardFirst, copy.at) : null;
   const run: Run = {
     panel: panel.animate(keyframes.panel, timing),
     content: content?.animate(keyframes.content, timing) ?? null,
-    edge:
-      keyframes.edge.length > 0 ? panel.animate(keyframes.edge, timing) : null,
+    corners:
+      keyframes.corners.length > 0
+        ? panel.animate(keyframes.corners, timing)
+        : null,
     // The face is never scrolled: the content of a card has no scroll.
     face:
       standIn?.face.animate(
-        scrollTop === 0 ? keyframes.content : frames(0).content,
+        scrollTop === 0 ? keyframes.content : frames(path, 0).content,
         timing,
       ) ?? null,
     switches:
@@ -180,18 +235,21 @@ function startRun(
             ...(content ? [content.animate(switches.content, timing)] : []),
           ]
         : [],
+    plates: plates.map((plate) => ({
+      plate,
+      animation: plate.element.animate(plateFrames(plate, stops), timing),
+    })),
     standIn: standIn?.element ?? null,
     switchAt: copy?.cardFirst ? copy.at : null,
     scrollTop,
+    shadow,
     path,
   };
   runs.set(panel, run);
   const release = () => {
     if (runs.get(panel) !== run) return;
     runs.delete(panel);
-    run.standIn?.remove();
-    panel.style.overflow = "";
-    panel.scrollTop = scrollTop;
+    clearRun(panel, run);
   };
   run.panel.finished.then(() => {
     if (!fill) release();
@@ -199,21 +257,41 @@ function startRun(
   return run;
 }
 
+/** Removes what a run added to the page, and gives the panel back its own. */
+function clearRun(panel: HTMLElement, run: Run) {
+  run.standIn?.remove();
+  for (const { plate } of run.plates) plate.element.remove();
+  panel.style.overflow = "";
+  if (run.shadow !== null) panel.style.boxShadow = run.shadow;
+  panel.scrollTop = run.scrollTop;
+}
+
 /** The animations of a run, which move together. */
 function runAnimations(run: Run): Animation[] {
-  return [run.panel, run.content, run.edge, run.face, ...run.switches].filter(
-    (animation): animation is Animation => animation !== null,
-  );
+  return [
+    run.panel,
+    run.content,
+    run.corners,
+    run.face,
+    ...run.switches,
+    ...run.plates.map(({ animation }) => animation),
+  ].filter((animation): animation is Animation => animation !== null);
 }
 
 /** Sets new keyframes on all animations of a run, at the same time. */
 function setRunFrames(run: Run, frames: PathFrames) {
   (run.panel.effect as KeyframeEffect | null)?.setKeyframes(frames.panel);
   (run.content?.effect as KeyframeEffect | null)?.setKeyframes(frames.content);
-  (run.edge?.effect as KeyframeEffect | null)?.setKeyframes(frames.edge);
+  (run.corners?.effect as KeyframeEffect | null)?.setKeyframes(frames.corners);
   // Only a grow is aimed again, and a grow starts with no scroll. Thus, the
   // frames of the content are also those of the face.
   (run.face?.effect as KeyframeEffect | null)?.setKeyframes(frames.content);
+  const stops = pathStops(run.path);
+  for (const { plate, animation } of run.plates) {
+    (animation.effect as KeyframeEffect | null)?.setKeyframes(
+      plateFrames(plate, stops),
+    );
+  }
 }
 
 /**
@@ -234,9 +312,7 @@ export function settle(panel: HTMLElement) {
   // At once, not when the cancel settles: a new run reads the scroll next, and
   // a clipped panel has none.
   runs.delete(panel);
-  run.standIn?.remove();
-  panel.style.overflow = "";
-  panel.scrollTop = run.scrollTop;
+  clearRun(panel, run);
   for (const animation of runAnimations(run)) animation.cancel();
 }
 
@@ -257,11 +333,6 @@ function drawnNow(
     rect: pointOn(run.path, progress),
     showsCard: run.switchAt !== null && progress < run.switchAt,
   };
-}
-
-/** The shadow that the panel has in its layout, with no run. */
-function ownShadow(panel: HTMLElement) {
-  return parseShadow(getComputedStyle(panel).boxShadow);
 }
 
 /**
@@ -337,34 +408,36 @@ function grow(
 ) {
   const phone = isPhoneLayout();
   const radius = noteRadius();
-  const own = ownShadow(panel);
+  const own = ownEdge(panel);
   const to = panel.getBoundingClientRect();
   const opacity = opaque
     ? undefined
     : (offset: number) => Math.min(1, offset / FADE_SHARE);
-  const kept: ShadowPath = { from: own, to: own };
-  const shadows: ShadowPath = shadow
-    ? { from: parseShadow(shadow), to: own }
-    : kept;
+  const edge: Edge = {
+    shadows: { from: shadow ?? own.shadow, to: own.shadow },
+    corners: { from: radius, to: own.radius },
+  };
   const path = { start: from, end: to, layout: to, startAt: 0 };
   const run = startRun(
     panel,
     path,
-    (scrollTop) => pathFrames(path, radius, scrollTop, opacity, shadows),
+    (next, scrollTop) => pathFrames(next, edge.corners, scrollTop, opacity),
     {
       standIn: standIn
         ? { card: standIn, cardFirst: true, at: SWITCH_AT }
         : undefined,
+      edge,
+      fade: opacity,
     },
   );
   keepAimed(panel, run, path, {
     phone,
-    // The fade and the change of shadow belong to the grow. A later size
-    // change is opaque, and keeps the shadow of the panel.
+    // The fade, the corners and the change of shadow belong to the grow. A
+    // later size change is opaque, and keeps the shadow of the panel.
     frames: (next, scrollTop, isGrow) =>
       isGrow
-        ? pathFrames(next, radius, scrollTop, opacity, shadows)
-        : pathFrames(next, radius, scrollTop, undefined, kept),
+        ? pathFrames(next, edge.corners, scrollTop, opacity)
+        : pathFrames(next, NO_CORNERS, scrollTop),
   });
 }
 
@@ -422,9 +495,10 @@ function holdUntil(panel: HTMLElement, ready: Promise<void>, go: () => void) {
  * During a run, the new line starts where the panel is drawn now, at the
  * current progress. With the old start and only a new end, the drawn panel
  * jumped: the curve is fast at its start, and a part of the way was already
- * done. After a run, a new run goes from the old layout to the new one. Not on
- * a phone, where the sheet is in the flow of the page: a taller sheet does not
- * move what is on the screen.
+ * done. The plate of the panel moves to the new layout. Thus, the shadow lands
+ * at the size of the own shadow of the panel. After a run, a new run goes from
+ * the old layout to the new one. Not on a phone, where the sheet is in the
+ * flow of the page: a taller sheet does not move what is on the screen.
  *
  * A `ResizeObserver` reports after layout and before paint. Thus, the frame
  * that shows the new size already has the new keyframes. The panel is measured
@@ -465,6 +539,7 @@ function keepAimed(
       const layout = panel.getBoundingClientRect();
       path = { start: shown, end: layout, layout, startAt: progress };
       run.path = path;
+      for (const { plate } of run.plates) movePlate(plate, layout);
       setRunFrames(run, frames(path, run.scrollTop, run === grow));
       return;
     }
@@ -475,7 +550,9 @@ function keepAimed(
     }
     path = { start: path.layout, end: layout, layout, startAt: 0 };
     const next = path;
-    run = startRun(panel, next, (scrollTop) => frames(next, scrollTop, false));
+    run = startRun(panel, next, (line, scrollTop) =>
+      frames(line, scrollTop, false),
+    );
   });
   const stop = () => {
     observer.disconnect();
@@ -534,15 +611,16 @@ export function morphOut(
   }
   const layout = panel.getBoundingClientRect();
   const radius = noteRadius();
-  const own = ownShadow(panel);
-  const shadows: ShadowPath = shadow
-    ? { from: own, to: parseShadow(shadow) }
-    : { from: own, to: own };
+  const own = ownEdge(panel);
+  const edge: Edge = {
+    shadows: { from: own.shadow, to: shadow ?? own.shadow },
+    corners: { from: own.radius, to: radius },
+  };
   const path = { start: drawn?.rect ?? layout, end: to, layout, startAt: 0 };
   const run = startRun(
     panel,
     path,
-    (scrollTop) => pathFrames(path, radius, scrollTop, undefined, shadows),
+    (next, scrollTop) => pathFrames(next, edge.corners, scrollTop),
     {
       fill: true,
       standIn: standIn
@@ -552,6 +630,7 @@ export function morphOut(
             at: drawn?.showsCard ? 0 : SWITCH_AT,
           }
         : undefined,
+      edge,
     },
   );
   return run.panel.finished.then(

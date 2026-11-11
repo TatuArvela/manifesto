@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { isMorphSource } from "./morph.ts";
-import { morphFrames, pathFrames, shownRect } from "./morphPath.ts";
-import { parseShadow } from "./morphShadow.ts";
+import {
+  morphFrames,
+  pathFrames,
+  pathStops,
+  plateFrame,
+  shownRect,
+} from "./morphPath.ts";
 
 const card = { left: 40, top: 300, width: 200, height: 200 };
 const editor = { left: 100, top: 50, width: 800, height: 400 };
@@ -28,28 +33,14 @@ describe("morphFrames", () => {
     });
   });
 
-  it("keeps the corners round on the screen", () => {
-    expect(morphFrames(card, editor, 8, 0).edge).toEqual({
-      borderRadius: "32px / 16px",
+  it("keeps the corners round on the screen, with a clip", () => {
+    expect(morphFrames(card, editor, 8, 0).corners).toEqual({
+      clipPath: "inset(0px round 32px / 16px)",
     });
     // Not in the animation of the transform, which then could not run on the
-    // compositor.
-    expect(morphFrames(card, editor, 8, 0).panel.borderRadius).toBeUndefined();
-    expect(morphFrames(card, editor, 0, 0).edge).toBeNull();
-  });
-
-  // The scale of the panel also scaled its shadow, which was a quarter as wide
-  // over the card.
-  it("keeps the shadow at its size on the screen", () => {
-    const layers = parseShadow("rgba(0, 0, 0, 0.1) 0px 10px 16px -4px");
-    const shadow = { path: { from: layers, to: layers }, progress: 0 };
-    const frame = morphFrames(card, editor, 0, 0, shadow);
-    // A scale of 0.25 by 0.5: the mean scale is the square root of 0.125.
-    const mean = Math.sqrt(0.125);
-    expect(frame.edge).toEqual({
-      boxShadow: `0px 20px ${16 / mean}px ${-4 / mean}px rgba(0, 0, 0, 0.1)`,
-    });
-    expect(frame.panel.boxShadow).toBeUndefined();
+    // compositor in a browser that runs the clip on the main thread.
+    expect(morphFrames(card, editor, 8, 0).panel.clipPath).toBeUndefined();
+    expect(morphFrames(card, editor, 0, 0).corners).toBeNull();
   });
 
   // The clip of the panel resets its scroll. A long note that closes from
@@ -61,11 +52,25 @@ describe("morphFrames", () => {
   });
 });
 
+describe("plateFrame", () => {
+  // A plate is laid out at one end, and drawn over each rectangle of the path.
+  it("draws a box over a rectangle with a move and a scale", () => {
+    expect(plateFrame(card, editor)).toEqual({
+      transform: "translate(60px, -250px) scale(4, 2)",
+    });
+    expect(plateFrame(editor, editor)).toEqual({
+      transform: "translate(0px, 0px) scale(1, 1)",
+    });
+  });
+});
+
+const square = { from: 0, to: 0 };
+
 describe("pathFrames", () => {
   const path = { start: card, end: editor, layout: editor, startAt: 0 };
 
   it("draws the straight line from the card to the panel", () => {
-    const { panel, content } = pathFrames(path, 0, 0);
+    const { panel, content } = pathFrames(path, square, 0);
     expect(panel).toHaveLength(content.length);
     expect(panel[0]).toMatchObject(morphFrames(card, editor, 0, 0).panel);
     expect(panel.at(-1)).toMatchObject(morphFrames(editor, editor, 0, 0).panel);
@@ -81,7 +86,7 @@ describe("pathFrames", () => {
   // Between two points, both scales change linearly, and their product is
   // not exactly 1. The text must not visibly breathe.
   it("keeps the size of the content within 0.1% between its points", () => {
-    const { panel, content } = pathFrames(path, 0, 0);
+    const { panel, content } = pathFrames(path, square, 0);
     for (let i = 0; i + 1 < panel.length; i++) {
       const [ax, ay] = scales(panel[i]?.transform);
       const [bx, by] = scales(panel[i + 1]?.transform);
@@ -96,7 +101,7 @@ describe("pathFrames", () => {
 
   // A grow aimed again while it ran starts its new line where the panel is.
   it("stays at its start before the progress at which it starts", () => {
-    const { panel } = pathFrames({ ...path, startAt: 0.4 }, 0, 0);
+    const { panel } = pathFrames({ ...path, startAt: 0.4 }, square, 0);
     const [first, second] = panel;
     expect(first?.offset).toBe(0);
     expect(second?.offset).toBe(0.4);
@@ -105,7 +110,7 @@ describe("pathFrames", () => {
   });
 
   it("fades in a panel that is not opaque, and not its content", () => {
-    const { panel, content } = pathFrames(path, 0, 0, (offset) =>
+    const { panel, content } = pathFrames(path, square, 0, (offset) =>
       Math.min(1, offset / 0.3),
     );
     expect(panel[0]?.opacity).toBe(0);
@@ -140,46 +145,38 @@ describe("isMorphSource", () => {
   });
 });
 
-describe("the shadow of a path", () => {
+describe("the corners of a path", () => {
   const path = { start: card, end: editor, layout: editor, startAt: 0 };
-  const cardShadow = parseShadow("rgba(0, 0, 0, 0.16) 0px 3px 3px -2px");
-  const panelShadow = parseShadow("rgba(0, 0, 0, 0.1) 0px 10px 15px -3px");
 
-  // The card and the panel change places at the start of the grow. When the
-  // panel had no shadow there, the shadow of the card went at once.
-  it("goes from the shadow of the card to the shadow of the panel", () => {
-    const { edge } = pathFrames(path, 0, 0, undefined, {
-      from: cardShadow,
-      to: panelShadow,
-    });
-    const first = String(edge[0]?.boxShadow);
-    const last = String(edge.at(-1)?.boxShadow);
-    // The card at its full strength, the panel at none.
-    expect(first).toContain("px rgba(0, 0, 0, 0.16),");
-    expect(first).toContain("rgba(0, 0, 0, 0.1) 0%");
-    // And the other way round at the end, at the size of the panel.
-    expect(last).toContain("rgba(0, 0, 0, 0.16) 0%");
-    expect(last.endsWith("0px 10px 15px -3px rgba(0, 0, 0, 0.1)")).toBe(true);
-    // The same layers in each keyframe. Thus, the browser can interpolate.
-    for (const frame of edge) {
-      expect(String(frame.boxShadow).split("rgba(")).toHaveLength(3);
+  it("has no keyframes for the corners with square corners at both ends", () => {
+    expect(pathFrames(path, square, 0).corners).toEqual([]);
+  });
+
+  // A card has round corners, and the sheet of a phone has none. With one
+  // radius the whole way, the corners changed at once at the end.
+  it("goes from the radius of the card to the radius of the panel", () => {
+    const { panel, corners } = pathFrames(path, { from: 8, to: 0 }, 0);
+    expect(corners).toHaveLength(panel.length);
+    expect(corners[0]?.clipPath).toBe("inset(0px round 32px / 16px)");
+    expect(corners.at(-1)?.clipPath).toBe("inset(0px round 0px / 0px)");
+    for (const [i, frame] of corners.entries()) {
+      expect(frame.offset).toBe(panel[i]?.offset);
     }
   });
+});
 
-  it("keeps a shadow that does not change at its full strength", () => {
-    const { edge } = pathFrames(path, 0, 0, undefined, {
-      from: panelShadow,
-      to: panelShadow,
-    });
-    expect(edge.at(-1)?.boxShadow).toBe(
-      "0px 10px 15px -3px rgba(0, 0, 0, 0.1)",
+describe("pathStops", () => {
+  const path = { start: card, end: editor, layout: editor, startAt: 0 };
+
+  // The plates of the shadow use the same stops as the panel. Thus, each
+  // keyframe of one has a keyframe of the other at the same offset.
+  it("gives the offsets of the keyframes of the panel", () => {
+    const stops = pathStops(path);
+    const { panel } = pathFrames(path, square, 0);
+    expect(stops.map((stop) => stop.offset)).toEqual(
+      panel.map((frame) => frame.offset),
     );
-    expect(edge).toHaveLength(pathFrames(path, 0, 0).panel.length);
-  });
-
-  it("has no keyframes for the edge with no shadow and square corners", () => {
-    expect(
-      pathFrames(path, 0, 0, undefined, { from: [], to: [] }).edge,
-    ).toEqual([]);
+    expect(stops[0]?.rect).toEqual(card);
+    expect(stops.at(-1)?.rect).toEqual(editor);
   });
 });

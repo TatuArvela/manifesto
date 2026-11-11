@@ -4,8 +4,6 @@
  * element. Thus, the Node suite can test it.
  */
 
-import { type ShadowPath, shadowAt } from "./morphShadow.ts";
-
 export interface RectLike {
   left: number;
   top: number;
@@ -64,12 +62,12 @@ export interface MorphFrame {
   /** For its content: the inverse scale, so that the text keeps its size. */
   content: Keyframe;
   /**
-   * For the edge of the panel: its corners, when a note has round corners, and
-   * its shadow (`utils/morphShadow.ts`). Its own animation: an animation runs
-   * on the compositor only when all of its properties can, and `border-radius`
-   * and `box-shadow` cannot.
+   * For the round corners of the window: a clip with the radius divided by the
+   * scale on each axis. Its own animation, because an animation runs on the
+   * compositor only when all of its properties can, and only some browsers
+   * run a `clip-path` there (Chromium does). Null for square corners.
    */
-  edge: Keyframe | null;
+  corners: Keyframe | null;
 }
 
 /**
@@ -81,37 +79,56 @@ export interface MorphFrame {
  * A scale of the content (to 0.56 for a usual card) made the text small at the
  * start, then large again, most of it in the first 60 ms.
  *
- * `radius` keeps the corners of the window round on the screen: the radius of
- * the panel is divided by its scale on each axis. `shadow` does the same for
- * its shadow, at `progress` from the shadow of the card to the shadow of the
- * panel. `scrollTop` keeps a panel that was scrolled (a close of a long note)
- * where it was, because the clip resets its scroll.
+ * `radius` keeps the corners of the window round on the screen: the clip of
+ * the corners has the radius divided by the scale on each axis. `scrollTop`
+ * keeps a panel that was scrolled (a close of a long note) where it was,
+ * because the clip resets its scroll.
  */
 export function morphFrames(
   rect: RectLike,
   to: RectLike,
   radius: number,
   scrollTop: number,
-  shadow?: { path: ShadowPath; progress: number } | undefined,
 ): MorphFrame {
-  const scaleX = Math.max(to.width > 0 ? rect.width / to.width : 1, 0.001);
-  const scaleY = Math.max(to.height > 0 ? rect.height / to.height : 1, 0.001);
-  const boxShadow =
-    shadow && shadowAt(shadow.path, shadow.progress, scaleX, scaleY);
-  const edge: Keyframe = {
-    ...(radius > 0 && {
-      borderRadius: `${radius / scaleX}px / ${radius / scaleY}px`,
-    }),
-    ...(boxShadow && { boxShadow }),
-  };
+  const [scaleX, scaleY] = scaleOnto(to, rect);
   return {
-    panel: {
-      transform: `translate(${rect.left - to.left}px, ${rect.top - to.top}px) scale(${scaleX}, ${scaleY})`,
-    },
+    panel: plateFrame(to, rect),
     content: {
       transform: `scale(${1 / scaleX}, ${1 / scaleY}) translate(0px, ${-scrollTop}px)`,
     },
-    edge: Object.keys(edge).length > 0 ? edge : null,
+    corners: radius > 0 ? cornerFrame(rect, to, radius) : null,
+  };
+}
+
+/** The scale on each axis that draws a box laid out at `box` over `rect`. */
+function scaleOnto(box: RectLike, rect: RectLike): [number, number] {
+  return [
+    Math.max(box.width > 0 ? rect.width / box.width : 1, 0.001),
+    Math.max(box.height > 0 ? rect.height / box.height : 1, 0.001),
+  ];
+}
+
+/**
+ * The keyframe that draws a box laid out at `box` over `rect`, with
+ * `transform-origin` at its top left: the panel, and the shadows of a morph
+ * (`utils/morphPlates.ts`). A move and a scale, which run on the compositor in
+ * all browsers.
+ */
+export function plateFrame(box: RectLike, rect: RectLike): Keyframe {
+  const [scaleX, scaleY] = scaleOnto(box, rect);
+  return {
+    transform: `translate(${rect.left - box.left}px, ${rect.top - box.top}px) scale(${scaleX}, ${scaleY})`,
+  };
+}
+
+/**
+ * The clip that gives a window laid out at `to` and drawn over `rect` corners
+ * of `radius` on the screen.
+ */
+function cornerFrame(rect: RectLike, to: RectLike, radius: number): Keyframe {
+  const [scaleX, scaleY] = scaleOnto(to, rect);
+  return {
+    clipPath: `inset(0px round ${radius / scaleX}px / ${radius / scaleY}px)`,
   };
 }
 
@@ -147,47 +164,74 @@ export interface MorphPath {
   startAt: number;
 }
 
-/** The keyframes of a path, for the panel, its content and its edge. */
+/** The keyframes of a path, for the panel, its content and its corners. */
 export interface PathFrames {
   panel: Keyframe[];
   content: Keyframe[];
-  /** Empty when a note has square corners and no shadow. */
-  edge: Keyframe[];
+  /** Empty when a note has square corners at both ends. */
+  corners: Keyframe[];
 }
 
 /**
- * The keyframes of `path`, as points on its line. Before `startAt`, the
- * keyframes stay at the start of the line. The animation never goes back
- * there. The shadow changes with the progress of the run, as the opacity does.
+ * The radius of the corners of the window at the start and at the end of a
+ * path. A card has round corners, and the sheet of a phone has none. With one
+ * radius the whole way, its corners changed at once at the end.
+ */
+export interface CornerPath {
+  from: number;
+  to: number;
+}
+
+/** One keyframe of a path: where it is in the run, and what it draws there. */
+export interface PathStop {
+  offset: number;
+  rect: RectLike;
+}
+
+/**
+ * The stops of `path`, as points on its line. Before `startAt`, the keyframes
+ * stay at the start of the line. The animation never goes back there. The
+ * panel and the shadows of a run use the same stops. Thus, each keyframe of
+ * one has a keyframe of the others at the same offset.
+ */
+export function pathStops(path: MorphPath): PathStop[] {
+  const { start, end, startAt } = path;
+  const stops: PathStop[] = startAt > 0 ? [{ offset: 0, rect: start }] : [];
+  for (const along of pathPoints(path)) {
+    stops.push({
+      offset: startAt + (1 - startAt) * along,
+      rect: shownRect(start, end, along),
+    });
+  }
+  return stops;
+}
+
+/**
+ * The keyframes of `path` for the panel and its content, and for the corners
+ * when there are round corners at either end. The radius and the opacity
+ * change with the progress of the run.
  */
 export function pathFrames(
   path: MorphPath,
-  radius: number,
+  corners: CornerPath,
   scrollTop: number,
   opacity?: ((offset: number) => number) | undefined,
-  shadow?: ShadowPath | undefined,
 ): PathFrames {
-  const { start, end, layout, startAt } = path;
-  const frames: PathFrames = { panel: [], content: [], edge: [] };
-  const at = (offset: number, rect: RectLike) => {
-    const frame = morphFrames(
-      rect,
-      layout,
-      radius,
-      scrollTop,
-      shadow && { path: shadow, progress: offset },
-    );
+  const { layout } = path;
+  const round = corners.from > 0 || corners.to > 0;
+  const frames: PathFrames = { panel: [], content: [], corners: [] };
+  for (const { offset, rect } of pathStops(path)) {
+    const frame = morphFrames(rect, layout, 0, scrollTop);
     frames.panel.push({
       ...frame.panel,
       ...(opacity && { opacity: opacity(offset) }),
       offset,
     });
     frames.content.push({ ...frame.content, offset });
-    if (frame.edge) frames.edge.push({ ...frame.edge, offset });
-  };
-  if (startAt > 0) at(0, start);
-  for (const along of pathPoints(path)) {
-    at(startAt + (1 - startAt) * along, shownRect(start, end, along));
+    if (round) {
+      const radius = corners.from + (corners.to - corners.from) * offset;
+      frames.corners.push({ ...cornerFrame(rect, layout, radius), offset });
+    }
   }
   return frames;
 }

@@ -17,6 +17,7 @@ paths:
   - "packages/client/src/utils/morphPath.ts"
   - "packages/client/src/utils/morphStandIn.ts"
   - "packages/client/src/utils/morphShadow.ts"
+  - "packages/client/src/utils/morphPlates.ts"
   - "packages/client/src/utils/afterPaint.ts"
   - "packages/client/src/hooks/useCardModal.ts"
   - "packages/client/src/hooks/useHeldHeight.ts"
@@ -205,17 +206,21 @@ comments of a note open there).
 The editor panel of a note grows out of its card, and shrinks back onto it (`utils/morph.ts`,
 `hooks/useCardModal.ts`; the geometry of the path is in `utils/morphPath.ts`). The panel is laid
 out at its final place from its first frame. The animation draws it over a rectangle that moves in
-a straight line between the card and that place. Only `transform` changes (and `opacity` for the
-composer, and the corners and the shadow). Thus, the layout inside the editor never changes.
+a straight line between the card and that place. Only `transform` and `opacity` change, and a
+`clip-path` for round corners. Thus, the layout inside the editor never changes, and in Chromium no
+frame of a morph needs the main thread.
 
 - **Nothing fades on a card.** The panel is opaque, and at both ends it covers the card exactly.
   The card hides when the grow starts, and shows when the shrink ends (`note-morphed`, a full
   `clip-path`). Many small fades with different times made the open look unstable. The card hides
   with a clip, because its `opacity` has a transition, and an element with `visibility: hidden`
   cannot take the focus that goes back to it at the close.
-- **Only `transform` moves.** Only `transform` and `opacity` run on the compositor in all browsers.
-  A `clip-path` animation can need the main thread, which is busy while a note opens (the editor
-  builds, the shared document arrives, images decode), and each long frame stopped the motion.
+- **Nothing on the main thread.** Only `transform` and `opacity` run on the compositor in all
+  browsers. The main thread is busy while a note opens (the editor builds, the shared document
+  arrives, images decode). A part that needed it stopped at each long frame, and lost its place
+  under the parts that moved on. Each frame of a part on the main thread also cost 6 to 8 ms on a
+  board of 86 cards. Check a new part with a `MessageChannel` ping-pong (gaps over 1 ms), not with
+  a `requestAnimationFrame` loop, which asks for a main-thread frame itself.
 - **A container transform** (`morphFrames`). The panel moves and scales onto the rectangle, and
   clips its content to its own box (`overflow: clip` while a run lasts). Its content, the
   `.note-sheet-content` wrapper of `NoteSheet`, has the inverse scale. Thus, the window grows and
@@ -233,12 +238,22 @@ composer, and the corners and the shadow). Thus, the layout inside the editor ne
 - **The backdrop** of a card is a light dim (`black/30`) in the short fade (100 ms), also when the
   note morphs. A dark dim over the full time of the morph changed the full screen while the note
   grew.
-- **The edge** has its own animation: the corners (`border-radius`) and the shadow, divided by the
-  scale on each axis. An animation runs on the compositor only when all of its properties can.
-- **The shadow** (`utils/morphShadow.ts`) goes from the shadow of the card to the shadow of the
-  panel, and back at the close. Thus, it does not change when the two change places. Each keyframe
-  has the layers of both, each at a part of its strength (`color-mix`). Thus, all keyframes have
-  the same list, and the browser can interpolate between them.
+- **The corners** are a `clip-path` (`inset(0px round …)`) with the radius divided by the scale on
+  each axis, in their own animation (`corners` in `morphFrames`). Chromium runs it on the
+  compositor. Other browsers run it on the main thread. Thus, it is not in the animation of the
+  transform, and square corners (the default) have none. The radius goes from the radius of the
+  card to the radius of the panel: the sheet of a phone has square corners, and with one radius
+  the whole way, its corners changed at once at the end.
+- **The shadow** is on plates (`utils/morphPlates.ts`): empty boxes before the panel, `fixed`,
+  with the computed `box-shadow` of the card or of the panel. A plate is laid out at its own end,
+  and drawn over each rectangle of the path with a move and a scale. The shadow of the card fades
+  out while the shadow of the panel fades in, by the progress. Thus, the shadow does not change
+  when the card and the panel change places. While plates draw it, the own shadow of the panel is
+  off. A `box-shadow` animation, divided by the scale in each keyframe, ran on the main thread.
+  - The static opacity of a plate is the one at the end of its run. Thus, a plate never shows in
+    its own box when its animation ends before the plate goes.
+  - A grow that is aimed again moves the plate of the panel to the new layout (`movePlate`).
+    Thus, the shadow lands at the size of the own shadow of the panel.
   - The shadow and the corners of a sheet are on `.note-sheet-panel`, not on the surface inside it.
     The panel scrolls, and clipped the shadow of the surface. Thus, an open note had no shadow.
   - The curled shadow of a card (`note-curl`) stays in the layout while its note is open, and
@@ -266,8 +281,8 @@ composer, and the corners and the shadow). Thus, the layout inside the editor ne
 - **One layout in that task.** Each read of a size or a style after a change of the page made the
   browser lay out the new sheet again. The task had four of them. Thus, on this path:
   - Read before you write. A run reads all that it needs (the panel, the card, the scroll) before
-    it adds the copy of the card. The shadow of the card is read at the click, while the board is
-    laid out.
+    it adds the copy and the plates. The shadow of the card is read at the click, while the board
+    is laid out.
   - Never call `getAnimations()`. It calculates the style of the page. `settle` cancels the
     animations of its run, which holds each animation of a morph.
   - Work that the first frames do not show waits for the first paint (`afterNextPaint` in
@@ -279,6 +294,9 @@ composer, and the corners and the shadow). Thus, the layout inside the editor ne
   (`sheetContent`, `useMemo`). Thus, a render of the card for its own state (the card hides when
   the grow starts, the sheet goes to its close) does not render the editor again. Each of those
   renders cost 3 to 5 ms in the task of the click.
+- **The aside of an empty sheet** has no transition (`.sheet-aside:empty` in
+  `styles/editor.css`). An empty box cannot fade on the compositor, and its fade at the close asked
+  the main thread for six frames.
 - **Size changes.** `keepAimed` watches the panel. During a run, a new size starts a new line from
   where the panel is drawn now, at the current progress. With the old start and only a new end, the
   panel jumped. For `MORPH_FOLLOW_MS` after the grow, a new size runs from the old layout to the new
