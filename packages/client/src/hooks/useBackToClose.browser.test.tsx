@@ -24,6 +24,22 @@ function Sheet({
   return null;
 }
 
+/** A sheet that pushes its entry after its first paint, as `NoteSheet` does. */
+function LateSheet({
+  active = true,
+  onBack,
+}: {
+  active?: boolean;
+  onBack: () => unknown;
+}) {
+  useBackToClose(active, onBack, { pushAfterPaint: true });
+  return null;
+}
+
+/** No frame comes, as in a tab in the background. */
+const noFrames = () =>
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 0);
+
 const show = (tree: ComponentChildren) => render(tree, host);
 
 const nextPop = () =>
@@ -44,9 +60,51 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   show(null);
   await settled();
   host.remove();
+});
+
+describe("a sheet that pushes after its first paint", () => {
+  // A tab in the background paints no frame. The push waited for one, and
+  // held each push of the router until the tab showed.
+  it("pushes its entry when no frame comes", async () => {
+    noFrames();
+    show(<LateSheet onBack={vi.fn()} />);
+    await settled();
+    expect(history.state).not.toEqual({ page: "board" });
+  });
+
+  it("holds nothing when it closes before its push", () => {
+    noFrames();
+    show(<LateSheet onBack={vi.fn()} />);
+    show(<LateSheet active={false} onBack={vi.fn()} />);
+    let ran = false;
+    afterHistorySettles(() => {
+      ran = true;
+    });
+    expect(ran).toBe(true);
+    expect(history.state).toEqual({ page: "board" });
+  });
+
+  // A back before the push went back from the entry of the view under the
+  // sheet. The view changed, and the sheet stayed open.
+  it("closes on a back before its push, and keeps the page", async () => {
+    history.pushState({ page: "view" }, "", "/tags");
+    noFrames();
+    const onBack = vi.fn();
+    show(<LateSheet onBack={onBack} />);
+
+    // The sheet stops the back itself, and goes forward again. Thus, the
+    // listeners after it hear only that forward.
+    const popped = nextPop();
+    history.back();
+    await popped;
+    expect(onBack).toHaveBeenCalledOnce();
+    expect(location.pathname).toBe("/tags");
+    expect(history.state).toEqual({ page: "view" });
+  });
 });
 
 describe("the browser's back", () => {

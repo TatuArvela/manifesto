@@ -24,7 +24,7 @@ import type { PluginSource } from "#/autoNotes/types.ts";
 import { t } from "#/i18n/index.ts";
 import { reorderNotes } from "#/state/actions.ts";
 import { viewMode } from "#/state/prefs.ts";
-import { canReorder, sortedNotes } from "#/state/views.ts";
+import { reorderableBoard, sortedNotes } from "#/state/views.ts";
 import { boardCard } from "./boardCard.ts";
 import { buttonClass } from "./buttonClasses.ts";
 import { gridColumns } from "./gridColumns.ts";
@@ -97,7 +97,7 @@ export function AutoNotesView() {
 
   const list = plugins.value;
   const allNotes = sortedNotes.value;
-  const reorderable = canReorder.value;
+  const reorderable = reorderableBoard.value;
   const isList = viewMode.value === "list";
 
   const resetForm = () => {

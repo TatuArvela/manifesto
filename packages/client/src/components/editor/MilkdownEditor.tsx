@@ -27,6 +27,7 @@ import {
 } from "#/extensions/yjsCollab.ts";
 import { useMilkdownEditor } from "#/hooks/useMilkdownEditor.ts";
 import { t } from "#/i18n/index.ts";
+import { afterNextPaint } from "#/utils/afterPaint.ts";
 import {
   normalizeMarkdown,
   replaceTextareaText,
@@ -54,6 +55,11 @@ interface MilkdownEditorProps {
   onEditorReady?: (editor: Editor) => void;
   /** The editor that `onEditorReady` gave was destroyed. */
   onEditorGone?: () => void;
+  /**
+   * No editor comes: its create failed, or the plugin of collaboration did not
+   * load.
+   */
+  onEditorFailed?: (() => void) | undefined;
   /** Shows the images of the note that the text points to. */
   resolveInlineImage?: InlineImageResolver | undefined;
   /** The buttons over those images. Read when an image draws. */
@@ -77,6 +83,7 @@ export function MilkdownEditor({
   autoFocus,
   onEditorReady,
   onEditorGone,
+  onEditorFailed,
   resolveInlineImage,
   inlineImageControls,
   collab,
@@ -95,6 +102,8 @@ export function MilkdownEditor({
   onEditorReadyRef.current = onEditorReady;
   const onEditorGoneRef = useRef(onEditorGone);
   onEditorGoneRef.current = onEditorGone;
+  const onEditorFailedRef = useRef(onEditorFailed);
+  onEditorFailedRef.current = onEditorFailed;
   const initialContentRef = useRef(content);
 
   const [rawContent, setRawContent] = useState(content);
@@ -147,6 +156,7 @@ export function MilkdownEditor({
   );
   const collabFactoryRef = useRef(collabFactory);
   collabFactoryRef.current = collabFactory;
+  const [collabFailed, setCollabFailed] = useState(false);
 
   useEffect(() => {
     if (!collab) return;
@@ -160,6 +170,7 @@ export function MilkdownEditor({
         // Leaves the editor not built, and does not make it silently
         // non-collaborative. A solo binding here would let the copy of this
         // client overwrite the shared document on the next save.
+        if (!cancelled) setCollabFailed(true);
       },
     );
     return () => {
@@ -273,11 +284,15 @@ export function MilkdownEditor({
     [pushRaw],
   );
 
-  const { editor, mountRef } = useMilkdownEditor(
+  const { editor, failed, mountRef } = useMilkdownEditor(
     build,
     beforeDestroy,
     !collab || collabFactory !== null,
   );
+
+  useLayoutEffect(() => {
+    if (failed || collabFailed) onEditorFailedRef.current?.();
+  }, [failed, collabFailed]);
 
   // A note that was never edited collaboratively has an empty shared fragment,
   // and ySyncPlugin adopts what the fragment contains. Thus, a binding would
@@ -302,31 +317,12 @@ export function MilkdownEditor({
   // A parent that keeps the editor must release it after it is destroyed. Each
   // read of a destroyed editor throws (`Context "editorState" not found`), and
   // the parent continues to render when only this component is replaced, as on
-  // the remount from solo to collab.
-  useEffect(() => {
+  // the remount from solo to collab. A layout effect, as the report of the
+  // editor below is. Thus, the two stay in their order.
+  useLayoutEffect(() => {
     if (!editor) return;
     return () => onEditorGoneRef.current?.();
   }, [editor]);
-
-  useEffect(() => {
-    if (!editor) return;
-    onEditorReadyRef.current?.(editor);
-    if (autoFocus && rawModeRef.current) {
-      // The rich editor is hidden. If it had focus, the first keystrokes would
-      // go into a document that nobody can see.
-      const textarea = textareaRef.current;
-      textarea?.focus();
-      textarea?.setSelectionRange(textarea.value.length, textarea.value.length);
-    } else if (autoFocus) {
-      editor.action((ctx) => {
-        const view = ctx.get(editorViewCtx);
-        view.focus();
-        view.dispatch(
-          view.state.tr.setSelection(TextSelection.atEnd(view.state.doc)),
-        );
-      });
-    }
-  }, [editor, autoFocus, textareaRef]);
 
   useEffect(() => {
     if (!editor) return;
@@ -390,6 +386,45 @@ export function MilkdownEditor({
       sync.active = false;
     }
   }, [rawMode, editor, pushRaw]);
+
+  // The editor reports that it has its text. A layout effect, in the same task
+  // as the build (`useMilkdownEditor`). The grow of an opened note waits for
+  // this report. An effect ran only after the next paint, and the grow started
+  // one frame later. It stays after the start of raw mode above.
+  useLayoutEffect(() => {
+    if (!editor) return;
+    onEditorReadyRef.current?.(editor);
+  }, [editor]);
+
+  // The editor takes the focus after the first paint (`afterNextPaint`). A
+  // focus needs the style and the layout of the page. In the task of the
+  // click, before the browser had laid out the new sheet, it made the browser
+  // do that one time for the focus and again for the frame (6 ms). The window
+  // of a note that grows shows the card for its first frames, and not the
+  // editor.
+  useLayoutEffect(() => {
+    if (!editor || !autoFocus) return;
+    return afterNextPaint(() => {
+      if (rawModeRef.current) {
+        // The rich editor is hidden. If it had focus, the first keystrokes
+        // would go into a document that nobody can see.
+        const textarea = textareaRef.current;
+        textarea?.focus();
+        textarea?.setSelectionRange(
+          textarea.value.length,
+          textarea.value.length,
+        );
+        return;
+      }
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        view.focus();
+        view.dispatch(
+          view.state.tr.setSelection(TextSelection.atEnd(view.state.doc)),
+        );
+      });
+    });
+  }, [editor, autoFocus, textareaRef]);
 
   // The code must watch for the edits of collaborators directly. `ySyncPlugin`
   // applies them as `addToHistory: false` transactions, which the markdown

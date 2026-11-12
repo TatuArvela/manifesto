@@ -287,8 +287,14 @@
     }
   }
 
-  /* While the card is dragged, the card is hidden. Thus, its shadow too. */
-  &:has(> .note-dragging) > .note-curl-shadow {
+  /*
+   * While the card is dragged, or the editor is drawn over it, the card is
+   * hidden. Thus, its shadow too. A ghost of the card (an open note that did
+   * not grow out of it) has no shadow. `visibility`, not a removal: the shadow
+   * reaches below the card, and stays in the layout. When it went, a board
+   * scrolled to its end moved up.
+   */
+  &:has(> .note-dragging, > .note-morphed, > .note-ghost) > .note-curl-shadow {
     visibility: hidden;
   }
 
@@ -298,4 +304,25 @@
     > .note-curl-shadow {
     rotate: var(--note-tilt, 0deg);
   }
+}
+
+/*
+ * The card while the editor of the note is drawn over it (`cardHidden` in
+ * hooks/useCardModal.ts): from the start of the grow to the end of the shrink.
+ * A clip, not `opacity` or `visibility`. The card has a transition on
+ * `opacity`, and it must hide and show at once, in the frame in which the panel
+ * covers it exactly. Focus goes back to the card when the close starts, and an
+ * element with `visibility: hidden` cannot take it.
+ */
+.note-morphed {
+  clip-path: inset(50%);
+}
+
+/*
+ * The face of the copy of a card in the window of a morph
+ * (utils/morphStandIn.ts). The sheet of the copy draws the finish. Thus, the
+ * face does not draw its edge a second time.
+ */
+.morph-stand-in-face::after {
+  content: none;
 }

@@ -23,6 +23,16 @@
    * it is set here for all of them.
    */
   overflow-x: auto;
+  /*
+   * Only sideways. With `overflow-x: auto`, a `visible` here computes to
+   * `auto`, and `clip` computes to `hidden`. Thus, `hidden` is the nearest
+   * value to no scroll. The parts of a checklist row that go below the row
+   * (the target of the handle, the line of the active row) overflow the
+   * bottom of the text when a checklist ends the note. With `auto`, the text
+   * was then a second vertical scroller, a few pixels deep. On iOS, a finger
+   * on a long note moved that scroller, and the page did not scroll.
+   */
+  overflow-y: hidden;
   overflow-wrap: normal;
   /*
    * What the own stylesheet of ProseMirror
@@ -317,14 +327,6 @@
     position: relative;
   }
 
-  /*
-   * The page takes the color of the open note, for the band that iOS shows past
-   * the bottom of the page when the keyboard is up. See `paintPage`.
-   */
-  html.sheet-open body {
-    background-color: var(--sheet-canvas);
-  }
-
   .note-sheet[data-sheet="covered"] {
     position: fixed;
     inset: 0;
@@ -393,6 +395,15 @@
 .sheet-aside:has(> :not([data-leaving="true"])) {
   width: 20rem;
   margin-left: 0.75rem;
+}
+
+/*
+ * An empty aside has no box to draw, and the browser cannot run its fade at
+ * the close of a sheet on the compositor. It ran on the main thread, and asked
+ * for six frames of 7 to 9 ms while the note shrank onto its card.
+ */
+.sheet-aside:empty {
+  transition: none;
 }
 
 .sheet-aside-panel {

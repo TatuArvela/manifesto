@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { openSheet, openSheetCount } from "./phoneSheets.ts";
 import "#/styles.css";
@@ -175,6 +175,39 @@ describe("the page's background", () => {
     close();
     el.remove();
     expect(pageColour()).toBe(before);
+    expect(document.body.style.backgroundColor).toBe("");
+  });
+
+  // A custom property on <html> or <body> is inherited by each element, and
+  // one write of it restyled the full board at each open and close.
+  it("writes no custom property for it", () => {
+    const el = sheet(100);
+    open(el);
+    for (const target of [document.documentElement, document.body]) {
+      const names = [...target.style].filter((name) => name.startsWith("--"));
+      expect(names, target.tagName).not.toContain("--sheet-canvas");
+    }
+  });
+
+  // The browser reports a new width to a media query (its `change` event)
+  // when it next renders, not at the resize. Thus, each step waits for it.
+  it("is left alone on a wider screen, and follows a change of width", async () => {
+    await page.viewport(1024, 700);
+    const el = sheet(100);
+    open(el);
+    expect(document.body.style.backgroundColor).toBe("");
+
+    await page.viewport(375, 700);
+    await vi.waitFor(() =>
+      expect(pageColour()).toBe(
+        getComputedStyle(surfaceOf(el)).backgroundColor,
+      ),
+    );
+
+    await page.viewport(1024, 700);
+    await vi.waitFor(() =>
+      expect(document.body.style.backgroundColor).toBe(""),
+    );
   });
 });
 

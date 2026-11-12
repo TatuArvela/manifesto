@@ -14,6 +14,15 @@ paths:
   - "packages/client/src/utils/phoneSheets.ts"
   - "packages/client/src/utils/edgeScroll.ts"
   - "packages/client/src/utils/morph.ts"
+  - "packages/client/src/utils/morphPath.ts"
+  - "packages/client/src/utils/morphStandIn.ts"
+  - "packages/client/src/utils/morphShadow.ts"
+  - "packages/client/src/utils/morphPlates.ts"
+  - "packages/client/src/utils/morphRun.ts"
+  - "packages/client/src/utils/afterPaint.ts"
+  - "packages/client/src/components/card/cardPress.ts"
+  - "packages/client/src/hooks/useCardModal.ts"
+  - "packages/client/src/hooks/useHeldHeight.ts"
   - "packages/client/src/storage/quota.ts"
   - "packages/client/src/styles.css"
   - "packages/client/src/styles/**"
@@ -53,10 +62,18 @@ The row of buttons at the bottom of a card has no scroll. The buttons that do no
 
 ## Reorder
 
-The `canReorder` computed controls drag-to-reorder: the Notes view or the Auto-notes view, default
-sort, no search, no modal. The same control applies to the keyboard method (`moveNoteBy`, one
-position in the section of the card, bound to `Shift j` / `Shift k` and in the card menu). WCAG
-requires a keyboard method for each drag.
+Drag-to-reorder needs the Notes view or the Auto-notes view, default sort, no search, and no modal.
+The same control applies to the keyboard method (`moveNoteBy`, one position in the section of the
+card, bound to `Shift j` / `Shift k` and in the card menu). WCAG requires a keyboard method for each
+drag.
+
+- The grids read `reorderableBoard`, which has no modal term. Each card takes the result as its
+  `draggable` prop. When the grids read the open note too, each open and each close of a note
+  rendered all cards again, and changed their attributes: about 100 ms with 80 cards, in the first
+  frame of the morph.
+- Thus, the modal term is in `canReorder` (for `noteMoveTarget`) and in the two starts of a drag in
+  `useReorderDrag`. A card under the modal keeps `draggable`, so the mouse start cancels the browser
+  drag.
 
 - `reorderNotes` gives the dropped note the midpoint between its neighbors, and writes nothing else.
 - `position` is a float in both drivers. Thus, a `POSITION_STEP` (1000) gap lasts for approximately
@@ -75,6 +92,12 @@ While you drag a card, `ReorderableGrid` shows the new order (`hooks/useReorderD
   removes the pointer capture of a touch drag.
 - The dragged card keeps its position with `visibility: hidden`. The only copy on the screen is under
   the pointer (the drag image of the browser, or `.note-drag-ghost` for a finger).
+- A mouse press on a card hides the checkboxes of all cards (`note-press-active` on <body>,
+  `card/cardPress.ts`). Thus, they faded out before the drag starts, and the drag image has none.
+  The press changes only their opacity. A change of `pointer-events` on all checkboxes cost 5 to
+  9 ms at each press and each click. Only a real drag (`note-drag-active`, `useReorderDrag`) takes
+  their pointer events too. The press ends after the next paint: a click opens the note, and the
+  checkboxes came back before the first frame of its grow.
 - The card that was just swapped is ignored until the pointer leaves it. If not, the two cards swap
   again and again under a pointer that does not move.
 - A drop commits the order on the screen. It never applies a move that still waits for its frame.
@@ -155,7 +178,13 @@ the visual viewport, because with the keyboard up the bottom of the window is un
 
 When the keyboard is open in a Safari tab, iOS pans the page past the bottom of the layout, and
 past the `fixed` layers. Thus, the background of the page shows there. `paintPage` gives it the
-color of the open note.
+color of the open note, only at the width of a phone.
+
+- It writes `background-color` on `<body>`, never a custom property on `<html>` or `<body>`. A
+  custom property is inherited by each element. One write of it made the browser calculate the
+  style of the full board again: about 100 ms with 80 cards, at the open and again at the close.
+- The same applies to all code that runs while a note opens or closes. A variable on the root is
+  acceptable only for a write that a preference causes (`theme.ts`, `boardBackground.ts`).
 
 The keyboard covers the bottom of the layout, and nothing follows it. Thus, on a phone the tools of
 the editor are not there. `NoteEditor` mounts `NoteEditorToolbar` in the sticky top bar (`atTop`,
@@ -180,8 +209,146 @@ comments of a note open there).
 - To decide if you use it, call `useMediaQuery(SHEET_ASIDE_QUERY)`. The query must agree with the
   `max-lg:hidden` of the element.
 
-The open and close morph uncovers the panel there with `clip-path`, and does not scale it
-(`utils/morph.ts`). A full screen scaled onto a card makes its text look compressed.
+## The open and close of a note
+
+The editor panel of a note grows out of its card, and shrinks back onto it (`utils/morph.ts`,
+`hooks/useCardModal.ts`; the geometry of the path is in `utils/morphPath.ts`, and one run with its
+animations in `utils/morphRun.ts`). The panel is laid
+out at its final place from its first frame. The animation draws it over a rectangle that moves in
+a straight line between the card and that place. Only `transform` and `opacity` change, and a
+`clip-path` for round corners. Thus, the layout inside the editor never changes, and in Chromium no
+frame of a morph needs the main thread.
+
+- **Nothing fades on a card.** The panel is opaque, and at both ends it covers the card exactly.
+  The card hides when the grow starts, and shows when the shrink ends (`note-morphed`, a full
+  `clip-path`). Many small fades with different times made the open look unstable. The card hides
+  with a clip, because its `opacity` has a transition, and an element with `visibility: hidden`
+  cannot take the focus that goes back to it at the close.
+- **Nothing on the main thread.** Only `transform` and `opacity` run on the compositor in all
+  browsers. The main thread is busy while a note opens (the editor builds, the shared document
+  arrives, images decode). A part that needed it stopped at each long frame, and lost its place
+  under the parts that moved on. Each frame of a part on the main thread also cost 6 to 8 ms on a
+  board of 86 cards. Check a new part with a `MessageChannel` ping-pong (gaps over 1 ms), not with
+  a `requestAnimationFrame` loop, which asks for a main-thread frame itself.
+- **A container transform** (`morphFrames`). The panel moves and scales onto the rectangle, and
+  clips its content to its own box (`overflow: clip` while a run lasts). Its content, the
+  `.note-sheet-content` wrapper of `NoteSheet`, has the inverse scale. Thus, the window grows and
+  slides, and the text keeps its size: the text of a card and of the editor have one size, and the
+  title one place. A scale of the text (to 0.56 for a usual card) made it small at the start and
+  large again. The clip resets the scroll of the panel, so the content also carries `scrollTop`.
+  The clip also takes a classic scrollbar away. Thus, a run adds its width to the end padding of
+  the panel. If not, the content became wider, and its text wrapped again at each end of the run.
+- **The card, then the editor** (`utils/morphStandIn.ts`). The window shows a copy of the card
+  until `SWITCH_AT` (half of the way, after the curve), and then the editor. The close changes back
+  at the same point. A close before the grow showed the editor shows the card the whole way. The
+  copy has a sheet, laid out at the size of the panel, that draws the color, the finish and the
+  border, and a face, laid out at the size of the card, with the inverse scale. The face copies the
+  `checked` property of each checkbox, because a copy of a node takes only the attribute. When the
+  window showed the editor from its first frame, the toolbar and the empty space of the editor were
+  in the small window over the card.
+  - The face is not inside the `.group` wrapper of the card, and a copy cannot be hovered or
+    focused. Thus, the sheet is the group of the face, and has `data-popover-open` when the card
+    looks hovered. If not, the controls of a hovered card went at the click.
+  - The copies have no `data-note-card`, no `[data-card-open]` button and no anchor name. Code that
+    finds a card found the copy too, and a popover anchored to a name went onto the copy.
+  - The focus trap skips the elements inside `[inert]` (the copies, and those of `useHeldHeight`).
+    A Tab that wrapped to a copy did nothing.
+  - The text that waits for the auto-save goes when the close starts (an `effect` on
+    `editingNoteId` in `NoteCardEditor`), before the render that copies the card. With the save
+    at the unmount, the shrink landed with the old text, and the card changed after it.
+- **The backdrop** of a card is a light dim (`black/30`) in the short fade (100 ms), also when the
+  note morphs. A dark dim over the full time of the morph changed the full screen while the note
+  grew.
+- **The corners** are a `clip-path` (`inset(0px round …)`) with the radius divided by the scale on
+  each axis, in their own animation (`corners` in `morphFrames`). Chromium runs it on the
+  compositor. Other browsers run it on the main thread. Thus, it is not in the animation of the
+  transform, and square corners (the default) have none. The radius goes from the radius of the
+  card to the radius of the panel: the sheet of a phone has square corners, and with one radius
+  the whole way, its corners changed at once at the end.
+- **The shadow** is on plates (`utils/morphPlates.ts`): empty boxes before the panel, `fixed`,
+  with the computed `box-shadow` of the card or of the panel. A plate is laid out at its own end,
+  and drawn over each rectangle of the path with a move and a scale. The shadow of the card fades
+  out while the shadow of the panel fades in, by the progress. Thus, the shadow does not change
+  when the card and the panel change places. While plates draw it, the own shadow of the panel is
+  off. A `box-shadow` animation, divided by the scale in each keyframe, ran on the main thread.
+  - The static opacity of a plate is the one at the end of its run. Thus, a plate never shows in
+    its own box when its animation ends before the plate goes.
+  - A grow that is aimed again moves the plate of the panel to the new layout (`movePlate`).
+    Thus, the shadow lands at the size of the own shadow of the panel.
+  - The shadow and the corners of a sheet are on `.note-sheet-panel`, not on the surface inside it.
+    The panel scrolls, and clipped the shadow of the surface. Thus, an open note had no shadow.
+  - The curled shadow of a card (`note-curl`) stays in the layout while its note is open, and
+    hides (`note-ghost`, `note-morphed`). It reaches below the card. When it went at the click, a
+    board scrolled to its end moved up 10px.
+- **The points of the path** (`pathPoints`). Between two keyframes, the scale and the inverse scale
+  each change linearly, and their product is not exactly 1. The points are close enough that the
+  scale changes by at most 6% between two of them, which keeps the text within 0.1% of its size.
+  Points at an even distance were off by 0.8% near the card.
+- **The wait for the text.** Milkdown builds its view after the panel mounts. The grow of a card
+  waits until the editor reports its text (`onReady` of `NoteCardEditor`), for a maximum of
+  `MORPH_READY_WAIT_MS`. A grow that started at once went to the empty panel first. That panel is
+  centered lower than a card near the top of the board. Thus, the grow went down, and then back up.
+  While it waits, the panel is transparent and the card stays, and the two change places when the
+  grow starts. When the panel covered the card during the wait, the card changed its look at the
+  click, before anything moved. The grow measures the panel and makes its run only when the wait
+  ends. A grow that was made at once and held measured the panel two times.
+- **One task from the click.** The steps from the click to the grow are layout effects, not
+  effects: the open in `useCardModal`, the build in `useMilkdownEditor`, and the report in
+  `MilkdownEditor`. Milkdown creates its view in microtasks. Thus, the grow usually starts on the
+  first frame after the click, and the close starts its shrink on the first frame after its click.
+  Preact runs an effect only after the next paint. With three effects, the grow started about
+  80 ms after the click on a fast laptop, and about 40 ms with none. Keep a new step on this
+  path out of an effect.
+- **One layout in that task.** Each read of a size or a style after a change of the page made the
+  browser lay out the new sheet again. The task had four of them. Thus, on this path:
+  - Read before you write. A run reads all that it needs (the panel, the card, the scroll) before
+    it adds the copy and the plates. The shadow of the card is read at the click, while the board
+    is laid out.
+  - Never call `getAnimations()`. It calculates the style of the page. `settle` cancels the
+    animations of its run, which holds each animation of a morph.
+  - Work that the first frames do not show waits for the first paint (`afterNextPaint` in
+    `utils/afterPaint.ts`): the focus of the editor, the focus of the trap (`focusInAfterPaint`),
+    the history entry of the sheet (`pushAfterPaint`), and the formatting bar (`barHeights` in
+    `NoteEditor`, see `editor.md`), whose place keeps the height of the last bar. Not
+    `useEffect`: Preact runs effects after the next frame or after 35 ms, whichever comes first,
+    and the task of a click is often longer. The window shows the card, not the editor, until
+    `SWITCH_AT`.
+- **One render of the editor.** The card keeps the content of its sheet as one element
+  (`sheetContent`, `useMemo`). Thus, a render of the card for its own state (the card hides when
+  the grow starts, the sheet goes to its close) does not render the editor again. Each of those
+  renders cost 3 to 5 ms in the task of the click.
+- **The first open of a session** used to run the code of the editor for the first time (105 to
+  180 ms). `lazyEditor.ts` renders one `NoteEditor` where nobody sees it, in idle time after the
+  chunk arrives (`warmUp.ts` in `editor.md`).
+- **The aside of an empty sheet** has no transition (`.sheet-aside:empty` in
+  `styles/editor.css`). An empty box cannot fade on the compositor, and its fade at the close asked
+  the main thread for six frames.
+- **Size changes.** `keepAimed` watches the panel. During a run, a new size starts a new line from
+  where the panel is drawn now, at the current progress. With the old start and only a new end, the
+  panel jumped. For `MORPH_FOLLOW_MS` after the grow, a new size runs from the old layout to the new
+  one (images, previews and the shared document arrive late). Not on a phone, where a taller sheet
+  does not move what is on the screen. `settle` stops the watch, so a close is never aimed again.
+  The watch also stops when the reader types, pastes, presses or scrolls in the panel (at the end
+  of the grow, if it still runs). Each new line started a run that clipped the panel. Thus, the
+  caret could not scroll into view, and the end of the run put the old scroll back.
+- **A close during the open** starts where the panel is drawn (the `path` of the run), with the
+  corners and the blend of shadows that the grow drew there (`growEdge`, `startMix`). From the
+  layout, the full editor showed for a frame, and then shrank. From the own corners and shadow of
+  the panel, those jumped at the press. A close while the grow still waits ends at once: the panel
+  never showed, and the card is still there. `settle` also ends the wait, so that a cancelled grow
+  never starts later. A close with no card to shrink onto (out of sight, or animations off) also
+  stops the grow (`stopMorph`), and the sheet fades. If not, a held grow started during the fade.
+- When the editor is built again (solo to collab), its text and the place of the formatting bar keep
+  their height (`useHeldHeight` in `NoteEditor`). If not, the panel becomes short and tall again,
+  and a grow follows it. The removal of the old content starts the hold: a `MutationObserver`
+  reports it in a microtask before the paint, and the element gets the last height that a
+  `ResizeObserver` recorded. A hold from the state of the editor came one render late, and a hold
+  from the teardown of the old editor came after Preact had removed its content. An inert copy of
+  the removed content also stays in its place, so the text does not blink. A new editor (a different
+  identity, not only a present one) releases the hold and removes the copies. One removal can come
+  as several mutation records, so the hook groups them by element first.
+- The composer grows out of its pad with the same code. It fades in over its first part, because
+  the pad does not hide at once.
 
 ## Storage quota
 

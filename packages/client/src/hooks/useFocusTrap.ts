@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef } from "preact/hooks";
+import { afterNextPaint } from "#/utils/afterPaint.ts";
 
 /**
  * Keeps Tab inside a modal, and gives focus back when it closes.
@@ -24,7 +25,14 @@ const FOCUSABLE = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(",");
 
-function isVisible(el: HTMLElement): boolean {
+/**
+ * If Tab can stop on `el`. Not inside an inert copy: the card that a morph
+ * shows in its window (`utils/morphStandIn.ts`), and the old text that
+ * `useHeldHeight` keeps. A focus there does nothing. Thus, a Tab that wrapped
+ * to a copy stayed where it was.
+ */
+function isTabStop(el: HTMLElement): boolean {
+  if (el.closest("[inert]")) return false;
   // `checkVisibility` covers `display:none`, `visibility:hidden` and
   // `content-visibility`, which a collapsed panel in a modal uses.
   return el.checkVisibility({
@@ -35,7 +43,7 @@ function isVisible(el: HTMLElement): boolean {
 
 /** The tabbable elements only within `root`, in tab order. */
 export function tabbableIn(root: HTMLElement): HTMLElement[] {
-  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(isVisible);
+  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(isTabStop);
 }
 
 /**
@@ -53,7 +61,7 @@ function tabbable(container: HTMLElement): HTMLElement[] {
   const seen = new Set<HTMLElement>();
   for (const root of roots) {
     for (const el of root.querySelectorAll<HTMLElement>(FOCUSABLE)) {
-      if (!seen.has(el) && isVisible(el)) seen.add(el);
+      if (!seen.has(el) && isTabStop(el)) seen.add(el);
     }
   }
   return [...seen];
@@ -99,7 +107,23 @@ function holdsFocus(container: HTMLElement): boolean {
  */
 const openTraps: object[] = [];
 
-export function useFocusTrap<T extends HTMLElement>(active: boolean) {
+export function useFocusTrap<T extends HTMLElement>(
+  active: boolean,
+  {
+    focusInAfterPaint = false,
+  }: {
+    /**
+     * Moves focus in after the first paint of the modal, and only if its
+     * content did not take it. For a modal whose first frames do not show its
+     * controls, and whose content focuses itself after the paint (the note
+     * editor, which grows out of its card). The search for the first stop
+     * calculates the style of the full modal, and a focus there and a second
+     * focus by the content made the browser do it two times in the task of
+     * the click.
+     */
+    focusInAfterPaint?: boolean;
+  } = {},
+) {
   const ref = useRef<T>(null);
 
   // Layout, not effect. Preact delays `useEffect` past one frame, and a move of
@@ -111,7 +135,28 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
     const focused = document.activeElement;
     const standingIn = focused !== null && standIns.has(focused);
     const restoreTo = standingIn ? standIns.get(focused) : focused;
-    if (!standingIn && !holdsFocus(container)) tabbable(container)[0]?.focus();
+    const focusIn = () => {
+      if (!standingIn && !holdsFocus(container)) {
+        tabbable(container)[0]?.focus();
+      }
+    };
+    // After the paint, and one task after the content that takes focus there.
+    // The trap asks for its call before the content is built. Thus, with no
+    // second task, it moved focus onto its first button first, and the content
+    // moved it again.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let cancelFocusIn = () => clearTimeout(timer);
+    if (focusInAfterPaint) {
+      const cancelPaint = afterNextPaint(() => {
+        timer = setTimeout(focusIn, 0);
+      });
+      cancelFocusIn = () => {
+        cancelPaint();
+        clearTimeout(timer);
+      };
+    } else {
+      focusIn();
+    }
 
     const trap = {};
     openTraps.push(trap);
@@ -147,6 +192,7 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
     // Capture. Thus, the trap sees Tab before an editor that would use it.
     document.addEventListener("keydown", onKeyDown, true);
     return () => {
+      cancelFocusIn();
       document.removeEventListener("keydown", onKeyDown, true);
       openTraps.splice(openTraps.indexOf(trap), 1);
       // Only if it is still on the page. The element that opened a note can be
@@ -155,7 +201,7 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
         restoreTo.focus();
       }
     };
-  }, [active]);
+  }, [active, focusInAfterPaint]);
 
   return ref;
 }

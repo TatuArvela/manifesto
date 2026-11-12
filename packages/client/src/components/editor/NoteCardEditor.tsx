@@ -1,6 +1,7 @@
 import type { Note, NoteColor } from "@manifesto/shared";
 import { type Editor, EditorStatus } from "@milkdown/kit/core";
 import { replaceAll } from "@milkdown/kit/utils";
+import { effect, untracked } from "@preact/signals";
 import {
   useCallback,
   useEffect,
@@ -33,7 +34,7 @@ import {
   updateNote,
   updateStoredNote,
 } from "#/state/notesStore.ts";
-import { showError } from "#/state/ui.ts";
+import { editingNoteId, showError } from "#/state/ui.ts";
 import {
   type NoteBefore,
   recordVersion,
@@ -57,9 +58,12 @@ const PEER_RECORD_DELAY_MS = 1000;
 export function NoteCardEditor({
   note,
   onClose,
+  onReady,
 }: {
   note: Note;
   onClose: () => void;
+  /** The editor has its text on the screen. The grow of the panel waits. */
+  onReady?: (() => void) | undefined;
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
@@ -151,22 +155,44 @@ export function NoteCardEditor({
   };
   const saveAndClose = () => saveAndCloseRef.current();
 
-  // Save the waiting changes on unmount (for example, a backdrop click). A
-  // layout effect. Thus, the save occurs when the editor goes. The cleanup of
-  // an effect waits for the paint, and a tab closed between them would lose the
-  // edit.
+  // The text that waits for the auto-save goes now. Nothing goes after a save
+  // and close.
+  const saveWaiting = useCallback(() => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    if (
+      savedRef.current ||
+      (titleRef.current === savedTitleRef.current &&
+        contentRef.current === savedContentRef.current)
+    ) {
+      return;
+    }
+    savedTitleRef.current = titleRef.current;
+    savedContentRef.current = contentRef.current;
+    saveText(titleRef.current, contentRef.current);
+  }, [saveText]);
+
+  // A close that only clears `editingNoteId` (a backdrop click, Back, a
+  // different note that opens) saves the waiting text before the render of
+  // the close, in the effect of the signal. That render copies the card for
+  // the shrink (`utils/morphStandIn.ts`). With the save at the unmount, the
+  // copy had the text from before the last edits, and the card changed after
+  // it landed.
+  useLayoutEffect(() => {
+    let open = editingNoteId.peek() === note.id;
+    return effect(() => {
+      const now = editingNoteId.value === note.id;
+      if (open && !now) untracked(saveWaiting);
+      open = now;
+    });
+  }, [note.id, saveWaiting]);
+
+  // Save the waiting changes on unmount. A layout effect. Thus, the save occurs
+  // when the editor goes. The cleanup of an effect waits for the paint, and a
+  // tab closed between them would lose the edit.
   useLayoutEffect(() => {
     return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveWaiting();
       if (savedRef.current) return;
-      if (
-        titleRef.current !== savedTitleRef.current ||
-        contentRef.current !== savedContentRef.current
-      ) {
-        savedTitleRef.current = titleRef.current;
-        savedContentRef.current = contentRef.current;
-        saveText(titleRef.current, contentRef.current);
-      }
       // Save a version if the note changed during this editing session.
       const version = versionToKeep(
         note.id,
@@ -176,7 +202,7 @@ export function NoteCardEditor({
       );
       if (version) void recordVersion(note.id, version);
     };
-  }, [note.id, saveText]);
+  }, [note.id, saveWaiting]);
 
   // Escape saves and closes. The version panel and all pickers opened from
   // inside the editor register after this one, and take the key first. Thus, a
@@ -419,7 +445,10 @@ export function NoteCardEditor({
         // the end, and the first tap into the text then had to move it from
         // there. A tap puts it where it touches.
         autoFocus={!isPhoneLayout()}
-        onEditorReady={setEditor}
+        onEditorReady={(instance) => {
+          setEditor(instance);
+          onReady?.();
+        }}
         collab={collab}
         // The server refused the editor of this build. A save of the text over
         // REST would write the reading of this build over the newer content

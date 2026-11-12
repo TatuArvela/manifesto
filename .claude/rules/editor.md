@@ -28,6 +28,24 @@ Only the gap cursor: the drop indicator of that plugin draws over the drag of th
 - `hooks/useMilkdownEditor.ts` sets up the editor instance. `components/editor/MilkdownEditor.tsx`
   renders it. `components/editor/makeNoteEditor.ts` lists its presets and plugins. Add a plugin
   there.
+- The build (`useMilkdownEditor`) and the report of the editor (`onEditorReady`) are layout
+  effects. The grow of an opened note waits for that report. An effect runs only after the next
+  paint, and each one moved the start of the grow one frame later (`layout-and-loading.md`).
+- The focus of `autoFocus` comes after the first paint (`afterNextPaint`). A focus needs the style
+  and the layout of the page. In the task of the click, it made the browser lay out the new sheet
+  for the focus and again for the frame.
+- The formatting bar comes after the first paint of a new editor (`barHeights` in
+  `NoteEditor.tsx`). Until then, its place has the height that the last bar had, on a phone or on
+  a wider screen. Thus, a panel that grows out of a card keeps its size when the bar comes. The bar
+  is a third of the elements of an open note, and its render and their style moved the start of
+  the grow about 6 ms later. The first editor of a session has no height yet, and builds its bar
+  at once. The height is on the place itself, not on a child in it: `useHeldHeight` holds the
+  place when a child of it goes.
+  - The kept height leaves out the fold of a phone (`data-toolbar-fold`), which a new bar has
+    closed.
+  - An editor that fails (`onEditorFailed`: its create, or the load of the plugin of
+    collaboration) lets the place go. If not, the height of the last bar stayed empty above the
+    text.
 - Read-only previews come from `utils/remarkRenderer.ts` (remark → rehype → HTML that DOMPurify
   sanitizes).
 
@@ -55,7 +73,11 @@ Custom ProseMirror behavior is in `packages/client/src/extensions/`:
   the buttons of the header (`ImageButtons`) through `InlineImageControls`, which `NoteEditor`
   renders with Preact into the frame of the image. This folder cannot import components. The view
   stops the events of the buttons and ignores their mutations. If not, ProseMirror moves the caret
-  on each press and draws the node again.
+  on each press and draws the node again. `useTextImages` draws the buttons in a microtask, never
+  during the call. A view draws inside a change of the editor, and a change can occur inside a
+  render of Preact (an effect that has not run yet runs at the start of the next render of its
+  component). A `render` there cleared the hook state of that render, and a note with an image in
+  the text crashed when it opened.
 - `imagePointers`: when an image leaves the note, `NoteEditor` changes the text through the editor
   (`removeImagePointers`), or the raw textarea, before it calls `onRemoveImage`. Never through the
   `content` of the parent: the editor reads that only when it opens, and its next change writes the
@@ -76,6 +98,11 @@ Custom ProseMirror behavior is in `packages/client/src/extensions/`:
     (`tableBar`) shows them. For the keyboard, the Table menu of the toolbar shows them. It refuses
     each change that makes a table that Markdown cannot write (no header row, no row under it, no
     column).
+- The bars over the text (`checklistBar`, `tableBar`, `linkTooltip`) are placed inside
+  `.milkdown-editor` from screen rectangles. They convert them with `rectInHost` (`hostRect.ts`),
+  never with a plain difference. They place themselves when the editor gets focus, which is during
+  the grow of the panel, while it is scaled down. A plain difference put the checklist bar at half
+  its height in the note.
 - `editorKeys`: the keys that the presets bind incorrectly. It binds them again in the `config` of
   the editor (which runs before a preset reads its `…Keymap` ctx), or overrides them with its own
   keymap. That keymap runs before the keymaps of all presets, because Milkdown puts its own keymaps
@@ -89,8 +116,11 @@ Custom ProseMirror behavior is in `packages/client/src/extensions/`:
 
 ## Layout of the checklist gutter
 
-`.ProseMirror` scrolls horizontally (for a line that cannot break). A scroller clips everything that
-is drawn outside it. The drag handle of the checklist is in the gutter to the left of the text. On a
+`.ProseMirror` scrolls horizontally (for a line that cannot break), and only horizontally. Its
+`overflow-y` is `hidden`, because with `overflow-x: auto` a `visible` computes to `auto`. Parts of a
+checklist row go below the row, and a note that ends with a checklist then had a second vertical
+scroller. On iOS, that scroller took the swipe, and the page did not scroll. A scroller clips
+everything that is drawn outside it. The drag handle of the checklist is in the gutter to the left of the text. On a
 desktop, the list keeps no space for it. Thus, the text extends over the padding of the note by the
 width of the gutter, and adds padding back (`styles/task-list.css`). If you remove this, the handle
 is fully cut off, and nothing fails.
@@ -112,6 +142,9 @@ gone when the timer fires, the timer throws `Context "editorView" not found`.
   waiting timer do nothing.
 - If you add other parts to the editor that stay longer than a frame, stop them there too. The
   teardown is the only time when the context is still complete.
+- The teardown also makes the view drop each transaction that arrives after its destroy. The
+  timer of y-prosemirror for the cursors of the peers checks a flag that its binding never sets.
+  Thus, it dispatched into a destroyed editor when a note in collaboration closed.
 
 A parent that keeps the editor from `onEditorReady` must drop it on `onEditorGone`. A destroyed
 editor throws `Context "editorState" not found` on each read. `NoteEditor` reads its editor in the
@@ -178,6 +211,22 @@ The editor itself is also a separate chunk. `components/editor/editorChunk.ts` i
   editor.
 - If code that the board reaches statically imports something that brings in Milkdown, the full
   editor goes back into the entry chunk. Nothing fails to tell you.
+- When the chunk arrives, `lazyEditor.ts` renders one `NoteEditor` in idle time, in an element
+  that is not on the page, and takes it down (`warmUp.ts`). The first open of a session ran the
+  code of the editor for the first time, and its click took 105 to 180 ms, against 40 to 55 ms
+  for the next ones. A warm-up of Milkdown alone left it at 80 to 107 ms, because the components
+  around it also ran for the first time in that click. The create of Milkdown itself stays about
+  two times slower in the first open than later (24 ms against 10 ms). No warm-up here removed
+  that part.
+  - All of it occurs in one task. Milkdown builds and Preact renders in microtasks. Thus, no
+    input and no paint come between the mount and the unmount, and no `useEffect` of it runs.
+  - An editor that does not report in that task (a build that failed) goes at the start of the
+    next task. Preact runs effects in a task that the next frame queues, after that one. When the
+    warm-up waited 3 s, the effects of a failed build ran, and its paste listener took a paste.
+  - Each editor closes only a drawing pad that it opened (`useTextImages`). Thus, the warm-up
+    closes no pad that a card opened. A note that opened before the idle time makes it
+    unnecessary (`editorWasBuilt`).
+  - Nothing changes its document. Thus, the listener of Milkdown starts no timer.
 
 ## Schema version
 

@@ -2,12 +2,12 @@ import { imageCountOf, type Note, roleOf } from "@manifesto/shared";
 import { useComputed } from "@preact/signals";
 import clsx from "clsx";
 import { memo } from "preact/compat";
-import { useContext, useRef, useState } from "preact/hooks";
+import { useContext, useMemo, useRef, useState } from "preact/hooks";
 import { autoNoteColorMap, noteColorMap, noteText } from "#/colors.ts";
 import { useEditor } from "#/components/editor/lazyEditor.ts";
 import { NoteSheet } from "#/components/NoteSheet.tsx";
 import { CARD_POPOVER_EXIT_MS } from "#/components/Popover.tsx";
-import { CARD_FADE_MS, useCardModal } from "#/hooks/useCardModal.ts";
+import { useCardModal } from "#/hooks/useCardModal.ts";
 import { useNoteImages } from "#/hooks/useNoteImages.ts";
 import { usePresence } from "#/hooks/usePresence.ts";
 import { useIsTouch, useTouchGesture } from "#/hooks/useTouchGesture.ts";
@@ -28,13 +28,13 @@ import {
 import { cardName } from "#/utils/cardName.ts";
 import { headerImageCount } from "#/utils/inlineImages.ts";
 import { contentIsOnlyPreviewUrls } from "#/utils/linkPreview.ts";
-import { MORPH_MS } from "#/utils/morph.ts";
 import { noteTilt } from "#/utils/noteTilt.ts";
 import {
   type CardAction,
   CardRoomContext,
   overflowingActions,
 } from "./cardActionsFit.ts";
+import { pressCard, releaseCard } from "./cardPress.ts";
 import { NoteCardBody } from "./NoteCardBody.tsx";
 import {
   CardActions,
@@ -94,11 +94,14 @@ export const NoteCard = memo(function NoteCard({
     showModal,
     closing,
     morphing,
+    cardGhost,
+    cardHidden,
     cardRef,
     panelRef,
     modalRef,
     closeModal,
-  } = useCardModal(open);
+    contentReady,
+  } = useCardModal(open, needsEditor);
   const [openPopover, setOpenPopover] = useState<CardPopoverKind | null>(null);
   // What is drawn: the open popover, or the popover that just closed while it
   // fades.
@@ -183,6 +186,27 @@ export const NoteCard = memo(function NoteCard({
     );
   const cardLabel = cardName(note) || t("noteCard.untitled");
 
+  // The same element while its props are the same. Thus, a render of the card
+  // for its own state (the card hides when the grow starts, and the sheet goes
+  // to its close) does not render the editor again: Preact skips an element
+  // that it rendered before. Each of those renders of the full editor cost 3
+  // to 5 ms in the task of the click.
+  const sheetContent = useMemo(
+    () =>
+      !needsEditor ? (
+        <NoteReadonlyView note={note} onClose={closeModal} />
+      ) : (
+        editor && (
+          <editor.NoteCardEditor
+            note={note}
+            onClose={closeModal}
+            onReady={contentReady}
+          />
+        )
+      ),
+    [needsEditor, note, editor, closeModal, contentReady],
+  );
+
   // The buttons of the row that do not fit on this card go into its menu.
   const cardRoom = useContext(CardRoomContext);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -263,9 +287,12 @@ export const NoteCard = memo(function NoteCard({
       <div
         class={clsx(
           "relative group note-draggable-wrapper",
-          // Not under a card that shows only as a ghost, or that is lifted
-          // (held) with its own shadow.
-          complexShadows.value && !open && !held && "note-curl",
+          // Not under a card that is lifted (held) with its own shadow. A card
+          // that is hidden, or that shows only as a ghost, keeps it in its
+          // layout, and hides it (`note-ghost`, `note-morphed`). The shadow
+          // reaches below the card. Thus, when it went, a board scrolled to
+          // its end moved up at the click.
+          complexShadows.value && !held && "note-curl",
           pinSettling && "note-pin-settle",
           leaving && "note-leaving",
           noteSize.value === "square" &&
@@ -329,9 +356,11 @@ export const NoteCard = memo(function NoteCard({
             complexShadows.value
               ? "note-shadow"
               : "shadow-sm group-hover:shadow-lg group-data-popover-open:shadow-lg",
-            // Gone while it morphs into the editor, because the editor is the
-            // card. Otherwise, a ghost of it, to show where the note is.
-            open && !closing && (morphing ? "opacity-0" : "opacity-20"),
+            // Gone while the editor is drawn over it, because the editor is
+            // the card then. Otherwise, a ghost of it, to show where the note
+            // is.
+            cardHidden && "note-morphed",
+            cardGhost && "opacity-20 note-ghost",
             noteSize.value === "square" &&
               viewMode.value === "list" &&
               "w-full",
@@ -343,19 +372,17 @@ export const NoteCard = memo(function NoteCard({
           )}
           style={{
             aspectRatio: noteSize.value === "square" ? "1/1" : "auto",
-            transitionDelay:
-              closing && morphing ? `${MORPH_MS - CARD_FADE_MS}ms` : undefined,
           }}
           draggable={!isTouch && draggable}
           onPointerDown={(e) => {
             if (isTouch) {
               touchPointerDown(e);
             } else if (draggable) {
-              document.body.classList.add("note-drag-active");
+              pressCard();
             }
           }}
           onPointerUp={() => {
-            if (!isTouch) document.body.classList.remove("note-drag-active");
+            if (!isTouch) releaseCard();
           }}
           // A long press is the own gesture of the card on a touch screen. On a
           // link or a picture, Android answers one with a menu, which takes the
@@ -368,7 +395,7 @@ export const NoteCard = memo(function NoteCard({
             isTouch
               ? undefined
               : (e) => {
-                  document.body.classList.remove("note-drag-active");
+                  releaseCard(true);
                   onDragEnd?.(e);
                 }
           }
@@ -480,20 +507,17 @@ export const NoteCard = memo(function NoteCard({
             // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismiss
             // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss
             <div
-              // In and out over the same time as the panel: that of the morph
-              // when it morphs, and that of the plain fade otherwise.
-              class={`fixed inset-0 bg-black/50 layer-backdrop max-sm:hidden transition-opacity ease-in ${morphing ? "duration-240" : "duration-100"} ${closing ? "opacity-0" : morphing ? "animate-[fade-in_240ms_ease-out]" : "animate-fade-in"}`}
+              // A light dim, in and out in the short fade, also when the note
+              // morphs. A dark dim over the time of the morph changed the full
+              // screen while the note grew, and took the eye from the note.
+              class={`fixed inset-0 bg-black/30 layer-backdrop max-sm:hidden transition-opacity duration-100 ease-in ${closing ? "opacity-0" : "animate-fade-in"}`}
               onClick={closeModal}
             />
           }
           closing={closing}
           onBack={closeModal}
         >
-          {!needsEditor ? (
-            <NoteReadonlyView note={note} onClose={closeModal} />
-          ) : (
-            editor && <editor.NoteCardEditor note={note} onClose={closeModal} />
-          )}
+          {sheetContent}
         </NoteSheet>
       )}
     </>

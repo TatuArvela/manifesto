@@ -314,13 +314,25 @@ export const editingNote = computed(() =>
 );
 
 /**
- * Reorder with drag and drop: Notes or Auto-notes view, manual order, no
- * search, no modal open.
+ * If the board itself is in an order that a person can change: Notes or
+ * Auto-notes view, manual order, no search. The grids read this, not
+ * `canReorder`. Each card takes it as a prop. Thus, when the grids read the
+ * open modal too, each open and each close of a note rendered all cards again,
+ * and changed their attributes: about 100 ms with 80 cards, in the first frame
+ * of the morph. The modal covers the board, and the starts of a drag check it
+ * themselves (`useReorderDrag`).
  */
-export const canReorder = computed(
+export const reorderableBoard = computed(
   () =>
     (activeView.value === "active" || activeView.value === "autoNotes") &&
     sortMode.value === "default" &&
-    !searchQuery.value &&
-    !editingNoteId.value,
+    !searchQuery.value,
+);
+
+/**
+ * If a note can move now: the board can be reordered, and no modal is open.
+ * The keyboard move (`noteMoveTarget`) reads this.
+ */
+export const canReorder = computed(
+  () => reorderableBoard.value && !editingNoteId.value,
 );

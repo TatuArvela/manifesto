@@ -26,6 +26,12 @@ Its props are `open`, `onClose`, `trigger` and `children`.
   layer during the fade, and only Chromium can transition `overlay`.
 - The render calculates `leaving`. An effect never sets it. One frame that is not open and not
   leaving is `display: none`, and that cancels the exit.
+- The content of a `Dropdown` mounts at its first open, and then stays mounted. Thus, a menu that
+  opens again during its exit transitions back. Before, each closed panel had its content in the
+  page: an opened note made about 300 elements in closed panels, in the task of its first frame.
+- A `Tooltip` mounts its popover at its first show, and then keeps it. Each tooltip kept a closed
+  popover in the page before: about 1,400 elements on a board of 86 cards, and 26 popovers in an
+  open note, made in the task of its click. Its anchor name is set from the first show too.
 - Card popovers (`CardPopover`) mount only while they are open. They get their exit from
   `usePresence`.
 - The slide is a translation, never a scale. The browsers without anchor positioning put the panel
@@ -52,8 +58,8 @@ through `NoteMenu`. A surface adds its own rows (`before`). It does not make its
 - Where the pointer can hover, a submenu opens adjacent to the panel (`MenuFlyout`). It is inside the
   box of the panel, because a `Dropdown` is in the top layer. On a touch screen, it opens in place of
   the rows. In both cases, it gets Escape before the panel.
-- A `Dropdown` keeps `NoteMenu` mounted while it is closed. Thus, give it `open`. If you do not, it
-  opens again inside a submenu.
+- A `Dropdown` keeps `NoteMenu` mounted while it is closed, from its first open. Thus, give it
+  `open`. If you do not, it opens again inside a submenu.
 
 ## Confirmation
 
@@ -96,6 +102,15 @@ read one list, `BOARD_SHORTCUTS` in `hooks/useBoardShortcuts.ts`.
   below.
 - `state/sheetHistory.ts` keeps the entries. The pushes of the router wait until that back is
   complete (`afterHistorySettles`). If not, the back goes from the push of the router.
+- A `NoteSheet` pushes its entry after its first paint (`pushAfterPaint`), not in the task that
+  opens it, where a push took 1 to 3 ms before the first frame of a note that grows.
+  `afterHistorySettles` also waits for such a push. Thus, the pushes of the router stay after it.
+  - The push waits for a maximum of `PAINT_WAIT_MS`. A tab in the background paints no frame, and
+    the push held each push of the router until the tab showed.
+  - A sheet that closes before its push makes none.
+  - A back before the push is for the sheet. The listener is in the capture phase, before the one
+    of the router. It stops the event, goes forward to the entry that the browser left, and closes
+    the sheet. If not, the view changed under the open sheet.
 
 ## Other rules
 

@@ -117,7 +117,7 @@ The state is in `packages/client/src/state/`. It is reactive through `@preact/si
 - **`actions.ts`**: the user-level actions on the store: trash, archive, restore and pin with their
   exit animations, tags, bulk operations on the selection, `reorderNotes`, and checklist toggles.
 - **`views.ts`**: what the current view shows: `filteredNotes`, `sortedNotes`, `pinnedNotes` /
-  `unpinnedNotes`, `allTags`, `tagCounts`, `canReorder`.
+  `unpinnedNotes`, `allTags`, `tagCounts`, `reorderableBoard` (what the grids read), `canReorder`.
 - **`selection.ts`**, **`ordering.ts`** (pure position arithmetic), **`exportNotes.ts`**, and
   **`failures.ts`** (`reportFailure` and `asBatch`: how actions report without a rejection).
 - **`ui.ts`**: temporary UI state: `activeView`, `activeTag`, `editingNoteId`, `searchQuery`,

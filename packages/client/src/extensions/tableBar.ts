@@ -3,6 +3,7 @@ import type { MilkdownPlugin } from "@milkdown/kit/ctx";
 import { Plugin } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { t } from "#/i18n/index.ts";
+import { rectInHost } from "./hostRect.ts";
 import {
   applyTableAction,
   availableTableActions,
@@ -136,13 +137,12 @@ class TableBarView {
 
     // Above the table, or under it when the note has no room above (a table
     // at the very top), where the bar would be cut off by the note's edge.
-    const box = host.getBoundingClientRect();
-    const rect = table.getBoundingClientRect();
+    const rect = rectInHost(host, table.getBoundingClientRect());
     const height = this.el.offsetHeight;
-    const above = rect.top - box.top - height - GAP;
-    const top = above >= 0 ? above : rect.bottom - box.top + GAP;
+    const above = rect.top - height - GAP;
+    const top = above >= 0 ? above : rect.bottom + GAP;
     const widest = Math.max(0, host.clientWidth - this.el.offsetWidth);
-    this.el.style.left = `${Math.min(widest, Math.max(0, rect.left - box.left))}px`;
+    this.el.style.left = `${Math.min(widest, Math.max(0, rect.left))}px`;
     this.el.style.top = `${top}px`;
     this.el.dataset.open = "true";
   }

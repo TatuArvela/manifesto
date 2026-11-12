@@ -1,5 +1,11 @@
 import type { ComponentChildren } from "preact";
-import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "preact/hooks";
 import { useEscapeStack } from "#/hooks/useEscapeStack.ts";
 
 let nextId = 0;
@@ -58,8 +64,15 @@ export function Tooltip({
   if (!idRef.current) idRef.current = `--tt-${++nextId}`;
   const popoverRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // The popover and its anchor are in the page from the first show, and stay.
+  // Each tooltip kept a closed popover before: 26 of them in an open note,
+  // about a sixth of its elements, all made in the task of the click.
+  const [mounted, setMounted] = useState(false);
+  // A show that waits for the popover to mount.
+  const showOnMountRef = useRef(false);
 
   const cancelPending = useCallback(() => {
+    showOnMountRef.current = false;
     if (timeoutRef.current === undefined) return;
     clearTimeout(timeoutRef.current);
     pendingTimers.delete(timeoutRef.current);
@@ -71,11 +84,24 @@ export function Tooltip({
     const timer = setTimeout(() => {
       pendingTimers.delete(timer);
       timeoutRef.current = undefined;
-      popoverRef.current?.showPopover();
+      if (popoverRef.current) {
+        popoverRef.current.showPopover();
+        return;
+      }
+      showOnMountRef.current = true;
+      setMounted(true);
     }, 200);
     timeoutRef.current = timer;
     pendingTimers.add(timer);
   };
+
+  // The first show, in the commit that mounts the popover. Thus, it is in the
+  // top layer before the browser paints it.
+  useLayoutEffect(() => {
+    if (!mounted || !showOnMountRef.current) return;
+    showOnMountRef.current = false;
+    popoverRef.current?.showPopover();
+  }, [mounted]);
 
   const hide = () => {
     cancelPending();
@@ -97,7 +123,7 @@ export function Tooltip({
     <span
       class="inline-flex items-center"
       role="group"
-      style={{ anchorName: idRef.current }}
+      style={mounted ? { anchorName: idRef.current } : undefined}
       onPointerEnter={(e) => {
         if (e.pointerType === "mouse") show();
       }}
@@ -110,20 +136,22 @@ export function Tooltip({
       onBlurCapture={hide}
     >
       {children}
-      <div
-        ref={popoverRef}
-        popover="manual"
-        onToggle={(e) => setShown(e.newState === "open")}
-        class="tooltip"
-        style={{ positionAnchor: idRef.current }}
-      >
-        {label.split("\n").map((line, i, arr) => (
-          <span key={`${i}:${line}`}>
-            {line}
-            {i < arr.length - 1 && <br />}
-          </span>
-        ))}
-      </div>
+      {mounted && (
+        <div
+          ref={popoverRef}
+          popover="manual"
+          onToggle={(e) => setShown(e.newState === "open")}
+          class="tooltip"
+          style={{ positionAnchor: idRef.current }}
+        >
+          {label.split("\n").map((line, i, arr) => (
+            <span key={`${i}:${line}`}>
+              {line}
+              {i < arr.length - 1 && <br />}
+            </span>
+          ))}
+        </div>
+      )}
     </span>
   );
 }

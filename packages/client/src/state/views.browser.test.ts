@@ -20,6 +20,7 @@ import {
   inViewLocation,
   notesHiddenByTag,
   pinnedNotes,
+  reorderableBoard,
   setTagHidden,
   sortedNotes,
   tagCounts,
@@ -306,6 +307,16 @@ describe("canReorder", () => {
     searchQuery.value = "";
     editingNoteId.value = "open";
     expect(canReorder.value).toBe(false);
+  });
+
+  // The grids read the board alone. When they also read the open note, each
+  // open and close rendered every card again.
+  it("keeps the board reorderable while a note is open", () => {
+    expect(reorderableBoard.value).toBe(true);
+    editingNoteId.value = "open";
+    expect(reorderableBoard.value).toBe(true);
+    sortMode.value = "updated";
+    expect(reorderableBoard.value).toBe(false);
   });
 });
 

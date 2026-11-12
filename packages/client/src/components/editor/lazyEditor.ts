@@ -15,14 +15,29 @@ const editorChunk = signal<EditorChunk | null>(null);
 let loading: Promise<boolean> | null = null;
 
 /**
+ * Runs `fn` when the browser has nothing else to do, or after a while at the
+ * latest. Safari has no `requestIdleCallback`.
+ */
+function whenIdle(fn: () => void) {
+  if (typeof requestIdleCallback === "function") {
+    requestIdleCallback(fn, { timeout: 3000 });
+  } else {
+    setTimeout(fn, 1000);
+  }
+}
+
+/**
  * Loads the editor if it is not here yet. Resolves false when the load failed.
- * The next call tries again.
+ * The next call tries again. When it arrives, the editor is rendered one time
+ * where nobody sees it (`warmUp.ts`), in idle time. Thus, the first note of a
+ * session opens almost as fast as the next ones.
  */
 export function loadEditor(): Promise<boolean> {
   if (editorChunk.value) return Promise.resolve(true);
   loading ??= import("./editorChunk.ts").then(
     (chunk) => {
       editorChunk.value = chunk;
+      whenIdle(() => void chunk.warmUpEditor());
       return true;
     },
     () => {

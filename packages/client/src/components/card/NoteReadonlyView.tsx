@@ -104,7 +104,7 @@ export function NoteReadonlyView({
 
   return (
     <article
-      class={`${colors.bg} ${colors.border} relative z-10 sm:border sm:shadow-lg note-sheet-surface max-sm:flex max-sm:flex-col`}
+      class={`${colors.bg} ${colors.border} relative z-10 sm:border note-sheet-surface max-sm:flex max-sm:flex-col`}
     >
       {/* Top bar: back (mobile only) + pin. On desktop, pin floats absolute
           top-right; on mobile, this is a flex row above the title. */}

@@ -6,6 +6,7 @@ import * as Y from "yjs";
 import { DEFAULT_FRAGMENT_NAME } from "#/extensions/yjsCollab.ts";
 import { sharedAgreement } from "#/realtime/contentAgreement.ts";
 import type { NoteYDoc } from "#/realtime/yjsProvider.ts";
+import { defined } from "#/test/defined.ts";
 
 /**
  * The gate: `NoteCardEditor` must not give `collab` to the editor until the
@@ -29,6 +30,8 @@ vi.mock("#/realtime/yjsProvider.ts", () => ({
 
 const { NoteCardEditor } = await import("./NoteCardEditor.tsx");
 const { notes } = await import("#/state/notesStore.ts");
+const { editingNoteId } = await import("#/state/ui.ts");
+const { t } = await import("#/i18n/index.ts");
 
 const NOTE_ID = "01JQZK8V0000000000000NOTE";
 
@@ -416,5 +419,45 @@ describe("NoteCardEditor with a row written from outside the document", () => {
     await vi.waitFor(() => {
       expect(editorText()).toBe("Milk");
     });
+  });
+});
+
+describe("NoteCardEditor when its note closes", () => {
+  // The shrink of the close shows a copy of the card, which the render that
+  // starts the close makes. With the save at the unmount, that copy had the
+  // text from before the last edits, and the card changed after it landed.
+  it("saves the waiting text before the render of the close", async () => {
+    const note = makeNote("Milk, eggs, coffee");
+    storeNote(note);
+    provided.current = {
+      ydoc: null,
+      awareness: null,
+      status: "disabled",
+      synced: false,
+      outdated: false,
+      unreadable: 0,
+    };
+    editingNoteId.value = NOTE_ID;
+    try {
+      show(note);
+      const title = await vi.waitFor(() =>
+        defined(
+          host.querySelector<HTMLInputElement>(
+            `input[aria-label="${t("editor.titlePlaceholder")}"]`,
+          ) ?? undefined,
+        ),
+      );
+      title.value = "Groceries";
+      title.dispatchEvent(new Event("input", { bubbles: true }));
+      await new Promise((done) => requestAnimationFrame(() => done(null)));
+      // The auto-save waits.
+      expect(notes.value[0]?.title).toBe("Shopping");
+
+      editingNoteId.value = null;
+      // At once, in the task of the close.
+      expect(notes.value[0]?.title).toBe("Groceries");
+    } finally {
+      editingNoteId.value = null;
+    }
   });
 });

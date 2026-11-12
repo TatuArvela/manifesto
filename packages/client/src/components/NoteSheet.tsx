@@ -71,7 +71,9 @@ export function NoteSheet({
     return el ? openSheet(el) : undefined;
   }, [dialogRef]);
 
-  useBackToClose(!closing, onBack);
+  // The entry goes in after the first paint of the sheet. A push in the task
+  // that opens a note came before the first frame of its grow.
+  useBackToClose(!closing, onBack, { pushAfterPaint: true });
 
   const [aside, setAside] = useState<HTMLElement | null>(null);
 
@@ -87,13 +89,23 @@ export function NoteSheet({
       >
         {/* The panel and what is beside it, centred as one. The panel's
             height is the dialog's less its padding, said outright because a
-            percentage has nothing to measure against in a row this tall. */}
+            percentage has nothing to measure against in a row this tall.
+            The shadow and the corners are on the panel, not on the surface
+            inside it: the panel scrolls, and clips each shadow inside it.
+            It is `relative`, because the copy of a card that a morph shows
+            in its window fills it (utils/morphStandIn.ts). */}
         <div class="w-full sm:flex sm:items-start sm:justify-center">
           <div
             ref={panelRef ?? null}
-            class="note-sheet-panel pointer-events-auto w-full sm:min-w-0 sm:max-w-2xl sm:max-h-[calc(100dvh-2rem)] sm:overflow-y-auto sm:overscroll-contain"
+            class="note-sheet-panel pointer-events-auto relative w-full sm:min-w-0 sm:max-w-2xl sm:max-h-[calc(100dvh-2rem)] sm:overflow-y-auto sm:overscroll-contain sm:rounded-(--note-radius) sm:shadow-lg"
           >
-            <SheetAside.Provider value={aside}>{children}</SheetAside.Provider>
+            {/* The content, which a morph scales back while it scales the
+                panel. Thus, the text keeps its size (utils/morph.ts). */}
+            <div class="note-sheet-content">
+              <SheetAside.Provider value={aside}>
+                {children}
+              </SheetAside.Provider>
+            </div>
           </div>
           <div
             ref={setAside}

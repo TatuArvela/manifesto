@@ -7,18 +7,23 @@ import { signal } from "@preact/signals";
  * is part of the page layout, and a layer over it must be a sibling of the app
  * shell, as the confirmation is.
  */
-export const drawingRequest = signal<{
+export interface DrawingRequest {
   /** Called with the completed drawing, an image file. */
   onDone: (file: File) => void;
   /** One of the images of the note to draw over, as the note has it. */
   base?: string | undefined;
-} | null>(null);
+}
 
+export const drawingRequest = signal<DrawingRequest | null>(null);
+
+/** Opens the pad. Returns the request, by which a caller knows its own pad. */
 export function requestDrawing(
   onDone: (file: File) => void,
   base?: string,
-): void {
-  drawingRequest.value = { onDone, base };
+): DrawingRequest {
+  const request = { onDone, base };
+  drawingRequest.value = request;
+  return request;
 }
 
 export function closeDrawing(): void {

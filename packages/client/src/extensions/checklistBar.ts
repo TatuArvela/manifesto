@@ -3,6 +3,7 @@ import type { MilkdownPlugin } from "@milkdown/kit/ctx";
 import { Plugin } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { t } from "#/i18n/index.ts";
+import { rectInHost } from "./hostRect.ts";
 import { itemDateOf, setItemDate } from "./itemDates.ts";
 import { activeTaskItem } from "./taskListStructure.ts";
 
@@ -119,13 +120,12 @@ class ChecklistBarView {
 
     // Above the item's line at its right end, where a short item leaves the
     // row above clear; under the line when the note has no room above it.
-    const box = host.getBoundingClientRect();
-    const lineRect = line.getBoundingClientRect();
-    const rowRect = row.getBoundingClientRect();
+    const lineRect = rectInHost(host, line.getBoundingClientRect());
+    const rowRect = rectInHost(host, row.getBoundingClientRect());
     const height = this.el.offsetHeight;
-    const above = lineRect.top - box.top - height - GAP;
-    const top = above >= 0 ? above : lineRect.bottom - box.top + GAP;
-    const right = rowRect.right - box.left;
+    const above = lineRect.top - height - GAP;
+    const top = above >= 0 ? above : lineRect.bottom + GAP;
+    const right = rowRect.right;
     const left = Math.max(0, right - this.el.offsetWidth);
     this.el.style.left = `${left}px`;
     this.el.style.top = `${top}px`;

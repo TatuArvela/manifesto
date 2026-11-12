@@ -120,6 +120,31 @@ describe("useFocusTrap", () => {
     expect(focusedId()).toBe("last");
   });
 
+  // The copy of a card that a morph shows in its window is at the end of the
+  // panel, and inert. A wrap to its button did nothing.
+  it("wraps past an inert copy at the end of the modal", async () => {
+    render(
+      <Trapped>
+        <button type="button" id="first">
+          first
+        </button>
+        <button type="button" id="last">
+          last
+        </button>
+        <div inert>
+          <button type="button" id="copy">
+            copy
+          </button>
+        </div>
+      </Trapped>,
+      host,
+    );
+    await focusOn("first");
+
+    await shiftTab();
+    expect(focusedId()).toBe("last");
+  });
+
   it("lets Tab move normally between stops inside the modal", async () => {
     // Only the two ends are intercepted. Thus, Tab keeps its meaning in all
     // other places. Inside ProseMirror, it still indents a list item.
